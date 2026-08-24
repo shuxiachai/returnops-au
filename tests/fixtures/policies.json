@@ -1,0 +1,38 @@
+[
+  {
+    "source_id": "STORE-POL-001",
+    "title": "Store General Return Policy (Change of Mind)",
+    "url": "https://store.example.com.au/pages/returns-policy",
+    "section": "Section 1: 14-Day Change of Mind Policy",
+    "text_snippet": "We offer a 14-day return window from the date of delivery for change of mind returns. Items must be unopened, unused, in original packaging with all tags attached. Return shipping is at the customer's expense. Change of mind returns received after 14 days will be rejected.",
+    "is_statutory": false,
+    "confidence_score": 1.0
+  },
+  {
+    "source_id": "ACCC-ACL-001",
+    "title": "ACCC Consumer Guarantees - Products must be of acceptable quality",
+    "url": "https://www.accc.gov.au/consumers/buying-products-and-services/consumer-guarantees",
+    "section": "Statutory Guarantee: Acceptable Quality & Durability",
+    "text_snippet": "Under the Australian Consumer Law (ACL), products must be of acceptable quality, safe, durable, and free from defects. These consumer rights apply automatically and regardless of any voluntary store warranty or time limits (such as a 14-day or 30-day return policy). A store policy cannot override statutory consumer guarantees.",
+    "is_statutory": true,
+    "confidence_score": 1.0
+  },
+  {
+    "source_id": "ACCC-ACL-002",
+    "title": "ACCC Remedies - Major vs Minor Failure",
+    "url": "https://www.accc.gov.au/business/problem-with-a-product-or-service-you-sold/repair-replace-refund-cancel",
+    "section": "Remedy Hierarchy: Major vs Minor Problems",
+    "text_snippet": "If a product failure is MAJOR (e.g., product is unsafe, significantly unfit for purpose, or cannot be repaired easily within a reasonable time), the consumer has the right to choose between a full refund or replacement. If the failure is MINOR, the business can choose to provide a free repair within a reasonable time, or offer a replacement/refund.",
+    "is_statutory": true,
+    "confidence_score": 1.0
+  },
+  {
+    "source_id": "ACCC-ACL-003",
+    "title": "ACCC Guidance - Supplier Responsibilities",
+    "url": "https://www.accc.gov.au/business/problem-with-a-product-or-service-you-sold/repair-replace-refund-cancel",
+    "section": "Business Obligations: No Manufacturer Deflection",
+    "text_snippet": "Businesses cannot refuse to help a consumer by telling them to contact the manufacturer directly. The retailer from whom the product was purchased is legally obligated to manage the remedy process for the consumer under ACL.",
+    "is_statutory": true,
+    "confidence_score": 1.0
+  }
+]

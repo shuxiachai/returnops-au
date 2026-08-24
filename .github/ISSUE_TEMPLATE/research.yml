@@ -1,0 +1,30 @@
+name: Research or design decision
+description: Collect evidence for a scoped project decision
+title: "[Research]: "
+labels: ["type:research"]
+body:
+  - type: textarea
+    id: decision
+    attributes:
+      label: Decision to inform
+      description: What decision will this work enable?
+    validations:
+      required: true
+  - type: textarea
+    id: questions
+    attributes:
+      label: Questions and evidence needed
+    validations:
+      required: true
+  - type: textarea
+    id: timebox
+    attributes:
+      label: Time box and output
+      description: State when research stops and what artefact will be produced.
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: Biases, assumptions, and risks
+

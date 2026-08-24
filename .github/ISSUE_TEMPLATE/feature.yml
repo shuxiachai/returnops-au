@@ -1,0 +1,45 @@
+name: Feature or project outcome
+description: Propose a scoped, testable project outcome
+title: "[Feature]: "
+labels: ["type:feature"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or user outcome
+      description: Describe the need, not only the implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope and non-scope
+      description: State what this issue includes and excludes.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Use observable and testable criteria.
+    validations:
+      required: true
+  - type: input
+    id: requirements
+    attributes:
+      label: Requirement IDs
+      placeholder: FR-001, NFR-002
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Test or evidence
+      description: Explain how completion will be demonstrated.
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: Dependencies and risks
+

@@ -1,0 +1,35 @@
+[
+  {
+    "case_id": "test_case_001",
+    "customer_message": "My coffee machine stopped working after three weeks. Your website says returns are limited to 14 days. Order AU-1024. I want a refund.",
+    "expected_order_number": "AU-1024",
+    "expected_request_type": "faulty_product",
+    "expected_remedy": "replacement",
+    "expected_statutory_precedence": true,
+    "expected_cited_sources": ["ACCC-ACL-001", "ACCC-ACL-002"],
+    "requires_escalation": false,
+    "notes": "Classic ACCC statutory guarantee case where store 14-day limit cannot exclude warranty for dead coffee machine."
+  },
+  {
+    "case_id": "test_case_002",
+    "customer_message": "Hi, I ordered black Sony headphones on order AU-1025, but when I opened the box you delivered white ones. I want the black ones I paid for.",
+    "expected_order_number": "AU-1025",
+    "expected_request_type": "wrong_item",
+    "expected_remedy": "replacement",
+    "expected_statutory_precedence": false,
+    "expected_cited_sources": ["ACCC-ACL-002"],
+    "requires_escalation": false,
+    "notes": "Wrong item delivered. Business must provide prepaid return label and dispatch correct item."
+  },
+  {
+    "case_id": "test_case_003",
+    "customer_message": "I bought the Dyson vacuum AU-1026 25 days ago. Nothing is wrong with it, but I just changed my mind and prefer a different brand. Can I return it for a refund?",
+    "expected_order_number": "AU-1026",
+    "expected_request_type": "change_of_mind",
+    "expected_remedy": "reject",
+    "expected_statutory_precedence": false,
+    "expected_cited_sources": ["STORE-POL-001"],
+    "requires_escalation": false,
+    "notes": "Change of mind submitted after 14-day store policy window. Under ACL, retailers are not required to provide change of mind refunds beyond their store policy."
+  }
+]

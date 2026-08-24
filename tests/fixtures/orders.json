@@ -1,0 +1,101 @@
+[
+  {
+    "order_id": "gid://shopify/Order/1001",
+    "order_number": "AU-1024",
+    "customer": {
+      "customer_id": "cust_8801",
+      "name": "Sarah Jenkins",
+      "email": "sarah.j@example.com.au",
+      "phone": "+61 412 345 678"
+    },
+    "line_items": [
+      {
+        "item_id": "item_5541",
+        "sku": "BREV-BES870-SS",
+        "title": "Breville Barista Express Espresso Machine - Brushed Stainless",
+        "quantity": 1,
+        "unit_price": 749.00,
+        "returnable": true
+      }
+    ],
+    "order_date": "2026-07-27T08:30:00Z",
+    "fulfillment_date": "2026-07-29T14:15:00Z",
+    "payment_status": "paid",
+    "fulfillment_status": "fulfilled",
+    "total_amount": 749.00,
+    "currency": "AUD",
+    "shipping_address": {
+      "street": "14 George St",
+      "city": "Sydney",
+      "state": "NSW",
+      "postcode": "2000",
+      "country": "Australia"
+    }
+  },
+  {
+    "order_id": "gid://shopify/Order/1002",
+    "order_number": "AU-1025",
+    "customer": {
+      "customer_id": "cust_8802",
+      "name": "Michael Chen",
+      "email": "mchen@example.com.au",
+      "phone": "+61 423 456 789"
+    },
+    "line_items": [
+      {
+        "item_id": "item_5542",
+        "sku": "SONY-WH1000XM5-BLK",
+        "title": "Sony WH-1000XM5 Wireless Noise Cancelling Headphones - Black",
+        "quantity": 1,
+        "unit_price": 499.00,
+        "returnable": true
+      }
+    ],
+    "order_date": "2026-08-10T11:20:00Z",
+    "fulfillment_date": "2026-08-12T09:40:00Z",
+    "payment_status": "paid",
+    "fulfillment_status": "fulfilled",
+    "total_amount": 499.00,
+    "currency": "AUD",
+    "shipping_address": {
+      "street": "88 Collins St",
+      "city": "Melbourne",
+      "state": "VIC",
+      "postcode": "3000",
+      "country": "Australia"
+    }
+  },
+  {
+    "order_id": "gid://shopify/Order/1003",
+    "order_number": "AU-1026",
+    "customer": {
+      "customer_id": "cust_8803",
+      "name": "Emily Watson",
+      "email": "emily.w@example.com.au",
+      "phone": "+61 434 567 890"
+    },
+    "line_items": [
+      {
+        "item_id": "item_5543",
+        "sku": "DYSON-V15-DETECT",
+        "title": "Dyson V15 Detect Cordless Vacuum Cleaner",
+        "quantity": 1,
+        "unit_price": 1199.00,
+        "returnable": true
+      }
+    ],
+    "order_date": "2026-08-01T15:00:00Z",
+    "fulfillment_date": "2026-08-03T16:20:00Z",
+    "payment_status": "paid",
+    "fulfillment_status": "fulfilled",
+    "total_amount": 1199.00,
+    "currency": "AUD",
+    "shipping_address": {
+      "street": "25 Queen St",
+      "city": "Brisbane",
+      "state": "QLD",
+      "postcode": "4000",
+      "country": "Australia"
+    }
+  }
+]
