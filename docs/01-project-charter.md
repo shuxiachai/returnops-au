@@ -9,7 +9,7 @@ specification.
 
 ## 2. Problem statement
 
-Australian e-commerce SME founders often handle product-problem requests across
+Australian e-commerce SME founders often handle return and remedy requests across
 email, order systems, store policies, payment records, and logistics portals.
 The information needed to make a consistent decision is fragmented, while the
 decision may affect customer rights, inventory, cash, and reputation.
@@ -135,7 +135,8 @@ Expected system behaviour:
 3. Separate a claimed product problem from a change-of-mind return.
 4. Retrieve the relevant store policy and approved guidance.
 5. Identify missing diagnostic evidence and ask targeted questions.
-6. Avoid declaring a major or minor failure when evidence is insufficient.
+6. Organise evidence relevant to possible remedy paths while never issuing a
+   final major/minor-failure or legal-entitlement determination.
 7. Produce a cited recommendation and confidence score.
 8. Route the proposal to the founder.
 9. After approval, create a simulated return and return label.
@@ -168,4 +169,3 @@ query a mock order, retrieve one policy passage, and produce a typed proposal.
 
 Optional features enter Stage 2 only after mandatory requirements have automated
 tests and the core evaluation targets are measurable.
-

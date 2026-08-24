@@ -9,9 +9,9 @@ without creating parallel architectural centres.
 
 The planning allocation across the three team members is approximately:
 
-- Member A, Project Lead & System Architect (Backend & Agent Core): ~48%;
-- Member B, Frontend & User Experience Lead (Client & Operations Dashboard): ~25%;
-- Member C, QA & AI Evaluation Lead (Benchmark & Evaluation Pipeline): ~27%;
+- Member A (`@shuxiachai`), Project Lead & System Architect (Backend & Agent Core): ~48%;
+- Member B (`@ChengsiLi`), Frontend & User Experience Lead (Client & Operations Dashboard): ~25%;
+- Member C (`@lulucas-tao`), QA & AI Evaluation Lead (Benchmark & Evaluation Pipeline): ~27%;
 
 This structure satisfies the ELEC5620 Lab 2 requirement that every member individually implements at least two core features and one optional feature.
 
@@ -51,15 +51,17 @@ Primary responsibilities:
 Primary responsibilities:
 
 - acceptance criteria definition, quality metric thresholds, and requirements traceability;
-- curated store policy corpus and ACCC statutory warranty guidance;
+- curated store policy corpus and reviewed ACCC consumer-guarantee guidance;
 - 100 synthetic return cases with ground-truth labels (faulty, wrong item, change of mind, missing evidence, escalations);
 - automated AI evaluation pipeline comparing 4 configurations (No-RAG vs RAG vs Multi-Agent vs Governed Multi-Agent);
 - safety and prompt injection test suite, failure analysis, and benchmark reports.
 
 **Lab 2 Deliverables**:
 - *Core Feature 1*: 100-case synthetic benchmark dataset & ground-truth labeling.
-- *Core Feature 2*: Automated AI evaluation pipeline and comparison reporting.
-- *Optional Feature*: Security, prompt injection guardrail testing, and automated CI test runner.
+- *Core Feature 2*: Automated AI evaluation pipeline and comparison reporting,
+  including mandatory prompt-injection, unauthorised-tool, and approval-bypass
+  negative paths required by NFR-006 and NFR-009.
+- *Optional Feature*: Expanded adversarial corpus and automated CI test runner.
 
 ## 2. Shared responsibilities
 

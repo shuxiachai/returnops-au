@@ -13,7 +13,7 @@
 * **Product Name**: `ReturnOps AU`
 * **Full Title**: *ReturnOps AU: An Evidence-Grounded Multi-Agent Returns and Remedy Operations Company for Australian E-Commerce SMEs*
 * **One-Sentence Brief**:
-  > For Australian e-commerce SME founders handling product-problem requests, resolution is slow and inconsistent because customer messages, order records, store policies, consumer-law guidance (ACCC), and logistics state are fragmented. ReturnOps AU coordinates intake, investigation, policy, resolution, and audit agents to produce an evidence-grounded proposed remedy within two minutes and complete approved follow-up, while the human founder retains full accountability and approves refunds, replacements, repairs, and other high-impact actions.
+  > For Australian e-commerce SME founders handling return and remedy requests, resolution is slow and inconsistent because customer messages, order records, store policies, consumer-law guidance (ACCC), and logistics state are fragmented. ReturnOps AU coordinates intake, investigation, policy, resolution, and audit agents to produce an evidence-grounded proposed remedy within two minutes and complete approved follow-up, while the human founder retains full accountability and approves refunds, replacements, repairs, and other high-impact actions.
 
 ---
 
@@ -37,8 +37,8 @@ Aligned with **Lab 2 Requirement** (At least 3 distinct AI roles; each member in
 | Member | Role & Ownership | Planned Effort | Stage 1 (MBSE Modeling) Focus | Stage 2 (Implementation) Deliverables |
 | :--- | :--- | :---: | :--- | :--- |
 | **Member A (Lead / You)** | **System Architect & Backend / Agent Lead** | ~48% (~160h) | System Architecture, Package Diagram, Domain Class Diagram, State Machine, Core Sequence Diagrams, Report Integration | **Core 1**: FastAPI & PostgreSQL schema & Domain API.<br>**Core 2**: LangGraph Multi-Agent Orchestrator & State Flow (Intake, Order, Policy, Remedy, Risk).<br>**Optional**: Mock Adapters (Shopify/AusPost) & Docker containerization. |
-| **Member B** | **Frontend & User Experience Lead** | ~25% (~90h) | User Journey, Use Case Diagrams & detailed use-case steps, UI/UX Wireframes & screen flow | **Core 1**: Customer Submission & Evidence Portal.<br>**Core 2**: Founder Operations & Approval Dashboard.<br>**Optional**: Analytics Dashboard for return trends & handling times. |
-| **Member C** | **QA & AI Evaluation Lead** | ~27% (~100h) | Acceptance Criteria, Evaluation Metrics Matrix, Requirements Traceability Matrix, Policy/ACCC Corpus | **Core 1**: 100-case Benchmark Dataset & Ground Truth Labeling.<br>**Core 2**: Automated AI Evaluation Pipeline (4 architecture comparisons, accuracy/recall/cost scripts).<br>**Optional**: Prompt Injection / Safety Guardrail testing & GitHub Actions CI. |
+| **Member B (`@ChengsiLi`)** | **Frontend & User Experience Lead** | ~25% (~90h) | User Journey, Use Case Diagrams & detailed use-case steps, UI/UX Wireframes & screen flow | **Core 1**: Customer Submission & Evidence Portal.<br>**Core 2**: Founder Operations & Approval Dashboard.<br>**Optional**: Analytics Dashboard for return trends & handling times. |
+| **Member C (`@lulucas-tao`)** | **QA & AI Evaluation Lead** | ~27% (~100h) | Acceptance Criteria, Evaluation Metrics Matrix, Requirements Traceability Matrix, Policy/ACCC Corpus | **Core 1**: 100-case Benchmark Dataset & Ground Truth Labeling.<br>**Core 2**: Automated AI Evaluation Pipeline (4 architecture comparisons, accuracy/recall/cost scripts) plus mandatory prompt-injection, unauthorised-tool, and approval-bypass negative paths.<br>**Optional**: Expanded adversarial corpus and GitHub Actions CI automation. |
 
 ---
 
@@ -60,8 +60,8 @@ flowchart LR
 ### Agent Roles & Boundaries
 1. **Intake Agent**: Extracts structured facts (order ID, item, issue, claimed date, expected outcome) from natural language; asks targeted follow-ups.
 2. **Order Investigation Agent**: Queries mock Shopify GraphQL adapter for payment status, purchase date, item records.
-3. **Policy & ACL Agent**: RAG retrieval over store 14-day policy and ACCC statutory warranty rules. Distinguishes *Faulty Item* vs *Change of Mind*.
-4. **Evidence & Remedy Agent**: Evaluates major vs minor failure evidence and drafts a typed remedy proposal (repair, replace, refund).
+3. **Policy & ACL Agent**: RAG retrieval over the store's 14-day policy and reviewed ACCC consumer-guarantee guidance. Distinguishes *Faulty Item* vs *Change of Mind* without issuing a final legal determination.
+4. **Evidence & Remedy Agent**: Organises evidence relevant to possible remedy paths and drafts a conditional typed proposal (repair, replace, refund). It does not make a definitive major/minor-failure or legal-entitlement determination.
 5. **Risk Reviewer Agent**: Validates citations, detects hallucinations/unsupported claims, triggers escalation if confidence < 80% or conflict detected.
 6. **Human Founder (Gatekeeper)**: Mandatory human gate for all financial/inventory impact actions. AI CANNOT self-authorize refunds.
 7. **Operations Agent**: Executes approved commands with idempotency keys (creates return label, updates mock order status).
