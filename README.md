@@ -55,6 +55,7 @@ refund.
 - [Team and GitHub workflow](docs/03-team-and-github-workflow.md)
 - [Requirements and initial backlog](docs/04-requirements-and-backlog.md)
 - [Laboratory 3 requirements modelling](docs/05-lab-3-requirement-modelling.md)
+- [Requirements desk-research evidence register (advisory)](docs/06-requirements-desk-research-evidence.md)
 - [FODA feature model](docs/diagrams/04-feature-diagram.md)
 - [Use-case and actor-boundary model](docs/diagrams/05-use-case-diagram.md)
 
