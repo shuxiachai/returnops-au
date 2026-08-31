@@ -77,8 +77,9 @@ instead demonstrates:
 3. cited, conditional recommendations with alternatives and uncertainty;
 4. independent review of claims, citations, conflicts, and prompt injection;
 5. exact proposal-version and command-scope approval binding;
-6. reproducible comparison of single-LLM, retrieval, multi-agent, and governed
-   multi-agent configurations; and
+6. a reproducible required comparison between a single-LLM baseline and the
+   governed multi-agent system, with intermediate ablations retained only as
+   optional portfolio work; and
 7. measured failure, safety, latency, and cost outcomes.
 
 ---
@@ -126,9 +127,28 @@ merchant depends on that entity and its activities; privacy-by-design remains a
 mandatory project-governance rule regardless. ReturnOps AU does not make a
 merchant-specific legal-applicability determination.
 
-### 2.3 Demonstration persona and constraints
+### 2.3 Evidence-register freeze and report use
 
-- One Australian one-person physical-goods online retailer.
+The [desk-research evidence register](06-requirements-desk-research-evidence.md)
+is a frozen design appendix with a research cut-off of 25 August 2026. It is not
+a continuously expanding course deliverable. It changes only when a material
+requirement changes, a cited source materially changes, a factual correction is
+required, or the team/tutor requests a review.
+
+The assessed Stage 1 report should summarise the key requirement sources,
+assumptions, constraints, and limitations in approximately one to two pages and
+refer to the full register as supporting evidence. The project will not build an
+evidence-management portal, evidence-approval workflow, or additional research
+metadata product.
+
+The frozen design register is distinct from the small runtime corpus required by
+`FR-006`. That runtime corpus contains only the reviewed passages needed by the
+three supported request categories and may be stored as versioned JSON or
+Markdown with a simple keyword/BM25 retrieval baseline.
+
+### 2.4 Demonstration persona and constraints
+
+- One Australian physical-goods online retailer operated by a single Human Founder.
 - Shopify-like synthetic order records and AUD currency.
 - English customer and operator interfaces.
 - Synthetic or de-identified customer and order data only.
@@ -426,9 +446,10 @@ chain.
 | B | **Submit and clarify a customer request** — `FR-001`, `FR-002`, `FR-005`; `UC-01`, `UC-01E` | **Review and decide through the Founder Dashboard** — interface for `FR-009`, `FR-012`; `UC-03`, `UC-05` | **Operations Analytics Dashboard** — `OF-006` |
 | C | **Ground a decision packet with versioned sources** — `FR-006`, `FR-007`; `UC-02` | **Independently review and escalate proposal risk** — `FR-008`, `NFR-009`; `UC-02` | **Product-image Evidence Analysis** — `OF-001`, activated only after the text workflow is stable |
 
-Member C also owns the benchmark, safety suite, and evaluation report as
-cross-system quality responsibilities; those responsibilities do not substitute
-for the two product-facing core features.
+Member C also owns the 30-case Gold set, the required `B1` versus `B4`
+evaluation report, and the parameterised safety/workflow suites as cross-system
+quality responsibilities; those responsibilities do not substitute for the two
+product-facing core features.
 
 ### 10.3 Individual Stage 1 model chain
 
@@ -565,21 +586,25 @@ fact. The team measures a limited internal baseline instead:
 3. Measure active time spent reading, checking, recording, and preparing a
    decision packet. Pause simulated customer, provider, Founder, and physical
    waiting.
-4. Have Member C score omissions against labels that the timed operators did
-   not author alone.
+4. Do not let timed operators view Gold labels before or during timing. After
+   both runs finish, have Member C score omissions against independently
+   reviewed labels that the timed operators did not author alone.
 5. Report per-operator and pooled medians, interquartile ranges, omissions,
    scenario mix, and possible learning/order effects.
 
 This is a controlled student-operator baseline, not an estimate of Australian
 merchant performance or end-to-end return resolution time.
 
-### 12.3 One-hundred-scenario regression library
+The 20 timed cases are a stratified subset of the 30 Gold cases below, not a
+second independently authored evaluation dataset.
 
-| Subset | Count | Purpose |
+### 12.3 Course evaluation set and automated safety coverage
+
+| Layer | Course commitment | Purpose |
 |---|---:|---|
-| Gold Semantic Set | 30 | Double-reviewed classification, information, citation, recommendation, and risk labels |
-| Approval & Security Set | 40 | Stale approval, wrong role, over-broad command, prompt injection, and expired approval |
-| Workflow & Provider Set | 30 | Illegal state, duplicate command, timeout, notification failure, and reconciliation |
+| Gold Evaluation Set | 30 double-reviewed cases | Classification, information, citation, recommendation, risk, and representative prompt-injection outcomes |
+| Approval & Security Tests | No fixed scenario quota | Parameterised tests for stale approval, wrong role, over-broad command, prompt injection, expired approval, and unauthorised dispatch |
+| Workflow & Provider Tests | No fixed scenario quota | Parameterised tests for illegal state, duplicate command, timeout, notification failure, and reconciliation |
 
 The Gold Set includes all three supported request categories, complete and
 incomplete information, clear and ambiguous cases, store-policy/guidance
@@ -588,17 +613,31 @@ injection in customer or corpus text.
 
 One person authors each Gold label, another reviews it, and the third arbitrates
 unresolved disagreement. An acceptable recommendation may be a set rather than
-one supposedly legally correct answer.
+one supposedly legally correct answer. Safety and workflow cases should expand
+when defects or boundary conditions are discovered, but the course release does
+not require a fixed 100-scenario library.
 
-### 12.4 Comparison configurations
+### 12.4 Required comparison and optional ablations
 
-1. `B1`: Single LLM, no retrieval.
-2. `B2`: Single LLM + retrieval.
-3. `B3`: Multi-Agent + retrieval.
-4. `B4`: Multi-Agent + retrieval + independent review + deterministic gates.
+Required for the course evaluation:
+
+1. `B1`: Single LLM, no retrieval and no operation authority.
+2. `B4`: Multi-Agent + retrieval + independent review + deterministic gates.
+
+Optional portfolio ablations, run only after the course release is stable:
+
+- `B2`: Single LLM + retrieval; and
+- `B3`: Multi-Agent + retrieval without the complete governance layer.
 
 `B1–B3` are offline proposal-evaluation configurations and cannot execute an
-operation. The demonstration and every simulated operation use `B4` only.
+operation. The demonstration and every simulated operation use `B4` only. A
+portfolio extension may later expand the suite towards 100 scenarios, but this
+is not a course-release condition.
+
+The required `B1` versus `B4` result compares the complete governed architecture
+bundle with a naive single-LLM baseline. It must not be reported as isolating the
+causal effect of multi-agent decomposition alone; that claim would require the
+optional `B2`/`B3` ablations.
 
 ### 12.5 Metrics
 
@@ -645,7 +684,9 @@ A formal run freezes and records:
 
 The report includes raw counts, denominators, confusion matrices, and failure
 examples rather than percentages alone. Ground-truth labels cannot be changed
-after results are observed.
+after results are observed. Because 30 cases are a small course sample, all
+percentages must be accompanied by raw counts and described as prototype
+evidence rather than population-level performance.
 
 ---
 
@@ -657,6 +698,7 @@ after results are observed.
 - Record a disposition for `CP-001–CP-012`.
 - Confirm verification for every FR/NFR.
 - Confirm each member's individual model chain.
+- Create the Jira project and link its initial backlog to GitHub delivery items.
 - Complete team and tutor review.
 
 ### Gate 1 — Executable Safety Spine
@@ -692,13 +734,19 @@ Required evidence:
 - Customer Portal and Founder Dashboard are complete.
 - Normal, missing-information, warning/escalation, and approval-bypass demos pass.
 - Thirty Gold cases are frozen.
-- The one-hundred-scenario regression library runs automatically.
+- The required `B1` versus `B4` comparison is reproducible on the Gold set.
+- Parameterised approval/security and workflow/provider tests pass; no fixed
+  100-scenario quota applies to the course release.
 - CI is green.
+- Jira history shows contemporaneous ownership, estimates, status transitions,
+  blockers, and review/retrospective evidence linked to GitHub delivery records.
 - Requirement–Model–Code–Test traceability is complete.
 - Stage 1 and Stage 2 evidence is consistent.
 
 ### Gate 4 — Portfolio Release
 
+- Selected `B2`/`B3` ablations or expansion towards 100 scenarios are completed
+  only when they support a stated portfolio question.
 - Three portfolio extensions are completed with evidence.
 - A cloud demo and five-minute Quick Start exist.
 - A two-to-three-minute demonstration video exists.
@@ -727,11 +775,36 @@ Required evidence:
 
 ---
 
-## 15. Traceability convention
+## 15. Jira and GitHub traceability convention
+
+### 15.1 Tool responsibilities
+
+**Decision: Jira is required for Agile planning and timeline evidence.** The
+formal marking table does not mandate a specific vendor, but the course tutorial
+identifies a Jira software timeline as Agile evidence. Using Jira is therefore a
+project-governance decision that reduces assessment risk.
+
+- **Jira** is the planning system of record for epics/stories, sprint or Kanban
+  selection, assignee, estimate, status history, blockers, and retrospective
+  evidence.
+- **GitHub Issues** contain technical scope, detailed acceptance criteria,
+  requirement/model links, and expected tests for work that produces a repository
+  change.
+- **GitHub branches, pull requests, reviews, commits, and CI** remain the
+  implementation and engineering-review record.
+- Every delivery item uses one Jira key. A Jira item links its GitHub Issue/PR;
+  the GitHub Issue and PR repeat the Jira key and requirement IDs.
+- Descriptions are not copied wholesale between tools. Jira records planning and
+  status; GitHub records implementation detail and review evidence.
+- During weekly planning/review, the owner updates the Jira status and attaches
+  the relevant GitHub link so the timeline remains contemporaneous.
+
+### 15.2 Required delivery metadata
 
 Every GitHub Issue and pull request includes:
 
 ```text
+Jira Key:
 Owner:
 Reviewer:
 Requirement IDs:
@@ -746,6 +819,7 @@ Evaluation / Demo Evidence:
 Example:
 
 ```text
+Jira Key: <PROJECT-123>
 Owner: Member A
 Requirement IDs: FR-009, FR-010, NFR-002, NFR-004
 Ad-hoc Requirement: AH-10
@@ -767,17 +841,24 @@ Evidence: CI run, audit trace, and demo recording
 - [x] `D-05` End the core at simulated return/label plus notification.
 - [x] `D-06` Permit multiple line items in one case but one label per return shipment.
 - [x] `D-07` Adopt p95, macro-F1, risk recall, and specificity metrics.
-- [x] `D-08` Adopt the 30 Gold + 40 Security + 30 Workflow scenario structure.
+- [x] `D-08` Adopt 30 double-reviewed Gold cases and the required `B1` versus
+  `B4` comparison for the course; use parameterised safety/workflow tests without
+  a fixed quota, and defer `B2`/`B3` plus any 100-scenario expansion to portfolio work.
 - [x] `D-09` Adopt the 45% / 27% / 28% workload plan.
 - [x] `D-10` Adopt the core/optional features and individual UML chains.
 - [x] `D-11` Prioritise hybrid retrieval, Redis/Celery/Outbox, and OpenTelemetry/Grafana as portfolio extensions.
 - [x] `D-12` Keep full customer-status tracking outside the core; provide outcome and next-step notification.
 - [x] `D-13` Decide on a public portfolio repository only after checking course-publication rules.
+- [x] `D-14` Freeze the evidence register as a supporting appendix and condense
+  it to approximately one to two pages in the assessed report.
+- [x] `D-15` Require Jira for Agile planning/timeline evidence while retaining
+  GitHub as the engineering delivery and review record.
 
 ## 17. Remaining adoption reviews
 
 - [ ] Member B reviews the customer and Founder journeys, UI scope, and personal model chain.
 - [ ] Member C reviews grounding, risk, benchmark labels, and personal model chain.
-- [ ] The tutor reviews course fit, individual contribution, scope, and model feasibility.
+- [ ] The tutor reviews course fit, individual contribution, scope, model
+  feasibility, and the Jira/GitHub evidence split.
 - [ ] The team updates affected v0.2 documents and UML in one traceable baseline-adoption change.
 - [ ] The baseline-adoption pull request is reviewed and merged.

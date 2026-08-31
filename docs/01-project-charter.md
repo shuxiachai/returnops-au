@@ -34,16 +34,21 @@ returns team.
 - Logistics provider.
 - Consumer-protection and compliance stakeholders.
 
-## 4. Evidence to validate
+## 4. Evidence and assumptions to review
 
-The team must validate these assumptions through at least three interviews or
-structured observations:
+The course project uses the frozen desk-research appendix, controlled scenario
+walkthroughs, the 20-case student-operator subset, and tutor review to examine
+these assumptions:
 
 1. Case investigation is slowed by switching between systems.
 2. Staff frequently need to request missing information.
 3. Policy interpretation is inconsistent across cases.
 4. High-impact actions require a responsible human decision.
 5. A compliance matrix and recommended next action would reduce handling time.
+
+These methods do not constitute primary user, market, adoption, or
+willingness-to-pay validation. Further interviews or field observation belong to
+future commercial discovery and are not a course-delivery task.
 
 Useful domain references include:
 
@@ -157,8 +162,9 @@ Expected system behaviour:
 
 ### Gate A: problem validation
 
-Proceed only if user evidence supports the problem and the tutor accepts the
-scope.
+Proceed when the evidence/assumption boundary is explicit, the controlled
+validation protocol is agreed, and the tutor accepts the course scope. Do not
+claim primary-user validation.
 
 ### Gate B: technical feasibility
 

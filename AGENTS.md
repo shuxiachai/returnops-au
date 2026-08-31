@@ -8,7 +8,8 @@
 
 > **Baseline transition notice (2026-08-31)**: The project lead has approved
 > [`docs/00-project-definition-v1.md`](docs/00-project-definition-v1.md) as the
-> Baseline v1.0 candidate. It defines one one-person Australian online store,
+> Baseline v1.0 candidate. It defines one Australian online store operated by a
+> single Human Founder,
 > three AI business roles, a deterministic Operations Service, and an MVP ending
 > at an approved simulated return/label outcome plus notification. Use that
 > candidate for new planning on this branch. It becomes canonical only after
@@ -35,7 +36,7 @@
 3. **Discarded Alternative 3: Household Energy Optimisation (`EnergyPilot AU`)**
    * *Rationale for rejection*: Heavy reliance on mathematical optimization (OR-Tools) overshadowed the LLM Agent necessity; smart meter data acquisition was unrealistic.
 4. **Selected Topic: `ReturnOps AU` (10/10 candidate)**
-   * *Why it won*: Strong fit for "One-Person AI Company", three distinct AI business roles, strict human-in-the-loop governance, rich and traceable MBSE behaviour, reviewed Australian domain evidence, and a measurable 100-scenario evaluation library. It provides conditional guidance and does not claim legal compliance or legal correctness.
+   * *Why it won*: Strong fit for "One-Person AI Company", three distinct AI business roles, strict human-in-the-loop governance, rich and traceable MBSE behaviour, reviewed Australian domain evidence, and a measurable 30-case Gold evaluation with parameterised safety/workflow coverage. It provides conditional guidance and does not claim legal compliance or legal correctness.
 
 ---
 
@@ -47,7 +48,7 @@ Aligned with **Lab 2 Requirement** (At least 3 distinct AI roles; each member in
 | :--- | :--- | :---: | :--- | :--- |
 | **Member A (Lead / You)** | **System Architect & Backend / Agent Lead** | ~45% | System integration; Composite Structure, domain, approval/execution behaviour, and traceability models | **Core 1**: Authoritative return-case lifecycle.<br>**Core 2**: Exact-scope Founder approval and governed simulated execution.<br>**Optional**: Logistics sandbox/test adapter and recovery path. |
 | **Member B (`@ChengsiLi`)** | **Frontend & User Experience Lead** | ~27% | Customer journey; use-case and intake behaviour; UI/UX flows | **Core 1**: Customer Intake & Clarification Portal.<br>**Core 2**: Founder Review & Approval Dashboard.<br>**Optional**: Operations Analytics Dashboard. |
-| **Member C (`@lulucas-tao`)** | **Grounding, Risk & AI Evaluation Lead** | ~28% | Grounding/risk requirements and behaviour; evaluation metrics and traceability | **Core 1**: Versioned Guidance Retrieval & Citation Verification.<br>**Core 2**: Independent Risk Review & Escalation.<br>**Optional**: Product-image Evidence Analysis.<br>Also owns the benchmark, safety suite, and evaluation report. |
+| **Member C (`@lulucas-tao`)** | **Grounding, Risk & AI Evaluation Lead** | ~28% | Grounding/risk requirements and behaviour; evaluation metrics and traceability | **Core 1**: Versioned Guidance Retrieval & Citation Verification.<br>**Core 2**: Independent Risk Review & Escalation.<br>**Optional**: Product-image Evidence Analysis.<br>Also owns the 30-case Gold set, parameterised safety/workflow suites, and `B1` versus `B4` report. |
 
 ---
 
@@ -95,7 +96,7 @@ returnops-au/
 ├── docs/                    # Project Charter, System Design, Team Workflow, Backlog
 ├── tests/
 │   ├── fixtures/            # Mock orders, policies, products (Member B & C)
-│   └── evaluation_cases/    # 100 labelled synthetic evaluation cases (Member C)
+│   └── evaluation_cases/    # 30 Gold cases plus parameterised suites (Member C)
 ├── AGENTS.md                # This persistent memory file
 ├── docker-compose.yml       # Local development orchestration
 └── README.md                # Project landing page
@@ -127,3 +128,10 @@ returnops-au/
    v0.2 baseline until the candidate adoption PR is formally approved and
    merged; do not reintroduce the old seven-agent or multi-SME scope into new
    planning.
+6. **Preserve the Delivery Record**: Jira is the Agile planning/timeline system
+   of record; GitHub Issues/PRs/commits/CI are the technical delivery record.
+   Every delivery item must carry one Jira key and link the corresponding GitHub
+   evidence. Do not create or maintain a duplicate GitHub Project status board.
+7. **Respect Scope Freezes**: Do not routinely expand the frozen requirements
+   research appendix, the 30-case Gold set, or the required `B1` versus `B4`
+   comparison. `B2`/`B3` and expansion towards 100 scenarios are portfolio work.

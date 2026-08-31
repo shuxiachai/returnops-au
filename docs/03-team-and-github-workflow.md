@@ -1,4 +1,4 @@
-# Team and GitHub Workflow
+# Team, Jira and GitHub Workflow
 
 ## 1. Team structure and planned workload
 
@@ -9,13 +9,13 @@ without creating parallel architectural centres.
 
 The planning allocation across the three team members is approximately:
 
-- Member A (`@shuxiachai`), Project Lead & System Architect (Backend & Agent Core): ~48%;
-- Member B (`@ChengsiLi`), Frontend & User Experience Lead (Client & Operations Dashboard): ~25%;
-- Member C (`@lulucas-tao`), QA & AI Evaluation Lead (Benchmark & Evaluation Pipeline): ~27%;
+- Member A (`@shuxiachai`), Project Lead & System Architect (Backend & Agent Core): ~45%;
+- Member B (`@ChengsiLi`), Frontend & User Experience Lead (Client & Operations Dashboard): ~27%;
+- Member C (`@lulucas-tao`), Grounding, Risk & AI Evaluation Lead: ~28%;
 
 This structure satisfies the ELEC5620 Lab 2 requirement that every member individually implements at least two core features and one optional feature.
 
-### Member A: Project Lead, System Architect & Backend/Agent Core Lead (~48%)
+### Member A: Project Lead, System Architect & Backend/Agent Core Lead (~45%)
 
 Primary responsibilities:
 
@@ -27,11 +27,11 @@ Primary responsibilities:
 - system integration, CI/CD foundation, Docker containerization, report integration, and presentation narrative.
 
 **Lab 2 Deliverables**:
-- *Core Feature 1*: Domain API, PostgreSQL database, and ReturnCase lifecycle state machine.
-- *Core Feature 2*: Multi-agent orchestration and governed decision flow.
-- *Optional Feature*: Mock Shopify GraphQL & AusPost adapters with Docker environment.
+- *Core Feature 1*: Authoritative ReturnCase lifecycle, API, and PostgreSQL state.
+- *Core Feature 2*: Exact-scope Founder approval and governed simulated execution.
+- *Optional Feature*: Logistics sandbox/test adapter and recovery path.
 
-### Member B: Frontend & User Experience Lead (~25%)
+### Member B: Frontend & User Experience Lead (~27%)
 
 Primary responsibilities:
 
@@ -46,28 +46,33 @@ Primary responsibilities:
 - *Core Feature 2*: Founder Review & Approval Dashboard.
 - *Optional Feature*: Operations Analytics Dashboard (return trends and handling time metrics).
 
-### Member C: QA & AI Evaluation Lead (~27%)
+### Member C: Grounding, Risk & AI Evaluation Lead (~28%)
 
 Primary responsibilities:
 
 - acceptance criteria definition, quality metric thresholds, and requirements traceability;
 - curated store policy corpus and reviewed ACCC consumer-guarantee guidance;
-- 100 synthetic return cases with ground-truth labels (faulty, wrong item, change of mind, missing evidence, escalations);
-- automated AI evaluation pipeline comparing 4 configurations (No-RAG vs RAG vs Multi-Agent vs Governed Multi-Agent);
+- 30 double-reviewed Gold return cases covering the supported categories,
+  missing evidence, conflicts, and escalations;
+- automated AI evaluation comparing the required single-LLM (`B1`) and governed
+  multi-agent (`B4`) configurations on the same frozen cases;
 - safety and prompt injection test suite, failure analysis, and benchmark reports.
 
 **Lab 2 Deliverables**:
-- *Core Feature 1*: 100-case synthetic benchmark dataset & ground-truth labeling.
-- *Core Feature 2*: Automated AI evaluation pipeline and comparison reporting,
-  including mandatory prompt-injection, unauthorised-tool, and approval-bypass
-  negative paths required by NFR-006 and NFR-009.
-- *Optional Feature*: Expanded adversarial corpus and automated CI test runner.
+- *Core Feature 1*: Versioned Guidance Retrieval & Citation Verification.
+- *Core Feature 2*: Independent Risk Review & Escalation.
+- *Optional Feature*: Product-image Evidence Analysis.
+
+Member C also owns the 30-case Gold set, the `B1` versus `B4` evaluation report,
+and parameterised safety/workflow tests as cross-system QA responsibilities.
+`B2`/`B3` ablations and any expansion towards 100 scenarios are portfolio work,
+not course-release conditions.
 
 ## 2. Shared responsibilities
 
 All members must still:
 
-- participate in problem interviews and requirement reviews;
+- participate in desk-research, scenario, and requirement reviews;
 - understand the principal customer workflow and human-approval boundary;
 - review assigned pull requests and respond to review feedback;
 - test their own deliverables and provide integration evidence;
@@ -76,7 +81,7 @@ All members must still:
 
 ## 3. Lightweight RACI
 
-| Deliverable | Lead | Research/Evaluation | Interface/Mock Data |
+| Deliverable | Member A (Lead) | Member C (Grounding/QA) | Member B (Interface) |
 |---|---|---|---|
 | Problem validation | A | C | C |
 | Requirements and traceability | A/R | C | C |
@@ -85,7 +90,7 @@ All members must still:
 | Agent workflow and guardrails | A/R | C | C |
 | Policy corpus | A | R | C |
 | Evaluation case labels | A | R | C |
-| Evaluation framework and analysis | A/R | C | C |
+| Evaluation framework and analysis | A | R | C |
 | Customer and founder screens | A | C | R |
 | Synthetic order and shipment fixtures | A | C | R |
 | Provider adapters | A/R | C | C |
@@ -101,85 +106,92 @@ Legend: A = accountable, R = responsible/reviewer, C = consulted.
 Support work should be assigned as complete packages with inputs, outputs, and
 acceptance criteria, not as open-ended responsibility for a subsystem.
 
-### Package B1: Policy corpus
-
-Input from lead:
-
-- source-selection rules;
-- metadata schema;
-- approved request types.
-
-Output from Member B:
-
-- 20-30 versioned policy/guidance passages;
-- source URL, title, access date, location, and request-type tags;
-- a short note for ambiguous or conflicting passages.
-
-Acceptance:
-
-- every entry is traceable to its source;
-- no copied course material or unlicensed commercial content;
-- the lead can load the corpus without manual cleanup.
-
-### Package B2: Evaluation cases
-
-Input from lead:
-
-- case template and labelling guide;
-- examples of valid and invalid labels.
-
-Output from Member B:
-
-- 30-40 synthetic cases;
-- reviewed labels for request type, missing evidence, citation, and escalation;
-- five documented model failures.
-
-Acceptance:
-
-- cases follow the schema and contain no real personal data;
-- a second person reviews a sample of labels;
-- results can be reproduced from the repository.
-
-### Package C1: Customer submission screen
+### Package B-UX1: Customer submission and clarification
 
 Input from lead:
 
 - API contract;
-- wireframe and validation rules;
-- design tokens or component conventions.
+- intake schema and validation rules;
+- wireframes and component conventions.
 
-Output from Member C:
+Output from Member B:
 
-- order-number, problem-description, and evidence fields;
-- client-side validation and clear error states;
-- loading, success, and retry behaviour;
-- component tests or documented manual test evidence.
+- order number, problem description, requested outcome, and evidence inputs;
+- clarification-question and evidence-resubmission flow;
+- loading, validation, success, and recoverable-error states;
+- component and end-to-end tests for the owned flow.
 
 Acceptance:
 
-- the screen follows the lead's API contract without embedding business rules;
-- validation and error states are demonstrable;
-- the lead can run and integrate the screen from a clean checkout.
+- the UI follows the typed API contract without embedding remedy rules;
+- original customer statements remain distinguishable from extracted facts;
+- the lead can run and integrate the flow from a clean checkout.
 
-### Package C2: Founder review screen and demo fixtures
+### Package B-UX2: Founder review and approval dashboard
 
 Input from lead:
 
-- proposal and approval schemas;
-- allowed approval actions;
-- sample API responses.
+- proposal, risk, approval, and case-status API contracts;
+- exact-scope approval actions;
+- synthetic API fixtures and shared design tokens.
 
-Output from Member C:
+Output from Member B:
 
-- evidence, citations, risks, confidence, and recommendation display;
+- cited evidence, risks, uncertainty, recommendation, and alternative displays;
 - approve, reject, and request-revision controls;
-- synthetic orders and a repeatable demo script.
+- case timeline, pending-notification states, and repeatable demo fixtures.
 
 Acceptance:
 
 - high-impact actions are visibly separated from ordinary navigation;
 - the screen never represents an unapproved proposal as completed;
 - the full demo can be reset and repeated.
+
+### Package C-AI1: Runtime guidance corpus and citation verification
+
+Input from lead:
+
+- source-selection and conflict rules;
+- passage metadata schema;
+- the three supported request categories.
+
+Output from Member C:
+
+- a small set of reviewed, versioned policy/guidance passages limited to the MVP;
+- source identity, version/access date, location, and content hash;
+- keyword/BM25 retrieval fixtures and citation-verification tests;
+- documented material conflicts that must route to risk review.
+
+Acceptance:
+
+- every runtime passage is traceable and can be loaded without manual cleanup;
+- retrieval returns resolvable citations and exposes material conflicts;
+- this runtime corpus is not an evidence-management product or a continuation of
+  the frozen requirements-research appendix.
+
+### Package C-QA2: Risk review and course evaluation
+
+Input from lead:
+
+- risk-review contract and escalation rules;
+- Gold-case schema and labelling guide;
+- examples of valid and invalid labels;
+- evaluation runner interface supplied by the lead.
+
+Output from Member C:
+
+- independent `PASS`, `PASS_WITH_WARNING`, `REVISE`, and `ESCALATE` outcomes;
+- 30 double-reviewed Gold cases;
+- required `B1` versus `B4` comparison report;
+- parameterised approval/security and workflow/provider tests with documented
+  failures.
+
+Acceptance:
+
+- every Gold case follows the schema and contains no real personal data;
+- each Gold label is authored and independently reviewed;
+- unsafe or materially conflicted proposals cannot reach Operations;
+- results reproduce from a recorded commit, configuration, and dataset version.
 
 ## 5. Repository strategy
 
@@ -227,7 +239,8 @@ de-identified data and appropriately licensed reference material.
 
 - `main` must remain demonstrable.
 - Do not commit directly to `main`.
-- Every change begins with a GitHub Issue.
+- Every repository change begins with a Jira delivery item and a linked GitHub
+  Issue. The Jira key appears in the Issue and pull request.
 - Branch names include the issue number:
   - `feat/23-case-intake`
   - `fix/41-approval-check`
@@ -240,9 +253,14 @@ de-identified data and appropriately licensed reference material.
 - CI, tests, linting, and documentation checks must pass before merge.
 - Use squash merge to keep one meaningful commit per issue.
 
-## 7. GitHub Project board
+## 7. Jira Agile board and GitHub delivery links
 
-Create one GitHub Project with these statuses:
+**Jira is required for Agile planning and timeline evidence.** This is a project
+governance decision based on the course tutorial identifying a Jira software
+timeline as evidence; it does not claim that the formal marking table mandates a
+particular vendor.
+
+Create one Jira project with these statuses:
 
 ```text
 Backlog -> Ready -> In Progress -> In Review -> Done
@@ -256,6 +274,20 @@ Add fields:
 - Owner.
 - Estimate: 1, 2, 3, 5.
 - Requirement ID.
+- GitHub Issue / Pull Request link.
+
+Tool responsibilities are deliberately separated:
+
+- Jira records epics/stories, sprint or Kanban selection, assignee, estimate,
+  status history, blockers, and retrospective evidence.
+- GitHub Issues record technical scope, detailed acceptance criteria,
+  requirement/model links, and expected tests.
+- GitHub branches, pull requests, reviews, commits, and CI record implementation
+  and engineering review.
+- Every delivery item uses one Jira key. Its GitHub Issue and PR repeat that key
+  and link back to the Jira item.
+- Do not copy full descriptions between tools. Update the Jira status and GitHub
+  link during the normal planning/review cadence.
 
 Working limits:
 
@@ -282,9 +314,12 @@ Recommended labels:
 - `needs:tutor-feedback`
 - `blocked`
 
-## 9. Issue quality
+## 9. Jira readiness and GitHub Issue quality
 
-An issue is Ready only when it has:
+A Jira item is `Ready` only when it has an outcome, owner, estimate, priority,
+stage, and—for repository work—a linked GitHub Issue.
+
+The linked GitHub Issue is ready for implementation only when it has:
 
 - a problem or user outcome;
 - scope and explicit non-scope;
@@ -292,6 +327,7 @@ An issue is Ready only when it has:
 - related requirement IDs;
 - dependencies and risks;
 - an owner and estimate;
+- its Jira key and backlink;
 - expected test or evidence.
 
 Avoid issues such as "work on AI" or "do front end." Prefer a vertical outcome
@@ -309,15 +345,19 @@ A change is Done only when:
 - documentation explains any new interface or architectural decision;
 - another member has reviewed it;
 - it works from a clean documented setup;
-- evidence is attached to the issue or pull request.
+- evidence is attached to the issue or pull request;
+- the pull request is merged, or the approved non-code artefact is complete; and
+- the Jira item links the evidence before it moves to `Done`.
 
 ## 11. Meeting cadence
 
 ### Weekly planning, 30 minutes
 
 - Review outcome metrics and risks.
-- Move only Ready issues into the sprint.
+- Move only Ready Jira items into the sprint.
 - Confirm each member's single primary issue.
+- Update planning status only in Jira; GitHub Issues remain technical open/closed
+  records rather than a second sprint board.
 
 ### Mid-week sync, 15 minutes
 
@@ -332,7 +372,7 @@ A change is Done only when:
 - Record one process improvement for the next week.
 
 Decisions affecting scope, architecture, evaluation, or human safety are written
-down in GitHub rather than being left only in chat.
+in the linked Jira/GitHub record rather than being left only in chat.
 
 ## 12. Conflict resolution
 
@@ -348,10 +388,11 @@ down in GitHub rather than being left only in chat.
 
 Maintain a contribution log using:
 
-- assigned and completed issues;
+- Jira ownership, estimates, status history, and sprint/timeline evidence;
+- linked GitHub Issues;
 - pull requests and reviews;
 - authored models and ADRs;
-- interview notes and evaluation work;
+- desk-research review notes and evaluation work;
 - presentation sections and rehearsal attendance.
 
 Commit count and lines of code are not adequate measures of contribution.
@@ -360,31 +401,31 @@ Commit count and lines of code are not adequate measures of contribution.
 
 ### Member A
 
-- lead problem interviews and confirm the scope;
+- lead the tutor checkpoint and confirm the desk-research-informed scope;
 - write the requirements baseline and UML drafts;
 - define domain schemas and API contracts;
 - build the case, mock-order, policy-retrieval, and proposal thin slice;
-- establish the repository, CI, tests, and integration conventions.
+- establish Jira/GitHub linking, CI, tests, and integration conventions.
 
 ### Member B
 
-- conduct one interview using the lead's question set;
-- catalogue the first 10 approved policy/guidance passages;
-- produce and label the first 10 synthetic cases;
-- record baseline results using the lead's evaluation command.
+- review the customer and Founder journeys and `UC-01` chain;
+- prepare intake and Founder-dashboard wireframes;
+- implement the submission-screen shell using the lead's API contract;
+- add component tests and one repeatable customer-flow demo fixture.
 
 ### Member C
 
-- conduct one interview using the lead's question set;
-- prepare 10 synthetic orders using the lead's schema;
-- implement the submission-screen shell using the lead's API contract;
-- prepare the first repeatable demo fixture and test checklist.
+- review the runtime guidance corpus and `UC-02` risk chain;
+- prepare the Gold-case labelling guide and first 10 pilot cases;
+- define the independent risk-review output contract;
+- prepare the initial parameterised safety/workflow checklist.
 
 ## 15. Provisional milestone plan
 
 | Period | Outcome |
 |---|---|
-| Weeks 2-3 | User evidence, tutor feedback, scope decision, initial backlog |
+| Weeks 2-3 | Evidence freeze, tutor feedback, scope decision, Jira backlog |
 | Weeks 3-4 | Baseline requirements, feature model, use cases, evaluation dataset design |
 | Weeks 4-5 | Architecture, domain model, state/activity/sequence models, technical spike |
 | Weeks 6-7 | Thin vertical slice and model-to-code validation |

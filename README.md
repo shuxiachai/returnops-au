@@ -48,29 +48,42 @@ money, modify a production order, or autonomously approve a remedy.
 - At least 80% specificity for cases not requiring escalation.
 - p95 proposal latency below two minutes in the fixed demo environment.
 - Zero unauthorised operations, duplicate operational effects, or illegal state
-  transitions in the frozen safety suite.
+  transitions in the parameterised safety and workflow suites.
 
 ## Project documents
 
 - [Baseline v1.0 candidate — lead approved, pending team/tutor review](docs/00-project-definition-v1.md)
 - [Project charter](docs/01-project-charter.md)
 - [System design](docs/02-system-design.md)
-- [Team and GitHub workflow](docs/03-team-and-github-workflow.md)
+- [Team, Jira and GitHub workflow](docs/03-team-and-github-workflow.md)
 - [Requirements and initial backlog](docs/04-requirements-and-backlog.md)
 - [Laboratory 3 requirements modelling](docs/05-lab-3-requirement-modelling.md)
-- [Requirements desk-research evidence register (advisory)](docs/06-requirements-desk-research-evidence.md)
+- [Frozen requirements desk-research appendix](docs/06-requirements-desk-research-evidence.md)
 - [FODA feature model](docs/diagrams/04-feature-diagram.md)
 - [Use-case and actor-boundary model](docs/diagrams/05-use-case-diagram.md)
 
-Documents `01`–`05` and their UML currently record the earlier v0.2 baseline
-and are pending synchronisation after the v1.0 candidate receives the remaining
-team and tutor reviews. The evidence register remains the source for the change
-proposals and their supporting material.
+Documents `01`–`05` still contain parts of the earlier v0.2 baseline. The
+scope-reduction and Jira/GitHub workflow decisions have been synchronised, while
+the remaining requirement and UML changes await v1.0 team/tutor adoption. The
+frozen evidence appendix remains the source for accepted change proposals and
+supporting material; it is not a continuing research-expansion task.
+
+## Delivery systems
+
+- **Jira is required** for Agile planning and timeline evidence: epics/stories,
+  sprint or Kanban status, assignee, estimate, blockers, and retrospectives.
+- **GitHub remains required** for technical Issues, branches, pull requests,
+  reviews, commits, and CI.
+- Each delivery item uses one Jira key and links it to the corresponding GitHub
+  Issue/PR, avoiding duplicated full descriptions.
 
 ## Current phase
 
 The project is at Gate 0, Definition Freeze. The project lead has approved the
-Baseline v1.0 candidate. Member B, Member C, and the tutor must now review the
-scope, individual model chains, and verification targets. After adoption, the
-team will synchronise the older v0.2 documents and build the deterministic
-safety spine before connecting an LLM or adding portfolio extensions.
+Baseline v1.0 candidate, frozen the research appendix, reduced the course
+evaluation to 30 double-reviewed Gold cases plus the required `B1` versus `B4`
+comparison, and selected Jira for Agile timeline evidence. Member B, Member C,
+and the tutor must now review the scope, individual model chains, verification
+targets, and Jira/GitHub split. After adoption, the team will synchronise the
+remaining older v0.2 documents and build the deterministic safety spine before
+connecting an LLM or adding portfolio extensions.

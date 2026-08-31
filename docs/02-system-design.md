@@ -205,22 +205,32 @@ an allowed workflow transition.
 
 ## 9. Evaluation design
 
-Create a versioned dataset of at least 100 synthetic cases covering:
+Create one versioned course-evaluation set of 30 double-reviewed synthetic Gold
+cases covering:
 
 - balanced supported request types;
 - missing-order and missing-evidence cases;
 - conflicting store policy and approved guidance;
 - straightforward and ambiguous product problems;
-- tool timeout, duplicate command, and failed refund simulations;
 - prompt-injection text embedded in customer messages or policy files;
 - cases that must be escalated.
 
-Compare these configurations:
+Use parameterised automated tests, without a fixed scenario quota, for approval,
+security, illegal-state, duplicate-command, timeout, notification, and
+reconciliation paths.
+
+Compare these required configurations on the same Gold set:
 
 1. single LLM without retrieval;
-2. LLM with policy retrieval;
-3. multi-agent workflow with retrieval;
-4. multi-agent workflow with retrieval, deterministic rules, and risk review.
+2. multi-agent workflow with retrieval, deterministic rules, and risk review.
+
+Single-LLM-with-retrieval and ungoverned multi-agent ablations, plus any
+expansion towards 100 scenarios, are optional portfolio work after the course
+release is stable.
+
+The required comparison evaluates the complete governed architecture bundle
+against a naive baseline; it does not isolate the causal contribution of
+multi-agent decomposition without the optional ablations.
 
 Report accuracy, recall, citation correctness, escalation recall, latency, and
 estimated model cost. Record failure examples, not only aggregate scores.
