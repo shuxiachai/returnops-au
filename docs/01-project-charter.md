@@ -83,31 +83,36 @@ research or legal review.
 
 ## 7. Agent operating model
 
+ReturnOps AU uses three AI agents, one human decision-maker, and one
+deterministic service. The Human Founder and the Operations Service are listed
+in the same table because the governed loop is only legible when the deciding
+and the acting roles are read together; neither of them is an AI agent.
+
 | Role | Perceives | Decides | Acts and tools | Human gate |
 |---|---|---|---|---|
-| Intake Agent | Customer message and attachments | Request type and missing fields | Creates structured case and asks clarifying questions | Escalates abusive, unsafe, or unintelligible content |
-| Order Investigation Agent | Order, item, payment, and fulfilment records | Whether the case matches a valid order | Queries the mock commerce adapter | Cannot alter the order |
-| Policy and Guidance Agent | Store policy and approved guidance corpus | Relevant rules and possible conflict | Retrieves passages with source metadata | Must flag ambiguity and never claim legal certainty |
-| Evidence Agent | Customer evidence and case history | Whether required evidence is present and consistent | Produces an evidence matrix and follow-up questions | Escalates suspected tampering or sensitive content |
-| Resolution Planner | Structured case, evidence, and retrieved rules | Proposed remedy, alternatives, and confidence | Produces a typed decision proposal | Cannot execute refund, replacement, or repair |
-| Risk Reviewer | Full proposal, citations, confidence, and audit history | Pass, revise, or escalate | Blocks unsupported or conflicting proposals | Mandatory before human approval |
-| Operations Agent | Approved action | Required operational sequence | Calls mock returns, logistics, inventory, and notification adapters | Requires an approval record and idempotency key |
+| Customer Case Coordinator Agent | Customer request, attachments, and clarification replies from the Customer Portal | Request type, and whether information is missing, ambiguous, or conflicting | Structures the case, preserves the original statement and requested outcome, generates targeted clarification questions, and manages the clarification loop | Escalates abusive, unsafe, or unintelligible content; cannot determine final legal rights, approve a proposal, mutate authoritative business state, or call return or logistics operations |
+| Returns Assessment Agent | Structured case, case history, synthetic order snapshot, customer evidence, and versioned store-policy and consumer-guidance passages | Whether the case matches a valid order; issue category, possible basis, and assessment status; and the recommended remedy, its alternatives, and confidence | Reads a synthetic order snapshot, constructs the evidence matrix, retrieves versioned store-policy and consumer-guidance passages with source metadata, and generates a non-executable conditional recommendation with alternatives, confidence, and follow-up questions | Cannot alter the order; escalates suspected tampering or sensitive content; must flag ambiguity and never claim legal certainty; cannot overwrite the customer's requested outcome, convert a recommendation into an `ApprovalRecord` or `ToolCommand`, silently resolve source conflict, or call the Operations Service |
+| Compliance & Risk Reviewer Agent | Evidence packet, proposal, cited passages, stated confidence, and audit history, but never the proposal generator's hidden reasoning | `PASS`, `PASS_WITH_WARNING`, `REVISE`, `NEEDS_INFORMATION`, or `ESCALATE` | Independently checks unsupported claims, citation mismatch, source conflict, missing evidence, out-of-scope content, prompt injection, attempted authority escalation, and attempted tool manipulation, using a separate model invocation and system prompt, and blocks unsupported or conflicting proposals | Mandatory before Founder approval; cannot edit the proposal, approve, or execute an operation |
+| Human Founder | Reviewed proposal, citations, risk decision, and authoritative case and audit history via the Founder Dashboard | `APPROVE`, `REJECT`, `REQUEST_REVISION`, or `MANUAL_HANDLING` | Binds trusted actor, case ID, proposal ID and version, reason, and timestamp; an approval also binds the exact command set, parameter fingerprint, amount ceiling where applicable, and expiry | Is the gate: no other role may approve a high-impact action |
+| Deterministic Operations Service | Approval record, current case state, and proposal version | No discretionary decision; verifies Founder identity and role, case state and proposal version, approval scope and expiry, and the command allowlist and idempotency key | Creates a simulated return, generates a simulated parcel label, sends the outcome and next-step notification, and records provider results and audit events | Runs only inside an approval's exact scope and expiry; it is not a free-deciding AI agent |
 
 ## 8. Governed loop
 
 ```mermaid
 flowchart LR
     I["Market and inputs: customer request, order, evidence"]
-    A["Specialist agents"]
-    T["Tools and actions: commerce, policy, logistics"]
+    A["Three AI agents: Coordinator, Assessment, Compliance and Risk Reviewer"]
+    R["Read-only sources: mock order provider and versioned policy corpus"]
+    H["Human gate: Founder approval, rejection, or escalation"]
+    G["Approval Guard and Deterministic Operations Service"]
+    T["Operations: simulated return, parcel label, notification"]
     O["Outcomes and feedback"]
     S["Shared case state, memory, audit record"]
-    H["Human gates: approval and escalation"]
-    I --> A --> T --> O
+    I --> A --> H --> G --> T --> O
+    A --- R
     S --- A
+    S --- G
     S --- T
-    H --- A
-    H --- T
     O --> S
 ```
 

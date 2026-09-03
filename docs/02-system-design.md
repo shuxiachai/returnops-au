@@ -25,32 +25,45 @@ flowchart TB
     C["Customer portal"]
     F["Founder operations dashboard"]
     API["Application API"]
-    CS["Case service"]
-    ORCH["Workflow orchestrator"]
-    AG["Specialist agent nodes"]
-    RULES["Deterministic policy and approval rules"]
+    DOM["Domain service and authoritative case state"]
+    COORD["Customer Case Coordinator Agent"]
+    ASSESS["Returns Assessment Agent"]
+    REVIEW["Compliance & Risk Reviewer Agent"]
+    GUARD["Approval Guard, deterministic approval and allowlist checks"]
+    OPS["Deterministic Operations Service"]
     KB["Versioned policy knowledge base"]
     DB[("PostgreSQL and audit store")]
-    COM["Mock commerce adapter"]
-    LOG["Mock logistics adapter"]
+    COM["Mock order provider, read-only order snapshot"]
+    LOG["Mock returns and logistics provider"]
     NOTIFY["Notification adapter"]
     OBS["Evaluation and observability"]
 
     C --> API
     F --> API
-    API --> CS
-    CS --> ORCH
-    ORCH --> AG
-    AG --> RULES
-    AG --> KB
-    ORCH --> COM
-    ORCH --> LOG
-    ORCH --> NOTIFY
-    CS --> DB
-    ORCH --> DB
-    AG --> DB
-    ORCH --> OBS
-    AG --> OBS
+    API --> DOM
+    DOM --> COORD
+    COORD --> ASSESS
+    COORD -->|Missing information| C
+    ASSESS --> COM
+    ASSESS --> KB
+    ASSESS --> REVIEW
+    REVIEW --> DOM
+    DOM --> GUARD
+    GUARD --> OPS
+    OPS --> LOG
+    OPS --> NOTIFY
+    DOM --> DB
+    COORD --> DB
+    ASSESS --> DB
+    REVIEW --> DB
+    GUARD --> DB
+    OPS --> DB
+    COORD --> OBS
+    ASSESS --> OBS
+    REVIEW --> OBS
+    OPS --> OBS
+    DOM --> OBS
+    F -->|Reject or manual outcome| NOTIFY
 ```
 
 ## 3. Proposed technology stack
@@ -127,46 +140,40 @@ sequenceDiagram
     actor Customer
     actor Founder
     participant Portal
-    participant CaseService
-    participant Orchestrator
-    participant IntakeAgent
-    participant OrderAgent
-    participant PolicyAgent
-    participant ResolutionAgent
-    participant RiskAgent
-    participant ApprovalRules
-    participant CommerceAdapter
+    participant DomainService
+    participant Coordinator
+    participant Assessment
+    participant Reviewer
+    participant ApprovalGuard
+    participant OperationsService
+    participant OrderProvider
     participant LogisticsAdapter
     participant NotificationAdapter
 
     Customer->>Portal: Submit request and order number
-    Portal->>CaseService: Create ReturnCase
-    CaseService->>Orchestrator: Start investigation
-    Orchestrator->>IntakeAgent: Extract typed case facts
-    IntakeAgent-->>Orchestrator: Facts and missing fields
-    Orchestrator->>OrderAgent: Investigate order
-    OrderAgent->>CommerceAdapter: Query order
-    CommerceAdapter-->>OrderAgent: Versioned snapshot or typed provider failure
-    Orchestrator->>PolicyAgent: Retrieve relevant passages
-    PolicyAgent-->>Orchestrator: Versioned passages and conflict flags
-    Orchestrator->>ResolutionAgent: Propose remedy or escalation
-    ResolutionAgent-->>Orchestrator: Typed proposal
-    Orchestrator->>RiskAgent: Verify evidence and claims
+    Portal->>DomainService: Create ReturnCase
+    DomainService->>Coordinator: Extract typed case facts
+    Coordinator-->>DomainService: Facts and missing fields
+    DomainService->>Assessment: Investigate order, retrieve passages, and propose remedy or escalation
+    Assessment->>OrderProvider: Query order
+    OrderProvider-->>Assessment: Versioned snapshot or typed provider failure
+    Assessment-->>DomainService: Typed proposal with versioned passages and conflict flags
+    DomainService->>Reviewer: Verify evidence and claims
     alt Conflict, unsupported claim, injection, or unresolved risk
-        RiskAgent-->>Orchestrator: Escalate with sources and findings
-        Orchestrator-->>Founder: Manual handling packet, no approval request
+        Reviewer-->>DomainService: Escalate with sources and findings
+        DomainService-->>Founder: Manual handling packet, no approval request
     else Independent review passes
-        RiskAgent-->>Orchestrator: Pass current proposal version
-        Orchestrator-->>Founder: Approval request with evidence and exact plan
-        Founder->>CaseService: Approve current proposal and explicit command set
-        CaseService->>ApprovalRules: Validate trusted actor, case, proposal, scope, amount, expiry
-        ApprovalRules-->>CaseService: Valid scoped ApprovalRecord
-        CaseService-->>Orchestrator: Trusted approval reference
-        Orchestrator->>ApprovalRules: Revalidate each allowlisted typed command
-        ApprovalRules-->>Orchestrator: Exact-scope dispatch allowed
-        Orchestrator->>CommerceAdapter: CREATE_RETURN with idempotency key
-        Orchestrator->>LogisticsAdapter: GENERATE_LABEL with idempotency key
-        Orchestrator->>NotificationAdapter: Send approved outcome after tool success
+        Reviewer-->>DomainService: Pass current proposal version
+        DomainService-->>Founder: Approval request with evidence and exact plan
+        Founder->>DomainService: Approve current proposal and explicit command set
+        DomainService->>ApprovalGuard: Validate trusted actor, case, proposal, scope, amount, expiry
+        ApprovalGuard-->>DomainService: Valid scoped ApprovalRecord
+        DomainService->>OperationsService: Dispatch trusted approval reference and approved command set
+        OperationsService->>ApprovalGuard: Revalidate each allowlisted typed command
+        ApprovalGuard-->>OperationsService: Exact-scope dispatch allowed
+        OperationsService->>LogisticsAdapter: CREATE_RETURN with idempotency key
+        OperationsService->>LogisticsAdapter: GENERATE_LABEL with idempotency key
+        OperationsService->>NotificationAdapter: Send approved outcome after tool success
         NotificationAdapter-->>Customer: Confirm approved next step
     end
 ```
@@ -200,8 +207,8 @@ truth. Each agent returns:
 - `recommended_next_step`;
 - `risk_flags`.
 
-The orchestrator owns transitions. An agent cannot invoke another agent without
-an allowed workflow transition.
+The Domain Service controls state transitions. An agent cannot invoke another
+agent without an allowed workflow transition.
 
 ## 9. Evaluation design
 
@@ -255,7 +262,7 @@ estimated model cost. Record failure examples, not only aggregate scores.
 | Use-case descriptions | API and end-to-end tests |
 | Package diagram | Source modules and dependency rules |
 | Class diagram | Domain entities and schemas |
-| Activity diagram | Orchestrator paths and branch tests |
+| Activity diagram | Domain Service paths and branch tests |
 | State machine | ReturnCase transition implementation |
 | Sequence diagram | Integration test traces |
 | Assumptions | Configuration, limitations, and risk register |

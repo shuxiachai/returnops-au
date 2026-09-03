@@ -16,102 +16,108 @@ sequenceDiagram
     actor Customer
     actor Founder as Authorised Founder
     participant Portal as Customer Portal
+    participant Dashboard as Founder Dashboard
     participant API as ReturnOps API
-    participant Orch as Workflow Orchestrator
-    participant Intake as Intake Agent
-    participant Order as Order Agent
-    participant Evidence as Evidence Assessor
-    participant Policy as Policy Agent
-    participant Remedy as Remedy Planner
-    participant Risk as Risk Reviewer
-    participant Rules as Approval and Tool Rules
-    participant Ops as Operations Agent
-    participant Commerce as Mock Commerce Adapter
-    participant Logistics as Mock Logistics Adapter
-    participant Notify as Simulated Notification Adapter
+    participant Domain as Domain Service
+    participant Coordinator as Customer Case Coordinator Agent
+    participant Assessment as Returns Assessment Agent
+    participant Reviewer as Compliance & Risk Reviewer Agent
+    participant Guard as Approval Guard
+    participant Ops as Deterministic Operations Service
+    participant Order as Mock Order Provider
+    participant Corpus as Versioned Policy Corpus
+    participant Logistics as Mock Returns and Logistics Provider
+    participant Notify as Mock Notification Provider
     participant DB as Case and Audit Store
+
+    Note over Assessment: One lifeline. The superseded Order, Evidence, Policy and Remedy roles
+    Note over Assessment: are all responsibilities of this single agent under definition section 4.2
 
     Customer->>Portal: Submit return/remedy request
     Portal->>API: Create case with message, order ID, and evidence metadata
     API->>DB: Persist original statement and SUBMITTED case
-    API->>Orch: Start intake for case ID
-    Orch->>Intake: Extract typed facts and missing fields
-    Intake-->>Orch: Facts, confidence, and open questions
+    API->>Domain: Start intake for case ID
+    Domain->>Coordinator: Extract typed facts and missing fields
+    Coordinator-->>Domain: Facts, confidence, and open questions
 
     alt Mandatory information missing
-        Orch->>DB: Set AWAITING_INFORMATION and append audit event
-        Orch->>Notify: Send targeted information request
-        Notify-->>Customer: Request only missing facts/evidence
+        Domain->>DB: Set AWAITING_INFORMATION and append audit event
+        Domain->>Coordinator: Compose targeted clarification request
+        Coordinator->>Portal: Send targeted information request
+        Portal-->>Customer: Request only missing facts/evidence
     else Minimum information present
-        Orch->>DB: Set UNDER_INVESTIGATION
-        Orch->>Order: Verify order through provider interface
-        Order->>Commerce: Query read-only order snapshot
+        Domain->>DB: Set UNDER_INVESTIGATION
+        Domain->>Assessment: Verify order through provider interface
+        Assessment->>Order: Query read-only order snapshot
 
         alt Provider failure below retry limit
-            Commerce-->>Order: Typed timeout/provider failure
-            Order-->>Orch: No snapshot, safe retry requested
-            Orch->>DB: Keep authoritative state, audit retry count
+            Order-->>Assessment: Typed timeout/provider failure
+            Assessment-->>Domain: No snapshot, safe retry requested
+            Domain->>DB: Keep authoritative state, audit retry count
         else Provider retry limit reached
-            Commerce-->>Order: Repeated typed provider failure
-            Order-->>Orch: Retry limit reached, no snapshot invented
-            Orch->>DB: Set ESCALATED with provider-failure reason
-            Orch-->>Founder: Manual handling packet with failure history
+            Order-->>Assessment: Repeated typed provider failure
+            Assessment-->>Domain: Retry limit reached, no snapshot invented
+            Domain->>DB: Set ESCALATED with provider-failure reason
+            Domain-->>Founder: Manual handling packet with failure history
         else Order identifier missing or plausibly mistyped
-            Commerce-->>Order: Not found with no confirmed mismatch
-            Order-->>Orch: Clarification required
-            Orch->>DB: Set AWAITING_INFORMATION
-            Orch->>Notify: Send order-correction question
-            Notify-->>Customer: Request corrected order detail
+            Order-->>Assessment: Not found with no confirmed mismatch
+            Assessment-->>Domain: Clarification required
+            Domain->>DB: Set AWAITING_INFORMATION
+            Domain->>Coordinator: Compose targeted clarification request
+            Coordinator->>Portal: Send order-correction question
+            Portal-->>Customer: Request corrected order detail
         else Confirmed order/customer conflict
-            Commerce-->>Order: Conflicting verified facts
-            Order-->>Orch: Confirmed conflict risk
-            Orch->>DB: Set ESCALATED with both fact sources
-            Orch-->>Founder: Manual handling packet
+            Order-->>Assessment: Conflicting verified facts
+            Assessment-->>Domain: Confirmed conflict risk
+            Domain->>DB: Set ESCALATED with both fact sources
+            Domain-->>Founder: Manual handling packet
         else Order matched
-            Commerce-->>Order: Versioned read-only OrderSnapshot
-            Order-->>Orch: Verified order and affected line item
-            Orch->>DB: Set POLICY_ASSESSMENT and append order-match event
-            Orch->>Evidence: Assess required, present, missing, and conflicting evidence
-            Evidence-->>Orch: Versioned EvidenceAssessment matrix with source references
+            Order-->>Assessment: Versioned read-only OrderSnapshot
+            Assessment-->>Domain: Verified order and affected line item
+            Domain->>DB: Set POLICY_ASSESSMENT and append order-match event
+            Domain->>Assessment: Assess required, present, missing, and conflicting evidence
+            Assessment-->>Domain: Versioned EvidenceAssessment matrix with source references
 
             alt Required diagnostic evidence is missing
-                Orch->>DB: Set AWAITING_INFORMATION with explicit evidence gaps
-                Orch->>Notify: Send targeted diagnostic-evidence questions
-                Notify-->>Customer: Request only the missing diagnostic evidence
+                Domain->>DB: Set AWAITING_INFORMATION with explicit evidence gaps
+                Domain->>Coordinator: Compose targeted clarification request
+                Coordinator->>Portal: Send targeted diagnostic-evidence questions
+                Portal-->>Customer: Request only the missing diagnostic evidence
             else Evidence assessment is ready
-                Orch->>Policy: Retrieve approved grounding
-                Policy->>DB: Query versioned store-policy and guidance corpus
-                DB-->>Policy: Passages with source, version, and location
-                Policy-->>Orch: Cited passages and source-conflict flags
-                Orch->>Remedy: Draft non-executable typed proposal
-                Remedy-->>Orch: Proposal version, alternatives, confidence, and questions
-                Orch->>Risk: Verify evidence, citations, conflicts, and untrusted content
+                Domain->>Assessment: Retrieve approved grounding
+                Assessment->>Corpus: Query versioned store-policy and guidance corpus
+                Corpus-->>Assessment: Passages with source, version, and location
+                Assessment-->>Domain: Cited passages and source-conflict flags
+                Domain->>Assessment: Draft non-executable typed proposal
+                Assessment-->>Domain: Proposal version, alternatives, confidence, and questions
+                Domain->>Reviewer: Verify evidence, citations, conflicts, and untrusted content
 
                 alt Source conflict, unsupported claim, injection, or unresolved high risk
-                    Risk-->>Orch: Escalate with findings and preserved sources
-                    Orch->>DB: Set ESCALATED and append review evidence
-                    Orch-->>Founder: Manual handling packet, no approval request
+                    Reviewer-->>Domain: Escalate with findings and preserved sources
+                    Domain->>DB: Set ESCALATED and append review evidence
+                    Domain-->>Founder: Manual handling packet, no approval request
                 else Independent review passes
-                    Risk-->>Orch: Pass for current proposal version
-                    Orch->>DB: Set AWAITING_APPROVAL
-                    Orch-->>Founder: Present current proposal, evidence, citations, and risks
-                    Founder->>Portal: Approve exact action plan for current proposal
-                    Portal->>API: Submit trusted session, proposal version, commands, amount, reason, expiry
-                    API->>Rules: Validate actor, role, state, case, proposal, scope, amount, expiry
-                    Rules->>DB: Load authoritative proposal, approval state, and allowlist
-                    DB-->>Rules: Current records
-                    Rules-->>API: Exact-scope approval is valid
+                    Reviewer-->>Domain: Pass for current proposal version
+                    Domain->>DB: Set AWAITING_APPROVAL
+                    Domain-->>Dashboard: Present current proposal, evidence, citations, and risks
+                    Dashboard-->>Founder: Render proposal, evidence, citations, and risks
+                    Founder->>Dashboard: Approve exact action plan for current proposal
+                    Dashboard->>API: Submit trusted session, proposal version, commands, amount, reason, expiry
+                    API->>Guard: Validate actor, role, state, case, proposal, scope, amount, expiry
+                    Guard->>DB: Load authoritative proposal, approval state, and allowlist
+                    DB-->>Guard: Current records
+                    Guard-->>API: Exact-scope approval is valid
                     API->>DB: Append immutable ApprovalRecord, set APPROVED, append audit event
-                    API->>Orch: Resume with trusted approval reference
-                    Orch->>Ops: Dispatch approved plan with trusted approval reference
-                    Ops->>Rules: Revalidate case, proposal, command set, amount, expiry, and allowlist
+                    API->>Domain: Resume with trusted approval reference
+                    Domain->>Ops: Dispatch approved plan with trusted approval reference
+                    Ops->>Guard: Revalidate case, proposal, command set, amount, expiry, and allowlist
 
                     alt Dispatch guard is invalid or stale
-                        Rules-->>Ops: Block before every provider call
+                        Guard-->>Ops: Block before every provider call
                         Ops->>DB: Keep APPROVED and append BLOCKED_NO_APPROVAL security event
                         Ops-->>Founder: Show exact blocking reason
                     else Complete dispatch guard passes
-                        Rules-->>Ops: Exact approved plan may enter execution
+                        Guard-->>Ops: Exact approved plan may enter execution
                         Ops->>DB: Set ACTION_IN_PROGRESS and append dispatch audit event
 
                         loop Each approved command in dependency order while ACTION_IN_PROGRESS
@@ -121,12 +127,12 @@ sequenceDiagram
                             alt Prior successful result exists
                                 Ops->>DB: Reuse stored result and audit skipped duplicate call
                             else Command remains unfinished
-                                Ops->>Rules: Validate exact command, parameters, approval, and key
-                                Rules-->>Ops: Command remains allowlisted and exactly approved
+                                Ops->>Guard: Validate exact command, parameters, approval, and key
+                                Guard-->>Ops: Command remains allowlisted and exactly approved
 
                                 alt Command is CREATE_RETURN
-                                    Ops->>Commerce: Invoke CREATE_RETURN with stable key
-                                    Commerce-->>Ops: Success result or typed provider failure
+                                    Ops->>Logistics: Invoke CREATE_RETURN with stable key
+                                    Logistics-->>Ops: Success result or typed provider failure
                                 else Command is GENERATE_LABEL
                                     Ops->>Logistics: Invoke GENERATE_LABEL with stable key
                                     Logistics-->>Ops: Success result or typed provider failure
@@ -137,11 +143,11 @@ sequenceDiagram
                                 else Provider timeout or typed failure
                                     Ops->>DB: Set ACTION_FAILED with command, key, and failure
                                     loop Safe retry remains and case is not escalated
-                                        Ops->>Rules: Revalidate same approval, command, and key
-                                        Rules-->>Ops: Retry remains exact-scope and allowlisted
+                                        Ops->>Guard: Revalidate same approval, command, and key
+                                        Guard-->>Ops: Retry remains exact-scope and allowlisted
                                         alt Failed command is CREATE_RETURN
-                                            Ops->>Commerce: Retry only CREATE_RETURN with the same key
-                                            Commerce-->>Ops: Typed retry result
+                                            Ops->>Logistics: Retry only CREATE_RETURN with the same key
+                                            Logistics-->>Ops: Typed retry result
                                         else Failed command is GENERATE_LABEL
                                             Ops->>Logistics: Retry only GENERATE_LABEL with the same key
                                             Logistics-->>Ops: Typed retry result
@@ -151,9 +157,9 @@ sequenceDiagram
                                     alt Retry eventually succeeds
                                         Ops->>DB: Persist success and restore ACTION_IN_PROGRESS
                                     else Retry limit reached
-                                        Ops-->>Orch: Escalate with completed and failed command results
-                                        Orch->>DB: Set ESCALATED, preserve all prior successful results
-                                        Orch-->>Founder: Manual recovery packet
+                                        Ops-->>Domain: Escalate with completed and failed command results
+                                        Domain->>DB: Set ESCALATED, preserve all prior successful results
+                                        Domain-->>Founder: Manual recovery packet
                                     end
                                 end
                             end
@@ -162,17 +168,20 @@ sequenceDiagram
                         Ops->>DB: Check every approved command has one successful result
                         DB-->>Ops: Complete or incomplete plan status
                         opt All approved commands are complete and case is not escalated
-                            Ops-->>Orch: Approved action plan complete once
-                            Orch->>DB: Set RESOLVED
-                            Orch->>Notify: Send approved outcome and return instructions
+                            Ops-->>Domain: Approved action plan complete once
+                            Domain->>DB: Set RESOLVED
+                            Domain->>Ops: Send approved outcome and next-step notification
+                            Ops->>Notify: Send approved outcome and return instructions
 
                             alt Notification delivered
                                 Notify-->>Customer: Approved next step and simulated label
-                                Notify-->>Orch: Delivery result
-                                Orch->>DB: Append delivery event and set CLOSED
+                                Notify-->>Ops: Delivery result
+                                Ops-->>Domain: Delivery result
+                                Domain->>DB: Append delivery event and set CLOSED
                             else Notification failure
-                                Notify-->>Orch: Typed delivery failure
-                                Orch->>DB: Keep RESOLVED and schedule notification-only retry
+                                Notify-->>Ops: Typed delivery failure
+                                Ops-->>Domain: Typed delivery failure
+                                Domain->>DB: Keep RESOLVED and schedule notification-only retry
                             end
                         end
                     end
