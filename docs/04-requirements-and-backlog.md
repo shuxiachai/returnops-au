@@ -1,36 +1,50 @@
 # Requirements and Initial Backlog
 
+> **Baseline**: v0.2, refined during Laboratory 3. Requirement IDs remain
+> stable across the ad-hoc, feature-oriented, and use-case views.
+
 ## 1. Requirement classification
 
 ### Mandatory capabilities
 
 | ID | Requirement | Acceptance summary |
 |---|---|---|
-| FR-001 | A customer can submit a product-problem request with an order identifier. | A valid ReturnCase is created and the original message is preserved. |
-| FR-002 | The system extracts structured case facts and identifies missing mandatory information. | Labelled extraction tests meet the recall target. |
-| FR-003 | The system retrieves a matching order snapshot through a provider interface. | Matched, missing, and conflicting orders follow distinct paths. |
-| FR-004 | The system classifies supported requests as faulty product, wrong item, or change of mind. | Classification target is met on the held-out case set. |
-| FR-005 | The system builds an evidence matrix and asks targeted follow-up questions. | Missing evidence is named without inventing facts. |
-| FR-006 | The system retrieves relevant store-policy or approved-guidance passages with source locations. | Every policy claim carries a verifiable citation. |
-| FR-007 | The system produces a typed resolution proposal with rationale, alternatives, confidence, and unresolved questions. | Invalid or incomplete outputs are rejected. |
-| FR-008 | A separate risk review detects unsupported, conflicting, low-confidence, and out-of-scope proposals. | Escalation recall target is met. |
-| FR-009 | A founder can approve, reject, or request revision of a proposal. | The decision records actor, scope, timestamp, and reason. |
-| FR-010 | The system executes only an approved simulated operational action. | Tests prove unapproved and expired actions are blocked. |
-| FR-011 | The system records relevant agent, source, approval, state, and tool events. | A reviewer can reconstruct the case path. |
-| FR-012 | The founder can view current case state and pending approvals. | Dashboard reflects the authoritative case state. |
+| FR-001 | A customer can submit a supported physical-goods return or remedy request with a message and, when known, an order identifier. | Exactly one `ReturnCase` is created and the original statement is preserved. A missing order identifier enters the information-request path and never triggers an operational action. |
+| FR-002 | The system extracts typed case facts and identifies missing mandatory information. | On the labelled benchmark, mandatory-information recall is at least 95%; missing or ambiguous facts are reported rather than invented. |
+| FR-003 | The system retrieves a read-only order snapshot through a typed provider interface. | Matched, not-found, conflicting, and provider-failure outcomes follow distinct, auditable paths. |
+| FR-004 | The system classifies eligible requests as faulty product, wrong item, or change of mind. | Supported-class accuracy is at least 90%; ambiguous and out-of-scope requests request clarification or escalate instead of receiving a forced label. |
+| FR-005 | The system builds an evidence matrix and asks targeted follow-up questions. | Present, missing, and conflicting evidence are distinguished; follow-up requests name only information needed for the case. |
+| FR-006 | The system retrieves relevant passages from the versioned store-policy and approved-guidance corpus. | Each result includes source ID, version, and section or location. Missing or conflicting guidance is surfaced to risk review and is not silently resolved. |
+| FR-007 | The system produces a non-executable typed resolution proposal with rationale, alternatives, confidence, citations, and unresolved questions. | Schema-invalid or incomplete output is rejected; a proposal cannot itself authorize or become a `ToolCommand`; remedy-category agreement is at least 85% on the reviewed benchmark. |
+| FR-008 | An independent risk review detects unsupported claims, citation mismatch, source conflict, low confidence, out-of-scope content, and prompt-injection attempts. | Risk-case escalation recall is at least 95%; a failed review revises, waits for information, or escalates rather than reaching approval. |
+| FR-009 | An authenticated and authorised founder can approve, reject, request revision, or escalate the current proposal and record a customer-facing outcome for a rejection or completed manual resolution. | Every immutable decision records the case and proposal version, actor, reason, and timestamp; an approval additionally records permitted command scope, amount limit where relevant, and expiry; reject or manual-resolution closure requires an audited simulated notification result. |
+| FR-010 | The system executes only allowlisted simulated commands that exactly match a valid, scoped approval and sends the resulting customer-facing outcome through the simulated notification interface. | Missing, expired, wrong-case, stale-proposal, over-limit, and wrong-command approvals are blocked before a provider call; duplicate idempotency keys cause at most one effect; notification retry never repeats the remedy operation. |
+| FR-011 | The system append-only records relevant input, agent/model, source-version, approval, state-transition, and tool-result events. | A reviewer can reconstruct the case path and identify the versions, actor, time, result, and failure reason for each material step. |
+| FR-012 | The founder can view authoritative case state and pending approvals. | The dashboard shows the current proposal version, evidence, citations, risk findings, approval scope, and auditable history without maintaining a second source of truth. |
 
 ### Mandatory quality requirements
 
 | ID | Requirement | Acceptance summary |
 |---|---|---|
-| NFR-001 | Traceability | Recommendation claims link to evidence or an approved source. |
-| NFR-002 | Safety | No high-impact command runs without scoped human approval. |
-| NFR-003 | Privacy | Prototype uses synthetic/de-identified data and minimises stored personal information. |
-| NFR-004 | Reliability | Duplicate commands are idempotent and tool failures do not corrupt case state. |
-| NFR-005 | Performance | Median proposal time is below two minutes in the demo environment. |
-| NFR-006 | Testability | Agents, rules, adapters, and state transitions have automated tests. |
-| NFR-007 | Maintainability | External providers and LLMs are accessed through documented interfaces. |
-| NFR-008 | Observability | Workflow transitions and tool calls emit structured diagnostic records. |
+| NFR-001 | Traceability | Citation coverage is 100% for proposal claims that depend on policy or case evidence; citation correctness is at least 90% on the labelled benchmark. |
+| NFR-002 | Safety | Every high-impact command without a valid exact-scope approval is blocked before any provider call or authoritative state mutation. |
+| NFR-003 | Privacy | The repository and demonstration use only synthetic or de-identified data, minimise retained personal information, and exclude secrets from fixtures and logs. |
+| NFR-004 | Reliability | A repeated idempotency key produces at most one operational effect, retries or provider failures cannot create an illegal case transition, and mock tool success is at least 95% on the standard benchmark excluding deliberate fault-injection cases. |
+| NFR-005 | Performance | In the fixed demo environment, median submission-to-proposal latency is below 120 seconds for complete benchmark cases, excluding human waiting time. |
+| NFR-006 | Testability | Mandatory acceptance criteria, state guards, approval-negative paths, and adapter contracts have automated normal- and failure-path tests. |
+| NFR-007 | Maintainability | LLM, commerce, policy, logistics, and notification providers are accessed through documented typed interfaces with contract tests. |
+| NFR-008 | Observability | Structured events contain case/correlation ID, component and source version, time, outcome, and typed error while redacting sensitive content. |
+| NFR-009 | Security and AI robustness | Customer text, attachments, and retrieved documents are untrusted data; they cannot change workflow policy, grant authority, expose secrets, call a non-allowlisted tool, or bypass authenticated role and approval checks. |
+
+### Governing business rules
+
+| ID | Rule |
+|---|---|
+| BR-001 | ReturnOps AU presents approved guidance and conditional recommendations; it does not give legal advice or make a definitive ACL entitlement, major-failure, or minor-failure determination. |
+| BR-002 | A conflict between store policy, approved guidance, or case evidence is displayed with its sources and escalated. The AI does not silently declare one source to override another. |
+| BR-003 | Refund, replacement, repair, order/payment/inventory mutation, and cost-bearing logistics operations are high-impact actions. |
+| BR-004 | The course prototype uses simulated provider operations and never moves real money or changes a production order. |
+| BR-005 | High model confidence cannot bypass missing evidence, a failed risk review, command allowlisting, or human approval. |
 
 ### Optional features
 
@@ -39,10 +53,10 @@
 | OF-001 | Product-image evidence analysis | Core text workflow meets mandatory targets. |
 | OF-002 | Multiple languages | English evaluation is stable. |
 | OF-003 | Live Shopify development-store adapter | Mock adapter contract is complete and credentials are safely managed. |
-| OF-004 | Live logistics label integration | Human approval and idempotency tests pass. |
-| OF-005 | Inventory restocking workflow | Return receipt and inspection states exist. |
+| OF-004 | Logistics provider sandbox/test-mode label integration | Human approval, idempotency, credential, and no-real-shipment/no-charge tests pass; production fulfilment remains outside the course prototype. |
+| OF-005 | Inventory restocking workflow | A separately reviewed return-receipt and inspection state-model extension exists. |
 | OF-006 | Analytics dashboard | Core audit data is complete and reliable. |
-| OF-007 | Anomaly or fraud risk scoring | A suitable labelled dataset and safe escalation policy exist. |
+| OF-007 | Anomaly or fraud risk scoring | A suitable labelled dataset exists and scoring can only flag or escalate, not automatically deny a remedy. |
 
 ## 2. Initial epics
 
@@ -137,3 +151,16 @@ Requirement IDs remain stable. If a requirement changes, update its text,
 rationale, affected models, acceptance tests, and change history rather than
 silently reusing the ID for a different requirement.
 
+## 5. Laboratory 3 modelling views
+
+The same baseline is represented through three complementary views:
+
+- [Laboratory 3 integrated requirements model](05-lab-3-requirement-modelling.md)
+  records the ad-hoc stakeholder language, ambiguity resolutions, detailed use
+  cases, and end-to-end traceability.
+- [Feature diagram and decomposition model](diagrams/04-feature-diagram.md)
+  records mandatory and optional capabilities, variation points, feature
+  attributes, and cross-tree constraints.
+- [Use-case diagram](diagrams/05-use-case-diagram.md) records the system
+  boundary, external actors, actor goals, included behaviour, conditional
+  extensions, and human authority checkpoints.

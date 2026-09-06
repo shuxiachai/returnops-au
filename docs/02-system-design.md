@@ -2,7 +2,7 @@
 
 ## 1. Architectural drivers
 
-The architecture is driven by six properties:
+The architecture is driven by seven properties:
 
 1. Traceability: every recommendation must point to case evidence and sources.
 2. Human accountability: high-impact actions require explicit approval.
@@ -14,6 +14,9 @@ The architecture is driven by six properties:
    interfaces.
 6. Evaluability: each agent and the end-to-end workflow can be tested against a
    labelled case set.
+7. Security and AI robustness: untrusted customer and retrieved content cannot
+   grant authority, change workflow policy, expose secrets, or bypass tool and
+   approval controls.
 
 ## 2. Proposed architecture
 
@@ -76,13 +79,14 @@ technical spike. A library is not an architectural requirement.
 | ReturnCase | Aggregate root for the end-to-end workflow |
 | CustomerStatement | Original and clarified customer messages |
 | EvidenceItem | Submitted evidence and verification metadata |
+| EvidenceAssessment | Required, present, missing, and conflicting evidence criteria plus targeted follow-up |
 | PolicyDocument | Versioned store policy or approved guidance source |
-| PolicyPassage | Retrieved passage with source and location |
-| DecisionProposal | Proposed remedy, rationale, alternatives, and confidence |
+| PolicyPassage | Retrieved passage with source version, content hash, location, and retrieval time |
+| DecisionProposal | Versioned proposed remedy, rationale, alternatives, citations, and confidence |
 | RiskFinding | Unsupported claim, conflict, missing evidence, or escalation reason |
-| ApprovalRecord | Human decision, actor, time, and scope |
-| ToolCommand | Typed, idempotent external action request |
-| AuditEvent | Immutable record of relevant system activity |
+| ApprovalRecord | Human decision bound to trusted actor, current proposal version, time, expiry, and exact command scope |
+| ToolCommand | Allowlisted typed, idempotent external action request bound to case, proposal, and approval |
+| AuditEvent | Immutable correlated record with component/source version, outcome, typed error, and redaction status |
 
 ## 5. ReturnCase state model
 
@@ -93,7 +97,9 @@ stateDiagram-v2
     AwaitingInformation --> UnderInvestigation: customer supplies information
     Submitted --> UnderInvestigation: minimum information present
     UnderInvestigation --> PolicyAssessment: order matched
-    UnderInvestigation --> Escalated: order conflict or suspected abuse
+    UnderInvestigation --> AwaitingInformation: order detail missing or correctable
+    UnderInvestigation --> UnderInvestigation: provider failure and safe retry remains
+    UnderInvestigation --> Escalated: confirmed conflict, unsafe content, or provider retry limit
     PolicyAssessment --> AwaitingInformation: evidence gap
     PolicyAssessment --> RiskReview: proposal produced
     RiskReview --> PolicyAssessment: revision requested
@@ -101,14 +107,16 @@ stateDiagram-v2
     RiskReview --> AwaitingApproval: review passed
     AwaitingApproval --> Rejected: founder rejects
     AwaitingApproval --> Approved: founder approves
-    Approved --> ActionInProgress: approved command starts
+    AwaitingApproval --> PolicyAssessment: founder requests revision
+    AwaitingApproval --> Escalated: founder requests manual handling
+    Approved --> ActionInProgress: trusted exact-scope approval and allowlist checks pass
     ActionInProgress --> ActionFailed: tool failure
     ActionFailed --> ActionInProgress: safe retry
     ActionFailed --> Escalated: retry limit reached
     ActionInProgress --> Resolved: tool results confirmed
-    Rejected --> Closed
-    Resolved --> Closed
-    Escalated --> Closed: manual resolution recorded
+    Rejected --> Closed: founder-approved rejection outcome notified and audited
+    Resolved --> Closed: approved outcome notified and audited
+    Escalated --> Closed: founder records and notifies manual outcome
     Closed --> [*]
 ```
 
@@ -126,8 +134,10 @@ sequenceDiagram
     participant PolicyAgent
     participant ResolutionAgent
     participant RiskAgent
+    participant ApprovalRules
     participant CommerceAdapter
     participant LogisticsAdapter
+    participant NotificationAdapter
 
     Customer->>Portal: Submit request and order number
     Portal->>CaseService: Create ReturnCase
@@ -136,18 +146,29 @@ sequenceDiagram
     IntakeAgent-->>Orchestrator: Facts and missing fields
     Orchestrator->>OrderAgent: Investigate order
     OrderAgent->>CommerceAdapter: Query order
-    CommerceAdapter-->>OrderAgent: Order snapshot
+    CommerceAdapter-->>OrderAgent: Versioned snapshot or typed provider failure
     Orchestrator->>PolicyAgent: Retrieve relevant passages
-    PolicyAgent-->>Orchestrator: Cited policy context
+    PolicyAgent-->>Orchestrator: Versioned passages and conflict flags
     Orchestrator->>ResolutionAgent: Propose remedy or escalation
     ResolutionAgent-->>Orchestrator: Typed proposal
     Orchestrator->>RiskAgent: Verify evidence and claims
-    RiskAgent-->>Orchestrator: Pass, revise, or escalate
-    Orchestrator-->>Founder: Approval request
-    Founder->>Orchestrator: Approve scoped action
-    Orchestrator->>CommerceAdapter: Create simulated return
-    Orchestrator->>LogisticsAdapter: Create simulated label
-    Orchestrator-->>Customer: Confirm approved next step
+    alt Conflict, unsupported claim, injection, or unresolved risk
+        RiskAgent-->>Orchestrator: Escalate with sources and findings
+        Orchestrator-->>Founder: Manual handling packet, no approval request
+    else Independent review passes
+        RiskAgent-->>Orchestrator: Pass current proposal version
+        Orchestrator-->>Founder: Approval request with evidence and exact plan
+        Founder->>CaseService: Approve current proposal and explicit command set
+        CaseService->>ApprovalRules: Validate trusted actor, case, proposal, scope, amount, expiry
+        ApprovalRules-->>CaseService: Valid scoped ApprovalRecord
+        CaseService-->>Orchestrator: Trusted approval reference
+        Orchestrator->>ApprovalRules: Revalidate each allowlisted typed command
+        ApprovalRules-->>Orchestrator: Exact-scope dispatch allowed
+        Orchestrator->>CommerceAdapter: CREATE_RETURN with idempotency key
+        Orchestrator->>LogisticsAdapter: GENERATE_LABEL with idempotency key
+        Orchestrator->>NotificationAdapter: Send approved outcome after tool success
+        NotificationAdapter-->>Customer: Confirm approved next step
+    end
 ```
 
 ## 7. Human gates
@@ -158,11 +179,13 @@ Human approval is mandatory for:
 - any action that changes order, payment, or inventory state;
 - low-confidence or conflicting policy interpretation;
 - suspected fraud, abusive behaviour, or sensitive evidence;
+- prompt-injection attempts or unauthorised access to approval/tool functions;
 - cases outside the three supported MVP request types.
 
-An approval record must specify the case, permitted command, maximum amount if
-applicable, approver, timestamp, and expiry. Approval is not a general permission
-for an agent to take unrelated actions.
+An approval record must bind the trusted approver identity to the case, current
+proposal version, explicit command set, maximum amount if applicable, timestamp,
+and expiry. Dispatch also verifies the allowlist and current case state.
+Approval is not a general permission for an agent to take unrelated actions.
 
 ## 8. Agent collaboration contract
 
@@ -226,4 +249,3 @@ estimated model cost. Record failure examples, not only aggregate scores.
 | State machine | ReturnCase transition implementation |
 | Sequence diagram | Integration test traces |
 | Assumptions | Configuration, limitations, and risk register |
-
