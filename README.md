@@ -53,6 +53,8 @@ money, modify a production order, or autonomously approve a remedy.
 ## Project documents
 
 - [Baseline v1.0 candidate — lead approved, pending team/tutor review](docs/00-project-definition-v1.md)
+- [Frozen work allocation v1.0 — owners, nine features and change rules](docs/07-frozen-work-allocation.md)
+- [Detailed delivery work packages — dependencies and acceptance checklists](docs/08-delivery-work-packages.md)
 - [Project charter](docs/01-project-charter.md)
 - [System design](docs/02-system-design.md)
 - [Team, Jira and GitHub workflow](docs/03-team-and-github-workflow.md)
@@ -78,6 +80,11 @@ supporting material; it is not a continuing research-expansion task.
   Issue/PR, avoiding duplicated full descriptions.
 
 ## Current phase
+
+On 2026-09-06, the lead approved and froze the detailed A/B/C work allocation.
+Use `docs/07` for function ownership and `docs/08` for executable work packages;
+these are planning commitments, not completed work or live Jira status. Each
+member's selected optional feature remains part of the course delivery.
 
 The project is at Gate 0, Definition Freeze. The project lead has approved the
 Baseline v1.0 candidate, frozen the research appendix, reduced the course

@@ -432,6 +432,12 @@ chain.
 
 ### 10.1 Planned workload
 
+The lead froze the detailed allocation on 2026-09-06 in
+[Frozen Work Allocation v1.0](07-frozen-work-allocation.md), with executable
+checklists in [Delivery Work Packages](08-delivery-work-packages.md).
+Those documents govern new work ownership and hand-offs; they do not claim
+implementation completion or replace the product-baseline adoption reviews.
+
 | Member | Responsibility | Share |
 |---|---|---:|
 | Member A `@shuxiachai` | Project Lead, Architecture, Backend, Agent Orchestration, Integration | 45% |
@@ -442,13 +448,15 @@ chain.
 
 | Member | Core Feature 1 | Core Feature 2 | Optional Feature |
 |---|---|---|---|
-| A | **Manage the authoritative return-case lifecycle** — `FR-003`, `FR-007`, `FR-011`, `FR-012`; `UC-03`, `UC-05` | **Approve and execute an exact-scope simulated return** — `FR-009`, `FR-010`; `UC-03`, `UC-04` | **Recover a logistics sandbox/test operation** — `OF-004`, subject to the same approval and idempotency rules |
+| A | **Manage the authoritative return-case lifecycle**, including Coordinator/Assessment and orchestration — `FR-001`–`FR-005`, `FR-007`, `FR-011`, `FR-012`; `UC-01`, `UC-01E`, `UC-02`, `UC-05` implementation support | **Approve and execute an exact-scope simulated return** — `FR-009`, `FR-010`; `UC-03`, `UC-04` | **Integrate an independent logistics sandbox/test-mode adapter and demonstrate recovery** — `OF-004`; requires available test access and the same approval/idempotency rules; core mock/retry work cannot be counted again |
 | B | **Submit and clarify a customer request** — `FR-001`, `FR-002`, `FR-005`; `UC-01`, `UC-01E` | **Review and decide through the Founder Dashboard** — interface for `FR-009`, `FR-012`; `UC-03`, `UC-05` | **Operations Analytics Dashboard** — `OF-006` |
 | C | **Ground a decision packet with versioned sources** — `FR-006`, `FR-007`; `UC-02` | **Independently review and escalate proposal risk** — `FR-008`, `NFR-009`; `UC-02` | **Product-image Evidence Analysis** — `OF-001`, activated only after the text workflow is stable |
 
-Member C also owns the 30-case Gold set, the required `B1` versus `B4`
-evaluation report, and the parameterised safety/workflow suites as cross-system
-quality responsibilities; those responsibilities do not substitute for the two
+The three selected optional features are course deliverables, not portfolio-only
+work. Member C coordinates the 30-case Gold set, evaluation runner, required
+`B1` versus `B4` report, and cross-system QA. Each member implements tests for
+their own functionality; labels are authored and independently reviewed across
+the team. These quality responsibilities do not substitute for C's two
 product-facing core features.
 
 ### 10.3 Individual Stage 1 model chain
@@ -732,6 +740,10 @@ Required evidence:
 ### Gate 3 — Course Release Candidate
 
 - Customer Portal and Founder Dashboard are complete.
+- Each member's two core features and selected optional feature have independent
+  implementation, test and review evidence under the frozen allocation. Missing
+  A3 sandbox access remains an explicit blocker for that feature, not permission
+  to count the core mock twice or defer the selected feature silently.
 - Normal, missing-information, warning/escalation, and approval-bypass demos pass.
 - Thirty Gold cases are frozen.
 - The required `B1` versus `B4` comparison is reproducible on the Gold set.
@@ -853,6 +865,9 @@ Evidence: CI run, audit trace, and demo recording
   it to approximately one to two pages in the assessed report.
 - [x] `D-15` Require Jira for Agile planning/timeline evidence while retaining
   GitHub as the engineering delivery and review record.
+- [x] `D-16` On 2026-09-06, freeze the nine-feature ownership, selected-optional
+  course scope, hand-offs and change rules in `docs/07`, with detailed work
+  packages in `docs/08`; preserve actual authorship and pending adoption reviews.
 
 ## 17. Remaining adoption reviews
 

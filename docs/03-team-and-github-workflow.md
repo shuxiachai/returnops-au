@@ -1,11 +1,18 @@
 # Team, Jira and GitHub Workflow
 
+> **Allocation update — 2026-09-06:** New work follows
+> [Frozen Work Allocation v1.0](07-frozen-work-allocation.md) and
+> [Detailed Work Packages](08-delivery-work-packages.md). Those are the single
+> source for nine-feature ownership, subtask acceptance and dependencies.
+> The packages below are workflow context, not a second backlog. This file
+> describes team rules, not verified live Jira or GitHub settings.
+
 ## 1. Team structure and planned workload
 
-The team has three students. The project lead intentionally owns the central
-product, architecture, implementation, and integration path. The other two
-members own small, bounded support packages that can be reviewed and integrated
-without creating parallel architectural centres.
+The team has three students. The lead owns backend, agent orchestration and
+integration. B and C each own two independently demonstrable core functions and
+one selected optional, with bounded interfaces and their own models, code,
+tests and evidence.
 
 The planning allocation across the three team members is approximately:
 
@@ -13,16 +20,21 @@ The planning allocation across the three team members is approximately:
 - Member B (`@ChengsiLi`), Frontend & User Experience Lead (Client & Operations Dashboard): ~27%;
 - Member C (`@lulucas-tao`), Grounding, Risk & AI Evaluation Lead: ~28%;
 
-This structure satisfies the ELEC5620 Lab 2 requirement that every member individually implements at least two core features and one optional feature.
+This allocation plans for the Lab 2 requirement of at least two core features
+and one optional implemented by each member. Actual compliance requires
+individual implementation and evidence, not a table. All three selected
+optionals remain course deliverables.
 
 ### Member A: Project Lead, System Architect & Backend/Agent Core Lead (~45%)
 
 Primary responsibilities:
 
 - product scope, requirement classification, and traceability matrix;
-- principal architecture and MBSE UML models (Package, Domain Class, State Machine, Sequence diagrams);
+- architecture integration and A's own MBSE chain; every member authors their
+  own behavioural models and participates in shared models;
 - domain model, Pydantic schemas, database schemas, and FastAPI service;
-- LangGraph multi-agent orchestrator (Intake, Order, Policy, Remedy, Risk nodes);
+- Coordinator and Assessment implementations and bounded orchestration;
+  C supplies independent Risk Reviewer and retrieval modules;
 - deterministic approval rules, audit event recording, and mock adapters;
 - system integration, CI/CD foundation, Docker containerization, report integration, and presentation narrative.
 
@@ -63,8 +75,10 @@ Primary responsibilities:
 - *Core Feature 2*: Independent Risk Review & Escalation.
 - *Optional Feature*: Product-image Evidence Analysis.
 
-Member C also owns the 30-case Gold set, the `B1` versus `B4` evaluation report,
-and parameterised safety/workflow tests as cross-system QA responsibilities.
+Member C coordinates the Gold set, evaluation runner, `B1` versus `B4` report
+and cross-system QA. A owns backend/state/approval/provider tests; B owns UI
+tests; C owns grounding/risk/image tests. All three participate in independent
+label review under the timing/blinding protocol in `docs/07`.
 `B2`/`B3` ablations and any expansion towards 100 scenarios are portfolio work,
 not course-release conditions.
 
@@ -87,19 +101,23 @@ All members must still:
 | Requirements and traceability | A/R | C | C |
 | UML and architecture | A/R | C | C |
 | Domain API and database | A/R | C | C |
-| Agent workflow and guardrails | A/R | C | C |
+| Coordinator/Assessment, orchestration and execution guards | A/R | C | C |
+| Retrieval and independent Risk Reviewer | A | R | C |
 | Policy corpus | A | R | C |
 | Evaluation case labels | A | R | C |
 | Evaluation framework and analysis | A | R | C |
 | Customer and founder screens | A | C | R |
-| Synthetic order and shipment fixtures | A | C | R |
+| Synthetic order and shipment fixtures | A/R | C | C |
 | Provider adapters | A/R | C | C |
 | CI and deployment | A/R | C | C |
 | Report integration | A/R | C | C |
 | Demo walkthrough | A | R | R |
 | Presentation and interview | A/R | R | R |
 
-Legend: A = accountable, R = responsible/reviewer, C = consulted.
+Legend: A = accountable, R = responsible, C = consulted. These are role letters,
+not member names. Non-author reviewers are assigned in `docs/08`. Individual
+model ownership and shared contributions follow `docs/07`; the lead does not
+author every diagram.
 
 ## 4. Bounded work packages
 
@@ -112,7 +130,7 @@ Input from lead:
 
 - API contract;
 - intake schema and validation rules;
-- wireframes and component conventions.
+- shared interface constraints; B owns wireframes and component conventions.
 
 Output from Member B:
 
@@ -138,7 +156,7 @@ Input from lead:
 Output from Member B:
 
 - cited evidence, risks, uncertainty, recommendation, and alternative displays;
-- approve, reject, and request-revision controls;
+- approve, reject, request-revision, and manual-handling controls;
 - case timeline, pending-notification states, and repeatable demo fixtures.
 
 Acceptance:
@@ -169,22 +187,22 @@ Acceptance:
 - this runtime corpus is not an evidence-management product or a continuation of
   the frozen requirements-research appendix.
 
-### Package C-QA2: Risk review and course evaluation
+### Package C-QA2: Risk review and coordinated evaluation
 
 Input from lead:
 
 - risk-review contract and escalation rules;
 - Gold-case schema and labelling guide;
 - examples of valid and invalid labels;
-- evaluation runner interface supplied by the lead.
+- B4 invocation and telemetry contract from A; C owns the evaluation runner.
 
 Output from Member C:
 
-- independent `PASS`, `PASS_WITH_WARNING`, `REVISE`, and `ESCALATE` outcomes;
+- independent `PASS`, `PASS_WITH_WARNING`, `REVISE`, `NEEDS_INFORMATION`, and `ESCALATE` outcomes;
 - 30 double-reviewed Gold cases;
 - required `B1` versus `B4` comparison report;
-- parameterised approval/security and workflow/provider tests with documented
-  failures.
+- aggregated safety/workflow results; each member implements the tests for
+  their own functionality.
 
 Acceptance:
 
@@ -260,7 +278,9 @@ governance decision based on the course tutorial identifying a Jira software
 timeline as evidence; it does not claim that the formal marking table mandates a
 particular vendor.
 
-Create one Jira project with these statuses:
+Use the existing Jira project. These are logical stages, not verified live
+column names; C maps existing statuses without recreating the project or
+rewriting history:
 
 ```text
 Backlog -> Ready -> In Progress -> In Review -> Done
@@ -399,12 +419,15 @@ Commit count and lines of code are not adequate measures of contribution.
 
 ## 14. Example allocation for the first two weeks
 
+This older illustrative sequence is superseded by the first-round selection
+and dependencies in `docs/08`; do not create duplicate tasks from it.
+
 ### Member A
 
 - lead the tutor checkpoint and confirm the desk-research-informed scope;
 - write the requirements baseline and UML drafts;
 - define domain schemas and API contracts;
-- build the case, mock-order, policy-retrieval, and proposal thin slice;
+- build the case, mock-order and proposal thin slice, consuming C's retrieval contract;
 - establish Jira/GitHub linking, CI, tests, and integration conventions.
 
 ### Member B
@@ -423,16 +446,7 @@ Commit count and lines of code are not adequate measures of contribution.
 
 ## 15. Provisional milestone plan
 
-| Period | Outcome |
-|---|---|
-| Weeks 2-3 | Evidence freeze, tutor feedback, scope decision, Jira backlog |
-| Weeks 3-4 | Baseline requirements, feature model, use cases, evaluation dataset design |
-| Weeks 4-5 | Architecture, domain model, state/activity/sequence models, technical spike |
-| Weeks 6-7 | Thin vertical slice and model-to-code validation |
-| Week 8 | Stage 1 report, presentation, interview, and baseline tag |
-| Weeks 9-10 | Core MVP workflow and founder approval |
-| Weeks 10-11 | Policy retrieval, risk review, mock operations, evaluation suite |
-| Week 12 | Hardening, deployment, documentation, and demo rehearsal |
-| Week 13 | Final demonstration and source submission |
-
-Dates must be updated when Canvas confirms the assessment schedule.
+Use the dependency-based Gate 0–3 checks in `docs/00` and `docs/08`. The older
+illustrative calendar is not an authoritative assessment schedule. C records
+dates in Jira only after checking the current Canvas/tutor notice; do not infer
+interview or submission dates from earlier planning text.

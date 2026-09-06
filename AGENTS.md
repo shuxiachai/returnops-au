@@ -18,6 +18,20 @@
 
 ---
 
+## Allocation freeze — 2026-09-06
+
+The lead approved [Frozen Work Allocation v1.0](docs/07-frozen-work-allocation.md)
+and [Detailed Work Packages](docs/08-delivery-work-packages.md). Read both after
+`docs/00` before assigning work. Nine feature owners, course-selected optionals,
+hand-offs and acceptance boundaries stay fixed unless the lead explicitly
+approves a material change. This does not claim B/C/tutor approval,
+implementation completion, Jira updates or a merged baseline.
+
+C coordinates evaluation; A/B/C each implement tests for their own features and
+participate in Gold label review. A implements Coordinator/Assessment and the
+orchestrator; C implements Risk Reviewer, retrieval and image analysis. Consult
+`docs/07` for submodule ownership rather than treating all agent code as A-owned.
+
 ## 1. Project Background & One-Sentence Pitch
 
 * **Product Name**: `ReturnOps AU`
@@ -48,7 +62,7 @@ Aligned with **Lab 2 Requirement** (At least 3 distinct AI roles; each member in
 | :--- | :--- | :---: | :--- | :--- |
 | **Member A (Lead / You)** | **System Architect & Backend / Agent Lead** | ~45% | System integration; Composite Structure, domain, approval/execution behaviour, and traceability models | **Core 1**: Authoritative return-case lifecycle.<br>**Core 2**: Exact-scope Founder approval and governed simulated execution.<br>**Optional**: Logistics sandbox/test adapter and recovery path. |
 | **Member B (`@ChengsiLi`)** | **Frontend & User Experience Lead** | ~27% | Customer journey; use-case and intake behaviour; UI/UX flows | **Core 1**: Customer Intake & Clarification Portal.<br>**Core 2**: Founder Review & Approval Dashboard.<br>**Optional**: Operations Analytics Dashboard. |
-| **Member C (`@lulucas-tao`)** | **Grounding, Risk & AI Evaluation Lead** | ~28% | Grounding/risk requirements and behaviour; evaluation metrics and traceability | **Core 1**: Versioned Guidance Retrieval & Citation Verification.<br>**Core 2**: Independent Risk Review & Escalation.<br>**Optional**: Product-image Evidence Analysis.<br>Also owns the 30-case Gold set, parameterised safety/workflow suites, and `B1` versus `B4` report. |
+| **Member C (`@lulucas-tao`)** | **Grounding, Risk & AI Evaluation Lead** | ~28% | Grounding/risk requirements and behaviour; evaluation metrics and traceability | **Core 1**: Versioned Guidance Retrieval & Citation Verification.<br>**Core 2**: Independent Risk Review & Escalation.<br>**Optional**: Product-image Evidence Analysis.<br>Coordinates Gold data, evaluation runner and `B1` versus `B4`; each member tests their own features and participates in label review. |
 
 ---
 
@@ -89,13 +103,13 @@ returnops-au/
 │   ├── api/                 # Backend FastAPI application (Member A)
 │   └── web/                 # Frontend Next.js + TailwindCSS UI (Member B)
 ├── packages/
-│   ├── agent_core/          # LangGraph multi-agent workflows & prompts (Member A)
+│   ├── agent_core/          # A: orchestration/Coordinator/Assessment; C: Risk/image
 │   ├── domain/              # Pydantic schemas, entities, state definitions (Member A)
-│   ├── provider_adapters/   # Mock Shopify, AusPost, Knowledge Base (Member A)
+│   ├── provider_adapters/   # A: order/returns/logistics/notification; C owns retrieval
 │   └── evaluation/          # Benchmark suite & evaluation runner (Member C)
 ├── docs/                    # Project Charter, System Design, Team Workflow, Backlog
 ├── tests/
-│   ├── fixtures/            # Mock orders, policies, products (Member B & C)
+│   ├── fixtures/            # A: orders/providers; B: UI samples; C: corpus/evaluation
 │   └── evaluation_cases/    # 30 Gold cases plus parameterised suites (Member C)
 ├── AGENTS.md                # This persistent memory file
 ├── docker-compose.yml       # Local development orchestration
@@ -106,10 +120,10 @@ returnops-au/
 
 ## 6. Key Assessment Milestones
 
-* **Stage 1 (30 Marks - Week 8)**:
+* **Stage 1 (30 Marks; use the current official assessment schedule)**:
   * 15 Marks: Formal Report (Requirements classification, Feature Diagram, Use Cases, Package/Class/Activity/State/Sequence diagrams, Traceability).
   * 15 Marks: Presentation & Interview (Design rationale, discarded choices, model overview, acceptance criteria).
-* **Stage 2 (20 Marks - Week 13)**:
+* **Stage 2 (20 Marks; use the current official assessment schedule)**:
   * Working Agile Prototype Demonstration to tutors.
   * Code submission on Canvas.
 * **Exams (50%)**: Week 9 Mid-semester online quiz (10%) + Final exam (40%).
