@@ -2,6 +2,11 @@
 
 > **Baseline**: v0.2, refined during Laboratory 3. Requirement IDs remain
 > stable across the ad-hoc, feature-oriented, and use-case views.
+>
+> **Planning status**: This Markdown file preserves requirement and backlog
+> content; Jira is the live source for sprint selection, owner, estimate,
+> blocker, and status history. Repository work links each Jira key to a GitHub
+> Issue/PR.
 
 ## 1. Requirement classification
 
@@ -62,8 +67,10 @@
 
 ### Epic E1: Problem discovery and requirements
 
-- Interview at least three potential users or domain-informed participants.
-- Document current workflow, friction, exceptions, and measurable baseline.
+- Freeze and summarise the desk-research evidence, assumptions, and limitations;
+  do not claim primary user validation.
+- Document the evidence-informed reference workflow, friction, exceptions, and
+  controlled student-operator baseline.
 - Confirm the target user and three supported request types.
 - Review the one-sentence brief and MVP boundary with the tutor.
 - Build the requirements traceability matrix.
@@ -99,16 +106,21 @@
 
 ### Epic E6: Evaluation and evidence
 
-- Create at least 100 synthetic labelled cases.
-- Establish a simple baseline.
-- Compare the four planned system configurations.
+- Create 30 double-reviewed synthetic Gold cases.
+- Compare the required single-LLM (`B1`) and governed multi-agent (`B4`)
+  configurations on the same frozen cases.
+- Cover approval/security and workflow/provider failures with parameterised
+  automated tests; do not impose a fixed course scenario quota.
+- Defer `B2`/`B3` ablations and any expansion towards 100 scenarios to optional
+  portfolio work.
 - Report accuracy, recall, citation correctness, latency, cost, and failures.
 - Link requirements, models, code, tests, and demo evidence.
 
 ## 3. First two-week sprint
 
-The first sprint proves the project is worth continuing. It does not attempt to
-build the complete system.
+This is a planning reference. The actual sprint selection, owners, estimates,
+and status are maintained in Jira. The first sprint proves the project is worth
+continuing; it does not attempt to build the complete system.
 
 ### Sprint goal
 
@@ -117,7 +129,8 @@ message to founder proposal.
 
 ### Proposed sprint issues
 
-1. Conduct and summarise three problem interviews.
+1. Freeze and summarise the existing desk-research evidence and assumptions;
+   do not represent it as primary user validation.
 2. Produce the current-state customer return journey.
 3. Confirm the MVP request types and explicit non-scope.
 4. Define the ReturnCase and Order schemas.
@@ -130,7 +143,7 @@ message to founder proposal.
 
 ### Sprint review evidence
 
-- Interview evidence and revised problem statement.
+- Frozen evidence summary, limitations, and revised problem statement.
 - One end-to-end demonstration case.
 - One failure-path demonstration for a missing order or missing evidence.
 - Initial accuracy and latency measurement.

@@ -3,6 +3,14 @@ description: Propose a scoped, testable project outcome
 title: "[Feature]: "
 labels: ["type:feature"]
 body:
+  - type: input
+    id: jira_key
+    attributes:
+      label: Jira key
+      description: Link this repository work to its Jira planning item.
+      placeholder: PROJECT-123
+    validations:
+      required: true
   - type: textarea
     id: problem
     attributes:
@@ -42,4 +50,3 @@ body:
     id: risks
     attributes:
       label: Dependencies and risks
-

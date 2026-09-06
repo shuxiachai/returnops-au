@@ -3,6 +3,14 @@ description: Collect evidence for a scoped project decision
 title: "[Research]: "
 labels: ["type:research"]
 body:
+  - type: input
+    id: jira_key
+    attributes:
+      label: Jira key
+      description: Link this research or design decision to its Jira planning item.
+      placeholder: PROJECT-123
+    validations:
+      required: true
   - type: textarea
     id: decision
     attributes:
@@ -27,4 +35,3 @@ body:
     id: risks
     attributes:
       label: Biases, assumptions, and risks
-

@@ -1,7 +1,7 @@
 # Requirements Desk-Research Evidence Register
 
-> **Status**: Proposed evidence baseline v0.1; not yet an amendment to the
-> [requirements baseline v0.2](04-requirements-and-backlog.md)
+> **Status**: Frozen design-evidence appendix for the Baseline v1.0 candidate;
+> not a continuously expanding course deliverable
 >
 > **Decision tracked by**:
 > [GitHub Issue #3](https://github.com/shuxiachai/returnops-au/issues/3)
@@ -9,6 +9,13 @@
 > **Research method**: Online-only secondary research
 >
 > **Research cut-off and access date**: 25 August 2026
+
+> **Freeze rule**: Update only for a material requirement/source change, a
+> factual correction, or an explicit team/tutor review request. The Stage 1
+> report should condense the key sources, assumptions, constraints, and limits
+> into approximately one to two pages. This register is not a specification for
+> an evidence-management product and is distinct from the small runtime corpus
+> used by `FR-006`.
 
 ## 1. Purpose and decision boundary
 
@@ -103,14 +110,16 @@ All findings below are paraphrases. The linked source remains authoritative.
 | EVD-014 | APP 3 and APP 11, as described by OAIC, require covered entities to apply purpose-related data minimisation, reasonable security, and reasonable destruction or de-identification when personal information is no longer needed, subject to applicable retention exceptions. [APP 3](https://www.oaic.gov.au/privacy/australian-privacy-principles/australian-privacy-principles-guidelines/chapter-3-app-3-collection-of-solicited-personal-information) and [APP 11](https://www.oaic.gov.au/privacy/australian-privacy-principles/australian-privacy-principles-guidelines/chapter-11-app-11-security-of-personal-information) | A2 / `EXTERNAL_CONSTRAINT` / `DIRECT` | FR-011 should preserve tamper-evident audit integrity while applying retention, redaction, deletion, or de-identification rules to identifiable audit fields. Immutable non-personal hashes or event identifiers may be retained where justified as a separate project integrity control. NFR-003 and NFR-008 need evidence-purpose rules. | OAIC does not itself require audit immutability, and audit metadata can contain personal information. The current repository and demonstration use synthetic/de-identified data; production applicability and any lawful retention duty remain conditional. |
 | EVD-015 | OAIC guidance for commercially available AI highlights collection notice, purpose, disclosure, overseas handling, data quality, and security considerations. [OAIC commercial AI guidance](https://www.oaic.gov.au/privacy/privacy-guidance-for-organisations-and-government-agencies/guidance-on-privacy-and-the-use-of-commercially-available-ai-products) | A2 / `EXTERNAL_GUIDANCE` / `DIRECT` | Supports a project safeguard in NFR-003, NFR-007, and NFR-009: document the AI-provider data flow and do not send real customer data to an unapproved public AI service. | This is regulator guidance and a basis for a project safeguard, not an unconditional statutory prohibition or certification of any selected provider or project implementation. |
 
-## 4. Proposed requirement changes
+## 4. Historical requirement-change register
 
-These proposals do not yet change the stable requirement baseline. `P0` means a
-baseline correction is required before implementation; `P1` means a scope or
-verification decision is required before the affected feature; `P2` means a
-future live-adapter refinement. `Model-breaking` means acceptance would change
-a schema, state, interface, benchmark label, or externally visible behaviour;
-it does not imply that the current prototype already implements that contract.
+The project lead has recorded dispositions for these proposals in the
+[Baseline v1.0 candidate](00-project-definition-v1.md). This table is preserved
+as decision provenance, not as an active research backlog. `P0` identified a
+baseline correction before implementation; `P1` identified a scope or
+verification decision before the affected feature; `P2` identified a future
+live-adapter refinement. `Model-breaking` means acceptance changes a schema,
+state, interface, benchmark label, or externally visible behaviour; it does not
+imply that the current prototype already implements that contract.
 
 | Proposal | Priority | Change impact | Proposed disposition | Affected baseline and models | Evidence |
 |---|---:|---|---|---|---|
@@ -132,8 +141,8 @@ it does not imply that the current prototype already implements that contract.
 | ID | Statement | Type | Validation without fieldwork | Reporting rule |
 |---|---|---|---|---|
 | HYP-001 | Under the controlled project protocol, human preparation of a complete decision packet has a measurable active-handling-time and omission baseline. | `PROJECT_ASSUMPTION` | Have two team operators independently process 20 stratified synthetic cases using the same order and policy evidence as the prototype. | Report each operator's and pooled median, interquartile range, omissions, and scenario mix; do not generalise beyond the controlled project setting. |
-| HYP-002 | ReturnOps AU can store a reviewed proposal within 120 seconds for a complete case. | `PROTOTYPE_TARGET` | Measure accepted-complete-input to stored-current-proposal time on the fixed 100-case environment, excluding human waiting. | Report environment, model/provider version, run date, failures, median, and tail percentiles. |
-| HYP-003 | The selected accuracy, citation, agreement, and escalation thresholds are achievable. | `PROTOTYPE_TARGET` | Freeze labels and scoring rules before comparing the four architecture configurations. | Report denominators and confidence intervals or raw counts; do not relabel failures after observing results. |
+| HYP-002 | ReturnOps AU can store a reviewed proposal within 120 seconds for a complete case. | `PROTOTYPE_TARGET` | Measure accepted-complete-input to stored-current-proposal time on the fixed 30-case Gold environment, excluding human waiting. | Report environment, model/provider version, run date, failures, median, and tail percentiles. |
+| HYP-003 | The selected accuracy, citation, agreement, and escalation thresholds are achievable. | `PROTOTYPE_TARGET` | Freeze labels and scoring rules before the required `B1` single-LLM versus `B4` governed multi-agent comparison. | Report denominators and raw counts with every percentage; do not relabel failures after observing results or generalise the small course sample. |
 | HYP-004 | Target merchants would adopt or pay for this product. | `PROJECT_ASSUMPTION` | No valid online-only project test is currently planned. Competitor existence and industry friction are not willingness-to-pay evidence. | Exclude adoption and revenue claims from assessed outcomes. Present only as future validation. |
 | HYP-005 | The target merchant has the Shopify and Australia Post account capability needed by a live adapter. | `PROJECT_ASSUMPTION` | Demonstrate mock contracts first; separately document development-store and test-bed eligibility if optional adapters are attempted. | Do not present mock/test-bed success as production readiness. |
 | HYP-006 | The system reduces total end-to-end resolution time. | `PROJECT_ASSUMPTION` | Not tested by proposal latency. A future test would need receipt, inspection, logistics, and financial completion timestamps. | Do not infer end-to-end improvement from HYP-002. |
@@ -155,8 +164,10 @@ does not replace future market discovery for a commercial product.
 3. Define active handling as time spent reading, checking, recording, and
    preparing a decision packet. Pause the timer for simulated customer,
    provider, transport, or founder waiting.
-4. Have Member C record timing and score omissions against the frozen case
-   labels. The timed operators should not author those ground-truth labels.
+4. Do not let timed operators view Gold labels before or during timing. After
+   both runs finish, have Member C record timing and score omissions against the
+   frozen, independently reviewed labels; the timed operators must not author
+   those labels alone.
 5. Report the scenario mix, per-operator and pooled medians, interquartile
    ranges, raw errors, possible order or learning effects, and all exclusions.
    Twenty cases and two student operators form a project baseline, not a
@@ -164,31 +175,41 @@ does not replace future market discovery for a commercial product.
 
 ### 6.2 Prototype evaluation
 
-1. Freeze the 100-case dataset, label schema, corpus version, prompts, model
-   versions, and scoring code before the final comparative run.
+1. Freeze the 30-case double-reviewed Gold dataset, label schema, corpus
+   version, prompts, model versions, and scoring code before the final
+   comparative run. The 20-case student-operator baseline is a stratified subset
+   of these cases, not a second independently authored dataset.
 2. Measure proposal latency separately from human approval waiting, simulated
    tool execution, notification, and physical return completion.
-3. Use the same cases and evidence boundaries for each architecture baseline.
+3. Run the required `B1` single-LLM and `B4` governed multi-agent configurations
+   on the same Gold cases and evidence boundaries. `B2`/`B3` ablations and any
+   expansion towards 100 scenarios are optional portfolio work after the course
+   release is stable.
 4. Record every invalid output, unsupported claim, escalation, provider fault,
    approval block, and duplicate-effect test rather than reporting successful
-   cases only.
+   cases only. Approval/security and workflow/provider coverage uses
+   parameterised automated tests and has no fixed course scenario quota.
 5. Promote a target to `MEASURED_RESULT` only when the run artefact can be
    reproduced from a commit, configuration, dataset version, and result file.
 
-## 7. Decision package for Baseline v1.0
+## 7. Baseline v1.0 adoption state
 
-Before any proposal in Section 4 changes the canonical requirements:
+The research work is frozen. Remaining activity is review and adoption, not
+routine evidence expansion:
 
-- [ ] Member A records accept, revise, defer, or reject for CP-001 to CP-012.
+- [x] Member A recorded accept, revise, defer, or reject for CP-001 to CP-012 in
+  the Baseline v1.0 candidate.
 - [ ] Member B reviews customer/Founder journeys and CP-005, CP-007, CP-010.
 - [ ] Member C reviews evidence grades, metric definitions, and HYP-001 to
   HYP-006.
-- [ ] The team resolves the MVP completion boundary and multi-item logistics
-  decision explicitly.
-- [ ] Accepted changes update requirement text, rationale, affected models,
-  acceptance tests, and change history in one Baseline v1.0 pull request.
+- [ ] The tutor reviews course fit, scope, and the Jira/GitHub evidence split.
+- [x] The lead-approved candidate resolves the MVP completion boundary,
+  multi-item logistics decision, and accepted requirement wording.
+- [ ] The team synchronises affected v0.2 models and documents in the reviewed
+  Baseline v1.0 adoption change.
 - [ ] Rejected or deferred changes remain visible with a reason; evidence is
   not silently deleted.
 
-Until that review occurs, [v0.2](04-requirements-and-backlog.md) remains the
-canonical requirement baseline and this document is advisory evidence only.
+Until the remaining reviews and adoption merge occur,
+[v0.2](04-requirements-and-backlog.md) remains canonical and this frozen file is
+supporting evidence for the candidate rather than a separate product backlog.
