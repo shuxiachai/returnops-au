@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.0.0-rc.2",
+  "contract_version": "1.0.0-rc.3",
   "description": "Synthetic fixtures only, not a live run or Gold evaluation. Positive validates shape; runtime_guards are unexecuted acceptance scenarios, not guard implementations.",
   "positive": [
     {
@@ -110,7 +110,9 @@
         "status": "PENDING",
         "outcome": "MANUAL_HANDLED",
         "message": "The Founder completed manual review. No automated return or label will be created.",
-        "next_steps": ["Contact the Founder to discuss this outcome."],
+        "next_steps": [
+          "Contact the Founder to discuss this outcome."
+        ],
         "attempt_count": 0,
         "updated_at": "2026-09-07T02:03:00Z"
       }
@@ -134,11 +136,25 @@
         },
         "case_count": 3,
         "cases_by_status": [
-          {"status": "COMPLETED", "count": 1},
-          {"status": "ESCALATED", "count": 1},
-          {"status": "AWAITING_INFORMATION", "count": 1}
+          {
+            "status": "COMPLETED",
+            "count": 1
+          },
+          {
+            "status": "ESCALATED",
+            "count": 1
+          },
+          {
+            "status": "AWAITING_INFORMATION",
+            "count": 1
+          }
         ],
-        "current_risk_counts": [{"outcome": "PASS", "count": 1}],
+        "current_risk_counts": [
+          {
+            "outcome": "PASS",
+            "count": 1
+          }
+        ],
         "cases_without_current_review": 2,
         "proposal_latency": {
           "metric_version": "proposal-latency-v1",
@@ -1640,6 +1656,146 @@
         "attempt_count": 1,
         "updated_at": "2026-09-07T02:00:00Z"
       }
+    },
+    {
+      "name": "order-lookup-block-conflict",
+      "schema": "OrderLookupBlock",
+      "value": {
+        "block_id": "lookup-block-conflict",
+        "case_id": "case-demo-001",
+        "input_version": 1,
+        "status": "CONFLICT",
+        "message": "Synthetic CONFLICT branch; no mutation.",
+        "occurred_at": "2026-09-07T02:01:00Z"
+      }
+    },
+    {
+      "name": "founder-blocked-view-conflict",
+      "schema": "CaseView",
+      "value": {
+        "case_id": "case-demo-001",
+        "case_version": 2,
+        "input_version": 1,
+        "status": "ESCALATED",
+        "created_at": "2026-09-07T02:00:00Z",
+        "updated_at": "2026-09-07T02:01:00Z",
+        "statements": [
+          {
+            "statement_id": "stmt-block-001",
+            "kind": "ORIGINAL",
+            "raw_text": "Please review the return of a synthetic item; the submitted order details require manual investigation.",
+            "requested_outcome": "RETURN",
+            "submitted_at": "2026-09-07T02:00:00Z"
+          }
+        ],
+        "evidence": [],
+        "decisions": [],
+        "approvals": [],
+        "operations": [],
+        "notifications": [],
+        "cited_passages": [],
+        "order_lookup_block": {
+          "block_id": "lookup-block-conflict",
+          "case_id": "case-demo-001",
+          "input_version": 1,
+          "status": "CONFLICT",
+          "message": "Synthetic CONFLICT branch; no mutation.",
+          "occurred_at": "2026-09-07T02:01:00Z"
+        }
+      }
+    },
+    {
+      "name": "founder-manual-block-conflict",
+      "schema": "FounderDecisionRequest",
+      "value": {
+        "expected_case_version": 2,
+        "order_lookup_block_id": "lookup-block-conflict",
+        "decision": "MANUAL_HANDLING",
+        "reason": "The Founder recorded a manual outcome for the blocked lookup. No return or label is authorised."
+      }
+    },
+    {
+      "name": "manual-block-record-conflict",
+      "schema": "FounderDecisionRecord",
+      "value": {
+        "decision_id": "decision-conflict",
+        "case_id": "case-demo-001",
+        "order_lookup_block_id": "lookup-block-conflict",
+        "decision": "MANUAL_HANDLING",
+        "principal_id": "founder-demo-001",
+        "reason": "The Founder recorded a manual outcome for the blocked lookup. No return or label is authorised.",
+        "decided_at": "2026-09-07T02:03:00Z"
+      }
+    },
+    {
+      "name": "order-lookup-block-authority-denied",
+      "schema": "OrderLookupBlock",
+      "value": {
+        "block_id": "lookup-block-authority-denied",
+        "case_id": "case-demo-001",
+        "input_version": 1,
+        "status": "AUTHORITY_DENIED",
+        "message": "Synthetic AUTHORITY_DENIED branch; no mutation.",
+        "occurred_at": "2026-09-07T02:01:00Z"
+      }
+    },
+    {
+      "name": "founder-blocked-view-authority-denied",
+      "schema": "CaseView",
+      "value": {
+        "case_id": "case-demo-001",
+        "case_version": 2,
+        "input_version": 1,
+        "status": "ESCALATED",
+        "created_at": "2026-09-07T02:00:00Z",
+        "updated_at": "2026-09-07T02:01:00Z",
+        "statements": [
+          {
+            "statement_id": "stmt-block-001",
+            "kind": "ORIGINAL",
+            "raw_text": "Please review the return of a synthetic item; the submitted order details require manual investigation.",
+            "requested_outcome": "RETURN",
+            "submitted_at": "2026-09-07T02:00:00Z"
+          }
+        ],
+        "evidence": [],
+        "decisions": [],
+        "approvals": [],
+        "operations": [],
+        "notifications": [],
+        "cited_passages": [],
+        "order_lookup_block": {
+          "block_id": "lookup-block-authority-denied",
+          "case_id": "case-demo-001",
+          "input_version": 1,
+          "status": "AUTHORITY_DENIED",
+          "message": "Synthetic AUTHORITY_DENIED branch; no mutation.",
+          "occurred_at": "2026-09-07T02:01:00Z"
+        }
+      }
+    },
+    {
+      "name": "founder-manual-block-authority-denied",
+      "schema": "FounderDecisionRequest",
+      "value": {
+        "expected_case_version": 2,
+        "order_lookup_block_id": "lookup-block-authority-denied",
+        "decision": "MANUAL_HANDLING",
+        "reason": "The Founder recorded a manual outcome for the blocked lookup. No return or label is authorised."
+      }
+    },
+    {
+      "name": "manual-block-record-authority-denied",
+      "schema": "FounderDecisionRecord",
+      "value": {
+        "decision_id": "decision-authority-denied",
+        "case_id": "case-demo-001",
+        "order_lookup_block_id": "lookup-block-authority-denied",
+        "decision": "MANUAL_HANDLING",
+        "principal_id": "founder-demo-001",
+        "reason": "The Founder recorded a manual outcome for the blocked lookup. No return or label is authorised.",
+        "decided_at": "2026-09-07T02:03:00Z"
+      }
     }
   ],
   "negative": [
@@ -1685,7 +1841,9 @@
       "name": "analytics-unknown-status",
       "schema": "AnalyticsQuery",
       "reason": "Statistics use the frozen CaseStatus vocabulary, not an arbitrary frontend status.",
-      "value": {"status": "CLOSED"}
+      "value": {
+        "status": "CLOSED"
+      }
     },
     {
       "name": "client-forges-role",
@@ -2260,6 +2418,248 @@
         }
       },
       "reason": "Risk must be a separately identified Risk Reviewer invocation."
+    },
+    {
+      "name": "block-conflict-cannot-approve",
+      "schema": "FounderDecisionRequest",
+      "value": {
+        "expected_case_version": 2,
+        "order_lookup_block_id": "lookup-block-conflict",
+        "decision": "APPROVE",
+        "reason": "The Founder recorded a manual outcome for the blocked lookup. No return or label is authorised.",
+        "preview_id": "preview-demo-001",
+        "scope_fingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "reason": "Non-proposal manual targets are exclusive, confer no execution authority, and keep business blocks distinct from technical failures."
+    },
+    {
+      "name": "block-conflict-cannot-reject",
+      "schema": "FounderDecisionRequest",
+      "value": {
+        "expected_case_version": 2,
+        "order_lookup_block_id": "lookup-block-conflict",
+        "decision": "REJECT",
+        "reason": "The Founder recorded a manual outcome for the blocked lookup. No return or label is authorised."
+      },
+      "reason": "Non-proposal manual targets are exclusive, confer no execution authority, and keep business blocks distinct from technical failures."
+    },
+    {
+      "name": "block-conflict-cannot-request_revision",
+      "schema": "FounderDecisionRequest",
+      "value": {
+        "expected_case_version": 2,
+        "order_lookup_block_id": "lookup-block-conflict",
+        "decision": "REQUEST_REVISION",
+        "reason": "The Founder recorded a manual outcome for the blocked lookup. No return or label is authorised."
+      },
+      "reason": "Non-proposal manual targets are exclusive, confer no execution authority, and keep business blocks distinct from technical failures."
+    },
+    {
+      "name": "block-conflict-mixed-failure-target",
+      "schema": "FounderDecisionRequest",
+      "value": {
+        "expected_case_version": 2,
+        "order_lookup_block_id": "lookup-block-conflict",
+        "decision": "MANUAL_HANDLING",
+        "reason": "The Founder recorded a manual outcome for the blocked lookup. No return or label is authorised.",
+        "processing_failure_id": "failure-demo-001"
+      },
+      "reason": "Non-proposal manual targets are exclusive, confer no execution authority, and keep business blocks distinct from technical failures."
+    },
+    {
+      "name": "block-conflict-mixed-case-targets",
+      "schema": "CaseView",
+      "value": {
+        "case_id": "case-demo-001",
+        "case_version": 2,
+        "input_version": 1,
+        "status": "ESCALATED",
+        "created_at": "2026-09-07T02:00:00Z",
+        "updated_at": "2026-09-07T02:01:00Z",
+        "statements": [
+          {
+            "statement_id": "stmt-block-001",
+            "kind": "ORIGINAL",
+            "raw_text": "Please review the return of a synthetic item; the submitted order details require manual investigation.",
+            "requested_outcome": "RETURN",
+            "submitted_at": "2026-09-07T02:00:00Z"
+          }
+        ],
+        "evidence": [],
+        "decisions": [],
+        "approvals": [],
+        "operations": [],
+        "notifications": [],
+        "cited_passages": [],
+        "order_lookup_block": {
+          "block_id": "lookup-block-conflict",
+          "case_id": "case-demo-001",
+          "input_version": 1,
+          "status": "CONFLICT",
+          "message": "Synthetic CONFLICT branch; no mutation.",
+          "occurred_at": "2026-09-07T02:01:00Z"
+        },
+        "processing_failure": {
+          "failure_id": "failure-demo-001",
+          "case_id": "case-failure-001",
+          "input_version": 1,
+          "stage": "ASSESSMENT",
+          "error": {
+            "error": {
+              "code": "INTERNAL_ERROR",
+              "message": "Assessment could not produce a valid decision packet.",
+              "correlation_id": "correlation-failure-001",
+              "retryable": false,
+              "details": []
+            }
+          },
+          "occurred_at": "2026-09-07T02:01:00Z"
+        }
+      },
+      "reason": "Non-proposal manual targets are exclusive, confer no execution authority, and keep business blocks distinct from technical failures."
+    },
+    {
+      "name": "block-conflict-not-a-technical-error",
+      "schema": "OrderLookupBlock",
+      "value": {
+        "block_id": "lookup-block-conflict",
+        "case_id": "case-demo-001",
+        "input_version": 1,
+        "status": "CONFLICT",
+        "message": "Synthetic CONFLICT branch; no mutation.",
+        "occurred_at": "2026-09-07T02:01:00Z",
+        "error": {
+          "error": {
+            "code": "INTERNAL_ERROR",
+            "message": "Assessment could not produce a valid decision packet.",
+            "correlation_id": "correlation-failure-001",
+            "retryable": false,
+            "details": []
+          }
+        }
+      },
+      "reason": "Non-proposal manual targets are exclusive, confer no execution authority, and keep business blocks distinct from technical failures."
+    },
+    {
+      "name": "block-authority-denied-cannot-approve",
+      "schema": "FounderDecisionRequest",
+      "value": {
+        "expected_case_version": 2,
+        "order_lookup_block_id": "lookup-block-authority-denied",
+        "decision": "APPROVE",
+        "reason": "The Founder recorded a manual outcome for the blocked lookup. No return or label is authorised.",
+        "preview_id": "preview-demo-001",
+        "scope_fingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "reason": "Non-proposal manual targets are exclusive, confer no execution authority, and keep business blocks distinct from technical failures."
+    },
+    {
+      "name": "block-authority-denied-cannot-reject",
+      "schema": "FounderDecisionRequest",
+      "value": {
+        "expected_case_version": 2,
+        "order_lookup_block_id": "lookup-block-authority-denied",
+        "decision": "REJECT",
+        "reason": "The Founder recorded a manual outcome for the blocked lookup. No return or label is authorised."
+      },
+      "reason": "Non-proposal manual targets are exclusive, confer no execution authority, and keep business blocks distinct from technical failures."
+    },
+    {
+      "name": "block-authority-denied-cannot-request_revision",
+      "schema": "FounderDecisionRequest",
+      "value": {
+        "expected_case_version": 2,
+        "order_lookup_block_id": "lookup-block-authority-denied",
+        "decision": "REQUEST_REVISION",
+        "reason": "The Founder recorded a manual outcome for the blocked lookup. No return or label is authorised."
+      },
+      "reason": "Non-proposal manual targets are exclusive, confer no execution authority, and keep business blocks distinct from technical failures."
+    },
+    {
+      "name": "block-authority-denied-mixed-failure-target",
+      "schema": "FounderDecisionRequest",
+      "value": {
+        "expected_case_version": 2,
+        "order_lookup_block_id": "lookup-block-authority-denied",
+        "decision": "MANUAL_HANDLING",
+        "reason": "The Founder recorded a manual outcome for the blocked lookup. No return or label is authorised.",
+        "processing_failure_id": "failure-demo-001"
+      },
+      "reason": "Non-proposal manual targets are exclusive, confer no execution authority, and keep business blocks distinct from technical failures."
+    },
+    {
+      "name": "block-authority-denied-mixed-case-targets",
+      "schema": "CaseView",
+      "value": {
+        "case_id": "case-demo-001",
+        "case_version": 2,
+        "input_version": 1,
+        "status": "ESCALATED",
+        "created_at": "2026-09-07T02:00:00Z",
+        "updated_at": "2026-09-07T02:01:00Z",
+        "statements": [
+          {
+            "statement_id": "stmt-block-001",
+            "kind": "ORIGINAL",
+            "raw_text": "Please review the return of a synthetic item; the submitted order details require manual investigation.",
+            "requested_outcome": "RETURN",
+            "submitted_at": "2026-09-07T02:00:00Z"
+          }
+        ],
+        "evidence": [],
+        "decisions": [],
+        "approvals": [],
+        "operations": [],
+        "notifications": [],
+        "cited_passages": [],
+        "order_lookup_block": {
+          "block_id": "lookup-block-authority-denied",
+          "case_id": "case-demo-001",
+          "input_version": 1,
+          "status": "AUTHORITY_DENIED",
+          "message": "Synthetic AUTHORITY_DENIED branch; no mutation.",
+          "occurred_at": "2026-09-07T02:01:00Z"
+        },
+        "processing_failure": {
+          "failure_id": "failure-demo-001",
+          "case_id": "case-failure-001",
+          "input_version": 1,
+          "stage": "ASSESSMENT",
+          "error": {
+            "error": {
+              "code": "INTERNAL_ERROR",
+              "message": "Assessment could not produce a valid decision packet.",
+              "correlation_id": "correlation-failure-001",
+              "retryable": false,
+              "details": []
+            }
+          },
+          "occurred_at": "2026-09-07T02:01:00Z"
+        }
+      },
+      "reason": "Non-proposal manual targets are exclusive, confer no execution authority, and keep business blocks distinct from technical failures."
+    },
+    {
+      "name": "block-authority-denied-not-a-technical-error",
+      "schema": "OrderLookupBlock",
+      "value": {
+        "block_id": "lookup-block-authority-denied",
+        "case_id": "case-demo-001",
+        "input_version": 1,
+        "status": "AUTHORITY_DENIED",
+        "message": "Synthetic AUTHORITY_DENIED branch; no mutation.",
+        "occurred_at": "2026-09-07T02:01:00Z",
+        "error": {
+          "error": {
+            "code": "INTERNAL_ERROR",
+            "message": "Assessment could not produce a valid decision packet.",
+            "correlation_id": "correlation-failure-001",
+            "retryable": false,
+            "details": []
+          }
+        }
+      },
+      "reason": "Non-proposal manual targets are exclusive, confer no execution authority, and keep business blocks distinct from technical failures."
     }
   ],
   "runtime_guards": [
@@ -2451,6 +2851,182 @@
           "code": "IDEMPOTENCY_CONFLICT",
           "message": "Use a new key for a different intent after reviewing the current state.",
           "correlation_id": "correlation-demo-001",
+          "retryable": false,
+          "details": []
+        }
+      },
+      "expected_provider_effects": 0
+    },
+    {
+      "name": "block-conflict-foreign",
+      "request_schema": "FounderDecisionRequest",
+      "request": {
+        "expected_case_version": 2,
+        "order_lookup_block_id": "lookup-block-conflict",
+        "decision": "MANUAL_HANDLING",
+        "reason": "The Founder recorded a manual outcome for the blocked lookup. No return or label is authorised."
+      },
+      "precondition": "The target block belongs to another case or input version. The caller is an authorised Founder and expected_case_version matches the current case; this isolates target/state rejection from stale-version rejection.",
+      "http_status": 409,
+      "error": {
+        "error": {
+          "code": "INVALID_STATE",
+          "message": "The current authorised decision context is required.",
+          "correlation_id": "correlation-block-001",
+          "retryable": false,
+          "details": []
+        }
+      },
+      "expected_provider_effects": 0
+    },
+    {
+      "name": "block-conflict-replaced",
+      "request_schema": "FounderDecisionRequest",
+      "request": {
+        "expected_case_version": 2,
+        "order_lookup_block_id": "lookup-block-conflict",
+        "decision": "MANUAL_HANDLING",
+        "reason": "The Founder recorded a manual outcome for the blocked lookup. No return or label is authorised."
+      },
+      "precondition": "A newer lookup block or proposal has replaced this target. The caller is an authorised Founder and expected_case_version matches the current case; this isolates target/state rejection from stale-version rejection.",
+      "http_status": 409,
+      "error": {
+        "error": {
+          "code": "INVALID_STATE",
+          "message": "The current authorised decision context is required.",
+          "correlation_id": "correlation-block-001",
+          "retryable": false,
+          "details": []
+        }
+      },
+      "expected_provider_effects": 0
+    },
+    {
+      "name": "block-conflict-wrong-state",
+      "request_schema": "FounderDecisionRequest",
+      "request": {
+        "expected_case_version": 2,
+        "order_lookup_block_id": "lookup-block-conflict",
+        "decision": "MANUAL_HANDLING",
+        "reason": "The Founder recorded a manual outcome for the blocked lookup. No return or label is authorised."
+      },
+      "precondition": "This is a new intent and the case is no longer ESCALATED. The caller is an authorised Founder and expected_case_version matches the current case; this isolates target/state rejection from stale-version rejection.",
+      "http_status": 409,
+      "error": {
+        "error": {
+          "code": "INVALID_STATE",
+          "message": "The current authorised decision context is required.",
+          "correlation_id": "correlation-block-001",
+          "retryable": false,
+          "details": []
+        }
+      },
+      "expected_provider_effects": 0
+    },
+    {
+      "name": "block-conflict-wrong-actor",
+      "request_schema": "FounderDecisionRequest",
+      "request": {
+        "expected_case_version": 2,
+        "order_lookup_block_id": "lookup-block-conflict",
+        "decision": "MANUAL_HANDLING",
+        "reason": "The Founder recorded a manual outcome for the blocked lookup. No return or label is authorised."
+      },
+      "precondition": "The authenticated caller is a customer, not the authorised Founder.",
+      "http_status": 403,
+      "error": {
+        "error": {
+          "code": "FORBIDDEN",
+          "message": "The current authorised decision context is required.",
+          "correlation_id": "correlation-block-001",
+          "retryable": false,
+          "details": []
+        }
+      },
+      "expected_provider_effects": 0
+    },
+    {
+      "name": "block-authority-denied-foreign",
+      "request_schema": "FounderDecisionRequest",
+      "request": {
+        "expected_case_version": 2,
+        "order_lookup_block_id": "lookup-block-authority-denied",
+        "decision": "MANUAL_HANDLING",
+        "reason": "The Founder recorded a manual outcome for the blocked lookup. No return or label is authorised."
+      },
+      "precondition": "The target block belongs to another case or input version. The caller is an authorised Founder and expected_case_version matches the current case; this isolates target/state rejection from stale-version rejection.",
+      "http_status": 409,
+      "error": {
+        "error": {
+          "code": "INVALID_STATE",
+          "message": "The current authorised decision context is required.",
+          "correlation_id": "correlation-block-001",
+          "retryable": false,
+          "details": []
+        }
+      },
+      "expected_provider_effects": 0
+    },
+    {
+      "name": "block-authority-denied-replaced",
+      "request_schema": "FounderDecisionRequest",
+      "request": {
+        "expected_case_version": 2,
+        "order_lookup_block_id": "lookup-block-authority-denied",
+        "decision": "MANUAL_HANDLING",
+        "reason": "The Founder recorded a manual outcome for the blocked lookup. No return or label is authorised."
+      },
+      "precondition": "A newer lookup block or proposal has replaced this target. The caller is an authorised Founder and expected_case_version matches the current case; this isolates target/state rejection from stale-version rejection.",
+      "http_status": 409,
+      "error": {
+        "error": {
+          "code": "INVALID_STATE",
+          "message": "The current authorised decision context is required.",
+          "correlation_id": "correlation-block-001",
+          "retryable": false,
+          "details": []
+        }
+      },
+      "expected_provider_effects": 0
+    },
+    {
+      "name": "block-authority-denied-wrong-state",
+      "request_schema": "FounderDecisionRequest",
+      "request": {
+        "expected_case_version": 2,
+        "order_lookup_block_id": "lookup-block-authority-denied",
+        "decision": "MANUAL_HANDLING",
+        "reason": "The Founder recorded a manual outcome for the blocked lookup. No return or label is authorised."
+      },
+      "precondition": "This is a new intent and the case is no longer ESCALATED. The caller is an authorised Founder and expected_case_version matches the current case; this isolates target/state rejection from stale-version rejection.",
+      "http_status": 409,
+      "error": {
+        "error": {
+          "code": "INVALID_STATE",
+          "message": "The current authorised decision context is required.",
+          "correlation_id": "correlation-block-001",
+          "retryable": false,
+          "details": []
+        }
+      },
+      "expected_provider_effects": 0
+    },
+    {
+      "name": "block-authority-denied-wrong-actor",
+      "request_schema": "FounderDecisionRequest",
+      "request": {
+        "expected_case_version": 2,
+        "order_lookup_block_id": "lookup-block-authority-denied",
+        "decision": "MANUAL_HANDLING",
+        "reason": "The Founder recorded a manual outcome for the blocked lookup. No return or label is authorised."
+      },
+      "precondition": "The authenticated caller is a customer, not the authorised Founder.",
+      "http_status": 403,
+      "error": {
+        "error": {
+          "code": "FORBIDDEN",
+          "message": "The current authorised decision context is required.",
+          "correlation_id": "correlation-block-001",
           "retryable": false,
           "details": []
         }

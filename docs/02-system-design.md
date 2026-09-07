@@ -6,12 +6,16 @@
 > and [work packages](08-delivery-work-packages.md). B/C shared-model review
 > and tutor feedback are still required. Diagrams describe intended behaviour,
 > not an implemented or accepted API.
+> The `1.0.0-rc.3` three-target clarification is tracked by
+> [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32), remains a review
+> candidate, and does not change PR #9's historical rc.2 publication.
 >
 > **Contribution provenance:** the three-agent architecture, separate read-only
 > order provider and deterministic Operations Service reuse Member B
 > (`ChengsiLi`)'s [PR #8](https://github.com/shuxiachai/returnops-au/pull/8),
 > commit `cbba595`. The present revision corrects the state-write, recovery
-> and notification boundaries and adds a compact Lab 4 analysis. It does not
+> and notification boundaries, retains the Lab 4 analysis, and adds the
+> Lab 5 pattern/method clarification under M-S.01. It does not
 > merge PR #8, rewrite B's commits or claim B/C approval of this revision.
 
 ## 1. Architectural drivers
@@ -130,10 +134,12 @@ identified portfolio extensions; they are not prerequisites for course delivery.
 | PolicyDocument | Versioned store policy or approved guidance source |
 | PolicyPassage | Source ID/type, version when available, access date, content hash, location and retrieval time |
 | DecisionPacket | Versioned non-executable conditional proposal referencing original statements, sources, alternatives and uncertainty |
+| ProcessingFailure | Current case/input-bound technical failure; a no-proposal manual target, not a business-risk result |
+| OrderLookupBlock | Current case/input-bound record of an accepted pre-proposal CONFLICT or AUTHORITY_DENIED lookup; a non-executable manual target |
 | RiskFinding | Unsupported claim, conflict, missing evidence, or escalation reason |
 | RiskReview | Independent five-outcome result bound to case/input/proposal and source versions |
 | ActionPreview | Server-prepared read-only scope preview; neither an AI command nor an approval |
-| FounderDecisionRecord | One of four decisions, trusted actor, current proposal, reason and timestamp |
+| FounderDecisionRecord | Trusted actor, case, reason/time and exactly one current target: proposal ID/version, processing failure ID or order-lookup block ID; no-proposal targets permit only MANUAL_HANDLING |
 | ApprovalRecord | Produced only for APPROVE, bound to current versions, exact command scope/fingerprint and expiry |
 | ToolCommand | Allowlisted typed, idempotent external action request bound to case, proposal, and approval |
 | OperationAttempt | Provider-specific command, fingerprint, idempotency, outcome/error and reconciliation evidence |
@@ -147,7 +153,10 @@ source passages; cases and proposals reference them, not a second exclusive copy
 
 `IntakeSession` (B), `ProposalReview` (C) and `OperationAttempt` (A) are the
 subjects of the three personal state-machine chains. A lifecycle subject and a
-wire DTO need not be the same class; any mapping must be explicit. Shared
+wire DTO need not be the same class: C's independent call consumes
+`RiskReviewRequest` and returns the rc.3 `RiskReview` DTO. Domain Service validates
+that result before recording it in the conceptual `ProposalReview` lifecycle;
+the lifecycle name is not another wire response. Shared
 [class-model work](diagrams/01-domain-class-diagram.md) and the
 [F.01 contract candidate](09-interface-contract-v1.md) require consistency review;
 the legacy `DecisionProposal`/enum code has not been migrated by this document.
@@ -162,6 +171,8 @@ Every transition goes through Domain Service; no API accepts an arbitrary state.
 | Event/result | Required route and guard |
 |---|---|
 | New or clarified customer input | Preserve originals, validate ownership and versions; missing facts await information, complete facts proceed to investigation/assessment |
+| Pre-proposal CONFLICT / AUTHORITY_DENIED lookup | Domain Service records the accepted OrderLookupBlock and ESCALATED state; only a manual outcome may target that current block |
+| Pre-proposal technical recovery exhausted | Record the actual ProcessingFailure and safe escalation; no placeholder proposal or passing review; only a manual outcome may target that current failure |
 | REVISE / NEEDS_INFORMATION | Return to Assessment / Coordinator respectively; new facts or proposal invalidate stale reviews and pending approvals |
 | PASS / PASS_WITH_WARNING | Prepare Founder review only when all other prerequisites hold; warnings remain visible |
 | ESCALATE | Manual-handling route; an executable return path requires a new proposal and a new passed review |
@@ -259,9 +270,17 @@ scope invalidates pending authorisation; a historical approval is not sufficient
 | Founder decision | Effect |
 |---|---|
 | APPROVE | Create exact-scope approval for a currently executable, passed-review proposal; independently revalidate each operation |
-| REJECT | Record the reason and notify; no return/label command |
-| REQUEST_REVISION | Record the reason; create a new proposal through Assessment and repeat independent review |
-| MANUAL_HANDLING | Record the manual outcome and notify; no return/label command |
+| REJECT | Target the current proposal, record the reason and notify; no return/label command |
+| REQUEST_REVISION | Target the current proposal, record the reason; create a new proposal through Assessment and repeat independent review |
+| MANUAL_HANDLING | Target the current proposal or, without a proposal, exactly one current ProcessingFailure or OrderLookupBlock; record the actual manual outcome and notify, without return/label work |
+
+Under the [rc.3 clarification](09-interface-contract-v1.md), a no-proposal
+target requires an `ESCALATED` case and matching current case/input/record
+versions. It permits no `APPROVE`, `REJECT` or `REQUEST_REVISION`, and cannot
+create a preview, passing review, approval or operation command. An
+`OrderLookupBlock` is restricted to an accepted `CONFLICT/AUTHORITY_DENIED`
+order-provider result; source-policy conflicts remain material for a conditional
+packet and independent Risk review, not an order block or technical failure.
 
 Material unresolved conflicts, injection, unsupported scope or evidence do not
 become safe merely because the Founder clicks approve. An escalated proposal
@@ -347,6 +366,29 @@ reviews and failures rather than double-counting proposal versions.
 
 ## 10. Architectural decisions to defend
 
+### 10.1 Lab 5: selected patterns and their concrete application
+
+These patterns describe the architecture already shown in sections 2, 6 and 8;
+they introduce no framework, process, business AI role or public endpoint.
+The modular monolith is the deployment and module organisation choice. Layering,
+ports/adapters and bounded supervision explain different aspects of the same
+design rather than competing implementation stacks.
+
+| Adopted style or pattern | Existing components and interaction | Problem addressed | Benefit and limitation | Requirement evidence to inspect |
+|---|---|---|---|---|
+| Modular monolith with a repository and one transactional case store | API, Domain Service, orchestration and Operations are modules; `CaseRepository` is realised by the PostgreSQL adapter. Domain Service commits case versions, decisions and associated work/audit through that boundary. Provider effects still occur outside the database transaction. | Concurrent UI/agent/provider results must not become conflicting sources of case state; a small team needs a reproducible integration unit. | One state authority simplifies version checks, trace reconstruction and local integration. A single store is also a failure/contention boundary; a transaction cannot undo an external effect, so idempotency and UNKNOWN reconciliation remain necessary. This is not a high-availability claim. | FR-009/011/012; NFR-004/006/008. Trace a stale decision, concurrent duplicate request and provider success followed by local persistence failure. |
+| Layered responsibilities with ports and adapters | Portal/Dashboard request actions through API → Domain Service. Domain/Operations use typed `OrderProviderPort`, `RetrievalPort`, `ReturnsLogisticsPort`, `NotificationPort`, `AuditPort` and `CaseRepository`; adapters translate provider-specific data. The shared class model shows interface realisation and the sequence model shows call direction. | UI state and provider-specific details must not bypass approval rules or leak into every business module. | Providers can be replaced behind tested contracts, and UI/AI tests can use controlled substitutes. Mapping and version validation add work; an interface alone does not establish provider permission, correct provenance or safe retry. | FR-003/006/009/010/012; NFR-002/003/006/007/009. Inspect request/result mappings, denied-provider cases and a replacement adapter retaining the same approval guards. |
+| Bounded Supervisor–Worker orchestration | `WorkflowOrchestrator` invokes Coordinator, Assessment and an independently prompted Risk Reviewer, submits their typed results to Domain Service and follows permitted revision/information/escalation branches. The supervisor is deterministic control, not a fourth AI role; only Operations can invoke approved effects. | Three specialised analyses need controlled hand-offs and recovery without unrestricted peer calls, hidden reasoning sharing or an agent-created approval. | Role-specific contracts and an independent Risk invocation make failures and source disagreements visible. Central coordination remains a dependency, and repeated model calls add latency/cost; independent invocation does not guarantee statistically independent errors. Budgets and evaluation must show the limits. | FR-002/005–008; NFR-001/002/005/008/009. Walk through PASS, REVISE, NEEDS_INFORMATION, ESCALATE and malformed/stale output, preserving the complete retrieval result. |
+
+The store is shared infrastructure, not an open blackboard that agents may
+mutate. Assessment prepares a non-executable recommendation; deterministic
+scope preparation plus Founder approval separates that analysis from execution.
+The project does not require unrestricted ReAct, a free-form executable LLM
+planner or every pattern listed as a Lab 5 example. Choosing a pattern does not
+replace the state, authority, concurrency and provider tests named above.
+
+### 10.2 Alternatives and design rationale
+
 | Chosen approach | Discarded alternative | Rationale |
 |---|---|---|
 | Domain-controlled workflow with bounded agent calls | Unrestricted agents calling each other | Easier to model, test, audit, and control |
@@ -355,6 +397,31 @@ reviews and failures rather than double-counting proposal versions.
 | Mock provider adapters | Production payment and logistics access | Safe and achievable for a course prototype |
 | Small approved corpus | Open web search for every case | Better provenance, repeatability, and evaluation |
 | Three request types | Universal customer support | Keeps requirements and evaluation tractable |
+
+### 10.3 Lab 5: service methods and acceptance boundary
+
+The [shared class model's method contracts](diagrams/01-domain-class-diagram.md#21-method-contracts-and-trusted-context)
+connect representative method parameters and returns to the existing F.01 rc.3
+DTOs. They distinguish a transport request from authenticated server context,
+and distinguish a returned model/provider observation from an authoritative
+persisted result. Domain records remain data-oriented where appropriate;
+the model does not add arbitrary CRUD methods to every DTO.
+
+A leads M-S.01 using these three checks; C reviews source/risk/authority details,
+and B contributes and reviews the UI/application interactions and their mapping:
+
+1. Identify each selected pattern in the existing component and sequence views;
+   explain one relevant benefit, limitation and discarded choice against its
+   FR/NFR references. Record each member's actual shared contribution.
+2. Check major service inputs, outputs, associations, multiplicities and
+   interface realisations. Follow one normal and one rejected/stale/unknown
+   interaction from a method parameter to its guarded result. Method names,
+   role-specific DTOs and personal behavioural models must agree.
+3. Keep the runtime instances, ports and connectors in M-S.02 and the personal
+   AH → UC → Activity/Interaction/State chains in their existing work packages.
+   Neither this table nor a Mermaid syntax pass accepts those deliverables or
+   demonstrates an implemented runtime. B/C joint review and tutor feedback
+   remain outstanding.
 
 ## 11. Model-to-code traceability
 

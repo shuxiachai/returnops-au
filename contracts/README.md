@@ -1,10 +1,12 @@
 # F.01 contract artifacts
 
 Start with [the Chinese hand-off guide](../docs/09-interface-contract-v1.md).
-Version `1.0.0-rc.2` and the prior document/model alignment are published for
-review in [PR #9](https://github.com/shuxiachai/returnops-au/pull/9); its merge
-record identifies main publication, not B/C acceptance. Confirm the rc.2 hand-offs jointly rather than
-treating either artifact as a running API or course-acceptance evidence.
+Version `1.0.0-rc.3` is a review candidate for
+[KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32), not accepted F.01.
+Its predecessor rc.2 was merged in
+[PR #9](https://github.com/shuxiachai/returnops-au/pull/9); that publication does
+not include this revision or establish B/C acceptance. Joint review must name
+the exact revision being reviewed. Neither candidate is a running API.
 
 ## Contents
 
@@ -13,6 +15,7 @@ treating either artifact as a running API or course-acceptance evidence.
 - `v1/examples.json`: synthetic valid/invalid DTO fixtures and *unexecuted* runtime-guard scenarios.
 - `../tests/contracts/test_contract_v1.py`: offline artifact checks; no business service or provider implementation.
 - `../tests/contracts/test_contract_v1_rc2.py`: five-gap regressions and test-only cross-object/cohort checks, not runtime guards.
+- `../tests/contracts/test_contract_v1_rc3.py`: three-target exclusivity, order-block provenance fixtures and the shared HTTP idempotency rule.
 - `requirements.txt`: contract-validator dependencies only, not an application dependency lockfile.
 
 ## Run in a separate environment
@@ -51,9 +54,8 @@ or prove zero provider effects**. Implement their behavior later in
 F.03/A1/A2/F.06 tests. Historical rc.1 test totals are not rc.2 results; rerun
 the current artifacts and report the actual output.
 
-Local rc.2 validation on 2026-09-07: 35 contract unittest methods passed in the
-isolated validator environment; the full local suite passed 39 tests including
-4 unchanged legacy domain tests. Fixtures: 56 positive, 24 negative and 8
+Local rc.3 validation on 2026-09-07: 44 contract unittest methods passed in the
+isolated validator environment. Fixtures: 64 positive, 36 negative and 16
 unexecuted runtime-guard scenarios. These totals are artifact evidence only;
 rerun after changes and do not describe them as live API or CI acceptance.
 
@@ -73,7 +75,48 @@ trace. Original statement, source hash, multi-item/single-parcel and approval
 fingerprints are cross-checked where linked; production foreign-key,
 concurrency, authorization and state invariants remain future work.
 
-## rc.1 to rc.2 migration
+## rc.2 to rc.3 migration
+
+The 13 public operations, five Risk outcomes and four Founder decisions remain
+unchanged. A/B/C must update strict consumers together before adopting rc.3.
+
+- Keep `ProcessingFailure` technical. Add `OrderLookupBlock` for an accepted
+  pre-proposal `OrderLookupResult.CONFLICT` or `AUTHORITY_DENIED`, with the same
+  case/input/status/sanitised message, a server-created block ID and timestamp.
+  `NOT_FOUND` remains clarification; provider faults remain technical recovery.
+  Source conflicts remain visible in packet/Risk material, not fabricated order
+  blocks or technical failures.
+- `CaseView` exposes at most one current `processing_failure` or
+  `order_lookup_block`; `ESCALATED` without `current_proposal` requires exactly
+  one. A block cannot coexist with a current proposal/review/preview. Keep the
+  resolved target visible during notification/manual completion; retain earlier
+  targets in the audit trail and preserve historical decisions/operations,
+  including uncertain effects. Do not clear history to satisfy a current view.
+- `FounderDecisionRequest` and `FounderDecisionRecord` have three exclusive
+  targets: proposal ID/version, `processing_failure_id`, or
+  `order_lookup_block_id`. Both non-proposal targets allow only `MANUAL_HANDLING`
+  and forbid approval/scope/preview or operational command fields. The server
+  must authenticate the Founder, resolve current case/input/target, enforce
+  expected version and `ESCALATED` state, and atomically save the manual outcome
+  with notification work only. A new target invalidates old intent; a replay
+  with the same accepted key/body returns its original receipt after auth.
+- Manual processing ends in `MANUAL_HANDLED` only after the recorded outcome is
+  notified; it never proves return/label success. A pre-proposal business block
+  without a review-ready latency measurement is `unmeasured`, not a technical
+  `failed` sample. Runtime checks and aggregation are still unimplemented.
+- The HTTP `Idempotency-Key` parameter now references the shared schema rather
+  than duplicating its character rule. This removes divergent definitions;
+  it is not evidence of a demonstrated exploit in a running service.
+
+The rc.3 linked fixture checks reject stale/cross-case/source/target mismatches
+in test data. They are not imported by application code and do not authenticate
+principals or execute service guards. The application must implement these
+behaviours in A1/A2/F.03, with B's corresponding UI handling and C's review.
+
+## Historical rc.1 to rc.2 migration
+
+The following records the earlier migration. Its technical-only no-proposal
+target is extended by rc.3 above; it is not the complete current CaseView rule.
 
 The URL major version and 13 public operations are unchanged. Update producers,
 consumers, strict validators and mocks together before adopting this candidate:
@@ -126,5 +169,9 @@ later implementation/evidence packages remain outstanding.
 Owner A; named Reviewer C; B confirms frontend consumption.
 Requirement/model mapping and the three-person acceptance checklist are in
 docs/09. Do not mark F.01 Done or claim tutor approval from an automated
-artifact-validation result. Jira mapping is pending; reuse or map the actual
-delivery item rather than inventing a KAN key.
+artifact-validation result. F.01 uses
+[KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32); baseline review remains
+[KAN-12](https://lucastaooo.atlassian.net/browse/KAN-12), linked to Issue #5.
+F.02 environment readiness is recorded separately in
+[docs/10](../docs/10-f02-environment-readiness.md); its delivery key is still
+unmapped, and a contract test pass does not complete that work package.

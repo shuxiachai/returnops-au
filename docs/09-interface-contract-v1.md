@@ -1,9 +1,10 @@
 # F.01：公共接口与数据契约 v1
 
-> 版本：`1.0.0-rc.2`；2026-09-07。状态：**通过 [PR #9](https://github.com/shuxiachai/returnops-au/pull/9) 发布；组长已指示合并，实际合并结果以 PR 记录为准，三人验收仍待完成**。
-> Owner：A；指定 Reviewer：C；B 必须确认前端消费边界。Jira key 尚未映射。
+> 版本：`1.0.0-rc.3`；2026-09-07。状态：**评审候选，尚待 A/B/C 联合验收**。[PR #9](https://github.com/shuxiachai/returnops-au/pull/9) 是已合并的 rc.2 历史发布，不表示本修订已获同意。
+> Owner：A；指定 Reviewer：C；B 必须确认前端消费边界。交付条目：[KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32)；链接已核验，不代表 Jira 状态已改变或 F.01 已验收。
+> 当前技术评审入口：[Issue #10 — F.01 rc.3 contract and aligned models](https://github.com/shuxiachai/returnops-au/issues/10)。后续 PR 在该 Issue 留下关联；Issue #5 / KAN-12 保留基线采纳范围。
 > 本文落实 [固定分工](07-frozen-work-allocation.md) 与 [F.01](08-delivery-work-packages.md)，不重开业务范围，不代替 tutor 确认。
-> 这是“数据如何交接”的约定，不是已经运行的服务；没有实现鉴权、数据库、状态守卫、LLM 或 provider。本次补齐五项契约缺口，不等于相应运行行为已实现。
+> 这是“数据如何交接”的约定，不是已经运行的服务；没有实现鉴权、数据库、状态守卫、LLM 或 provider。rc.3 补齐订单业务阻断的人工目标、公共幂等键边界与规格/模型映射，不等于相应运行行为已实现。
 
 ## 1. 三人各自看什么
 
@@ -11,14 +12,14 @@
 |---|---|---|
 | A | 案件/提案版本，审批范围，操作与通知记录，公共错误 | F.02 环境/CI；F.01 验收后按 A1.01 对齐领域模型，按依赖开展后续工作 |
 | B | 客户请求/读模型、Founder 读模型、四种决定、错误和超时反馈 | 用样例做 B1/B2 mock；不自行生成状态、风险、审批或操作成功结论 |
-| C | 检索/引用核验/独立风险输入输出、来源元数据、图片观察 | 按 C1/C2/C3 实现自己的模块；核对标签枚举；映射或复用 Jira 条目 |
+| C | 检索/引用核验/独立风险输入输出、来源元数据、图片观察 | 按 C1/C2/C3 实现自己的模块；核对标签枚举；核验 A 维护的 Jira 映射与证据 |
 
 交付入口：
 
 - [机器可读 JSON Schema](../contracts/v1/schemas.json)：`$defs` 是命名数据结构注册表；必须选中具体定义验证，不能只验证根对象。
 - [OpenAPI](../contracts/v1/openapi.json)：13 个计划公共操作，引用同一份 Schema；不是额外维护一套字段。
 - [JSON 样例](../contracts/v1/examples.json)：`positive`、`negative` 和 `runtime_guards` 三组。
-- [基础契约检查](../tests/contracts/test_contract_v1.py)、[rc.2 回归检查](../tests/contracts/test_contract_v1_rc2.py) 与 [运行说明](../contracts/README.md)。
+- [基础契约检查](../tests/contracts/test_contract_v1.py)、[rc.2 回归检查](../tests/contracts/test_contract_v1_rc2.py)、[rc.3 回归检查](../tests/contracts/test_contract_v1_rc3.py) 与 [运行说明](../contracts/README.md)。
 
 ## 2. 不改变的边界
 
@@ -28,13 +29,13 @@
 - 只有服务端验证的 Founder 能创建可信 `ApprovalRecord`。客户端不能提交可信角色、审批记录、任意命令或 provider 凭据。
 - 一个案件关联一个订单的多个商品项；一次退运只有一个 parcel、一个 label。不支持拆包、多单合并、实际退款、收费物流或生产数据修改。
 - A3 的 `SANDBOX` 只是已选扩展的类型边界，必须另获明确的无收费测试权限；字段存在不代表 provider 已接入。课程核心使用 `SIMULATED`。
-- 本轮不改旧 `packages/domain/models.py` 或 B/C 的 PR，也不实现 F.02/F.03/A1/A2。旧正文与五张共享图的 v1 对齐稿已与 rc.2 一同发布到 PR #9；仍需联合确认契约与模型，不声称图已获验收。
+- 契约修订不改旧 `packages/domain/models.py` 或 B/C 的 PR，不实现 F.03/A1/A2。F.02 环境准备单独记录。旧正文与共享图的 rc.2 对齐稿保留 PR #9 历史；rc.3 仍需联合确认，不声称图已获验收。
 
 ## 3. 公共格式和缺省规则
 
 | 项目 | 约定 |
 |---|---|
-| 路径与版本 | URL 主版本 `/v1`；契约文档版本 `1.0.0-rc.2`；与案件/提案计数版本不同 |
+| 路径与版本 | URL 主版本 `/v1`；契约文档版本 `1.0.0-rc.3`；与案件/提案计数版本不同 |
 | ID | 3–80 位不透明 ASCII 标识符，首位为字母/数字，其余为字母/数字/`_`/`-`；拒绝尾随换行及控制字符，不能推导权限。客户端仅引用服务端返回的 ID |
 | 时间 | RFC 3339 UTC，统一以 `Z` 结束；不得用客户端时间判断审批是否过期 |
 | 金额 | 整数 AUD cents，例如 `2000` 表示 AUD 20.00；不能用浮点金额做审批指纹。当前执行额度恒为 `0` |
@@ -59,12 +60,13 @@
 | `PolicyPassage` / `Citation` | C1 | 区分政策与已审阅指导；来源/位置/快照版本/hash 可核对，不代表语义判断正确 |
 | `DecisionPacket` | A 的 Assessment | 原始 statement 引用、提案/输入版本、事实/矩阵、条件建议、依据、备选、费用责任说明、引用、不确定性、模型版本；无命令 |
 | `ProcessingFailure` | A 的 Domain Service 保存受校验的技术失败 | `failure_id/case_id/input_version/stage/error/occurred_at`；无提案故障升级时给 B 显示并引用，不伪造提案或业务风险结论 |
+| `OrderLookupBlock` | A 的 Domain Service 保存已接受的订单阻断 | `block_id/case_id/input_version/status/message/occurred_at`；status 仅 CONFLICT/AUTHORITY_DENIED；无提案时供 B 显示并以 block ID 人工处理，不冒充技术错误或 RiskReview |
 | `RiskReview` | C2 的独立调用 | 精确绑定 case/input/proposal/corpus；五种 outcome、发现、修改要求或问题；无批准/派发能力 |
 | `ActionPreview` | A 的确定性领域逻辑 | 当前可批准提案的精确免费模拟范围、命令、provider、parcel、到期时间、指纹；B 确认显示 |
-| `FounderDecisionRecord` / `ApprovalRecord` | A2 根据可信 Founder 请求 | 提案目标保留四种决定；无提案技术失败目标只允许 MANUAL_HANDLING。两个目标互斥，只有提案目标 APPROVE 才有独立精确审批记录 |
+| `FounderDecisionRecord` / `ApprovalRecord` | A2 根据可信 Founder 请求 | 提案、技术失败、订单阻断三种目标互斥；两个无提案目标只允许 MANUAL_HANDLING；只有提案目标 APPROVE 才有独立精确审批记录 |
 | `OperationAttempt` | A2 | provider ID、命令/审批绑定、操作指纹、持久化幂等键、类型化结果/错误；UNKNOWN 不冒充失败或成功 |
 | `NotificationRecord` | A2 | 操作结果通知与拒绝/人工处理通知；独立 PENDING/SENT/FAILED、下一步和重试次数 |
-| `CaseView` | A 的 Founder 查询 | 上述当前对象和历史记录；`cited_passages` 提供当前引用原文/来源供 B 核对；ESCALATED 且无 current_proposal 时必须提供 processing_failure |
+| `CaseView` | A 的 Founder 查询 | `cited_passages` 提供当前引用原文/来源；processing_failure/order_lookup_block 至多一个，ESCALATED 且无 current_proposal 时恰好一个；订单阻断不能与当前提案/review/preview 并存，历史操作和审批仍保留 |
 | `AuditPage` / `AnalyticsSnapshot` | A 的只读 API | 非个人事件引用/hash、相关 ID；统计回显 AnalyticsQuery 筛选，统一 cohort/as_of，按案件去重并区分成功、失败、未测量 |
 
 `IssueCategory` 与 `AssessmentStatus` **逐字沿用 docs/00 第 5 节**；不另建一套前端/后端分类映射。`PossibleBasis` 只是可能依据，不是最终法律裁定。
@@ -83,7 +85,7 @@
 | POST `/v1/cases/{id}/clarifications` | 案件所有者客户 | `ClarificationRequest` → 202 `CustomerCaseView` |
 | GET `/v1/founder/cases` | FOUNDER | cursor/limit → `CaseList` |
 | GET `/v1/founder/cases/{id}` | FOUNDER | → `CaseView` |
-| POST `/v1/founder/cases/{id}/decisions` | FOUNDER | `FounderDecisionRequest`（提案目标或仅人工处理的技术失败目标）→ 202 `DecisionReceipt` |
+| POST `/v1/founder/cases/{id}/decisions` | FOUNDER | `FounderDecisionRequest`（提案目标，或仅人工处理的技术失败/订单阻断目标）→ 202 `DecisionReceipt` |
 | POST `/v1/founder/operations/{id}/reconcile` | FOUNDER | `VersionPrecondition` → 202 `OperationAttempt` |
 | POST `/v1/founder/notifications/{id}/retry` | FOUNDER | `VersionPrecondition` → 202 `NotificationRecord` |
 | GET `/v1/founder/cases/{id}/audit` | FOUNDER | cursor/limit → `AuditPage` |
@@ -151,10 +153,10 @@ JSON Schema 只能检查这些材料各自的形状和容量；跨对象关联�
 - 命令 2：`GENERATE_LABEL`，指定同一 parcel，引用命令 1 的 `return_command_id`，固定 PDF 且 `chargeable=false`。
 - 商品 ID 不可重复且数量不得超过快照；两命令必须使用相同 parcel。Schema 之外的这些关联由 A1/A2 守卫验证。
 - label adapter 只能从已保存的命令 1 结果取得 provider return ID，不能接受客户端更换的 return ID。
-- Founder 只提交当前 proposal、`preview_id`、`scope_fingerprint`、决定和理由。A2 从可信会话补 principal，读取原 preview，生成 ApprovalRecord；不相信客户端重建的 scope。
+- 批准时 Founder 只提交当前 proposal、`preview_id`、`scope_fingerprint`、决定和理由。A2 从可信会话补 principal，读取原 preview，生成 ApprovalRecord；不相信客户端重建的 scope。
 - `APPROVE` 才允许 preview/fingerprint；另外三种决定不带执行范围。通过风险只是必要条件，仍要检查事实齐备、可执行状态、额度、权限和所有守卫。
 
-无提案技术失败的 `MANUAL_HANDLING` 不走 `ApprovalScope`；其互斥目标与无执行权规则见第 8.1 节。
+无提案技术失败或订单阻断的 `MANUAL_HANDLING` 不走 `ApprovalScope`；其互斥目标与无执行权规则见第 8.1 节。
 
 指纹采用本项目受限格式：对 **scope 对象本身**递归按对象键排序，数组保留顺序，无多余空白，ASCII 字符串、整数、布尔值，SHA-256 输出小写十六进制。服务端先将商品项按 line_item_id 排序且去重；之后不在计算时偷偷排序数组。没有浮点金额、未定义值、Unicode 或日期自动转换。此定义不声称完整实现通用 JSON canonicalization 标准；B 显示并回传服务端指纹，不自行计算授权。
 
@@ -166,12 +168,12 @@ JSON Schema 只能检查这些材料各自的形状和容量；跨对象关联�
 
 ### 7.3 重复请求与冲突
 
-每个 POST 都有 `Idempotency-Key`，8–128 位，允许 `A–Z a–z 0–9 . _ : -`。作用域是可信 principal + HTTP method/route + 目标资源 + key。
+每个 POST 都有 `Idempotency-Key`，8–128 位，允许 `A–Z a–z 0–9 . _ : -`。OpenAPI header 引用共享 `IdempotencyKey` 定义，拒绝尾随换行/控制字符，不能保留另一份宽松正则。作用域是可信 principal + HTTP method/route + 目标资源 + key。
 
 1. 先鉴权并验证请求格式，再找同作用域的已接受记录。
 2. 同 key、同规范化请求返回原受理回执，不重复写入/调度；原回执不是“当前状态”，B 随后 GET 最新案件。
 3. 同 key、不同内容返回 409 `IDEMPOTENCY_CONFLICT`。不得把旧请求改个 key 后盲目重试。
-4. 新意图才检查当前版本、状态和适用目标：提案路径检查 proposal/review/preview 及审批范围；技术失败路径核验当前 case/input/failure 且只能人工处理。随后原子持久化决定及适用待办；失败目标只能产生通知待办，不能产生 return/label 待办。
+4. 新意图才检查当前版本、状态和适用目标：提案路径检查 proposal/review/preview 及审批范围；无提案路径核验当前 case/input 及精确 failure/block ID，且只能人工处理。随后原子持久化决定及适用待办；两个无提案目标只能产生通知待办，不能产生 return/label 待办。
 5. 受理结果不确定时用原 key 和原请求恢复；若明确收到版本冲突，先重新加载并由用户确认新的意图。
 6. 并发同 key 至多一个执行者；其他请求等待已有结果或返回可安全恢复的忙/未决错误，不能先做两遍再去重。
 
@@ -191,22 +193,29 @@ JSON Schema 只能检查这些材料各自的形状和容量；跨对象关联�
 | REQUEST_REVISION | 记录理由，返回 Assessment 生成新版本 | 不可 |
 | MANUAL_HANDLING | 记录人工处理结果并通知 | 不可 |
 
-### 8.1 提案不存在时的技术失败人工路径
+### 8.1 提案不存在时的人工路径
 
 `ProcessingFailure` 包含服务端保存的 `failure_id`、`case_id`、`input_version`、`stage`、`error: ErrorEnvelope` 和 `occurred_at`。stage 仅为 `COORDINATOR/ORDER_LOOKUP/RETRIEVAL/ASSESSMENT/RISK_REVIEW`，不是第四个 AI 角色，也不是第六种 risk outcome。它记录实际技术错误；不能替代正常 `REVISE/NEEDS_INFORMATION/ESCALATE` 业务审查结论。
 
-当技术处理失败且有界恢复耗尽，Domain Service 可按状态规则把案件升级为 `ESCALATED`。如果没有 `current_proposal`，`CaseView` 必须带对应 `processing_failure`；B 展示错误的安全摘要与人工结果入口，不能创建占位提案、preview 或“默认通过”的 review。
+当技术处理失败且有界恢复耗尽，Domain Service 可按状态规则把案件升级为 `ESCALATED`，保存实际 `ProcessingFailure`。
 
-同一 decisions 接口的两种目标严格互斥：
+`OrderLookupBlock` 只表示提案产生前已接受的 `OrderLookupResult.CONFLICT` 或 `AUTHORITY_DENIED`。字段为 `block_id/case_id/input_version/status/message/occurred_at`；Domain Service 保存唯一 block ID，case/input/status/message 与已接受的 lookup 结果一致，安全摘要在 port 边界脱敏。它不是任意“业务风险”容器：`MATCHED`、可纠正的 `NOT_FOUND`、技术 `PROVIDER_FAILURE`、源政策冲突及模型判断不得伪装为该对象。来源冲突进入 conditional packet 与独立 Risk，不能借用订单阻断绕过 C2。API 调用者无权访问案件仍应拒绝请求，不伪造 provider 阻断。
+
+`CaseView.processing_failure` 与 `order_lookup_block` 至多出现一个；当 `ESCALATED` 且无 `current_proposal` 时必须恰好一个。存在 `order_lookup_block` 时不得存在当前 proposal/review/preview；无 proposal 时也不得出现 review/preview。B 展示安全摘要与人工结果入口，不能创建占位提案或默认通过的审查。已处理目标可保留到通知和 `MANUAL_HANDLED` 读模型中供重读，但其存在不再授权新的人工决定；旧目标进入审计，当前目标不可混用。历史 approvals/operations、已完成效果及 UNKNOWN 不被清空。
+
+同一 decisions 接口的三种目标严格互斥：
 
 | 目标 | 必须带的目标字段 | 允许决定 | 禁止字段/效果 |
 |---|---|---|---|
-| 当前提案 | `proposal_id` + `proposal_version` | 原有四种决定，分别遵守原守卫 | 不带 `processing_failure_id`；仅 APPROVE 可带 preview/fingerprint 并产生审批 |
-| 当前无提案技术失败 | `processing_failure_id` | 仅 `MANUAL_HANDLING` | 不带 proposal ID/version、preview、scope fingerprint 或 approval；绝不派发 return/label |
+| 当前提案 | `proposal_id` + `proposal_version` | 原有四种决定，分别遵守原守卫 | 不带 failure/block ID；仅 APPROVE 可带 preview/fingerprint 并产生审批 |
+| 当前无提案技术失败 | `processing_failure_id` | 仅 `MANUAL_HANDLING` | 不带 block ID、proposal ID/version、preview、scope fingerprint 或 approval；绝不派发 return/label |
+| 当前无提案订单阻断 | `order_lookup_block_id` | 仅 `MANUAL_HANDLING` | 不带 failure ID、proposal ID/version、preview、scope fingerprint 或 approval；绝不派发 return/label |
 
-两类请求都需要 `expected_case_version`、理由和已验证 Founder 身份。记录同样保留互斥目标；失败目标的记录不能出现 `approval_id`。服务端必须加载权威案件，检查 `ESCALATED`、确无当前提案、请求版本、失败 ID 的归属和当前 input/failure 一致；旧失败、另一案件失败或客户端任意拼出的 ID 不因 Schema 合法而可受理。
+三类请求都需要 `expected_case_version`、理由/实际人工结果和已验证 Founder 身份。记录同样保留互斥目标；两个无提案目标的记录不能出现 `approval_id`。服务端必须加载权威案件，检查 `ESCALATED`、确无当前提案、请求版本、目标 ID 的归属和当前 input/record 一致，并核对订单阻断来自上述已接受 lookup。旧、跨案或已替换目标不因 Schema 合法而可受理；`APPROVE/REJECT/REQUEST_REVISION` 在两个无提案目标上均不可用。共享状态图的 `ESCALATED → POLICY_ASSESSMENT` 仅指当前提案的 `REQUEST_REVISION`，不新增无提案 revision/restart 端点。
 
-人工处理记录与通知遵守同一幂等、审计和独立通知规则：结果保存后发送客户消息，失败可仅重试通知，成功后才为 `MANUAL_HANDLED`。没有执行模拟退运，也不记为 `COMPLETED`。这是既有人工故障恢复分支的数据交接补齐，不增加业务角色、决定枚举、HTTP 路由或新功能；运行守卫仍属 A1/A2 后续实现。
+运行守卫情境沿用现有错误枚举：旧 `expected_case_version` 返回 409 `STALE_CASE_VERSION`；跨案、已替换或当前状态不再允许的目标返回 409 `INVALID_STATE`；无权决定的已认证角色返回 403 `FORBIDDEN`。这些是后续运行行为约定，样例合法性检查并未执行鉴权或状态服务。
+
+人工处理记录与通知遵守同一幂等、审计和独立通知规则：原子保存结果、审计和通知待办后发送客户消息，失败可仅重试通知，成功后才为 `MANUAL_HANDLED`。本决定没有执行模拟退运，也不记为 `COMPLETED`；保留历史未知效果，不能把人工闭环解释为已确认未执行。相同已接受请求可按原 key 重放回执，不能重复通知待办；更换 key 不使已处理目标再次有效。这是既有人工恢复分支的数据交接补齐，不增加业务角色、决定枚举、HTTP 路由或新功能；运行守卫仍属 A1/A2 后续实现。
 
 ### 8.2 操作与通知恢复
 
@@ -276,6 +285,8 @@ provider 明确失败与模糊超时不同：后者为 `UNKNOWN → RECONCILING`
 
 有效提案的业务风险结论为 `ESCALATE` 时，若已有完整可审阅结果和测量，仍可计入 `sample_count`；不得仅因案件为 `ESCALATED` 就算作技术失败。技术失败且缺少耗时值仍计为已知 `failed_count`；真正无法判定该轮结果或缺测的其余情况才落入 `unmeasured_count`。
 
+无提案订单阻断没有 review-ready proposal 测量时属于 `unmeasured_count`；它是已知业务阻断，不能伪记为技术 `failed_count`，也不能继承旧 input 的成功耗时。该说明沿用上述三分母口径，不新增指标或把阻断视为成功。
+
 p50/p95 只对成功测量子集计算，不把它当全系统成功率；`sample_count=0` 时省略两值，不填假 0。展示失败与未测量计数及分母。评测运行另保留 input/model/corpus/environment 版本、token、费用和失败分母，不能仅靠 Dashboard 汇总证明 NFR-005。
 
 ### 10.3 审计内容
@@ -284,13 +295,13 @@ p50/p95 只对成功测量子集计算，不把它当全系统成功率；`sampl
 
 ## 11. 验证证据与不能得出的结论
 
-2026-09-07 对 rc.2 当前文件重新验证：独立验证环境的 **35 项契约 unittest 全部通过**；包含旧领域模型 4 项检查的完整本地 pytest 为 **39 passed**。本轮还用 JavaScript 引擎编译全部 8 个 Schema 正则，并对 7 类严格端锚执行 35 个尾随换行负例检查，均通过。发布状态同步后的文档检查覆盖 15 个文件、15 个 Mermaid 块和 94 个本地文件链接，均无错误；这只是语法与链接检查，不是 UML 语义或课程评分验收。
+**rc.2 历史记录（不能作为 rc.3 结果）：** 2026-09-07 的独立验证环境记录 35 项契约 unittest、包含旧领域模型 4 项检查的 39 项本地 pytest 通过；当时编译 8 个 Schema 正则，对 7 类严格端锚执行 35 个尾随换行负例，并检查 15 个文档、15 个 Mermaid 块和 94 个本地链接。OpenAPI header 的重复正则未纳入当时的边界验证；这些记录也不是 UML 语义或课程验收。
 
-以上不沿用 rc.1 的历史通过数。没有 HTTP/E2E、数据库、真实 AI 或 provider 实现。文件已上传 PR #9，但上传本身不会产生 GitHub CI 通过结果或 Jira 验收记录。后续修改后须重新运行，不能把本次结果套用到未测版本。
+**rc.3 本地验证（2026-09-07）：** Python 3.12 隔离契约环境运行 **44 项契约 unittest，全部通过**；另一个环境运行 **4 项旧领域模型 pytest，全部通过**。两次检查使用不同环境。本轮发布前检查的 19 个文档中，15 个 Mermaid 块均通过语法解析，121 个本地文件链接有效；FR/NFR/BR 与六个用例编号完整。JavaScript 另验证共享 ID/幂等键/hash 正则的 3 个合法值及 72 个非法值。另对 main 中 rc.2 的 80 个正/负 DTO 样例做差分验证，接受/拒绝结果未变。没有 HTTP/E2E、数据库、真实 AI 或 provider 实现；本地测试不产生 GitHub CI 证据或 Jira 验收记录，PR #9 的合并也不覆盖 rc.3。
 
-`examples.json` 目前围绕少量合成素材提供 56 个合法 DTO、24 个非法结构和 8 个未执行的运行时守卫情境。它们不是业务测试案件总数，更不是 Gold 标签、真实用户或实验结果；没有扩写被冻结的研究库或 30 Gold 计划。
+当前 `examples.json` 使用少量合成素材提供 **64 个合法 DTO、36 个非法结构、16 个未执行的运行时守卫情境**。它们不是业务测试案件总数、Gold 标签、真实用户或实验结果；没有扩写被冻结的研究库或 30 Gold 计划。
 
-本轮自动检查：
+候选的自动检查范围：
 
 - JSON Schema 定义、全部本地引用与 OpenAPI 3.1 结构；
 - 合法 DTO 可校验，非法字段/金额/枚举/角色元数据/执行命令组合被拒绝；
@@ -298,6 +309,7 @@ p50/p95 只对成功测量子集计算，不把它当全系统成功率；`sampl
 - 示例中的订单多商品、单 parcel、来源 hash、审批/操作指纹与版本引用一致；
 - 日期 format 检查真实启用，而非只检查字符串类型；
 - rc.2 的互斥决定目标、完整 retrieval_result、容量边界、统计 query/未测量分支，以及 ID 换行/控制字符负例。
+- rc.3 的两种订单阻断、三目标互斥、当前读模型排他、旧/跨案/已替换目标 fixture 一致性，以及 OpenAPI 公共幂等 header 与共享定义一致。
 
 `runtime_guards` 中旧版本、过期、改指纹、升级、错角色、同 key 改请求等请求 **本身都符合 JSON 格式**。测试只核对情境和错误响应的结构；即使补了当前失败 ID、引用交接和统计一致性的样例检查，也不能证明真实服务已加载正确案件/输入、执行过状态守卫、保留全部冲突或正确聚合数据库。没有发 HTTP、调用 provider、证明零副作用或完成 Gate 1。
 
@@ -305,18 +317,20 @@ p50/p95 只对成功测量子集计算，不把它当全系统成功率；`sampl
 
 ## 12. 需求 → 模型 → 下一项实现
 
-| 契约部分 | Requirement / UC | 模型对齐入口（已发布 PR #9；rc.2 需联合确认） | 后续 Owner |
+| 契约部分 | Requirement / UC | 模型对齐入口（rc.2 发布于 PR #9；rc.3 待联合确认） | 后续 Owner |
 |---|---|---|---|
 | statement、facts、case、clarification | FR-001～005 / UC-01、UC-01E、UC-02 | [共享类图](diagrams/01-domain-class-diagram.md)、[用例图](diagrams/05-use-case-diagram.md)；B intake 个人链 | A1、B1 |
 | passage、citation、packet、risk | FR-006～008 / UC-02、UC-03 | 共享类图、[交互图](diagrams/03-sequence-diagram.md)；C review 个人链 | A1、C1/C2 |
-| processing_failure、preview、decision、approval、command | FR-009～012 / UC-03、UC-04、UC-05 | 无提案技术失败人工分支需联合确认；Approval/Execution 活动与交互；A OperationAttempt 状态机 | A1/A2、B2 |
+| processing_failure、order_lookup_block、preview、decision、approval、command | FR-003、009～012 / UC-02、UC-03、UC-04、UC-05 | 三种目标、无提案人工分支；Approval/Execution 活动与交互；A OperationAttempt 状态机 | A1/A2、B2；C review |
 | operation、notification | FR-010～012 / UC-04、UC-05 | [状态图](diagrams/02-state-machine-diagram.md)、交互图的核实/通知分支 | A2、B2 |
 | auth、attachment、audit、analytics | FR-001、009、011、012 / NFR-001～003、005～009 | 共享 Class/Package/Deployment、Audit Port；待共享建模验收 | A 的 F 系列；B/C 消费 |
 | sandbox、image、analytics UI | OF-004、OF-001、OF-006 | 对应 docs/07 冻结的三个人 optional 增量 | A3、C3、B3 |
 
 上轮已对齐旧正文与五张共享图，但这不等于本次新字段已获模型验收；三人需核对无提案人工路径、检索冲突交接与统计数据选择是否逐项对应。UML 仍是课程交付物；机器 Schema 不能替代类图、复合结构图或每人的活动/顺序/状态机图。每次实现 PR 应使用表中具体映射，而非只贴“FR 全部覆盖”。
 
-## 13. rc.1 → rc.2：五项缺口修订与迁移
+## 13. 修订历史与候选迁移
+
+### 13.1 rc.1 → rc.2 的历史修订
 
 | 修订 | rc.2 的约定 | 消费方迁移 / 仍须验证 |
 |---|---|---|
@@ -326,15 +340,19 @@ p50/p95 只对成功测量子集计算，不把它当全系统成功率；`sampl
 | 统计缺筛选和明确分母 | AnalyticsQuery、filters、unmeasured_count，同 cohort/as_of 及当前输入 episode | B 更新 query 和展示；A 实现时间顺序、去重及聚合；C 核对指标，不把成功子集当全部案件 |
 | ID 允许尾随换行等非法值 | 更严格的完整 ASCII ID 边界 | 更新边界负例；运行接口仍须实际启用验证，ID 合法不等于有权限 |
 
-这是尚未正式采纳的 rc 间迁移，不假装无缝兼容：旧 RiskReviewRequest、旧 AnalyticsSnapshot 必须更新，严格客户端也要认识新的 CaseView/decision 分支。URL `/v1`、13 个公共操作、五风险结果、四人工决定及固定九功能保持不变；旧提案目标的四种决定语义保留。统一更新 mock/消费代码后共同采纳 rc.2，不在一个进程里混用 rc.1 与 rc.2 形状。修好 Schema 的表达能力不代表修好了尚未实现的运行服务。
+### 13.2 rc.2 → rc.3 的最小迁移
+
+保留现有 proposal 和 `processing_failure_id` 请求/记录形状，新增 `OrderLookupBlock`、`CaseView.order_lookup_block` 与 `order_lookup_block_id` 第三互斥目标；将“无提案升级必有技术失败”改为两类记录恰好一个。B 的无提案页面和 mock 需识别这两个目标，A 保存并验证当前 lookup/block 绑定；C 核对订单阻断与来源/风险冲突的区别。OpenAPI `Idempotency-Key` 直接引用共享定义，同步覆盖 header 边界；UC-02/UC-03 与共享 Class/State/Sequence 展示同一分支。
+
+这是尚未正式采纳的 rc 间迁移，不假装无缝兼容。旧 RiskReviewRequest/AnalyticsSnapshot 仍须完成 rc.2 迁移，严格客户端还需认识 rc.3 新 CaseView/decision 分支。URL `/v1`、13 个公共操作、五风险结果、四人工决定及固定九功能保持不变。统一更新 mock/消费代码后再记录采纳版本，不在同一进程混用各 rc 形状。修好 Schema 表达能力不代表实现运行服务。
 
 ## 14. 三人确认后才验收 F.01
 
-- [ ] A：确认唯一状态源、版本/幂等、scope 指纹、商品与 parcel 关联，以及当前 failure 绑定、引用全覆盖和统计对账的运行守卫责任。
+- [ ] A：确认唯一状态源、版本/幂等、scope 指纹、商品与 parcel 关联，以及当前 failure/block 与已接受 lookup 绑定、引用全覆盖和统计对账的运行守卫责任。
 - [ ] B：确认提交/澄清、引用原文、四种决定、无提案人工分支、202/409/未知结果、统计筛选/分母足以支撑页面；确认附件技术限制。
 - [ ] C：确认来源无版本/合成来源、完整 retrieval_result 与 conflicts、引用核验容量、独立 Risk 输入、五种结果、计时口径和 C3 交接；完成指定 Reviewer 审查。
-- [ ] 三人联合确认 PR #9 中的模型与 rc.2 字段/异常分支的对应，区分结构检查、运行验证和课程个人模型验收。
-- [ ] 三人确认后记录契约采纳版本及 PR review 证据；C 核对实际 Jira key 并建立链接，不虚构同意、进度或日期。
+- [ ] 三人联合确认 rc.3 规格/模型与三目标、检索交接、公共 ID 边界对应；PR #9 仅作 rc.2 历史，区分结构检查、运行验证和课程个人模型验收。
+- [ ] 三人确认后记录契约采纳版本及当前 PR review 证据，并关联 [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32)；链接存在不等于同意或进度，本轮不修改 Jira。
 
 下一步是 **B/C 确认这份交接约定**。期间 A 可继续无开始依赖的 F.02 准备；A1.01 的正式对齐应等 F.01 验收。不是重新讨论九功能分工，也不是立刻把 LLM 接进执行路径。
 

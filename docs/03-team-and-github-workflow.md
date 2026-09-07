@@ -29,7 +29,8 @@ optionals remain course deliverables.
 
 Primary responsibilities:
 
-- product scope, requirement classification, and traceability matrix;
+- product scope and traceability integration; C produces requirement
+  classification and B integrates the shared Feature/Use-case/model index;
 - architecture integration and A's own MBSE chain; every member authors their
   own behavioural models and participates in shared models;
 - domain model, Pydantic schemas, database schemas, and FastAPI service;
@@ -63,6 +64,7 @@ Primary responsibilities:
 Primary responsibilities:
 
 - acceptance criteria definition, quality metric thresholds, and requirements traceability;
+- requirement-classification contribution handed to B for M-S.03 integration;
 - curated store policy corpus and reviewed ACCC consumer-guarantee guidance;
 - 30 double-reviewed Gold return cases covering the supported categories,
   missing evidence, conflicts, and escalations;
@@ -281,8 +283,9 @@ timeline as evidence; it does not claim that the formal marking table mandates a
 particular vendor.
 
 Use the existing Jira project. These are logical stages, not verified live
-column names; C maps existing statuses without recreating the project or
-rewriting history:
+column names. A leads operational maintenance and mapping; C verifies the
+traceability and evidence under R.04, and each member supplies their own actual
+progress. This does not recreate the project or rewrite history:
 
 ```text
 Backlog -> Ready -> In Progress -> In Review -> Done
@@ -449,9 +452,16 @@ and dependencies in `docs/08`; do not create duplicate tasks from it.
 ## 15. Provisional milestone plan
 
 Use the dependency-based Gate 0–3 checks in `docs/00` and `docs/08`. The older
-illustrative calendar is not an authoritative assessment schedule. C records
-dates in Jira only after checking the current Canvas/tutor notice; do not infer
+illustrative calendar is not an authoritative assessment schedule. A coordinates
+dates and estimates in Jira after checking the current Canvas/tutor notice and
+member capacity; C verifies the evidence. Do not infer
 interview or submission dates from earlier planning text.
+
+[Stage 1 readiness](11-stage1-readiness.md) separates timely course submission
+from project acceptance. A assembles/submits the report and video, B/C author
+their own material, and C checks the deliverables and receipt under R.04.
+An unresolved F.01/R.01 or unfinished R.04 must be disclosed, not used to delay
+the required Stage 1 submission. R.05/E.12 belong to the later final delivery.
 
 ## 16. Existing branch hand-off for the 2026-09-07 alignment
 
@@ -488,7 +498,11 @@ B/C's branches, or change Jira history.
      C-owned label guide/runner and each member's own feature tests; retain the
      blind human-timing and independent Gold-review rules in `docs/07`.
 
-No update listed here is evidence that a Jira status, date or permission was
-queried or changed. C owns that live reconciliation. Issue #5's historical
-KAN-6 backlink provides baseline context only; the actual F.01 delivery key
-still needs C's verification, as noted in PR #9.
+The 2026-09-07 live reconciliation verified F.01 →
+[KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32) → PR #9 (rc.2 history),
+and baseline review R.01 → [KAN-12](https://lucastaooo.atlassian.net/browse/KAN-12)
+→ Issue #5; KAN-6 is parent/baseline context, not the F.01 delivery key.
+The rc.3 follow-up is a separate review candidate from PR #9. A leads operational
+maintenance, C verifies R.04 evidence, and B/C retain ownership of their branch
+updates. Recheck live records before changing status, dates or links; this
+document revision does not itself perform those changes or alter permissions.

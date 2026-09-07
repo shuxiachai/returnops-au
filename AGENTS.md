@@ -39,6 +39,44 @@ orchestrator; C implements Risk Reviewer, retrieval and image analysis. Consult
 
 ## F.01 contract hand-off — 2026-09-07
 
+**Current-stage closure — 2026-09-07:** the lead asked to finish current
+preparation before taking on the next task. Read
+[Stage 1 readiness](docs/11-stage1-readiness.md): R.04.a–h cover requirements,
+contract review, personal/shared models, report, ≤8-minute video, interview and
+submission verification. A integrates/submits; C remains R.04 Owner for evidence
+audit; B/C author their own materials. A maintains Jira, C verifies evidence;
+C produces classification and B integrates M-S.03. Nine feature owners, 89 WBS
+IDs and S/F dependencies are unchanged. Lab 5 pattern/method detail is now a
+review draft in docs/02 and the shared class model, not accepted models.
+E.09 validates the runner/adapter with labelled fixtures; R.03 verifies full B4.
+Stage 1 submission follows the actual course deadline with open items disclosed,
+without waiting for whole R.04/R.01 acceptance or final R.05/E.12. Actual Canvas
+dates, member capacity, B/C reviews, complete personal/composite models and A3
+test-access eligibility remain unverified or unfinished. These preparation
+artifacts do not establish acceptance, a Jira update or a permission change.
+The lead will record the course video personally later; B/C provide and verify
+their model/contribution material and retain their individual interviews.
+
+**Current review follow-up — 2026-09-07:** the lead authorised publication of
+the F.01 consistency revision and its model/readiness materials for B/C review.
+The follow-up branch carries candidate `1.0.0-rc.3`, not yet jointly accepted.
+Technical review is tracked in [Issue #10](https://github.com/shuxiachai/returnops-au/issues/10)
+on branch `fix/10-kan-32-contract-review`; #5 stays the baseline-adoption issue.
+Read docs/09 and contracts/README for the
+three exclusive decision targets: current proposal, technical failure, or
+pre-proposal OrderLookupBlock. Only MANUAL_HANDLING may use a non-proposal
+target; no approval or return/label dispatch follows. docs/00 and shared
+models contain the corresponding candidate clarification, not new execution
+authority. F.01 is actually mapped to
+[KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32); baseline review is
+KAN-12 / Issue #5. PR #9 was merged as rc.2 and must not be re-merged or treated
+as acceptance of rc.3. A now leads Jira maintenance without changing feature
+owners or C's permissions. docs/10 records F.02 preparation and outstanding
+API/PostgreSQL/migration/CI acceptance; its Jira key remains unmapped. Recheck
+live remote and local state before later publication or workflow changes.
+
+The paragraphs below retain the earlier rc.2 hand-off history.
+
 The lead requested the first implementation-preparation step, F.01. Read
 [the interface contract candidate](docs/09-interface-contract-v1.md) before
 changing cross-member DTOs. `contracts/v1/schemas.json` is the shared wire

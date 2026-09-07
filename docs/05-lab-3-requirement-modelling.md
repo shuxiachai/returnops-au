@@ -9,7 +9,9 @@
 > **Status (2026-09-07)**: v1.0 alignment draft of the completed v0.2 Lab 3
 > modelling artefact. This revision and individual contributions still require
 > peer/tutor review; historical completion is not current acceptance. The
-> alignment is published in [PR #9](https://github.com/shuxiachai/returnops-au/pull/9); consult its merge record separately from acceptance.
+> rc.2 alignment was published in [PR #9](https://github.com/shuxiachai/returnops-au/pull/9).
+> The `1.0.0-rc.3` contract/model clarification for
+> [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32) remains unaccepted.
 >
 > **Product authority**: [Lead-approved v1.0 candidate](00-project-definition-v1.md).
 > [Requirements and backlog](04-requirements-and-backlog.md) is a derived index;
@@ -200,7 +202,7 @@ be reviewed alongside the diagrams; this alignment does not freeze new scope.
 | Actor | Goal | Boundary decision |
 |---|---|---|
 | End Customer | Lodge a request and supply missing information or evidence | May write only customer statements/evidence; cannot approve or invoke tools |
-| Human Founder | Make an informed, accountable, scoped decision | The single store operator; server-authenticated authority and current proposal, not a second operations-manager role |
+| Human Founder | Make an informed, accountable, scoped decision | The single store operator; server-authenticated authority and one current proposal or manual-only no-proposal target |
 | Mock Order Provider | Supply read-only order facts | Lookup cannot mutate orders or perform a remedy |
 | Mock Returns Provider | Execute an approved simulated return command | No real refund, order/inventory mutation, remedy decision or unapproved command |
 | Mock Logistics Provider | Execute an approved, idempotent simulated logistics command | Cannot create a real shipment or broaden command scope |
@@ -218,7 +220,7 @@ the baseline contains no administration UI.
 | UC-01 | Lodge a return/remedy request | End Customer | FR-001, FR-002, FR-011 |
 | UC-01E | Provide requested clarification or evidence | End Customer | FR-002, FR-005, FR-011 |
 | UC-02 | Obtain an evidence-grounded packet and risk assessment | Human Founder; customer submission/clarification triggers internal preparation | FR-002 to FR-008, FR-011 |
-| UC-03 | Review and decide the current proposal | Authorised Founder | FR-009, FR-011, FR-012 |
+| UC-03 | Review a proposal or record a no-proposal manual outcome | Authorised Founder | FR-009, FR-011, FR-012 |
 | UC-04 | Execute exactly the approved simulated return and label | Founder approval from UC-03; Returns/Logistics/Notification Providers support | FR-010, FR-011 |
 | UC-05 | Inspect case status and audit history | Authorised Founder | FR-011, FR-012 |
 
@@ -352,20 +354,32 @@ Extension and failure scenarios:
 - **2a - Likely typo or insufficient order detail:** move to
   `AWAITING_INFORMATION` and request correction rather than labelling the
   customer as risky.
-- **2b - Confirmed order/customer conflict or suspected abuse:** create a risk
-  finding and move to `ESCALATED`.
+- **2b - Confirmed order/customer conflict:** Domain Service preserves the
+  accepted `OrderLookupResult.CONFLICT` as an `OrderLookupBlock`, bound to
+  the current case/input, and moves to `ESCALATED` before any proposal exists.
+  Show a safe conflict summary; do not invent a technical failure or a Risk
+  review. UC-03 permits only a manual outcome targeting this current block.
+  Suspicion requiring proposal-level assessment remains evidence for Risk;
+  it is not sufficient to fabricate an order-provider `CONFLICT` result.
 - **2c - Provider unavailable:** preserve authoritative state and retry within
   policy; if the retry limit is reached, move to `ESCALATED` with the provider
-  failure reason and do not invent an order snapshot.
+  failure reason and do not invent an order snapshot. If there is no current
+  proposal, preserve the actual technical error in `ProcessingFailure` for
+  UC-03 manual handling.
 - **2d - Provider authority denied:** record `AUTHORITY_DENIED`, do not retry
   as if it were a transient match failure, and escalate with the denial reason
-  without inventing a snapshot.
+  without inventing a snapshot. Persist the accepted result as an
+  `OrderLookupBlock` with status `AUTHORITY_DENIED`; it is a provider lookup
+  block, distinct from a caller's unauthorised API request and from a technical
+  processing error. The same manual-only UC-03 branch applies.
 - **3a - Missing evidence:** invoke UC-01E and resume from the interrupted step.
 - **4a - Missing source or source conflict:** preserve absence/conflicting
   passages; C1 verifies citation resolvability/content and C2 checks claim support
   and significance. Non-blocking differences can warn; an unresolved material
   conflict preventing a safe recommendation must escalate. Never silently choose
-  source precedence or invent a citation.
+  source precedence or invent a citation. Preserve that conflict in the
+  conditional packet and independent review; it cannot create an
+  `OrderLookupBlock` or substitute a technical failure for a business finding.
 - **5a - Invalid typed output:** reject it and retry within the configured
   limit; if the limit is reached, move to `ESCALATED` with a typed validation
   failure and no actionable proposal.
@@ -389,7 +403,7 @@ proposal is <120 seconds, including machine revision/risk loops and excluding
 human/physical waiting only. These are targets, not results. Apply the 30-case
 Gold protocol and raw-count/denominator rules in `docs/00` and `docs/07`.
 
-### 4.6 UC-03 - Review and decide proposal
+### 4.6 UC-03 - Review a proposal or record a no-proposal manual outcome
 
 | Field | Specification |
 |---|---|
@@ -397,9 +411,9 @@ Gold protocol and raw-count/denominator rules in `docs/00` and `docs/07`.
 | Level | User goal |
 | Primary actor | Human Founder |
 | Supporting actor | Simulated Notification Provider for a rejected or manually resolved customer outcome |
-| Preconditions | Actor is authenticated and authorised; displayed proposal is current. `APPROVE` requires `AWAITING_APPROVAL` and a current `PASS/PASS_WITH_WARNING` review. An `ESCALATED` proposal is available for manual handling/revision, never direct approval. |
+| Preconditions | Actor is authenticated and authorised. A proposal-target decision uses the current proposal. `APPROVE` additionally requires `AWAITING_APPROVAL` and current `PASS/PASS_WITH_WARNING`. An `ESCALATED` proposal may be revised or manually handled, never directly approved. Without a current proposal, the case must be `ESCALATED` with exactly one current `ProcessingFailure` or `OrderLookupBlock`; only `MANUAL_HANDLING` is available. |
 | Trigger | Founder opens a pending decision item or an escalated case requiring manual handling/revision. |
-| Success condition | `APPROVE/REJECT/REQUEST_REVISION/MANUAL_HANDLING` is recorded with trusted actor and current case/proposal binding; only approval grants exact-scope permission. |
+| Success condition | The decision records a trusted actor, case, reason/outcome, timestamp and exactly one current target: proposal ID/version, processing failure ID or order-lookup block ID. Only proposal-target approval grants exact-scope permission; both no-proposal targets record only a manual outcome and notification work. |
 | Failure condition | The requested decision cannot be safely recorded because authorisation, freshness, validation, or persistence fails; no new permission or workflow transition is created. |
 | Authority | Only the authenticated human may approve. Navigation, silence, prior approvals, and model confidence never imply approval. |
 | Traceability | FR-009, FR-011, FR-012; NFR-001, NFR-002, NFR-003, NFR-004, NFR-008, NFR-009 |
@@ -445,6 +459,22 @@ Extension and failure scenarios:
   the same request key and show a correlated error rather than claiming success.
 - **3d - Rejection/manual notification fails:** retain `NOTIFICATION_PENDING`
   or `NOTIFICATION_FAILED`; retry notification only, without executing a remedy.
+- **1a - No current proposal after technical failure or an order-lookup block:**
+  show the server-recorded safe summary and actual manual-outcome entry.
+  Submit `expected_case_version`, `MANUAL_HANDLING`, the outcome in `reason`,
+  and exactly one `processing_failure_id` or `order_lookup_block_id`.
+  Domain Service loads the authoritative case and target, checks `ESCALATED`,
+  absence of a current proposal, current case/input/target identity and trusted
+  Founder access, then atomically records the outcome, audit and notification
+  work. It creates no proposal, review, preview, approval or return/label work.
+  `APPROVE`, `REJECT` and `REQUEST_REVISION` are unavailable on this branch;
+  no new revision or restart endpoint is introduced. Preserve historical
+  approvals, completed operations and unknown effects. After notification
+  succeeds, the terminal state is `MANUAL_HANDLED`, not simulated completion.
+- **1b - Missing, mixed, stale or wrong-case no-proposal target:** reject the
+  new decision without a state change or new work. A prior accepted request
+  replay may return its original receipt under the same idempotency rule;
+  this does not make a historical target valid for a new decision.
 
 ### 4.7 UC-04 - Execute approved simulated action
 
@@ -603,15 +633,14 @@ requires code, tests and review under existing work packages, not just diagrams:
   to neutral approved-guidance and source-conflict labels before the benchmark
   is treated as ground truth.
 
-The [F.01 rc.2 contract candidate](09-interface-contract-v1.md) provides review
-artefacts and offline regressions for the five identified contract gaps: manual
-handling after a technical failure before any proposal exists, complete
-retrieval-conflict hand-off and compatible passage/citation capacities,
-analytics query/denominator semantics, and identifier validation. These shapes
-are now expressible; actual state, authority, source-integrity and aggregation
-guards still need implementation. Joint B/C contract/model review is pending;
-neither this document nor schema tests approve the contract or invent a proposal
-to bypass the manual error path.
+The [F.01 `1.0.0-rc.3` contract candidate](09-interface-contract-v1.md) preserves
+rc.2's technical-failure target, complete retrieval-conflict hand-off, compatible
+passage/citation capacities and analytics denominators. It adds a separate
+pre-proposal order-lookup block target and aligns the public idempotency header
+with the shared identifier boundary. Actual state, authority, source-integrity
+and aggregation guards still need implementation. Joint B/C contract/model
+review is pending; the historical rc.2 checks do not establish rc.3 acceptance,
+and no schema test authorises a fabricated proposal or technical error.
 
 Map these findings to existing `docs/08` work packages and Jira items before
 creating new tasks. They add neither autonomous authority nor new product scope.
@@ -647,7 +676,9 @@ original version and contributor record.
 - [ ] Each member personally completes and explains their assigned requirement,
   use-case specifications and three individual behaviour models; shared class
   and complex-structure work also needs recorded participation from all three.
-- [x] The alignment is published for review in PR #9, with B/C review requests.
+- [x] The earlier rc.2 alignment was published in PR #9, with B/C review requests.
+- [ ] The rc.3 clarification and its three decision targets receive
+  current B/C contract/model review; original authorship remains attributable.
 - [ ] Tutor feedback is recorded and dispositioned; the published revision
   receives current peer review and the required adoption evidence.
   Publication does not imply Jira acceptance or completion of individual models.

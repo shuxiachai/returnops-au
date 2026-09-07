@@ -9,6 +9,9 @@
 > Published for review in [PR #9](https://github.com/shuxiachai/returnops-au/pull/9); consult its merge record separately from acceptance.
 > Earlier modelling contributions and their Git history are retained. This
 > revision does not claim product-baseline adoption or F.01 acceptance.
+> The `1.0.0-rc.3` clarification under
+> [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32) remains a review
+> candidate; PR #9 records the historical rc.2 publication.
 >
 > **Alignment baseline:** [Lead-approved v1.0 candidate](../00-project-definition-v1.md)
 > and [frozen allocation](../07-frozen-work-allocation.md).
@@ -48,7 +51,7 @@ flowchart LR
         REVISE(["Revise Proposal"])
         ESCALATE(["Escalate to Manual Handling"])
 
-        UC03(["UC-03<br/>Review and Decide Proposal"])
+        UC03(["UC-03<br/>Review Proposal or Record Manual Outcome"])
         VIEW(["View Case, Evidence, Citations, and Risks"])
         APPROVE(["Approve Scoped Action"])
         REJECT(["Reject Proposal"])
@@ -92,13 +95,13 @@ flowchart LR
     CLARIFY -.->|"<<extend>> [initial information missing]"| UC01
     REQUEST_INFO -.->|"<<extend>> [missing facts/evidence]"| UC02
     REVISE -.->|"<<extend>> [REVISE]"| UC02
-    ESCALATE -.->|"<<extend>> [ESCALATE or exhausted assessment recovery]"| UC02
+    ESCALATE -.->|"<<extend>> [lookup block, ESCALATE or exhausted recovery]"| UC02
 
     UC03 -.->|"<<include>>"| VIEW
     APPROVE -.->|"<<extend>> [APPROVE with current passing risk review]"| UC03
-    REJECT -.->|"<<extend>> [REJECT]"| UC03
-    REQUEST_REVISION -.->|"<<extend>> [REQUEST_REVISION]"| UC03
-    MANUAL -.->|"<<extend>> [MANUAL_HANDLING]"| UC03
+    REJECT -.->|"<<extend>> [REJECT current proposal]"| UC03
+    REQUEST_REVISION -.->|"<<extend>> [REQUEST_REVISION current proposal]"| UC03
+    MANUAL -.->|"<<extend>> [MANUAL_HANDLING current target]"| UC03
     DECISION_OUTCOME -.->|"<<extend>> [reject/manual outcome]"| UC03
 
     UC04 -.->|"<<include>>"| VALIDATE
@@ -124,7 +127,7 @@ Relationship direction follows the course convention:
 | Actor or boundary | Permitted interaction | Explicitly prohibited |
 |---|---|---|
 | End Customer | Create a case and add statements or evidence to that case | Approve a remedy, change workflow policy, or invoke an operational tool |
-| Human Founder | Read decision evidence and record `APPROVE`, `REJECT`, `REQUEST_REVISION`, or `MANUAL_HANDLING` | Grant blanket authority, approve a stale/escalated proposal, or bypass a failed risk review |
+| Human Founder | Read evidence and record four proposal-target decisions, or only MANUAL_HANDLING for the current no-proposal ProcessingFailure/OrderLookupBlock | Grant blanket authority, approve a stale/escalated proposal, bypass a failed risk review, or APPROVE/REJECT/REQUEST_REVISION a no-proposal target |
 | Read-only Mock Order Provider | Return an authorised order snapshot or typed lookup failure | Mutate orders, decide a remedy, or invent a successful match after a timeout |
 | Mock Returns Provider | Execute an approved, idempotent simulated return command | Move real money, refund, change inventory, decide a remedy, or accept an unapproved command |
 | Mock Logistics Provider | Execute an approved, idempotent simulated logistics command | Create a real shipment or broaden command scope |
@@ -151,11 +154,19 @@ refund. An unknown effect is looked up before retry; completed commands are
 never replayed to recover a later failure. Notification has an independent
 status/retry path. `COMPLETED` requires saved return and label success and a
 `SENT` outcome; `REJECTED` and `MANUAL_HANDLED` similarly require their saved
-decision and successful notification. Manual handling must remain possible
-after an AI failure before a proposal exists. The
-[F.01 rc.2 candidate](../09-interface-contract-v1.md) now expresses the
-failure-target manual request; its runtime guards and joint model/contract
-review remain outstanding.
+decision and successful notification. The local
+[F.01 rc.3 candidate](../09-interface-contract-v1.md) distinguishes three
+mutually exclusive decision targets: the current proposal, a current technical
+`ProcessingFailure`, or an accepted pre-proposal `OrderLookupBlock` with status
+`CONFLICT/AUTHORITY_DENIED`. Without a proposal, an `ESCALATED` case exposes
+exactly one of the latter records and permits only `MANUAL_HANDLING`, not
+`APPROVE`, `REJECT` or `REQUEST_REVISION`. The server must validate current
+case/input/record binding; the result is an audited manual outcome and
+independent notification, never a fabricated proposal, passing review,
+approval or return/label command. Source-policy conflicts stay in the
+conditional packet and independent Risk path and cannot be relabelled as an
+order block. Runtime guards and joint model/contract acceptance remain
+outstanding; PR #9 records rc.2 rather than this rc.3 revision.
 
 ## 3. Use-case coverage summary
 
@@ -164,7 +175,7 @@ review remain outstanding.
 | UC-01 Lodge Return/Remedy Request | End Customer | FR-001, FR-002, FR-011 | NFR-003, NFR-008, NFR-009 |
 | UC-01E Provide Clarification/Evidence | End Customer | FR-002, FR-005, FR-011 | NFR-003, NFR-008, NFR-009 |
 | UC-02 Assess Case and Prepare Proposal | Human Founder is the primary beneficiary/operator; customer input from UC-01 triggers the assessment workflow | FR-002, FR-003, FR-004, FR-005, FR-006, FR-007, FR-008, FR-011 | NFR-001, NFR-003, NFR-005, NFR-006, NFR-007, NFR-008, NFR-009 |
-| UC-03 Review and Decide Proposal | Authorised Founder | FR-009, FR-011, FR-012 | NFR-001, NFR-002, NFR-003, NFR-004, NFR-008, NFR-009 |
+| UC-03 Review a Proposal or Record a No-Proposal Manual Outcome | Authorised Founder | FR-009, FR-011, FR-012 | NFR-001, NFR-002, NFR-003, NFR-004, NFR-008, NFR-009 |
 | UC-04 Execute Approved Simulated Return and Label | Founder approval from UC-03; Mock Returns/Logistics/Notification Providers support | FR-010, FR-011 | NFR-002, NFR-004, NFR-006, NFR-007, NFR-008, NFR-009 |
 | UC-05 Inspect Case Status and Audit Trail | Authorised Founder | FR-011, FR-012 | NFR-001, NFR-003, NFR-008, NFR-009 |
 

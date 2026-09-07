@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://returnops.example/contracts/v1/schemas.json",
-  "title": "ReturnOps AU F.01 wire contract 1.0.0-rc.2",
+  "title": "ReturnOps AU F.01 wire contract 1.0.0-rc.3",
   "description": "Review-ready contract, not an implemented API or a replacement for runtime authorization and state guards. Validate a named $defs schema, never this permissive registry root.",
   "$defs": {
     "Id": {
@@ -1919,7 +1919,7 @@
     },
     "FounderDecisionRequest": {
       "type": "object",
-      "description": "Exactly one target: a current proposal pair, or a server-recorded processing_failure_id for MANUAL_HANDLING only when no current proposal exists. The latter never permits approval or dispatch and requires current case/input/failure/state checks at runtime.",
+      "description": "Exactly one target: current proposal ID/version, processing_failure_id, or order_lookup_block_id. Both non-proposal targets permit MANUAL_HANDLING only when the current authoritative case is ESCALATED with no current proposal. They grant no approval or return/label dispatch. Verify current case/input/target, trusted Founder identity and expected case version at runtime. A stored decision retains its exact historical target; later input must not rewrite history. The record principal_id is server-derived, never client-supplied.",
       "properties": {
         "expected_case_version": {
           "$ref": "#/$defs/Version"
@@ -1946,6 +1946,9 @@
         },
         "scope_fingerprint": {
           "$ref": "#/$defs/Hash"
+        },
+        "order_lookup_block_id": {
+          "$ref": "#/$defs/Id"
         }
       },
       "required": [
@@ -1956,18 +1959,100 @@
       "additionalProperties": false,
       "oneOf": [
         {
-          "required": ["proposal_id", "proposal_version"],
-          "not": {"required": ["processing_failure_id"]}
-        },
-        {
-          "required": ["processing_failure_id"],
-          "properties": {"decision": {"const": "MANUAL_HANDLING"}},
+          "required": [
+            "proposal_id",
+            "proposal_version"
+          ],
           "not": {
             "anyOf": [
-              {"required": ["proposal_id"]},
-              {"required": ["proposal_version"]},
-              {"required": ["preview_id"]},
-              {"required": ["scope_fingerprint"]}
+              {
+                "required": [
+                  "processing_failure_id"
+                ]
+              },
+              {
+                "required": [
+                  "order_lookup_block_id"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "required": [
+            "processing_failure_id"
+          ],
+          "properties": {
+            "decision": {
+              "const": "MANUAL_HANDLING"
+            }
+          },
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "proposal_id"
+                ]
+              },
+              {
+                "required": [
+                  "proposal_version"
+                ]
+              },
+              {
+                "required": [
+                  "order_lookup_block_id"
+                ]
+              },
+              {
+                "required": [
+                  "preview_id"
+                ]
+              },
+              {
+                "required": [
+                  "scope_fingerprint"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "required": [
+            "order_lookup_block_id"
+          ],
+          "properties": {
+            "decision": {
+              "const": "MANUAL_HANDLING"
+            }
+          },
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "proposal_id"
+                ]
+              },
+              {
+                "required": [
+                  "proposal_version"
+                ]
+              },
+              {
+                "required": [
+                  "processing_failure_id"
+                ]
+              },
+              {
+                "required": [
+                  "preview_id"
+                ]
+              },
+              {
+                "required": [
+                  "scope_fingerprint"
+                ]
+              }
             ]
           }
         }
@@ -2008,7 +2093,7 @@
     },
     "FounderDecisionRecord": {
       "type": "object",
-      "description": "Server-created record. A proposal-target decision retains its ID/version; a no-proposal manual outcome instead references the exact persisted processing failure. principal_id always comes from the verified server context, never the request body.",
+      "description": "Exactly one target: current proposal ID/version, processing_failure_id, or order_lookup_block_id. Both non-proposal targets permit MANUAL_HANDLING only when the current authoritative case is ESCALATED with no current proposal. They grant no approval or return/label dispatch. Verify current case/input/target, trusted Founder identity and expected case version at runtime. A stored decision retains its exact historical target; later input must not rewrite history. The record principal_id is server-derived, never client-supplied.",
       "properties": {
         "decision_id": {
           "$ref": "#/$defs/Id"
@@ -2041,6 +2126,9 @@
         },
         "approval_id": {
           "$ref": "#/$defs/Id"
+        },
+        "order_lookup_block_id": {
+          "$ref": "#/$defs/Id"
         }
       },
       "required": [
@@ -2054,17 +2142,90 @@
       "additionalProperties": false,
       "oneOf": [
         {
-          "required": ["proposal_id", "proposal_version"],
-          "not": {"required": ["processing_failure_id"]}
-        },
-        {
-          "required": ["processing_failure_id"],
-          "properties": {"decision": {"const": "MANUAL_HANDLING"}},
+          "required": [
+            "proposal_id",
+            "proposal_version"
+          ],
           "not": {
             "anyOf": [
-              {"required": ["proposal_id"]},
-              {"required": ["proposal_version"]},
-              {"required": ["approval_id"]}
+              {
+                "required": [
+                  "processing_failure_id"
+                ]
+              },
+              {
+                "required": [
+                  "order_lookup_block_id"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "required": [
+            "processing_failure_id"
+          ],
+          "properties": {
+            "decision": {
+              "const": "MANUAL_HANDLING"
+            }
+          },
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "proposal_id"
+                ]
+              },
+              {
+                "required": [
+                  "proposal_version"
+                ]
+              },
+              {
+                "required": [
+                  "order_lookup_block_id"
+                ]
+              },
+              {
+                "required": [
+                  "approval_id"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "required": [
+            "order_lookup_block_id"
+          ],
+          "properties": {
+            "decision": {
+              "const": "MANUAL_HANDLING"
+            }
+          },
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "proposal_id"
+                ]
+              },
+              {
+                "required": [
+                  "proposal_version"
+                ]
+              },
+              {
+                "required": [
+                  "processing_failure_id"
+                ]
+              },
+              {
+                "required": [
+                  "approval_id"
+                ]
+              }
             ]
           }
         }
@@ -2639,19 +2800,42 @@
     },
     "ProcessingFailure": {
       "type": "object",
-      "description": "Sanitised server-recorded processing failure visible only in the authorised Founder read model. It is not a RiskOutcome or permission. Failure ID, case and input version must match the current persisted failure before no-proposal manual handling is accepted.",
+      "description": "Sanitised server-recorded technical processing failure, visible only to an authorised Founder. Business CONFLICT/AUTHORITY_DENIED from order lookup uses OrderLookupBlock instead. It is not a RiskOutcome or permission. Current case/input/failure binding must be checked at runtime.",
       "properties": {
-        "failure_id": {"$ref": "#/$defs/Id"},
-        "case_id": {"$ref": "#/$defs/Id"},
-        "input_version": {"$ref": "#/$defs/Version"},
+        "failure_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "case_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "input_version": {
+          "$ref": "#/$defs/Version"
+        },
         "stage": {
           "type": "string",
-          "enum": ["COORDINATOR", "ORDER_LOOKUP", "RETRIEVAL", "ASSESSMENT", "RISK_REVIEW"]
+          "enum": [
+            "COORDINATOR",
+            "ORDER_LOOKUP",
+            "RETRIEVAL",
+            "ASSESSMENT",
+            "RISK_REVIEW"
+          ]
         },
-        "error": {"$ref": "#/$defs/ErrorEnvelope"},
-        "occurred_at": {"$ref": "#/$defs/Timestamp"}
+        "error": {
+          "$ref": "#/$defs/ErrorEnvelope"
+        },
+        "occurred_at": {
+          "$ref": "#/$defs/Timestamp"
+        }
       },
-      "required": ["failure_id", "case_id", "input_version", "stage", "error", "occurred_at"],
+      "required": [
+        "failure_id",
+        "case_id",
+        "input_version",
+        "stage",
+        "error",
+        "occurred_at"
+      ],
       "additionalProperties": false
     },
     "CaseView": {
@@ -2750,6 +2934,9 @@
             "$ref": "#/$defs/PolicyPassage"
           },
           "maxItems": 100
+        },
+        "order_lookup_block": {
+          "$ref": "#/$defs/OrderLookupBlock"
         }
       },
       "required": [
@@ -2770,25 +2957,99 @@
       "additionalProperties": false,
       "allOf": [
         {
-          "if": {"not": {"required": ["current_proposal"]}},
+          "if": {
+            "not": {
+              "required": [
+                "current_proposal"
+              ]
+            }
+          },
           "then": {
             "not": {
               "anyOf": [
-                {"required": ["current_review"]},
-                {"required": ["action_preview"]}
+                {
+                  "required": [
+                    "current_review"
+                  ]
+                },
+                {
+                  "required": [
+                    "action_preview"
+                  ]
+                }
               ]
             }
           }
         },
         {
           "if": {
-            "required": ["status"],
-            "properties": {"status": {"const": "ESCALATED"}},
-            "not": {"required": ["current_proposal"]}
+            "required": [
+              "status"
+            ],
+            "properties": {
+              "status": {
+                "const": "ESCALATED"
+              }
+            },
+            "not": {
+              "required": [
+                "current_proposal"
+              ]
+            }
           },
-          "then": {"required": ["processing_failure"]}
+          "then": {
+            "oneOf": [
+              {
+                "required": [
+                  "processing_failure"
+                ]
+              },
+              {
+                "required": [
+                  "order_lookup_block"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "not": {
+            "required": [
+              "processing_failure",
+              "order_lookup_block"
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "order_lookup_block"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "current_proposal"
+                  ]
+                },
+                {
+                  "required": [
+                    "current_review"
+                  ]
+                },
+                {
+                  "required": [
+                    "action_preview"
+                  ]
+                }
+              ]
+            }
+          }
         }
-      ]
+      ],
+      "description": "Founder-only authoritative read model. processing_failure and order_lookup_block are mutually exclusive current records, not history arrays. ESCALATED without a current proposal requires exactly one. OrderLookupBlock is pre-proposal only. The resolved target may remain visible through notification/manual completion; replacing it or adding input invalidates stale requests, while prior decisions and source records remain auditable. Never erase historical approvals or operations, including unknown effects, to satisfy this read shape; those records confer no new authority."
     },
     "AuditEvent": {
       "type": "object",
@@ -2888,9 +3149,15 @@
       "type": "object",
       "description": "Optional case.created_at cohort bounds [created_from, created_before) and one current status at as_of. Omitted bounds are unbounded subject to snapshot time; omitted status includes all statuses. Both bounds, if present, must satisfy created_from < created_before; runtime comparison is required. Extra query names are rejected.",
       "properties": {
-        "created_from": {"$ref": "#/$defs/Timestamp"},
-        "created_before": {"$ref": "#/$defs/Timestamp"},
-        "status": {"$ref": "#/$defs/CaseStatus"}
+        "created_from": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "created_before": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "status": {
+          "$ref": "#/$defs/CaseStatus"
+        }
       },
       "additionalProperties": false
     },
@@ -3049,6 +3316,45 @@
     "IdempotencyKey": {
       "type": "string",
       "pattern": "^[A-Za-z0-9._:-]{8,128}(?![\\s\\S])"
+    },
+    "OrderLookupBlock": {
+      "type": "object",
+      "description": "Sanitised current pre-proposal order-lookup block persisted by Domain Service from an accepted OrderLookupResult. Only CONFLICT or AUTHORITY_DENIED; not a technical error, RiskReview, customer entitlement decision or execution permission. The source case/input/status/message must match; retain protected provenance in the audit trail. NOT_FOUND takes clarification; PROVIDER_FAILURE takes bounded technical recovery. Source conflicts belong to the packet/Risk path.",
+      "properties": {
+        "block_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "case_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "input_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "CONFLICT",
+            "AUTHORITY_DENIED"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "occurred_at": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "block_id",
+        "case_id",
+        "input_version",
+        "status",
+        "message",
+        "occurred_at"
+      ],
+      "additionalProperties": false
     }
   }
 }

@@ -2,8 +2,10 @@
 
 > Topic status: the project lead approved the Baseline v1.0 candidate on
 > 2026-08-31 and published it with the frozen allocation to main on 2026-09-06.
-> The document alignment and F.01 rc.2 are published for review in
-> [PR #9](https://github.com/shuxiachai/returnops-au/pull/9); consult its merge record for main publication.
+> The document alignment and F.01 rc.2 were merged in
+> [PR #9](https://github.com/shuxiachai/returnops-au/pull/9).
+> This revision contains an rc.3 review candidate for KAN-32; it is not part
+> of that earlier merge or an accepted contract.
 > Current team/tutor adoption reviews remain pending; publication is not acceptance.
 
 ReturnOps AU is a human-governed multi-agent returns operations system for a
@@ -63,6 +65,8 @@ revision/risk loops and excludes human/physical waiting only.
 - [Frozen work allocation v1.0 — owners, nine features and change rules](docs/07-frozen-work-allocation.md)
 - [Detailed delivery work packages — dependencies and acceptance checklists](docs/08-delivery-work-packages.md)
 - [F.01 API/data contract — review candidate, not an implemented API](docs/09-interface-contract-v1.md)
+- [F.02 environment and CI readiness — preparation, pending implementation](docs/10-f02-environment-readiness.md)
+- [Stage 1 readiness — model review, report, video and submission evidence](docs/11-stage1-readiness.md)
 - [Project charter](docs/01-project-charter.md)
 - [System design](docs/02-system-design.md)
 - [Team, Jira and GitHub workflow](docs/03-team-and-github-workflow.md)
@@ -93,20 +97,26 @@ research-expansion task.
 
 ## Current phase
 
-F.01 has a published rc.2 review candidate with shared JSON Schemas, planned OpenAPI
-operations, synthetic examples and offline contract checks. See
-[contract validation instructions](contracts/README.md). B/C review remains
-required; this does not complete F.01 acceptance, Gate 1 or runtime safety work.
-The five identified shape/hand-off gaps now have rc.2 changes and offline
-regressions: no-proposal manual handling, complete retrieval conflicts,
-compatible citation capacities, analytics filters/denominators and strict ID
-boundaries. Their runtime guards and B/C acceptance remain future work.
+The lead's current priority is to close the documentation, model-review and
+Stage 1 preparation gaps before taking on a new implementation package.
+The readiness checklist records concrete outputs and reviewers; missing member
+confirmation, Canvas dates and capacity remain open. A maintains Jira and
+integrates/submits course materials; C verifies R.04 evidence; each member
+authors and explains their own contribution. These are working arrangements,
+not completed reviews or a submission receipt.
 
-To inspect the alignment diff on GitHub, open **PR #9 → Files changed**.
-The PR merge record identifies the version published to main; after merge,
-browse `docs/` directly on main. B and C should record their confirmation
-against that version, not an older review. The lead directed main publication
-on 2026-09-07; publication does not substitute for their confirmation.
+F.01 rc.3 aligns the no-proposal manual exception across the requirement,
+shared models and contract. It distinguishes technical processing failures from
+pre-proposal order conflict/authority denial. Either target permits only an
+audited manual outcome and notification, never execution approval. The HTTP
+idempotency parameter uses the shared identifier rule. See the
+[migration and validation instructions](contracts/README.md).
+
+[KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32) tracks F.01 review;
+PR #9 remains the historical rc.2 publication. B/C must confirm the actual
+revised contract/model version before acceptance. Offline checks do not
+complete F.01, Gate 1, runtime guards or individual models. F.02 preparation
+is documented separately; API/PostgreSQL/migration/real CI remain outstanding.
 
 On 2026-09-06, the lead approved and froze the detailed A/B/C work allocation.
 Use `docs/07` for function ownership and `docs/08` for executable work packages;

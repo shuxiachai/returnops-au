@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "ReturnOps AU — Planned Public API Contract",
-    "version": "1.0.0-rc.2",
+    "version": "1.0.0-rc.3",
     "description": "F.01 review candidate only. This document defines intended requests, responses and authority boundaries; it does not implement or claim a running server, identity service, database, agent, provider or runtime security control. Shared JSON Schemas are in ./schemas.json. Owner A; B consumes UI contracts and C consumes agreed read/evaluation contracts. Internal retrieval, Risk Review, Coordinator/Assessment and operations dispatch are not public API endpoints. Authentication and all authoritative writes remain server-side responsibilities. Requires B/C review before contract adoption."
   },
   "servers": [
@@ -109,8 +109,16 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "./schemas.json#/$defs/EvidenceAttachment" },
-                    { "properties": { "status": { "const": "STAGED" } } }
+                    {
+                      "$ref": "./schemas.json#/$defs/EvidenceAttachment"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": "STAGED"
+                        }
+                      }
+                    }
                   ]
                 }
               }
@@ -573,7 +581,7 @@
       "get": {
         "operationId": "getFounderCase",
         "summary": "Read the full Founder case view",
-        "description": "Returns the authoritative CaseView including customer-statement references, evidence, current proposal/review when available, server-prepared approval preview when eligible, operation/notification state and audit references. An ESCALATED case without a current proposal includes a ProcessingFailure bound to the case and input version; the UI must not fabricate a proposal or approval preview to enable manual handling. Every applicable version and failure reference must be retained for a subsequent decision request. A preview is non-executable and is not an ApprovalRecord. The browser must not infer its own workflow state or turn a stale preview into authority.",
+        "description": "Returns the authoritative Founder CaseView, including current proposal/review and eligible non-executable ActionPreview. ESCALATED without a current proposal carries exactly one current ProcessingFailure (technical) or OrderLookupBlock (CONFLICT/AUTHORITY_DENIED), bound to the case/input. Do not invent a proposal, risk review or technical error for a business block. The UI retains the exact current target ID and case version, and can submit only MANUAL_HANDLING for either non-proposal target. Historical decisions, approvals, operations including unknown effects, notifications and audit references remain preserved. A preview or a history record grants no authority; browser state cannot replace server guards.",
         "x-status": "Planned",
         "x-owner": "A",
         "x-consumers": [
@@ -643,7 +651,7 @@
       "post": {
         "operationId": "recordFounderDecision",
         "summary": "Record a proposal decision or a non-executable failure outcome",
-        "description": "Accepts the existing APPROVE, REJECT, REQUEST_REVISION or MANUAL_HANDLING decisions targeting the current proposal ID/version. Alternatively, only MANUAL_HANDLING may target processing_failure_id when the authoritative case is ESCALATED and has no current proposal. Proposal and failure targets are mutually exclusive. The service derives the actor from authenticated context and verifies expected_case_version, current input/failure ownership and identity, and current state; an arbitrary client-supplied failure ID grants no authority. Failure-target handling accepts no proposal, preview, scope fingerprint or approval and never queues a return/label operation. It records an audited customer-facing outcome and uses the same independent notification path as proposal-target manual handling. For proposal-target approval, the service revalidates current proposal/review binding, preview and exact scope. Only current PASS or PASS_WITH_WARNING proposals are approval-eligible; ESCALATE requires a new proposal and passing review before execution. APPROVE records trusted exact-scope authority and queues governed simulated execution in the same committed workflow, without a second execute confirmation or public dispatch endpoint. REJECT also records and notifies an outcome; REQUEST_REVISION creates no execution authority. A 202 receipt means acceptance, not operation/notification success. No new route, role or business decision is added.",
+        "description": "Accepts APPROVE, REJECT, REQUEST_REVISION or MANUAL_HANDLING for the current proposal ID/version. Alternatively, only MANUAL_HANDLING may target the current processing_failure_id or order_lookup_block_id when the case is ESCALATED and has no current proposal. Exactly one of the three targets is allowed. The server derives the trusted Founder from authenticated context and atomically checks expected_case_version, current case/input/target identity and state. A stale, replaced, foreign or wrong-kind target grants no authority. Non-proposal manual handling accepts no proposal, preview, scope fingerprint or approval, records an audited customer-facing outcome, and queues notification only; never a return/label. Same-key/same-body replay returns the original accepted receipt after authentication, even after state advances; new intents require current guards. For proposal approval revalidate current passing review, preview and exact scope; ESCALATE cannot be approved. APPROVE persists trusted exact-scope authority and governed simulated execution work atomically. No second dispatch endpoint, new role or business decision is added. 202 means acceptance, not operation or notification success.",
         "x-status": "Planned",
         "x-owner": "A",
         "x-consumers": [
@@ -704,7 +712,7 @@
         ],
         "requestBody": {
           "required": true,
-          "description": "Uses body.expected_case_version and exactly one target: proposal_id plus proposal_version, or processing_failure_id for MANUAL_HANDLING only. The server resolves the current case/input/failure and rejects stale or mismatched references; schema validity alone does not authorise handling. Failure-target requests cannot contain proposal, preview or scope fields. The caller cannot supply a trusted actor, ApprovalRecord, arbitrary tool command or provider credentials.",
+          "description": "expected_case_version plus exactly one target: proposal_id/proposal_version, processing_failure_id, or order_lookup_block_id. The latter two are MANUAL_HANDLING only and forbid proposal/preview/scope/approval fields. Runtime validates the current case/input/target and trusted Founder; a schema-valid ID cannot authorise a decision. No client actor or arbitrary command.",
           "content": {
             "application/json": {
               "schema": {
@@ -1064,10 +1072,7 @@
         "required": true,
         "description": "Required for every POST. A safe opaque ASCII key scoped to the authenticated principal, operation and addressed resource. Reusing the same key with the same canonical request fingerprint returns the accepted result without a duplicate mutation; different content returns 409. For file upload the fingerprint includes inspected file bytes and allowed metadata. Authentication and authorisation still apply to retries. Durable idempotency and transactional queuing are implementation requirements, not claims made by this schema.",
         "schema": {
-          "type": "string",
-          "minLength": 8,
-          "maxLength": 128,
-          "pattern": "^[A-Za-z0-9._:-]+$"
+          "$ref": "./schemas.json#/$defs/IdempotencyKey"
         }
       },
       "Cursor": {

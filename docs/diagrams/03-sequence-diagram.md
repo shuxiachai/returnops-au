@@ -3,7 +3,7 @@
 > **Status:** Shared design candidate aligned to [docs/00](../00-project-definition-v1.md)
 > and [docs/07](../07-frozen-work-allocation.md); not runtime or individual-model
 > completion evidence.
-> **Review publication:** 2026-09-07, [PR #9](https://github.com/shuxiachai/returnops-au/pull/9); consult its merge record, distinct from pending adoption.
+> **Revision:** Local `1.0.0-rc.3` candidate for [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32), not accepted. [PR #9](https://github.com/shuxiachai/returnops-au/pull/9) records the earlier rc.2 publication.
 > **Traceability:** FR-001–FR-012; NFR-001–NFR-009; UC-01/01E–UC-05;
 > shared model review plus M-A/M-B/M-C in [docs/08](../08-delivery-work-packages.md).
 
@@ -18,7 +18,7 @@ The former single long diagram is divided at persisted hand-offs so each
 branch can be reviewed. All business writes shown below go through Domain
 Service; the orchestrator chooses bounded AI work and submits results for
 validation. Messages are conceptual operations, not promises that F.01 already
-implements each route. The separately revised rc.2 contract still needs joint
+implements each route. The separately revised rc.3 contract still needs joint
 review and cannot replace docs/00 or docs/07 as the product/allocation baseline.
 
 ## 1. Intake, grounding and the five risk outcomes
@@ -80,11 +80,11 @@ sequenceDiagram
                 Domain-->>API: AWAITING_INFORMATION and correction question
                 API-->>Portal: Show correction request
             else CONFLICT or AUTHORITY_DENIED
-                Domain->>Store: Record ESCALATED and actual reason
+                Domain->>Store: Save OrderLookupBlock from accepted case/input/status/message and record ESCALATED
             else PROVIDER_FAILURE
-                Domain->>Store: Keep safe state and bounded read-retry, or ESCALATED when exhausted
+                Domain->>Store: Bounded read-retry, or save actual ProcessingFailure and ESCALATED when exhausted
             end
-            Note over Domain,Store: No fabricated proposal is required for a failed lookup, manual handling remains possible
+            Note over Domain,Store: No proposal, review or invented technical error and exact current failure or order block permits only manual handling
         end
 
         Orch->>Assessment: Build criterion-level evidence matrix from accepted material
@@ -154,16 +154,17 @@ sequenceDiagram
     Founder->>Dashboard: Open a case requiring review or manual attention
     Dashboard->>API: Read authorised current case
     API->>Domain: Verified Founder query
-    Domain->>Store: Load authoritative input, proposal, review, operations and history
+    Domain->>Store: Load authoritative input, current proposal or failure or order block, review, operations and history
     Store-->>Domain: Current records and cited sources
     Domain-->>API: Read model, allowed choices and exact approvable scope when eligible
     API-->>Dashboard: Evidence, versions, warnings and permitted choices
     Dashboard-->>Founder: Separate requested outcome, recommendation and actual result
-    Founder->>Dashboard: Choose APPROVE, REJECT, REQUEST_REVISION or MANUAL_HANDLING
+    Note over Dashboard,Domain: No-proposal ESCALATED exposes exactly one current failure or order block and only MANUAL_HANDLING
+    Founder->>Dashboard: Choose a decision permitted for the displayed current target
     Dashboard->>API: Current context, choice, reason, request key and scope confirmation if approving
     API->>Domain: Verified Founder identity and untrusted decision request
-    Domain->>Store: Resolve replay and read current case/proposal/review
-    Domain->>Guard: Validate identity, freshness, state and decision-specific conditions
+    Domain->>Store: Resolve replay and read current case/input plus exact proposal or failure or block target
+    Domain->>Guard: Validate identity, case version, target ownership/freshness, state and decision conditions
     Guard-->>Domain: Validated decision or blocking reason
 
     break Invalid, stale, over-scope or unavailable decision
@@ -176,27 +177,37 @@ sequenceDiagram
         Domain->>Store: Atomically record exact ApprovalRecord, APPROVED and durable dispatch work
         Note over Domain,Store: Bind actor, case/input/proposal/review, two commands, item quantities, parcel, parameters, amount ceiling and expiry
         Domain->>Ops: Dispatch only the committed approval/work reference
-    else REJECT
+    else REJECT targeting current proposal
         Domain->>Store: Record reason and rejection outcome, queue notification, NOTIFICATION_PENDING
-    else REQUEST_REVISION
+    else REQUEST_REVISION targeting current proposal
         Domain->>Store: Record reason, invalidate prior permission, POLICY_ASSESSMENT
         Domain->>Orch: Prepare a new version within the bounded analysis workflow
-    else MANUAL_HANDLING
+    else MANUAL_HANDLING targeting current proposal or exact current no-proposal record
         Domain->>Store: Record actual human outcome, queue notification, NOTIFICATION_PENDING
-        Note over Domain,Store: No ApprovalRecord and no return/label command are created
+        Note over Domain,Store: Atomically save target ID, outcome, audit and notification work and no ApprovalRecord or return/label work, preserve historical effects
     end
     Domain-->>API: Authoritative decision receipt and pending state
     API-->>Dashboard: Show the accepted decision separately from later execution and notification
 ```
 
-An ESCALATED proposal cannot take the APPROVE branch. REQUEST_REVISION may
-start a new assessment; the revised proposal must pass independent Risk again.
-A failure before any valid proposal can still require recorded manual handling.
-That no-proposal request shape is defined in the
-[F.01 rc.2 candidate](../09-interface-contract-v1.md), pending joint review:
-this conceptual interaction is not evidence of a working endpoint and must not
-be implemented by manufacturing an approvable proposal. Exact approval and provider permissions
-are separate requirements; the browser cannot create a trusted ApprovalRecord.
+An ESCALATED proposal cannot take the APPROVE branch. REQUEST_REVISION requires
+a current proposal; the revised version must pass independent Risk again. An
+ESCALATED case without a current proposal instead requires exactly one current
+`ProcessingFailure` or `OrderLookupBlock`. Only `MANUAL_HANDLING` may target its
+`processing_failure_id` or `order_lookup_block_id`; both exclude proposal,
+preview, scope and approval fields. Domain Service must match the persisted
+record to the current case/input and, for an order block, the accepted lookup.
+`OrderLookupBlock` is only a pre-proposal `CONFLICT/AUTHORITY_DENIED` result;
+source-policy conflict remains packet/Risk material. There is no no-proposal
+revision/restart endpoint and no fabricated proposal or technical failure.
+
+The [F.01 rc.3 candidate](../09-interface-contract-v1.md) still needs joint
+review. These interactions do not prove a working endpoint. A resolved target
+may remain visible while notification is pending/failed or after manual closure;
+state checks still reject a new decision, and same-key replay returns only the
+prior accepted receipt. Notification retry does not replay operations or erase
+unknown effects. Exact approval and provider permissions remain separate;
+the browser cannot create a trusted ApprovalRecord.
 
 ## 3. Execution, idempotency and unknown-result reconciliation
 

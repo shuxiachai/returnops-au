@@ -1,7 +1,7 @@
 # State Machine Diagram (ReturnCase Lifecycle)
 
 > **Status — 2026-09-07:** v1 alignment draft; Member B/C review remains pending.
-> Published for review in [PR #9](https://github.com/shuxiachai/returnops-au/pull/9); consult its merge record separately from acceptance.
+> Local `1.0.0-rc.3` candidate for [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32), not accepted. [PR #9](https://github.com/shuxiachai/returnops-au/pull/9) is the rc.2 historical publication.
 > Earlier modelling contributions and their Git history are retained. This
 > revision does not claim product-baseline adoption, F.01 acceptance, or a
 > running implementation.
@@ -33,7 +33,8 @@ stateDiagram-v2
     UNDER_INVESTIGATION --> POLICY_ASSESSMENT : Authorised mock order snapshot matched
     UNDER_INVESTIGATION --> AWAITING_INFORMATION : Correctable reference or purchase-proof gap
     UNDER_INVESTIGATION --> UNDER_INVESTIGATION : Read-only provider failure and bounded safe retry
-    UNDER_INVESTIGATION --> ESCALATED : Unresolved conflict or authority denial or retry exhaustion
+    UNDER_INVESTIGATION --> ESCALATED : Accepted lookup CONFLICT or AUTHORITY_DENIED and OrderLookupBlock saved
+    UNDER_INVESTIGATION --> ESCALATED : Technical retry exhaustion and ProcessingFailure saved
 
     POLICY_ASSESSMENT --> AWAITING_INFORMATION : Relevant evidence gap
     POLICY_ASSESSMENT --> RISK_REVIEW : Versioned conditional proposal and source context ready
@@ -50,8 +51,8 @@ stateDiagram-v2
     AWAITING_APPROVAL --> NOTIFICATION_PENDING : REJECT and save reason and customer outcome
     AWAITING_APPROVAL --> NOTIFICATION_PENDING : MANUAL_HANDLING and save customer outcome
     AWAITING_APPROVAL --> UNDER_INVESTIGATION : New evidence invalidates proposal review and approval
-    ESCALATED --> POLICY_ASSESSMENT : Founder requests new proposal and fresh risk review
-    ESCALATED --> NOTIFICATION_PENDING : Founder records manual outcome preserving operation uncertainty
+    ESCALATED --> POLICY_ASSESSMENT : Current proposal exists and Founder REQUEST_REVISION requires fresh proposal and review
+    ESCALATED --> NOTIFICATION_PENDING : Current proposal or exact current failure or order block targeted by MANUAL_HANDLING
 
     APPROVED --> ACTION_IN_PROGRESS : Current risk scope expiry provider-authority and idempotency guards pass
     APPROVED --> AWAITING_APPROVAL : Approval expired before any effect and fresh approval required
@@ -94,7 +95,7 @@ under an expired approval.
 | Order lookup — FR-003 | Distinguish match, correctable missing information, confirmed conflict, authority denial, and provider failure. A timeout never becomes an invented matched order. Retry only read-only lookup within a configured bound. |
 | Assessment — FR-005/006/007 | Keep customer claims, verified facts, evidence gaps, citations, and uncertainty distinct. A versioned conditional packet can report missing or conflicting grounding; packet creation alone is not approval eligibility. |
 | Risk gate — FR-008 | Only a current-input/current-proposal `PASS` or `PASS_WITH_WARNING` supports approval. The other results are `REVISE`, `NEEDS_INFORMATION`, and `ESCALATE`. A single confidence threshold is not a substitute for these decisions and findings. |
-| Escalation recovery — FR-008/009 | Founder cannot approve an escalated proposal directly. A renewed assessment creates a new proposal version and requires a new passing risk review before approval. |
+| Escalation recovery — FR-003/008/009 | Founder cannot approve an escalated proposal directly. REQUEST_REVISION requires a current proposal and creates a new version needing a fresh passing review. Without a current proposal, exactly one current ProcessingFailure or OrderLookupBlock is required; only MANUAL_HANDLING can target it. No no-proposal revision/restart endpoint is added. |
 | Founder approval — FR-009 | Bind authenticated Founder identity, case/input/proposal/review versions, exact commands and parameter fingerprint, applicable amount ceiling, reason, and expiry. Record `APPROVE`, `REJECT`, `REQUEST_REVISION`, or `MANUAL_HANDLING` distinctly. |
 | Dispatch — FR-010, NFR-002/009 | Recheck current passing review, valid approval, parameter scope, provider authority, allowlist, and stable command idempotency before each new effect. Course commands are simulated `CREATE_RETURN` and `GENERATE_LABEL`, not refunds, charges, or inventory changes. |
 | Provider result — FR-010/011 | HTTP 200 alone is not business success. Validate the typed business result, operation identity, and scope, then ask Domain Service to save the result before advancing the workflow. |
@@ -102,6 +103,7 @@ under an expired approval.
 | New information — FR-002/009 | New decision-relevant input invalidates dependent proposal/review/approval before further effects. It never erases an already produced result or an unresolved effect; in-flight effects must be reconciled rather than treated as not executed. |
 | Notifications and terminal states — FR-009/010/011 | Keep notification status separate from command status. Return completion requires saved successful return and label results plus `SENT` notification. A rejection/manual outcome is likewise terminal only after its own successful notification; notification retry causes no operational replay. |
 | Manual closure — FR-009/011 | Persist the actual outcome and any unresolved operation uncertainty. `MANUAL_HANDLED` must not assert that an unknown provider effect did not happen or permit automatic resubmission of that operation. |
+| No-proposal manual target — FR-003/009/011 | Domain Service checks trusted Founder identity, expected case version, ESCALATED state, no current proposal and exact case/input/current failure or block ID. OrderLookupBlock can represent only an accepted pre-proposal lookup CONFLICT/AUTHORITY_DENIED; it cannot replace a technical error or source-policy conflict. Create only audited outcome/notification work; do not create approval/commands or erase historical effects. A retained resolved target after notification processing is readable, not newly actionable. |
 
 ## 3. Verification and implementation boundary
 
@@ -111,7 +113,10 @@ coordinates cross-system evaluation. The [work packages](../08-delivery-work-pac
 define the individual deliverables and cross-review responsibilities.
 
 This is a modelling draft, not proof that runtime guards exist. In particular,
-the Founder manual path after an AI failure **before any proposal exists** must
-remain possible without inventing a proposal. Its request shape is now in the
-[F.01 rc.2 candidate](../09-interface-contract-v1.md); runtime state checks and
-joint contract/model acceptance remain outstanding.
+the Founder manual path **before any current proposal exists** distinguishes
+actual technical `ProcessingFailure` from an accepted order `CONFLICT` or
+`AUTHORITY_DENIED` stored as `OrderLookupBlock`. Neither needs a fabricated
+proposal, review or technical error. The [F.01 rc.3 candidate](../09-interface-contract-v1.md)
+defines both manual-only targets; runtime state checks and joint contract/model
+acceptance remain outstanding. Source-policy conflicts continue through a
+conditional packet and independent Risk, not through an order-block shortcut.
