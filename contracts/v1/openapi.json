@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "ReturnOps AU — Planned Public API Contract",
-    "version": "1.0.0-rc.3",
+    "version": "1.0.0-rc.4",
     "description": "F.01 review candidate only. This document defines intended requests, responses and authority boundaries; it does not implement or claim a running server, identity service, database, agent, provider or runtime security control. Shared JSON Schemas are in ./schemas.json. Owner A; B consumes UI contracts and C consumes agreed read/evaluation contracts. Internal retrieval, Risk Review, Coordinator/Assessment and operations dispatch are not public API endpoints. Authentication and all authoritative writes remain server-side responsibilities. Requires B/C review before contract adoption."
   },
   "servers": [
@@ -18,7 +18,7 @@
   ],
   "x-status": "Planned",
   "x-work-package": "F.01",
-  "x-jira-key": "UNMAPPED",
+  "x-jira-key": "KAN-32",
   "x-authority-boundary": "Only the server-authenticated Founder can record an exact-scope approval; no customer, LLM, request body or preview can mint trusted approval or dispatch arbitrary commands.",
   "paths": {
     "/v1/session": {
@@ -1054,6 +1054,210 @@
           }
         }
       }
+    },
+    "/v1/founder/cases/{case_id}/history": {
+      "parameters": [
+        {
+          "name": "case_id",
+          "in": "path",
+          "required": true,
+          "description": "Case in the authenticated role and principal scope; customer must own this case.",
+          "schema": {
+            "$ref": "./schemas.json#/$defs/Id"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "listFounderCaseHistory",
+        "summary": "Read founder-authorised immutable case history",
+        "description": "Planned read-only typed history. Authenticate every page. Customer permits only own statements/evidence/already sent safe outcome messages; Founder materials use the separate Founder schema. Freeze immutable revisions at one case snapshot, sort by (recorded_sequence, record_id). Cursor binds principal, role, case, kind, exact object filters, limit, snapshot and last key using authenticated server state or signature. First request omits cursor; a collection_windows.start_cursor starts the full unfiltered kind at the view snapshot with default limit 20. Every later request repeats kind/filters/limit. Invalid, tampered, cross-scope or changed-query cursor returns 409 INVALID_STATE after access checks; expired snapshot returns 409 INVALID_STATE and requires an explicit restart without cursor. Never silently restart. Later appends/updates are excluded; permitted deletion replaces content with tombstones even in an existing snapshot. Exact object_version requires object_id. No arbitrary payload/read URL or write operation. See docs/09 section 10.4 for required runtime checks.",
+        "x-status": "Planned",
+        "x-owner": "A",
+        "x-consumers": [
+          "B",
+          "C"
+        ],
+        "x-roles": [
+          "FOUNDER"
+        ],
+        "x-requirements": [
+          "FR-011",
+          "FR-012",
+          "NFR-001",
+          "NFR-003",
+          "NFR-008"
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorised immutable history page or retention tombstones; candidate only.",
+            "headers": {
+              "X-Correlation-ID": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas.json#/$defs/FounderHistoryPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "./schemas.json#/$defs/FounderHistoryKind"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "name": "object_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "./schemas.json#/$defs/Id"
+            }
+          },
+          {
+            "name": "object_version",
+            "in": "query",
+            "required": false,
+            "description": "Requires object_id; server rejects lone version with 422 VALIDATION_ERROR.",
+            "schema": {
+              "$ref": "./schemas.json#/$defs/Version"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/cases/{case_id}/history": {
+      "parameters": [
+        {
+          "name": "case_id",
+          "in": "path",
+          "required": true,
+          "description": "Case in the authenticated role and principal scope; customer must own this case.",
+          "schema": {
+            "$ref": "./schemas.json#/$defs/Id"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "listCustomerCaseHistory",
+        "summary": "Read customer-authorised immutable case history",
+        "description": "Planned read-only typed history. Authenticate every page. Customer permits only own statements/evidence/already sent safe outcome messages; Founder materials use the separate Founder schema. Freeze immutable revisions at one case snapshot, sort by (recorded_sequence, record_id). Cursor binds principal, role, case, kind, exact object filters, limit, snapshot and last key using authenticated server state or signature. First request omits cursor; a collection_windows.start_cursor starts the full unfiltered kind at the view snapshot with default limit 20. Every later request repeats kind/filters/limit. Invalid, tampered, cross-scope or changed-query cursor returns 409 INVALID_STATE after access checks; expired snapshot returns 409 INVALID_STATE and requires an explicit restart without cursor. Never silently restart. Later appends/updates are excluded; permitted deletion replaces content with tombstones even in an existing snapshot. Exact object_version requires object_id. No arbitrary payload/read URL or write operation. See docs/09 section 10.4 for required runtime checks.",
+        "x-status": "Planned",
+        "x-owner": "A",
+        "x-consumers": [
+          "B",
+          "C"
+        ],
+        "x-roles": [
+          "CUSTOMER"
+        ],
+        "x-requirements": [
+          "FR-011",
+          "FR-012",
+          "NFR-001",
+          "NFR-003",
+          "NFR-008"
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorised immutable history page or retention tombstones; candidate only.",
+            "headers": {
+              "X-Correlation-ID": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas.json#/$defs/CustomerHistoryPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "./schemas.json#/$defs/CustomerHistoryKind"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "name": "object_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "./schemas.json#/$defs/Id"
+            }
+          },
+          {
+            "name": "object_version",
+            "in": "query",
+            "required": false,
+            "description": "Requires object_id; server rejects lone version with 422 VALIDATION_ERROR.",
+            "schema": {
+              "$ref": "./schemas.json#/$defs/Version"
+            }
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -1081,9 +1285,7 @@
         "required": false,
         "description": "Opaque next-page cursor from the preceding response, constrained to the authenticated query scope. Omit for the first page.",
         "schema": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 1024
+          "$ref": "./schemas.json#/$defs/Cursor"
         }
       },
       "Limit": {

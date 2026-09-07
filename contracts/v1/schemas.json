@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://returnops.example/contracts/v1/schemas.json",
-  "title": "ReturnOps AU F.01 wire contract 1.0.0-rc.3",
+  "title": "ReturnOps AU F.01 wire contract 1.0.0-rc.4",
   "description": "Review-ready contract, not an implemented API or a replacement for runtime authorization and state guards. Validate a named $defs schema, never this permissive registry root.",
   "$defs": {
     "Id": {
@@ -590,7 +590,8 @@
             }
           }
         }
-      ]
+      ],
+      "description": "Only accepted in AWAITING_INFORMATION for the current question_set_id, expected version and case owner. Uploaded STAGED evidence is not a business input until atomically bound by this or CreateCaseRequest. No general post-review customer append endpoint is introduced."
     },
     "ExtractedFacts": {
       "type": "object",
@@ -1350,7 +1351,7 @@
     },
     "RiskReviewRequest": {
       "type": "object",
-      "description": "Independent review input assembled by deterministic orchestration, not by trusting Assessment to reconstruct sources. retrieval_result must be the original accepted C1 result including conflicts; case/input/corpus bindings and citation-check coverage must match packet before invocation. Runtime hand-off checks are required beyond JSON Schema.",
+      "description": "Independent review input assembled by deterministic orchestration, not by trusting Assessment to reconstruct sources. retrieval_result must be the original accepted C1 result including conflicts; case/input/corpus bindings and citation-check coverage must match packet before invocation. Runtime hand-off checks are required beyond JSON Schema. These 100-item bounds are per-review input capacity, not lifetime storage limits. Domain must assemble all required retained inputs, never silently truncate to previews. If any internal DTO capacity is exceeded, do not invoke a partial review: record non-retryable REQUEST_TOO_LARGE at the actual processing stage and use the existing no-proposal technical manual path, retaining all accepted history. Missing retained source material likewise cannot be represented as reviewed evidence. Before accepting a new current proposal, Domain must validate and construct the complete bounded historical input bundle and atomically store it with the proposal. A returned Assessment packet is only a candidate until this succeeds. At an accepted new-input/revision boundary, previous dependent material loses current validity but remains immutable history. Capacity failure creates no new current proposal; it must not erase older proposal/review/approval/effect history or falsely present the old packet as current.",
       "properties": {
         "packet": {
           "$ref": "#/$defs/DecisionPacket"
@@ -2677,7 +2678,8 @@
             }
           }
         }
-      ]
+      ],
+      "description": "Outcome is saved with the accepted decision/operational outcome and is immutable for this notification. SENT maps RETURN_CREATED to COMPLETED, REJECTED to REJECTED, MANUAL_HANDLED to MANUAL_HANDLED. RETURN_CREATED additionally requires current authorised return/label successes and no unresolved contradictory effect. Later historical operation reconciliation cannot overwrite an accepted manual/reject outcome, reopen a terminal case, or create replacement execution notification."
     },
     "CustomerCaseView": {
       "type": "object",
@@ -2705,7 +2707,7 @@
           "items": {
             "$ref": "#/$defs/CustomerStatement"
           },
-          "minItems": 1,
+          "minItems": 0,
           "maxItems": 100
         },
         "evidence": {
@@ -2723,6 +2725,44 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 6000
+        },
+        "collection_windows": {
+          "type": "object",
+          "properties": {
+            "statements": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/CollectionWindow"
+                },
+                {
+                  "properties": {
+                    "kind": {
+                      "const": "STATEMENT"
+                    }
+                  }
+                }
+              ]
+            },
+            "evidence": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/CollectionWindow"
+                },
+                {
+                  "properties": {
+                    "kind": {
+                      "const": "EVIDENCE"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "required": [
+            "statements",
+            "evidence"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [
@@ -2733,9 +2773,11 @@
         "created_at",
         "updated_at",
         "statements",
-        "evidence"
+        "evidence",
+        "collection_windows"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": " Lifecycle arrays are bounded previews with required collection_windows; full history is read through the role-specific history endpoint. Empty statements is permitted after retention removal, with tombstones retained; never invent an original statement. Current material stays separate from historical revisions. Do not derive dispatch authority or unresolved-effect existence from previews."
     },
     "CaseSummary": {
       "type": "object",
@@ -2788,9 +2830,7 @@
           "maxItems": 100
         },
         "next_cursor": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 500
+          "$ref": "#/$defs/Cursor"
         }
       },
       "required": [
@@ -2864,7 +2904,7 @@
           "items": {
             "$ref": "#/$defs/CustomerStatement"
           },
-          "minItems": 1,
+          "minItems": 0,
           "maxItems": 100
         },
         "evidence": {
@@ -2937,6 +2977,104 @@
         },
         "order_lookup_block": {
           "$ref": "#/$defs/OrderLookupBlock"
+        },
+        "collection_windows": {
+          "type": "object",
+          "properties": {
+            "statements": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/CollectionWindow"
+                },
+                {
+                  "properties": {
+                    "kind": {
+                      "const": "STATEMENT"
+                    }
+                  }
+                }
+              ]
+            },
+            "evidence": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/CollectionWindow"
+                },
+                {
+                  "properties": {
+                    "kind": {
+                      "const": "EVIDENCE"
+                    }
+                  }
+                }
+              ]
+            },
+            "decisions": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/CollectionWindow"
+                },
+                {
+                  "properties": {
+                    "kind": {
+                      "const": "DECISION"
+                    }
+                  }
+                }
+              ]
+            },
+            "approvals": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/CollectionWindow"
+                },
+                {
+                  "properties": {
+                    "kind": {
+                      "const": "APPROVAL"
+                    }
+                  }
+                }
+              ]
+            },
+            "operations": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/CollectionWindow"
+                },
+                {
+                  "properties": {
+                    "kind": {
+                      "const": "OPERATION"
+                    }
+                  }
+                }
+              ]
+            },
+            "notifications": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/CollectionWindow"
+                },
+                {
+                  "properties": {
+                    "kind": {
+                      "const": "NOTIFICATION"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "required": [
+            "statements",
+            "evidence",
+            "decisions",
+            "approvals",
+            "operations",
+            "notifications"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [
@@ -2952,7 +3090,8 @@
         "approvals",
         "operations",
         "notifications",
-        "cited_passages"
+        "cited_passages",
+        "collection_windows"
       ],
       "additionalProperties": false,
       "allOf": [
@@ -3049,7 +3188,7 @@
           }
         }
       ],
-      "description": "Founder-only authoritative read model. processing_failure and order_lookup_block are mutually exclusive current records, not history arrays. ESCALATED without a current proposal requires exactly one. OrderLookupBlock is pre-proposal only. The resolved target may remain visible through notification/manual completion; replacing it or adding input invalidates stale requests, while prior decisions and source records remain auditable. Never erase historical approvals or operations, including unknown effects, to satisfy this read shape; those records confer no new authority."
+      "description": "Founder-only authoritative read model. processing_failure and order_lookup_block are mutually exclusive current records, not history arrays. ESCALATED without a current proposal requires exactly one. OrderLookupBlock is pre-proposal only. The resolved target may remain visible through notification/manual completion; replacing it or adding input invalidates stale requests, while prior decisions and source records remain auditable. Never erase historical approvals or operations, including unknown effects, to satisfy this read shape; those records confer no new authority. Lifecycle arrays are bounded previews with required collection_windows; full history is read through the role-specific history endpoint. Empty statements is permitted after retention removal, with tombstones retained; never invent an original statement. Current material stays separate from historical revisions. Do not derive dispatch authority or unresolved-effect existence from previews."
     },
     "AuditEvent": {
       "type": "object",
@@ -3065,18 +3204,6 @@
         },
         "correlation_id": {
           "$ref": "#/$defs/Id"
-        },
-        "actor_type": {
-          "type": "string",
-          "enum": [
-            "CUSTOMER",
-            "FOUNDER",
-            "DOMAIN_SERVICE",
-            "COORDINATOR",
-            "ASSESSMENT",
-            "RISK_REVIEWER",
-            "OPERATIONS_SERVICE"
-          ]
         },
         "event_type": {
           "type": "string",
@@ -3106,6 +3233,16 @@
         },
         "event_hash": {
           "$ref": "#/$defs/Hash"
+        },
+        "actor": {
+          "$ref": "#/$defs/ActorProvenance"
+        },
+        "history_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HistoryReference"
+          },
+          "maxItems": 100
         }
       },
       "required": [
@@ -3113,15 +3250,17 @@
         "case_id",
         "case_version",
         "correlation_id",
-        "actor_type",
         "event_type",
         "occurred_at",
         "object_ids",
         "component_version",
         "payload_hash",
-        "event_hash"
+        "event_hash",
+        "actor",
+        "history_refs"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Domain-written integrity event. object_ids are correlation only; history_refs resolve accepted business revisions through Founder history (including tombstones). Include relevant accepted proposal/review/decision/approval/operation/notification/target revisions. Actor provenance comes from trusted context, not request bodies."
     },
     "AuditPage": {
       "type": "object",
@@ -3135,9 +3274,7 @@
           "maxItems": 100
         },
         "next_cursor": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 500
+          "$ref": "#/$defs/Cursor"
         }
       },
       "required": [
@@ -3355,6 +3492,1212 @@
         "occurred_at"
       ],
       "additionalProperties": false
+    },
+    "Cursor": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "pattern": "^[A-Za-z0-9_-]+(?![\\s\\S])",
+      "description": "Opaque base64url-safe token issued by the server. Its shape grants no authority; authenticate every page and validate its role/principal/case/query/snapshot binding. Never decode and trust unsigned client state."
+    },
+    "ActorProvenance": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "HUMAN"
+            },
+            "role": {
+              "type": "string",
+              "enum": [
+                "CUSTOMER",
+                "FOUNDER"
+              ]
+            },
+            "principal_id": {
+              "$ref": "#/$defs/Id"
+            }
+          },
+          "required": [
+            "kind",
+            "role",
+            "principal_id"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "MODEL"
+            },
+            "model_run": {
+              "$ref": "#/$defs/ModelRun"
+            }
+          },
+          "required": [
+            "kind",
+            "model_run"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "SERVICE"
+            },
+            "component_id": {
+              "$ref": "#/$defs/Id"
+            }
+          },
+          "required": [
+            "kind",
+            "component_id"
+          ],
+          "additionalProperties": false
+        }
+      ],
+      "description": "Causal actor from verified context, written by Domain Service. HUMAN carries principal ID/role; MODEL embeds the restricted ModelRun metadata (including Coordinator model/provider/prompt versions); SERVICE carries component ID. No name/email/token/hidden reasoning or client-asserted actor. A service is a component, not another login role."
+    },
+    "HistoricalProposalBundle": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/RiskReviewRequest"
+        }
+      ],
+      "description": "Immutable exact material assembled for this accepted proposal: packet plus original statements, attachments, order lookup, original retrieval/conflicts/citation verification and optional observations. Same case/input/corpus and full citation coverage are mandatory. Store before independent review; review records reference this record. Never rebuild from current sources. If required personal content is removed, tombstone the whole bundle and all derivative copies. Before accepting a new current proposal, Domain must validate and construct the complete bounded historical input bundle and atomically store it with the proposal. A returned Assessment packet is only a candidate until this succeeds. At an accepted new-input/revision boundary, previous dependent material loses current validity but remains immutable history. Capacity failure creates no new current proposal; it must not erase older proposal/review/approval/effect history or falsely present the old packet as current."
+    },
+    "HistoricalRiskReview": {
+      "type": "object",
+      "properties": {
+        "review": {
+          "$ref": "#/$defs/RiskReview"
+        },
+        "proposal_record_id": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "required": [
+        "review",
+        "proposal_record_id"
+      ],
+      "additionalProperties": false
+    },
+    "HistoricalOrderLookupBlock": {
+      "type": "object",
+      "properties": {
+        "block": {
+          "$ref": "#/$defs/OrderLookupBlock"
+        },
+        "order_lookup": {
+          "$ref": "#/$defs/OrderLookupResult"
+        }
+      },
+      "required": [
+        "block",
+        "order_lookup"
+      ],
+      "additionalProperties": false
+    },
+    "CustomerOutcomeMessage": {
+      "type": "object",
+      "properties": {
+        "notification_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "RETURN_CREATED",
+            "REJECTED",
+            "MANUAL_HANDLED"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 6000
+        },
+        "next_steps": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "maxItems": 100
+        },
+        "sent_at": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "notification_id",
+        "outcome",
+        "message",
+        "next_steps",
+        "sent_at"
+      ],
+      "additionalProperties": false,
+      "description": "Only an already SENT safe customer message for this case; no retry/error/approval/model/provider metadata. RETURN_CREATED text states simulated outcome in the core course flow."
+    },
+    "FounderHistoryKind": {
+      "type": "string",
+      "enum": [
+        "STATEMENT",
+        "EVIDENCE",
+        "PROPOSAL",
+        "REVIEW",
+        "DECISION",
+        "APPROVAL",
+        "OPERATION",
+        "NOTIFICATION",
+        "PROCESSING_FAILURE",
+        "ORDER_LOOKUP_BLOCK"
+      ]
+    },
+    "FounderHistoryQuery": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/FounderHistoryKind"
+        },
+        "cursor": {
+          "$ref": "#/$defs/Cursor"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "object_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "object_version": {
+          "$ref": "#/$defs/Version"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "additionalProperties": false,
+      "dependentRequired": {
+        "object_version": [
+          "object_id"
+        ]
+      }
+    },
+    "FounderHistoryRecord": {
+      "type": "object",
+      "properties": {
+        "record_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "case_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "kind": {
+          "$ref": "#/$defs/FounderHistoryKind"
+        },
+        "object_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "object_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "case_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "recorded_sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "recorded_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "content_sha256": {
+          "$ref": "#/$defs/Hash"
+        },
+        "retention_state": {
+          "type": "string",
+          "enum": [
+            "AVAILABLE",
+            "REDACTED",
+            "DELETED"
+          ]
+        },
+        "content": {},
+        "removal_reason": {
+          "type": "string",
+          "enum": [
+            "RETENTION_POLICY",
+            "OWNER_REQUEST"
+          ]
+        },
+        "actor": {
+          "$ref": "#/$defs/ActorProvenance"
+        }
+      },
+      "required": [
+        "record_id",
+        "case_id",
+        "kind",
+        "object_id",
+        "object_version",
+        "case_version",
+        "recorded_sequence",
+        "recorded_at",
+        "content_sha256",
+        "retention_state",
+        "actor"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "retention_state": {
+                "const": "AVAILABLE"
+              }
+            },
+            "required": [
+              "retention_state"
+            ]
+          },
+          "then": {
+            "required": [
+              "content"
+            ],
+            "not": {
+              "required": [
+                "removal_reason"
+              ]
+            }
+          },
+          "else": {
+            "required": [
+              "removal_reason"
+            ],
+            "not": {
+              "required": [
+                "content"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "STATEMENT"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "content": {
+                "$ref": "#/$defs/CustomerStatement"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "EVIDENCE"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "content": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/EvidenceAttachment"
+                  },
+                  {
+                    "properties": {
+                      "status": {
+                        "const": "BOUND"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "PROPOSAL"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "content": {
+                "$ref": "#/$defs/HistoricalProposalBundle"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "REVIEW"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "content": {
+                "$ref": "#/$defs/HistoricalRiskReview"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "DECISION"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "content": {
+                "$ref": "#/$defs/FounderDecisionRecord"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "APPROVAL"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "content": {
+                "$ref": "#/$defs/ApprovalRecord"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "OPERATION"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "content": {
+                "$ref": "#/$defs/OperationAttempt"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "NOTIFICATION"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "content": {
+                "$ref": "#/$defs/NotificationRecord"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "PROCESSING_FAILURE"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "content": {
+                "$ref": "#/$defs/ProcessingFailure"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "ORDER_LOOKUP_BLOCK"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "content": {
+                "$ref": "#/$defs/HistoricalOrderLookupBlock"
+              }
+            }
+          }
+        }
+      ],
+      "description": "An immutable accepted object revision. object_version equals proposal_version for PROPOSAL; other kinds use a server-assigned per-object revision starting at 1. recorded_sequence is unique and increasing within the case. Content hash identifies stored bytes; canonical storage encoding/chain is F.05 work. Retention changes only availability, never record membership/order. No arbitrary object payloads."
+    },
+    "FounderHistoryPage": {
+      "type": "object",
+      "properties": {
+        "case_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "kind": {
+          "$ref": "#/$defs/FounderHistoryKind"
+        },
+        "snapshot_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "snapshot_case_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "as_of": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FounderHistoryRecord"
+          },
+          "maxItems": 100
+        },
+        "next_cursor": {
+          "$ref": "#/$defs/Cursor"
+        },
+        "object_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "object_version": {
+          "$ref": "#/$defs/Version"
+        }
+      },
+      "required": [
+        "case_id",
+        "kind",
+        "snapshot_id",
+        "snapshot_case_version",
+        "as_of",
+        "items"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "STATEMENT"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "properties": {
+                    "kind": {
+                      "const": "STATEMENT"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "EVIDENCE"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "properties": {
+                    "kind": {
+                      "const": "EVIDENCE"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "PROPOSAL"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "properties": {
+                    "kind": {
+                      "const": "PROPOSAL"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "REVIEW"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "properties": {
+                    "kind": {
+                      "const": "REVIEW"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "DECISION"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "properties": {
+                    "kind": {
+                      "const": "DECISION"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "APPROVAL"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "properties": {
+                    "kind": {
+                      "const": "APPROVAL"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "OPERATION"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "properties": {
+                    "kind": {
+                      "const": "OPERATION"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "NOTIFICATION"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "properties": {
+                    "kind": {
+                      "const": "NOTIFICATION"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "PROCESSING_FAILURE"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "properties": {
+                    "kind": {
+                      "const": "PROCESSING_FAILURE"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "ORDER_LOOKUP_BLOCK"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "properties": {
+                    "kind": {
+                      "const": "ORDER_LOOKUP_BLOCK"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "dependentRequired": {
+        "object_version": [
+          "object_id"
+        ]
+      },
+      "description": "Stable snapshot of immutable revisions, ascending (recorded_sequence, record_id). Echo exact filters. Server enforces every item case/version/filter, cursor bindings and as-of revision selection; a high-water timestamp over mutable rows is insufficient. Later append/update cannot change members/content of AVAILABLE revisions; permitted deletion yields tombstones. No next_cursor on the final page."
+    },
+    "CustomerHistoryKind": {
+      "type": "string",
+      "enum": [
+        "STATEMENT",
+        "EVIDENCE",
+        "OUTCOME_MESSAGE"
+      ]
+    },
+    "CustomerHistoryQuery": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/CustomerHistoryKind"
+        },
+        "cursor": {
+          "$ref": "#/$defs/Cursor"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "object_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "object_version": {
+          "$ref": "#/$defs/Version"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "additionalProperties": false,
+      "dependentRequired": {
+        "object_version": [
+          "object_id"
+        ]
+      }
+    },
+    "CustomerHistoryRecord": {
+      "type": "object",
+      "properties": {
+        "record_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "case_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "kind": {
+          "$ref": "#/$defs/CustomerHistoryKind"
+        },
+        "object_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "object_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "case_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "recorded_sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "recorded_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "content_sha256": {
+          "$ref": "#/$defs/Hash"
+        },
+        "retention_state": {
+          "type": "string",
+          "enum": [
+            "AVAILABLE",
+            "REDACTED",
+            "DELETED"
+          ]
+        },
+        "content": {},
+        "removal_reason": {
+          "type": "string",
+          "enum": [
+            "RETENTION_POLICY",
+            "OWNER_REQUEST"
+          ]
+        }
+      },
+      "required": [
+        "record_id",
+        "case_id",
+        "kind",
+        "object_id",
+        "object_version",
+        "case_version",
+        "recorded_sequence",
+        "recorded_at",
+        "content_sha256",
+        "retention_state"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "retention_state": {
+                "const": "AVAILABLE"
+              }
+            },
+            "required": [
+              "retention_state"
+            ]
+          },
+          "then": {
+            "required": [
+              "content"
+            ],
+            "not": {
+              "required": [
+                "removal_reason"
+              ]
+            }
+          },
+          "else": {
+            "required": [
+              "removal_reason"
+            ],
+            "not": {
+              "required": [
+                "content"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "STATEMENT"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "content": {
+                "$ref": "#/$defs/CustomerStatement"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "EVIDENCE"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "content": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/EvidenceAttachment"
+                  },
+                  {
+                    "properties": {
+                      "status": {
+                        "const": "BOUND"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "OUTCOME_MESSAGE"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "content": {
+                "$ref": "#/$defs/CustomerOutcomeMessage"
+              }
+            }
+          }
+        }
+      ],
+      "description": "An immutable accepted object revision. object_version equals proposal_version for PROPOSAL; other kinds use a server-assigned per-object revision starting at 1. recorded_sequence is unique and increasing within the case. Content hash identifies stored bytes; canonical storage encoding/chain is F.05 work. Retention changes only availability, never record membership/order. No arbitrary object payloads."
+    },
+    "CustomerHistoryPage": {
+      "type": "object",
+      "properties": {
+        "case_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "kind": {
+          "$ref": "#/$defs/CustomerHistoryKind"
+        },
+        "snapshot_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "snapshot_case_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "as_of": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CustomerHistoryRecord"
+          },
+          "maxItems": 100
+        },
+        "next_cursor": {
+          "$ref": "#/$defs/Cursor"
+        },
+        "object_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "object_version": {
+          "$ref": "#/$defs/Version"
+        }
+      },
+      "required": [
+        "case_id",
+        "kind",
+        "snapshot_id",
+        "snapshot_case_version",
+        "as_of",
+        "items"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "STATEMENT"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "properties": {
+                    "kind": {
+                      "const": "STATEMENT"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "EVIDENCE"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "properties": {
+                    "kind": {
+                      "const": "EVIDENCE"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "OUTCOME_MESSAGE"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "properties": {
+                    "kind": {
+                      "const": "OUTCOME_MESSAGE"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "dependentRequired": {
+        "object_version": [
+          "object_id"
+        ]
+      },
+      "description": "Stable snapshot of immutable revisions, ascending (recorded_sequence, record_id). Echo exact filters. Server enforces every item case/version/filter, cursor bindings and as-of revision selection; a high-water timestamp over mutable rows is insufficient. Later append/update cannot change members/content of AVAILABLE revisions; permitted deletion yields tombstones. No next_cursor on the final page."
+    },
+    "HistoryReference": {
+      "type": "object",
+      "properties": {
+        "record_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "kind": {
+          "$ref": "#/$defs/FounderHistoryKind"
+        },
+        "object_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "object_version": {
+          "$ref": "#/$defs/Version"
+        }
+      },
+      "required": [
+        "record_id",
+        "kind",
+        "object_id",
+        "object_version"
+      ],
+      "additionalProperties": false
+    },
+    "CollectionWindow": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/FounderHistoryKind"
+        },
+        "snapshot_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "snapshot_case_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "total_records": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "preview_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "unavailable_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "start_cursor": {
+          "$ref": "#/$defs/Cursor"
+        }
+      },
+      "required": [
+        "kind",
+        "snapshot_id",
+        "snapshot_case_version",
+        "total_records",
+        "preview_count",
+        "unavailable_count",
+        "truncated",
+        "start_cursor"
+      ],
+      "additionalProperties": false,
+      "description": "Metadata for a bounded preview: first select each object's latest revision at the snapshot, then include it only if AVAILABLE; never fall back to an older available revision after deletion, NOT a contiguous history page. Original statement is included when retained. total_records counts all revisions including tombstones; preview_count equals displayed array length; unavailable_count counts tombstones. truncated iff total_records > preview_count. start_cursor begins the full unfiltered kind at this view snapshot; never continue after a non-contiguous preview. Query uses same kind. Guards always read authoritative state, not preview arrays."
     }
   }
 }

@@ -187,8 +187,14 @@ class ContractV1Tests(unittest.TestCase):
                     for response in operation["responses"].values():
                         resolved = pointer(OPENAPI, response["$ref"]) if "$ref" in response else response
                         self.assertIn("X-Correlation-ID", resolved["headers"])
-        self.assertEqual(len(operations), 13)
-        self.assertEqual(len(set(operations)), 13)
+        self.assertEqual(len(operations), len(set(operations)))
+        self.assertEqual(set(operations), {
+            "getSession", "stageEvidence", "getEvidenceContent", "createCase",
+            "getCustomerCase", "submitClarification", "listFounderCases",
+            "getFounderCase", "recordFounderDecision", "reconcileOperation",
+            "retryNotification", "listCaseAudit", "getFounderAnalytics",
+            "listFounderCaseHistory", "listCustomerCaseHistory",
+        })
         self.assertFalse(any(re.search(r"/(dispatch|execute|agents|risk)(/|$)", p) for p in OPENAPI["paths"]))
 
     def test_openapi_fixture_request_response_bindings(self):

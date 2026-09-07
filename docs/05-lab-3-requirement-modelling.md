@@ -10,8 +10,11 @@
 > modelling artefact. This revision and individual contributions still require
 > peer/tutor review; historical completion is not current acceptance. The
 > rc.2 alignment was published in [PR #9](https://github.com/shuxiachai/returnops-au/pull/9).
-> The `1.0.0-rc.3` contract/model clarification for
-> [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32) remains unaccepted.
+> The current `1.0.0-rc.4` contract/model review candidate for
+> [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32) uses
+> [PR #11](https://github.com/shuxiachai/returnops-au/pull/11) as its review entry;
+> check that PR for the actual head and reviews. rc.3 is an earlier candidate,
+> and current human acceptance remains pending.
 >
 > **Product authority**: [Lead-approved v1.0 candidate](00-project-definition-v1.md).
 > [Requirements and backlog](04-requirements-and-backlog.md) is a derived index;
@@ -290,8 +293,9 @@ Extension and failure scenarios:
 Main success scenario:
 
 1. Customer reviews the targeted question and submits clarification or evidence.
-2. The system validates the case association, format, attachment restrictions,
-   and untrusted-content boundary.
+2. The system validates case access, `AWAITING_INFORMATION`, the current
+   `question_set_id`, `expected_case_version`, requested answers/evidence,
+   format, attachment restrictions and the untrusted-content boundary.
 3. The system append-only preserves the new statement and accepted evidence.
 4. Domain Service validates and persists typed facts and the `PRESENT`,
    `MISSING`, `CONFLICTING`, or `NOT_APPLICABLE` evidence assessment without
@@ -304,12 +308,24 @@ Extension and failure scenarios:
 
 - **2a - Unsafe or unsupported attachment:** reject that attachment, retain
   safe text, and explain the restriction.
+- **2b - No current question set, wrong state or stale version:** reject the
+  fresh request without accepting input or starting analysis; show the current
+  authorised clarification view. Same-key accepted replay remains a replay,
+  not permission to submit a new answer to a replaced question set.
 - **4a - Information is still incomplete:** keep `AWAITING_INFORMATION` and ask
   only the remaining questions; the customer may repeat UC-01E.
 - **4b - New information creates a confirmed conflict:** preserve both versions
   and let UC-02 create the risk finding or escalation.
 - **5a - Persistence or notification failure:** do not lose the accepted
   statement or create a duplicate; expose a retryable, correlated error.
+
+This extension supplies requested clarification only. It does not add a general
+customer edit/upload endpoint after intake. Material-input transitions from
+`AWAITING_APPROVAL` or `APPROVED` refer to controlled internal updates, such as a
+refreshed authorised order snapshot: Domain Service checks source provenance,
+authority and current version before invalidating dependent proposal, review
+and approval. Existing or unresolved effects remain in history; an accepted
+manual/rejection outcome is not silently reopened by an observation.
 
 ### 4.5 UC-02 - Assess case and prepare proposal
 
@@ -459,6 +475,11 @@ Extension and failure scenarios:
   the same request key and show a correlated error rather than claiming success.
 - **3d - Rejection/manual notification fails:** retain `NOTIFICATION_PENDING`
   or `NOTIFICATION_FAILED`; retry notification only, without executing a remedy.
+- **3e - Historical operation is later confirmed:** preserve the accepted
+  rejection/manual outcome and its notification identity. Store the historical
+  observation and audit without new commands, execution notification, case
+  reopening or automatic `COMPLETED`; successful delivery of that outcome
+  still selects `REJECTED` or `MANUAL_HANDLED`.
 - **1a - No current proposal after technical failure or an order-lookup block:**
   show the server-recorded safe summary and actual manual-outcome entry.
   Submit `expected_case_version`, `MANUAL_HANDLING`, the outcome in `reason`,
@@ -508,11 +529,16 @@ Main success scenario:
    produces one label. Core mock and A3 providers are alternatives, not two effects.
 7. Domain Service validates and stores the typed business result/error and audit
    event. HTTP success alone does not establish business success.
-8. When all approved return/label results are stored, the case enters
-   `NOTIFICATION_PENDING`; the Founder can inspect those results separately.
+8. When all approved return/label results are stored and execution completion
+   remains eligible, Domain Service atomically rechecks the current case and
+   accepted outcome before persisting/reusing `RETURN_CREATED` notification
+   work and entering `NOTIFICATION_PENDING`. An already accepted rejection or
+   manual outcome takes priority; the Founder inspects operation facts separately.
 9. The simulated notification provider sends the outcome, next steps and relevant
    packaging, drop-off, responsibility and cost information.
-10. Domain Service records notification success/audit and moves to `COMPLETED`.
+10. Domain Service rechecks the current notification and accepted outcome,
+    records notification success/audit, and moves to `COMPLETED` only for
+    `RETURN_CREATED` with the valid return/label results still saved.
 
 Extension and failure scenarios:
 
@@ -535,7 +561,17 @@ Extension and failure scenarios:
 - **6b - Partial composite execution:** preserve successful results and resume
   unfinished commands only.
 - **6c - Retry limit reached:** move to `ESCALATED` and show the Founder the
-  exact completed, failed and uncertain steps; no fresh key may bypass reconciliation.
+  exact completed, failed and uncertain steps, unless a rejection/manual outcome
+  has already been accepted; preserve that outcome and its case/notification
+  state. No fresh key may bypass reconciliation.
+- **6e - Historical lookup after an accepted manual/rejection outcome:** update
+  only the old attempt facts and audit. For example, return `SUCCEEDED`, label
+  `UNKNOWN`, escalation and accepted `MANUAL_HANDLING` with notification pending
+  must remain a manual outcome when the label later proves successful. Deliver
+  the existing manual notification and reach `MANUAL_HANDLED`, never
+  `COMPLETED`. If already sent, retain the terminal state with no resend; if
+  lookup remains unknown, preserve uncertainty without reopening/escalating the
+  closed outcome. A new effect still requires current dispatch authority.
 - **7a - Provider success but local persistence failed:** reconcile the existing
   attempt before further work; do not assume the external effect failed.
 - **9a - Notification failure after return/label success:** keep
@@ -568,6 +604,9 @@ Main success scenario:
 3. The dashboard shows current state, current proposal version, evidence,
    citations, version-bound risks, exact approval scope, operation attempt/results,
    independent notification state and event chronology, subject to privacy rules.
+   The accepted customer-facing outcome is shown separately from historical
+   effects: a late successful label does not change an accepted manual outcome,
+   and manual closure does not claim that an unknown effect never happened.
 4. Founder can open the applicable UC-03 decision view; executable approval is
    offered only for the current approval-eligible proposal, not an escalation.
 
@@ -576,6 +615,9 @@ Extensions:
 - **2a - Unauthorised actor:** deny access and record a security event.
 - **2b - Read failure or incomplete audit data:** show an explicit unavailable
   state and correlation ID instead of a stale or fabricated result.
+- **3a - Historical lookup changes operation facts:** refresh those facts and
+  audit while retaining the accepted outcome and notification state. Read access
+  and new historical knowledge do not authorise commands or a new terminal outcome.
 
 ## 5. Consistency and traceability across the three views
 
@@ -633,13 +675,14 @@ requires code, tests and review under existing work packages, not just diagrams:
   to neutral approved-guidance and source-conflict labels before the benchmark
   is treated as ground truth.
 
-The [F.01 `1.0.0-rc.3` contract candidate](09-interface-contract-v1.md) preserves
+Historically, the F.01 `1.0.0-rc.3` clarification preserved
 rc.2's technical-failure target, complete retrieval-conflict hand-off, compatible
-passage/citation capacities and analytics denominators. It adds a separate
-pre-proposal order-lookup block target and aligns the public idempotency header
+passage/citation capacities and analytics denominators. It added a separate
+pre-proposal order-lookup block target and aligned the public idempotency header
 with the shared identifier boundary. Actual state, authority, source-integrity
 and aggregation guards still need implementation. Joint B/C contract/model
-review is pending; the historical rc.2 checks do not establish rc.3 acceptance,
+review of the current [F.01 `1.0.0-rc.4` candidate](09-interface-contract-v1.md)
+at the exact reviewed PR head is pending; historical rc.2/rc.3 evidence does not establish that acceptance,
 and no schema test authorises a fabricated proposal or technical error.
 
 Map these findings to existing `docs/08` work packages and Jira items before
@@ -677,8 +720,8 @@ original version and contributor record.
   use-case specifications and three individual behaviour models; shared class
   and complex-structure work also needs recorded participation from all three.
 - [x] The earlier rc.2 alignment was published in PR #9, with B/C review requests.
-- [ ] The rc.3 clarification and its three decision targets receive
-  current B/C contract/model review; original authorship remains attributable.
+- [ ] The `1.0.0-rc.4` candidate and its three decision targets receive
+  B/C contract/model review at the exact reviewed PR head; original authorship remains attributable.
 - [ ] Tutor feedback is recorded and dispositioned; the published revision
   receives current peer review and the required adoption evidence.
   Publication does not imply Jira acceptance or completion of individual models.

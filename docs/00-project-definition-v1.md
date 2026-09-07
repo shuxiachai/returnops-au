@@ -17,9 +17,11 @@
 > adoption condition above is met, earlier v0.2 versions remain historical
 > inputs. Documents `01`–`05` and the five shared diagrams have a v1.0
 > alignment draft published in [PR #9](https://github.com/shuxiachai/returnops-au/pull/9),
-> together with F.01 rc.2. That PR is the historical publication; the
-> `1.0.0-rc.3` contract/model clarification for
-> [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32) remains a review candidate.
+> together with F.01 rc.2. That PR is the historical publication; the current
+> `1.0.0-rc.4` contract/model review candidate for
+> [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32) uses
+> [PR #11](https://github.com/shuxiachai/returnops-au/pull/11) as its review entry.
+> Check that PR for the actual head and reviews; rc.3 is an earlier candidate.
 > Peer/tutor acceptance remains pending independently of publication.
 > [PR #6](https://github.com/shuxiachai/returnops-au/pull/6) published the candidate
 > and frozen allocation under the lead's early-publication instruction; current
@@ -318,7 +320,7 @@ technical failure or order-lookup block. An approval additionally binds:
 - amount ceiling where applicable; and
 - expiry.
 
-**Joint-review clarification (`1.0.0-rc.3`, not yet adopted):**
+**Joint-review clarification (introduced in `1.0.0-rc.3`; current `1.0.0-rc.4` review candidate, not yet adopted):**
 [F.01 section 8.1](09-interface-contract-v1.md#81-提案不存在时的人工路径)
 distinguishes actual technical errors (`ProcessingFailure`) from an accepted
 pre-proposal order lookup returning `CONFLICT` or `AUTHORITY_DENIED`
@@ -357,7 +359,8 @@ The Operations Service is not a free-deciding AI agent. It only:
 | `RecommendedAction` | The system's conditional next step, stored separately from the customer request |
 | `RiskDecision` | `PASS`, `PASS_WITH_WARNING`, `REVISE`, `NEEDS_INFORMATION`, or `ESCALATE` |
 | `ApprovalDecision` | `APPROVE`, `REJECT`, `REQUEST_REVISION`, or `MANUAL_HANDLING` |
-| `OperationResult` | `SUCCEEDED`, `FAILED`, `UNKNOWN`, or `RECONCILING` |
+| `OperationStatus` | `PENDING`, `RUNNING`, `SUCCEEDED`, `FAILED`, `UNKNOWN`, `RECONCILING`, or `BLOCKED`; the status of an `OperationAttempt` |
+| `OperationResult` | Typed confirmed-success payload for `CREATE_RETURN` or `GENERATE_LABEL`; failure/uncertainty remains on `OperationAttempt`, not a success-shaped result |
 | `DecisionPacket` | A non-executable package of facts, evidence, citations, conditional recommendations, alternatives, risks, and open questions |
 
 ---
@@ -548,6 +551,15 @@ synthetic fixtures, and a small number of domain tests. The following remain
 - evaluation runner;
 - CI and Docker environment; and
 - cloud deployment.
+
+**F.02 environment candidate (2026-09-07):** a health-only FastAPI entry point,
+dependency locks, environment-only Alembic revision, Compose and CI candidate
+files now exist. Native PostgreSQL checks and the recovered Docker/PG17.11
+Compose build, migration and health/outage checks are recorded in [docs/10](10-f02-environment-readiness.md).
+This does not implement the planned business API, case/approval persistence,
+authorization or agent workflow. C's clean reproduction remains pending;
+CI status requires the specific run evidence on [PR #11](https://github.com/shuxiachai/returnops-au/pull/11).
+F.01/F.02 have not been accepted.
 
 ### 11.3 Core engineering stack
 
@@ -909,9 +921,9 @@ Evidence: CI run, audit trace, and demo recording
 - [x] The 2026-09-07 alignment of older documents/shared UML and F.01 rc.2 was
   published for review in [PR #9](https://github.com/shuxiachai/returnops-au/pull/9),
   preserving B/C contributions; review requests were sent to both members.
-- [ ] The rc.3 clarification receives current team review, including the
+- [ ] The `1.0.0-rc.4` candidate receives team review at the exact reviewed PR head, including the
   mutually exclusive proposal/failure/order-block targets in section 4.4;
-  historical rc.2 publication alone does not satisfy this review or adoption.
+  historical rc.2 publication or rc.3 review alone does not satisfy this review or adoption.
 - [ ] B/C approve the current allocation and aligned models, tutor feedback is
   dispositioned, and the reviewed alignment change is merged. Earlier reviews
   of older commits do not automatically approve this revision.

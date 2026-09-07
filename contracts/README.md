@@ -1,12 +1,16 @@
 # F.01 contract artifacts
 
 Start with [the Chinese hand-off guide](../docs/09-interface-contract-v1.md).
-Version `1.0.0-rc.3` is a review candidate for
+Version `1.0.0-rc.4` is a review candidate for
 [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32), not accepted F.01.
-Its predecessor rc.2 was merged in
+The earlier rc.2 was merged in
 [PR #9](https://github.com/shuxiachai/returnops-au/pull/9); that publication does
 not include this revision or establish B/C acceptance. Joint review must name
-the exact revision being reviewed. Neither candidate is a running API.
+the exact revision being reviewed. The review entrance is
+[PR #11](https://github.com/shuxiachai/returnops-au/pull/11); use its exact head
+commit and review records for current status. The rc.3 commit `9093156` is the
+historical starting point. Publication does not establish a running business
+API or B/C acceptance.
 
 ## Contents
 
@@ -16,6 +20,8 @@ the exact revision being reviewed. Neither candidate is a running API.
 - `../tests/contracts/test_contract_v1.py`: offline artifact checks; no business service or provider implementation.
 - `../tests/contracts/test_contract_v1_rc2.py`: five-gap regressions and test-only cross-object/cohort checks, not runtime guards.
 - `../tests/contracts/test_contract_v1_rc3.py`: three-target exclusivity, order-block provenance fixtures and the shared HTTP idempotency rule.
+- `../tests/contracts/test_contract_v1_rc4.py`: role-isolated history, retention, cursor boundaries and cross-record snapshot/material fixture oracles; no running store or cursor service.
+- `../tools/model-checks/README.md`: reproducible offline model/document checks, independent of contract validators.
 - `requirements.txt`: contract-validator dependencies only, not an application dependency lockfile.
 
 ## Run in a separate environment
@@ -54,10 +60,18 @@ or prove zero provider effects**. Implement their behavior later in
 F.03/A1/A2/F.06 tests. Historical rc.1 test totals are not rc.2 results; rerun
 the current artifacts and report the actual output.
 
-Local rc.3 validation on 2026-09-07: 44 contract unittest methods passed in the
+Historical pre-publication local rc.3 validation on 2026-09-07: 44 contract unittest methods passed in the
 isolated validator environment. Fixtures: 64 positive, 36 negative and 16
 unexecuted runtime-guard scenarios. These totals are artifact evidence only;
 rerun after changes and do not describe them as live API or CI acceptance.
+
+Pre-publication local rc.4 validation on 2026-09-07: 53 contract unittest methods passed in
+the isolated Python 3.12 environment; 86 positive, 46 negative fixtures and
+20 unexecuted runtime scenarios. The tracked model checker passed 6/6 groups,
+its 7 regression tests and all 15 Mermaid parses. 89 WBS ID/Owner/Reviewer/S/F
+fields were unchanged from the rc.3 starting commit `9093156`. These results
+describe the rc.4 working copy checked before publication; they do not assert
+a rerun on PR #11's current head, CI success or runtime/team acceptance.
 
 A useful mock flow is:
 
@@ -75,7 +89,46 @@ trace. Original statement, source hash, multi-item/single-parcel and approval
 fingerprints are cross-checked where linked; production foreign-key,
 concurrency, authorization and state invariants remain future work.
 
-## rc.2 to rc.3 migration
+## rc.3 to rc.4 candidate migration
+
+Two read-only history GETs bring the public operation count to 15. Founder and
+Customer use separate finite kind enums and strict typed content. Historical
+proposal bundles preserve the exact review input (including old source text,
+conflicts, hashes and order snapshot); reviews reference that immutable record.
+Retained records resolve audit history_refs; trusted ActorProvenance replaces
+actor_type. MODEL provenance embeds restricted ModelRun metadata, including
+Coordinator model/provider/prompt versions, without another lookup endpoint.
+These are breaking candidate changes for strict clients.
+
+Lifecycle arrays are bounded previews with required collection_windows, not a
+100-record lifetime limit. Select the latest revision per object first, then show it only if AVAILABLE;
+never fall back to older content/status after deletion. Read all revisions
+from the window start_cursor;
+do not treat previews as contiguous pages or as authority for effect guards.
+Snapshot pagination freezes immutable revisions, not just a mutable table's
+timestamp. Every page rechecks identity, role, case, query and server-validated
+cursor. All cursor fields share the same 1–1024-character schema. Deletion
+returns typed tombstones and removes dependent content from old/current views;
+empty statement previews require explicit retention/window metadata.
+
+Before accepting a current proposal, validate/build its complete bounded
+material bundle and save them atomically. At a new-input/revision boundary the
+old material loses current validity but remains history; capacity failure must
+not erase it or expose the old packet as current.
+
+The internal 100-item input budget remains finite: do not silently truncate
+accepted evidence. Capacity failure stops processing with the actual-stage,
+non-retryable REQUEST_TOO_LARGE and the existing technical manual branch.
+Customer new evidence is accepted only by creation or the current valid
+clarification; no general post-review append API is introduced. Saved manual/
+reject outcomes take precedence over late historical operation confirmations;
+notification recovery must retain the accepted outcome and terminal state.
+
+See docs/09 sections 8.2/10.4/13.3 for exact semantics and future runtime
+scenarios. Offline page/material oracles do not implement history persistence,
+cursor authentication, deletion or outcome guards. A/B/C review is pending.
+
+## Historical rc.2 to rc.3 migration
 
 The 13 public operations, five Risk outcomes and four Founder decisions remain
 unchanged. A/B/C must update strict consumers together before adopting rc.3.

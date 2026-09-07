@@ -3,7 +3,7 @@
 > **Status:** Shared design candidate aligned to [docs/00](../00-project-definition-v1.md)
 > and [docs/07](../07-frozen-work-allocation.md); not runtime or individual-model
 > completion evidence.
-> **Revision:** Local `1.0.0-rc.3` candidate for [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32), not accepted. [PR #9](https://github.com/shuxiachai/returnops-au/pull/9) records the earlier rc.2 publication.
+> **Revision:** `1.0.0-rc.4` review candidate for [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32), not accepted. [PR #11](https://github.com/shuxiachai/returnops-au/pull/11) is the review entry; check its actual head and reviews. rc.3 is an earlier candidate; [PR #9](https://github.com/shuxiachai/returnops-au/pull/9) records the earlier rc.2 publication.
 > **Traceability:** FR-001–FR-012; NFR-001–NFR-009; UC-01/01E–UC-05;
 > shared model review plus M-A/M-B/M-C in [docs/08](../08-delivery-work-packages.md).
 
@@ -18,7 +18,7 @@ The former single long diagram is divided at persisted hand-offs so each
 branch can be reviewed. All business writes shown below go through Domain
 Service; the orchestrator chooses bounded AI work and submits results for
 validation. Messages are conceptual operations, not promises that F.01 already
-implements each route. The separately revised rc.3 contract still needs joint
+implements each route. The rc.4 contract review candidate still needs joint
 review and cannot replace docs/00 or docs/07 as the product/allocation baseline.
 
 ## 1. Intake, grounding and the five risk outcomes
@@ -49,6 +49,13 @@ sequenceDiagram
     break Same key and same previously accepted request
         Domain-->>API: Replay prior receipt without new writes or work
         API-->>Portal: Prior receipt, then read current authorised case
+    end
+    opt Fresh clarification of an existing case
+        Domain->>Store: Check AWAITING_INFORMATION, current question_set_id and expected_case_version
+        break Wrong state, replaced question set or stale case version
+            Domain-->>API: Typed denial or conflict, no accepted input or analysis work
+            API-->>Portal: Refresh the current authorised clarification view
+        end
     end
     Domain->>Store: Atomically preserve original statement and accepted evidence
     Note over Domain,Store: Same key and content replay the prior receipt, no duplicate case or work
@@ -96,9 +103,13 @@ sequenceDiagram
             Domain->>Store: Record bounded revision, required information or escalation
             Note over Domain,Store: No executable command and no current passing review are created
         end
-        Domain->>Store: Save valid new proposal version, invalidate stale review and approval
-        Orch->>Retrieval: Check proposal citations against the versioned passages
+        Orch->>Retrieval: Check candidate citations against the versioned passages
         Retrieval-->>Orch: Citation identity, location and content verification results
+        Orch->>Domain: Assemble complete bounded historical input bundle and validate all bindings
+        break Required material exceeds internal DTO capacity
+            Domain->>Store: Preserve old history, save actual-stage non-retryable REQUEST_TOO_LARGE failure and ESCALATED with no new current proposal
+        end
+        Domain->>Store: Atomically save valid new proposal and complete bundle, invalidate stale review and approval
         Orch->>Risk: Separate invocation with proposal, original evidence, order, source passages, citation checks and material conflict signals
         Note over Orch,Risk: No generator hidden reasoning, C3 observations are evidence, never authoritative facts
         Risk-->>Orch: Version-bound review or typed invocation error
@@ -136,6 +147,20 @@ parcel; selecting multiple items does not create multiple shipments. Original
 customer requests, extracted fields and the recommendation remain independently
 stored. The UI reads server-confirmed state and never accepts an agent's text
 as an authoritative transition.
+
+At the accepted new-input/revision boundary, previous material loses current
+validity but remains immutable history. A returned Assessment candidate becomes
+the current proposal only after its complete bounded material bundle passes
+Domain preflight; capacity failure cannot resurrect the older packet or delete
+its history.
+
+After intake, customer evidence is accepted only through the current requested
+clarification with its question set and expected case version. No unrequested
+upload or general case-edit endpoint is implied. A controlled internal material
+update (for example a refreshed authorised order snapshot) must pass provenance,
+authority and version checks in Domain Service, then invalidate dependent
+proposal/review/approval before further effects. The shared case-machine input
+arrows outside `AWAITING_INFORMATION` describe this internal boundary.
 
 ## 2. Founder review and four decisions
 
@@ -201,7 +226,7 @@ record to the current case/input and, for an order block, the accepted lookup.
 source-policy conflict remains packet/Risk material. There is no no-proposal
 revision/restart endpoint and no fabricated proposal or technical failure.
 
-The [F.01 rc.3 candidate](../09-interface-contract-v1.md) still needs joint
+The [F.01 rc.4 review candidate](../09-interface-contract-v1.md) still needs joint
 review. These interactions do not prove a working endpoint. A resolved target
 may remain visible while notification is pending/failed or after manual closure;
 state checks still reject a new decision, and same-key replay returns only the
@@ -236,18 +261,19 @@ sequenceDiagram
             Ops-->>Domain: Reuse successful provider result, no invocation
         else Prior attempt is UNKNOWN or RECONCILING
             Ops->>Domain: Record reconciliation start
-            Domain->>Store: Attempt RECONCILING and visible case reconciliation state
+            Domain->>Store: Attempt RECONCILING and preserve accepted rejection/manual outcome and its case state
+            Note over Domain,Store: Case reconciliation state is allowed only before a rejection/manual outcome is accepted
             Ops->>Provider: Authorised status query using saved provider ID or operation fingerprint
             Provider-->>Ops: Confirmed success, confirmed no effect, or still unknown
             Ops->>Domain: Persist typed reconciliation observation
             Domain->>Store: Record facts without discarding historical effects
             alt Confirmed success
-                Note over Domain,Ops: Reuse result and advance only to the next unfinished dependent command
+                Note over Domain,Ops: Save historical success only, a later unfinished command still needs current dispatch authority
             else Confirmed no effect
                 Note over Domain,Ops: A later eligible step may retry the same key only after current approval and provider checks
             else Still unknown or lookup unavailable
                 break Stop automatic dispatch and retain manual recovery context
-                    Domain->>Store: Preserve unresolved attempt, audit reason and escalate when required
+                    Domain->>Store: Preserve unresolved attempt and audit reason, escalate only without accepted rejection/manual outcome
                 end
             end
         else New or explicitly retry-safe unfinished command
@@ -282,19 +308,30 @@ sequenceDiagram
             end
         end
     end
-    Domain->>Store: Check both command results and outstanding attempts
-    opt Return and label both succeeded and their results are stored
-        Domain->>Store: Queue execution-outcome notification and set NOTIFICATION_PENDING
+    Domain->>Store: Read current accepted outcome, notification, command results and outstanding attempts
+    alt Accepted rejection or manual outcome exists
+        Domain->>Store: Preserve its outcome, notification identity and pending or terminal case state
+        Note over Domain,Store: Historical success never changes this outcome to RETURN_CREATED or COMPLETED
+    else Execution still eligible and both valid results stored without contradictory uncertainty
+        Domain->>Store: Atomically recheck case and outcome version, persist or reuse RETURN_CREATED notification work and NOTIFICATION_PENDING
+    else No deliverable outcome
+        Note over Domain,Store: Preserve facts and unresolved work, no new completion or notification
     end
 ```
 
-UNKNOWN and RECONCILING describe `OperationAttempt` results; the case may expose
+UNKNOWN and RECONCILING describe `OperationAttempt.status`; the case may expose
 RECONCILING while those attempts are checked. HTTP success alone is not proof
 of a successful business effect. An expired or superseded approval cannot permit
 a new effect, but authorised lookup may still establish what an earlier attempt
 actually did. Unresolved partial execution preserves successful steps and never
 restarts the whole plan. Recovery budget exhaustion stays visible and requires
 manual attention instead of pretending the case succeeded.
+
+An already accepted manual/rejection outcome remains authoritative during a
+late lookup, whether its notification is pending, failed or sent. Lookup may
+confirm old success or preserve uncertainty without reopening or escalating
+that case. This historical observation grants no new dispatch permission and
+is separate from the unresolved cross-approval design choice MA-Q02.
 
 Durable claiming, approval freshness at invocation, crash recovery and provider
 idempotency are implementation obligations of A1/A2, not guarantees supplied by
@@ -314,21 +351,24 @@ sequenceDiagram
     participant Store as Case and Audit Store
 
     Domain->>Ops: Send a persisted execution, rejection or manual-outcome notification
+    Note over Domain,Ops: Claim only the current accepted outcome and its existing notification identity
     Note over Domain,Ops: A notification-only work item contains no return/label dispatch instruction
     Ops->>Notify: Send recorded outcome, next step and relevant responsibility/cost instructions
     Notify-->>Ops: SENT or typed delivery failure
     Ops->>Domain: Record notification result under its own key
-    alt Notification is SENT
-        Domain->>Store: Record delivery and choose final state from persisted outcome kind
-        Note over Domain,Store: Execution success becomes COMPLETED, rejection becomes REJECTED, manual outcome becomes MANUAL_HANDLED
+    alt Confirmed delivery matches the current notification and accepted outcome
+        Domain->>Store: Atomically recheck outcome/work identity, record SENT and choose its terminal
+        Note over Domain,Store: RETURN_CREATED plus saved return and label becomes COMPLETED, REJECTED stays REJECTED, MANUAL_HANDLED stays MANUAL_HANDLED
         Notify-->>Customer: Outcome and next step, simulated label only when one actually exists
-    else Delivery failed
-        Domain->>Store: NOTIFICATION_FAILED with separately retryable notification record
+    else Delivery failed, uncertain or current binding changed
+        Domain->>Store: Retain current outcome and durable state, save applicable notification failure only
         Note over Domain,Ops: Retry this notification only, never repeat CREATE_RETURN or GENERATE_LABEL
     end
 ```
 
-COMPLETED requires saved return and label success plus notification delivery.
+COMPLETED requires saved `RETURN_CREATED`, valid return and label success, and
+matching notification delivery. An accepted rejection/manual outcome cannot be
+overridden by old operations later proving successful; sent work is not resent.
 REJECTED and MANUAL_HANDLED do not count as successful simulated operations.
 A generic request for more information is not a final outcome notification and
 does not close the case. Founder and customer views obtain their authorised
@@ -344,6 +384,11 @@ read models through the API; an accepted decision or HTTP 202 is not completion.
   provider fingerprint, saved result and query-before-retry step.
 - For notification failure, show that only notification work repeats and the
   case remains pending rather than entering a false completed state.
+- Trace return SUCCEEDED, label UNKNOWN, escalation, then accepted manual outcome:
+  a late label-success lookup must retain its pending/sent manual notification
+  and select MANUAL_HANDLED, never COMPLETED. Repeat with an inconclusive lookup.
+- Reject fresh customer evidence without a current clarification question set;
+  distinguish a valid clarification from a controlled internal material update.
 - Verify all state writes originate at Domain Service and all operational
   provider calls originate at Operations Service. AI results remain untrusted
   typed input to deterministic validation.

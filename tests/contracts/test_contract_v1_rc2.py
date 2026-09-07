@@ -243,7 +243,8 @@ class ContractV1Rc2Tests(unittest.TestCase):
         # Shape-only audit example; these dummy hashes do not prove a valid audit chain.
         audit = {
             "event_id": "event-anchor-001", "case_id": "case-demo-001", "case_version": 1,
-            "correlation_id": "correlation-demo-001", "actor_type": "DOMAIN_SERVICE",
+            "correlation_id": "correlation-demo-001", "actor": {"kind": "SERVICE", "component_id": "domain-service-demo"},
+            "history_refs": [],
             "event_type": "CASE_CREATED", "occurred_at": timestamp, "object_ids": [],
             "component_version": "fixture-v1", "payload_hash": "a" * 64, "event_hash": "b" * 64,
         }

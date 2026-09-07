@@ -3,7 +3,7 @@
 > **Status:** Shared design candidate synchronised to [docs/00](../00-project-definition-v1.md)
 > and the [frozen allocation](../07-frozen-work-allocation.md). Implementation and
 > team/tutor acceptance remain separate evidence.
-> **Revision:** Local `1.0.0-rc.3` review candidate for [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32), not accepted. [PR #9](https://github.com/shuxiachai/returnops-au/pull/9) preserves the rc.2 publication history.
+> **Revision:** `1.0.0-rc.4` review candidate for [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32), not accepted. [PR #11](https://github.com/shuxiachai/returnops-au/pull/11) is the review entry; check its actual head and reviews. rc.3 is an earlier candidate; [PR #9](https://github.com/shuxiachai/returnops-au/pull/9) preserves the rc.2 publication history.
 > **Traceability:** FR-001–FR-012; NFR-001–NFR-009; UC-01/01E–UC-05;
 > M-S.01 and the three personal chains in [docs/08](../08-delivery-work-packages.md).
 
@@ -228,6 +228,7 @@ classDiagram
         +String provider_id
         +String optional_provider_operation_id
         +String operation_fingerprint
+        +OperationStatus status
         +OperationResult optional_result
         +String typed_error
         +DateTime started_at
@@ -248,13 +249,42 @@ classDiagram
         +String correlation_id
         +String component_version
         +String model_corpus_version_refs
-        +String[] object_refs
+        +ActorProvenance actor
+        +HistoryReference[] history_refs
+        +String[] correlation_object_ids
         +String outcome
         +String typed_error
         +String non_personal_integrity_hash
         +String optional_previous_event_hash
         +DateTime timestamp
     }
+
+    class HistoryRecord {
+        +String record_id
+        +String case_id_ref
+        +HistoryKind kind
+        +String object_id
+        +Int object_version
+        +Int case_version
+        +Int recorded_sequence
+        +RetentionState retention_state
+        +String content_sha256
+        +TypedContent optional_content
+    }
+    class ActorProvenance {
+        +ActorKind kind
+        +String principal_or_run_or_component_ref
+    }
+    class HistoryReference {
+        +String record_id_ref
+        +HistoryKind kind
+        +String object_id
+        +Int object_version
+    }
+    ReturnCase "1" *-- "0..*" HistoryRecord : immutable_revisions
+    AuditEvent "0..*" --> "1" ActorProvenance : causal_actor
+    AuditEvent "1" *-- "0..*" HistoryReference : resolves_history
+    HistoryReference "0..*" --> "1" HistoryRecord : exact_revision
 
     Customer "1" <-- "0..*" ReturnCase : belongs_to
     ReturnCase "1" *-- "1..*" CustomerStatement : preserves
@@ -327,8 +357,30 @@ block cannot coexist with a current proposal, review or preview. The resolved
 target may remain visible during notification and manual terminal-state reads,
 but cannot authorise another decision. Earlier targets stay in audit history;
 historical approvals, successful operations and unknown effects remain intact.
-The [F.01 rc.3 candidate](../09-interface-contract-v1.md) defines these bindings,
+The [F.01 rc.4 candidate](../09-interface-contract-v1.md) defines these bindings,
 pending joint review; runtime current-state and authority checks remain required.
+
+### Historical read boundary and completion constraints (rc.4 candidate)
+
+`HistoryRecord/ActorProvenance/HistoryReference` represent the typed history
+contracts, not a generic arbitrary-object store. Founder history resolves old
+proposal input/source bundles and their reviews; Customer history has a
+separate, restricted union. CaseRepository preserves immutable revisions and
+serves as-of snapshots through Domain's authorised read boundary. A bounded
+preview is not the complete history or an execution guard input. Tombstones
+retain permitted integrity references; after deletion a preview cannot fall
+back to older content/status. Required source-content deletion also suppresses
+all dependent bundle/current-view copies. Read docs/09 §10.4 for exact fields,
+cursor/retention rules and the still-required runtime checks.
+
+NotificationRecord.outcome is the accepted result: RETURN_CREATED, REJECTED or
+MANUAL_HANDLED. Historical attempt queries update evidence/audit only; they
+cannot overwrite manual/reject outcomes, reopen terminal cases or create new
+execution notifications. New customer evidence binds only during creation or
+current valid clarification. Other material changes are controlled internal
+version updates subject to state/in-flight-effect guards, not a new customer
+append API. These constraints align the MA-0.2 candidate and shared state/sequence
+models; they do not implement the corresponding runtime service.
 
 ## 2. Services and replaceable interfaces
 
@@ -438,7 +490,7 @@ universal input/output DTO: each role returns its own typed result. Risk receive
 the complete `RiskReviewRequest`, including original evidence, order facts,
 the original accepted `retrieval_result` with all conflicts, and citation checks
 through the controlled orchestration boundary, never the generator's hidden
-reasoning. Its result is the rc.3 `RiskReview` DTO. Domain Service validates and
+reasoning. Its result is the rc.4 `RiskReview` DTO. Domain Service validates and
 records that DTO in the conceptual `ProposalReview` lifecycle shown above;
 `ProposalReview` is not a second return schema. A3 may add an
 independently verified test adapter behind ReturnsLogisticsPort without changing
@@ -446,15 +498,15 @@ these authority rules.
 
 Material components submit correlated events through the deterministic service
 and its Audit Port. This class view specifies dependencies, not runtime ports,
-instances and connectors: the shared Composite Structure Diagram remains a
-separate M-S.02 deliverable. The API and both UIs consume Domain Service and its
+instances and connectors: the [CS-0.1 Composite Structure](../13-shared-composite-structure.md)
+is a separate M-S.02 candidate and still requires human review. The API and both UIs consume Domain Service and its
 authorised read models; none is another writer of workflow state.
 
 ### 2.1 Method contracts and trusted context
 
 The signatures above are design-time operation contracts, not implemented Python
 methods or additional HTTP routes. Named DTOs below use the existing
-[rc.3 definitions](../../contracts/v1/schemas.json). Lower-case parameters such
+[rc.4 definitions](../../contracts/v1/schemas.json). Lower-case parameters such
 as `case_input`, `trusted_context`, `work_context`, `current_records`,
 `transaction_context`, `provider_observation` and `delivery_observation` are
 descriptions of internal arguments/results; they are **not new wire DTOs**.
@@ -486,7 +538,7 @@ permitted evidence fields and version references.
 | Returns/logistics and notification ports | Approved `CommandSpec` plus persisted attempt context, or an `OperationAttempt` for lookup; a saved `NotificationRecord` for delivery. | `provider_observation` contains confirmed `OperationResult` success, a known failure or unresolved-effect evidence; `delivery_observation` describes delivery/error evidence. These provider-specific internal results are normalised and submitted to Domain Service. HTTP 200 is insufficient; ambiguous effects remain UNKNOWN. No additional `ProviderResult`/`NotificationResult` wire schema or public dispatch endpoint is implied. |
 | Repository and Audit Port | `load_current_records(case_id) → ReturnCase`; commit a validated internal change set; append a service-created `AuditEvent`. | Only Domain Service may commit business changes. Expected-version/idempotency checks and business audit/work persistence share the transaction boundary. Audit append grants no state authority; reject malformed/untrusted attribution and exclude secrets/PII. A database transaction does not include the provider's external effect. |
 
-Errors at an API boundary use the existing rc.3 `ErrorEnvelope` and endpoint
+Errors at an API boundary use the existing rc.4 `ErrorEnvelope` and endpoint
 status rules. Examples include stale case version, invalid current target/state,
 unauthorised access and unavailable provider; this table adds no error enum.
 Transport-schema validation cannot establish that a context, hash, review or
@@ -565,7 +617,7 @@ roles and concrete commands; interface realisation (`<|..`) makes adapters repla
 |---|---|---|
 | IntakeSession | AH-01 → UC-01 / B | Personal activity, interaction and intake state machine, including clarification and failure/retry behaviour |
 | ProposalReview | AH-08 → UC-02 / C | Personal grounding/risk activity, revision-loop interaction and review state machine |
-| OperationAttempt | AH-10 → UC-04 / A | Personal execution activity, exact-scope interaction and attempt state machine |
+| OperationAttempt | AH-10 → UC-04 / A | [MA-0.2 candidate](../12-member-a-model-chain.md) now supplies activity, interaction and attempt state views; A's personal revision and C review remain pending |
 
 These names support the individual models; they do not certify completion or
 fix every private lifecycle state in advance. A owns domain, Coordinator,
