@@ -1,6 +1,7 @@
 # System Design
 
-> **Local v1 alignment draft — 2026-09-07.** This design follows the lead's
+> **Published v1 alignment draft — 2026-09-07:** [PR #9](https://github.com/shuxiachai/returnops-au/pull/9), not merged.
+> This design follows the lead's
 > published working baseline, [fixed ownership](07-frozen-work-allocation.md)
 > and [work packages](08-delivery-work-packages.md). B/C shared-model review
 > and tutor feedback are still required. Diagrams describe intended behaviour,
@@ -9,7 +10,7 @@
 > **Contribution provenance:** the three-agent architecture, separate read-only
 > order provider and deterministic Operations Service reuse Member B
 > (`ChengsiLi`)'s [PR #8](https://github.com/shuxiachai/returnops-au/pull/8),
-> commit `cbba595`. The present local revision corrects the state-write, recovery
+> commit `cbba595`. The present revision corrects the state-write, recovery
 > and notification boundaries and adds a compact Lab 4 analysis. It does not
 > merge PR #8, rewrite B's commits or claim B/C approval of this revision.
 
@@ -397,7 +398,7 @@ in parallel.
 
 | View | What it must explain | Existing material and remaining work |
 |---|---|---|
-| Logical | Domain objects, three AI roles, exact authority boundaries | [Class model](diagrams/01-domain-class-diagram.md), section 4 and F.01 provide material; B's PR #8 contribution and current local alignment still need shared review. |
+| Logical | Domain objects, three AI roles, exact authority boundaries | [Class model](diagrams/01-domain-class-diagram.md), section 4 and F.01 provide material; B's PR #8 contribution and the alignment published in PR #9 still need shared review. |
 | Development | UI/API/domain/agent/retrieval/provider dependencies and owners | Section 3 and [docs/07 code boundaries](07-frozen-work-allocation.md#3-公共基础与代码边界); a reviewed package diagram is still a deliverable under M-S.01. |
 | Process | Calls, asynchronous completions, version conflicts and recovery | [Sequence](diagrams/03-sequence-diagram.md) and [state model](diagrams/02-state-machine-diagram.md); each member must complete and explain their own activity/interaction/state chain. |
 | Physical | Browser, application process, authoritative database and simulated/test provider boundaries | Proposed stack and Docker plan only; deployment-model review and actual run evidence remain required. No live deployment is claimed. |

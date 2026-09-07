@@ -14,7 +14,9 @@
 > at an approved simulated return/label outcome plus notification. Use that
 > candidate for new planning. The lead-directed publication to main occurred
 > on 2026-09-06 (PRs #2/#4/#6), but current B/C approval, tutor feedback
-> disposition and reviewed model-alignment publication remain outstanding.
+> disposition and reviewed model-alignment adoption remain outstanding.
+> Alignment and F.01 rc.2 were published for review in PR #9 on 2026-09-07,
+> not merged into main; check its current review/merge state before acting.
 > Older seven-agent/multi-SME versions are historical inputs, not current scope.
 
 ---
@@ -52,13 +54,18 @@ boundaries. The corresponding runtime guards are not implemented.
 ## Old-document alignment — 2026-09-07
 
 `docs/01`, `02`, `04`, `05` and the five existing shared diagrams have been
-aligned locally with `docs/00`, `07` and `08`; `docs/03` and navigation/status
+aligned with `docs/00`, `07` and `08`; `docs/03` and navigation/status
 wording were corrected as well. This is a lead-led integration draft, not B/C
 individual authorship, accepted personal behaviour models or completed Stage 1.
 Retain B's PR #8 source attribution and C's PR #7 branch history; do not treat
 either PR as merged by this edit. F.01 rc.2 now includes the separate five-gap
-contract revision; joint contract/model review is still pending. No runtime
-code or remote/Jira updates are implied.
+contract revision. These changes are published in
+[PR #9](https://github.com/shuxiachai/returnops-au/pull/9) on
+`docs/5-f01-interface-contract`; review requests were sent to B and C.
+Joint contract/model review and merge remain pending; no runtime implementation
+or Jira update is implied. The proposal-bound summary in docs/00 section 4.4
+and FR-009 versus the failure-target manual exception remains an explicit
+joint-confirmation item, not a silently adopted baseline change.
 
 ## 1. Project Background & One-Sentence Pitch
 

@@ -1,10 +1,10 @@
 # F.01 contract artifacts
 
 Start with [the Chinese hand-off guide](../docs/09-interface-contract-v1.md).
-Version `1.0.0-rc.2` is a local review candidate, not accepted by B/C and not an
-implemented API. The prior document/model alignment is also a local review
-draft; confirm the rc.2 hand-offs jointly rather than treating either artifact
-as runtime or course-acceptance evidence.
+Version `1.0.0-rc.2` and the prior document/model alignment are published for
+review in [PR #9](https://github.com/shuxiachai/returnops-au/pull/9), not merged
+into main or accepted by B/C. Confirm the rc.2 hand-offs jointly rather than
+treating either artifact as a running API or course-acceptance evidence.
 
 ## Contents
 

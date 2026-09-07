@@ -3,7 +3,7 @@
 > **Status:** Shared design candidate synchronised to [docs/00](../00-project-definition-v1.md)
 > and the [frozen allocation](../07-frozen-work-allocation.md). Implementation and
 > team/tutor acceptance remain separate evidence.
-> **Local synchronisation:** 2026-09-07, a local review draft rather than a baseline-adoption date.
+> **Review publication:** 2026-09-07, [PR #9](https://github.com/shuxiachai/returnops-au/pull/9); not merged or adopted.
 > **Traceability:** FR-001–FR-012; NFR-001–NFR-009; UC-01/01E–UC-05;
 > M-S.01 and the three personal chains in [docs/08](../08-delivery-work-packages.md).
 

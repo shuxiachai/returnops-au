@@ -2,8 +2,9 @@
 
 > Topic status: the project lead approved the Baseline v1.0 candidate on
 > 2026-08-31 and published it with the frozen allocation to main on 2026-09-06.
-> Current team/tutor adoption reviews and review of the local document-alignment
-> revision remain pending; publication is not implementation completion.
+> The document alignment and F.01 rc.2 are published for review in
+> [PR #9](https://github.com/shuxiachai/returnops-au/pull/9), not merged into main.
+> Current team/tutor adoption reviews remain pending; publication is not acceptance.
 
 ReturnOps AU is a human-governed multi-agent returns operations system for a
 single Australian online store operated by one Human Founder. It helps the Founder
@@ -71,11 +72,12 @@ revision/risk loops and excludes human/physical waiting only.
 - [FODA feature model](docs/diagrams/04-feature-diagram.md)
 - [Use-case and actor-boundary model](docs/diagrams/05-use-case-diagram.md)
 
-Documents `01`–`05` and the five existing shared diagrams have a local v1.0
-alignment draft dated 2026-09-07. Requirements come from `docs/00`, ownership
+Documents `01`–`05` and the five existing shared diagrams have a v1.0
+alignment draft published in [PR #9](https://github.com/shuxiachai/returnops-au/pull/9)
+on 2026-09-07. Requirements come from `docs/00`, ownership
 from `docs/07`, and delivery dependencies from `docs/08`; the older documents
 are derived views, not competing plans. Original Lab 3 history and B/C source
-contributions are retained. This alignment still needs review and publication;
+contributions are retained. This alignment still needs review and merge;
 it does not complete the individual behaviour models or complex runtime model.
 The frozen research appendix remains supporting evidence, not an ongoing
 research-expansion task.
@@ -91,7 +93,7 @@ research-expansion task.
 
 ## Current phase
 
-F.01 has a local rc.2 review candidate with shared JSON Schemas, planned OpenAPI
+F.01 has a published rc.2 review candidate with shared JSON Schemas, planned OpenAPI
 operations, synthetic examples and offline contract checks. See
 [contract validation instructions](contracts/README.md). B/C review remains
 required; this does not complete F.01 acceptance, Gate 1 or runtime safety work.
@@ -99,6 +101,11 @@ The five identified shape/hand-off gaps now have rc.2 changes and offline
 regressions: no-proposal manual handling, complete retrieval conflicts,
 compatible citation capacities, analytics filters/denominators and strict ID
 boundaries. Their runtime guards and B/C acceptance remain future work.
+
+To read the aligned old documents on GitHub, open **PR #9 → Files changed**
+or select branch `docs/5-f01-interface-contract` before browsing `docs/`.
+The default main view does not contain this unmerged alignment. B and C should
+record their confirmation against the current PR commit, not an older review.
 
 On 2026-09-06, the lead approved and froze the detailed A/B/C work allocation.
 Use `docs/07` for function ownership and `docs/08` for executable work packages;

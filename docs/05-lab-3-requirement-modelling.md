@@ -8,7 +8,8 @@
 >
 > **Status (2026-09-07)**: v1.0 alignment draft of the completed v0.2 Lab 3
 > modelling artefact. This revision and individual contributions still require
-> peer/tutor review; historical completion is not current acceptance.
+> peer/tutor review; historical completion is not current acceptance. The
+> alignment is published in [PR #9](https://github.com/shuxiachai/returnops-au/pull/9), not merged into main.
 >
 > **Product authority**: [Lead-approved v1.0 candidate](00-project-definition-v1.md).
 > [Requirements and backlog](04-requirements-and-backlog.md) is a derived index;
@@ -646,5 +647,7 @@ original version and contributor record.
 - [ ] Each member personally completes and explains their assigned requirement,
   use-case specifications and three individual behaviour models; shared class
   and complex-structure work also needs recorded participation from all three.
-- [ ] Tutor feedback is recorded and dispositioned; this local revision receives
-  a traceable review/publication record. No Jira or remote-merge status is implied.
+- [x] The alignment is published for review in PR #9, with B/C review requests.
+- [ ] Tutor feedback is recorded and dispositioned; the published revision
+  receives current peer review and the required adoption/merge record.
+  Publication does not imply Jira acceptance or completion of individual models.

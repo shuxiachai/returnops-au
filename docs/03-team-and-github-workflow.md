@@ -456,8 +456,11 @@ interview or submission dates from earlier planning text.
 ## 16. Existing branch hand-off for the 2026-09-07 alignment
 
 The lead-directed publication of PRs #2/#4/#6 to main on 2026-09-06 did not
-complete current B/C/tutor adoption or merge their follow-up work. This local
-document pass does not update remote branches, reviews or Jira history.
+complete current B/C/tutor adoption or merge their follow-up work. The aligned
+old documents/shared diagrams and F.01 rc.2 were published on 2026-09-07 in
+[PR #9](https://github.com/shuxiachai/returnops-au/pull/9), with review requests
+to B and C. This is publication to the lead's review branch, not a merge into
+main or an update to B/C's branches or Jira history.
 
 - **B / [PR #8](https://github.com/shuxiachai/returnops-au/pull/8):** the charter,
   architecture, class and sequence revisions reuse the three-role/service
@@ -484,4 +487,6 @@ document pass does not update remote branches, reviews or Jira history.
      blind human-timing and independent Gold-review rules in `docs/07`.
 
 No update listed here is evidence that a Jira status, date or permission was
-queried or changed in this local pass. C owns that live reconciliation.
+queried or changed. C owns that live reconciliation. Issue #5's historical
+KAN-6 backlink provides baseline context only; the actual F.01 delivery key
+still needs C's verification, as noted in PR #9.

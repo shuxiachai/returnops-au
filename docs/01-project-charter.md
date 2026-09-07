@@ -1,8 +1,9 @@
 # Project Charter
 
-> **Local v1 alignment draft — 2026-09-07.** This update follows the lead's
+> **Published v1 alignment draft — 2026-09-07:** [PR #9](https://github.com/shuxiachai/returnops-au/pull/9), not merged.
+> This update follows the lead's
 > working reference already published to `main` and the [fixed allocation](07-frozen-work-allocation.md).
-> Shared review by B/C and tutor feedback remain outstanding. This local edit
+> Shared review by B/C and tutor feedback remain outstanding. This alignment
 > is not a claim that PR #8, F.01, or any runtime feature has been accepted.
 >
 > **Contribution provenance:** the three-agent role separation below reuses

@@ -6,6 +6,7 @@
 > interactions, failure branches, authority, and human checkpoints
 >
 > **Status — 2026-09-07:** v1 alignment draft, pending Member B/C review.
+> Published for review in [PR #9](https://github.com/shuxiachai/returnops-au/pull/9), not merged into main.
 > Earlier modelling contributions and their Git history are retained. This
 > revision does not claim product-baseline adoption or F.01 acceptance.
 >

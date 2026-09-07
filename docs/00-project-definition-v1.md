@@ -15,8 +15,9 @@
 > `Planned` are not implemented claims. They may be marked `Implemented` only
 > when code, automated tests, and reproducible run evidence exist. Until the
 > adoption condition above is met, earlier v0.2 versions remain historical
-> inputs. Documents `01`–`05` and the five shared diagrams now have a local
-> v1.0 alignment draft; that does not itself establish peer/tutor acceptance.
+> inputs. Documents `01`–`05` and the five shared diagrams have a v1.0
+> alignment draft published in [PR #9](https://github.com/shuxiachai/returnops-au/pull/9),
+> together with F.01 rc.2; peer/tutor acceptance and merge remain pending.
 > [PR #6](https://github.com/shuxiachai/returnops-au/pull/6) published the candidate
 > and frozen allocation under the lead's early-publication instruction; current
 > model alignment and individual contributions must still be reviewed.
@@ -311,6 +312,14 @@ version, reason, and timestamp. An approval additionally binds:
 - parameter fingerprint;
 - amount ceiling where applicable; and
 - expiry.
+
+**Joint-review note (PR #9, not yet adopted):** the proposal-bound summary
+above and FR-009 require confirmation against the no-proposal technical-failure
+manual path in [F.01 rc.2, section 8.1](09-interface-contract-v1.md#81-提案不存在时的技术失败人工路径).
+That candidate records the current persisted failure instead of inventing a
+proposal; it permits only a non-executable manual outcome and notification.
+All executable approvals remain proposal-bound. This note records the pending
+wording alignment, not B/C/tutor acceptance or new execution authority.
 
 ### 4.5 Deterministic Operations Service
 
@@ -887,8 +896,12 @@ Evidence: CI run, audit trace, and demo recording
   feasibility, and the Jira/GitHub evidence split.
 - [x] The lead-directed initial publication merged PRs #2, #4 and #6 into main
   on 2026-09-06; publication is separate from final team/tutor adoption.
-- [ ] The local 2026-09-07 alignment of older documents and shared UML receives
-  team review and a traceable publication record, preserving B/C contributions.
+- [x] The 2026-09-07 alignment of older documents/shared UML and F.01 rc.2 was
+  published for review in [PR #9](https://github.com/shuxiachai/returnops-au/pull/9),
+  preserving B/C contributions; review requests were sent to both members.
+- [ ] The published alignment receives current team review, including the
+  proposal/failure-target wording noted in section 4.4; publication alone does
+  not satisfy this review or the separate merge/adoption condition.
 - [ ] B/C approve the current allocation and aligned models, tutor feedback is
   dispositioned, and the reviewed alignment change is merged. Earlier reviews
   of older commits do not automatically approve this revision.
