@@ -17,7 +17,8 @@
 > adoption condition above is met, earlier v0.2 versions remain historical
 > inputs. Documents `01`–`05` and the five shared diagrams have a v1.0
 > alignment draft published in [PR #9](https://github.com/shuxiachai/returnops-au/pull/9),
-> together with F.01 rc.2; peer/tutor acceptance and merge remain pending.
+> together with F.01 rc.2. Consult that PR's merge record for main publication;
+> peer/tutor acceptance remains pending independently of the lead's merge instruction.
 > [PR #6](https://github.com/shuxiachai/returnops-au/pull/6) published the candidate
 > and frozen allocation under the lead's early-publication instruction; current
 > model alignment and individual contributions must still be reviewed.
@@ -901,7 +902,7 @@ Evidence: CI run, audit trace, and demo recording
   preserving B/C contributions; review requests were sent to both members.
 - [ ] The published alignment receives current team review, including the
   proposal/failure-target wording noted in section 4.4; publication alone does
-  not satisfy this review or the separate merge/adoption condition.
+  not satisfy this review or the remaining adoption conditions.
 - [ ] B/C approve the current allocation and aligned models, tutor feedback is
   dispositioned, and the reviewed alignment change is merged. Earlier reviews
   of older commits do not automatically approve this revision.

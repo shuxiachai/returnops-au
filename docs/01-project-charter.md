@@ -1,6 +1,6 @@
 # Project Charter
 
-> **Published v1 alignment draft — 2026-09-07:** [PR #9](https://github.com/shuxiachai/returnops-au/pull/9), not merged.
+> **Published v1 alignment draft — 2026-09-07:** [PR #9](https://github.com/shuxiachai/returnops-au/pull/9); its merge record is separate from pending acceptance.
 > This update follows the lead's
 > working reference already published to `main` and the [fixed allocation](07-frozen-work-allocation.md).
 > Shared review by B/C and tutor feedback remain outstanding. This alignment

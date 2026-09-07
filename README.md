@@ -3,7 +3,7 @@
 > Topic status: the project lead approved the Baseline v1.0 candidate on
 > 2026-08-31 and published it with the frozen allocation to main on 2026-09-06.
 > The document alignment and F.01 rc.2 are published for review in
-> [PR #9](https://github.com/shuxiachai/returnops-au/pull/9), not merged into main.
+> [PR #9](https://github.com/shuxiachai/returnops-au/pull/9); consult its merge record for main publication.
 > Current team/tutor adoption reviews remain pending; publication is not acceptance.
 
 ReturnOps AU is a human-governed multi-agent returns operations system for a
@@ -77,7 +77,7 @@ alignment draft published in [PR #9](https://github.com/shuxiachai/returnops-au/
 on 2026-09-07. Requirements come from `docs/00`, ownership
 from `docs/07`, and delivery dependencies from `docs/08`; the older documents
 are derived views, not competing plans. Original Lab 3 history and B/C source
-contributions are retained. This alignment still needs review and merge;
+contributions are retained. This alignment still needs current team/tutor review;
 it does not complete the individual behaviour models or complex runtime model.
 The frozen research appendix remains supporting evidence, not an ongoing
 research-expansion task.
@@ -102,10 +102,11 @@ regressions: no-proposal manual handling, complete retrieval conflicts,
 compatible citation capacities, analytics filters/denominators and strict ID
 boundaries. Their runtime guards and B/C acceptance remain future work.
 
-To read the aligned old documents on GitHub, open **PR #9 → Files changed**
-or select branch `docs/5-f01-interface-contract` before browsing `docs/`.
-The default main view does not contain this unmerged alignment. B and C should
-record their confirmation against the current PR commit, not an older review.
+To inspect the alignment diff on GitHub, open **PR #9 → Files changed**.
+The PR merge record identifies the version published to main; after merge,
+browse `docs/` directly on main. B and C should record their confirmation
+against that version, not an older review. The lead directed main publication
+on 2026-09-07; publication does not substitute for their confirmation.
 
 On 2026-09-06, the lead approved and froze the detailed A/B/C work allocation.
 Use `docs/07` for function ownership and `docs/08` for executable work packages;

@@ -459,8 +459,10 @@ The lead-directed publication of PRs #2/#4/#6 to main on 2026-09-06 did not
 complete current B/C/tutor adoption or merge their follow-up work. The aligned
 old documents/shared diagrams and F.01 rc.2 were published on 2026-09-07 in
 [PR #9](https://github.com/shuxiachai/returnops-au/pull/9), with review requests
-to B and C. This is publication to the lead's review branch, not a merge into
-main or an update to B/C's branches or Jira history.
+to B and C. The lead subsequently directed main publication; use PR #9's
+actual merge record for the result. This explicit integration decision does
+not substitute for B/C/tutor review, alter the normal review policy, update
+B/C's branches, or change Jira history.
 
 - **B / [PR #8](https://github.com/shuxiachai/returnops-au/pull/8):** the charter,
   architecture, class and sequence revisions reuse the three-role/service

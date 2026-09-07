@@ -30,7 +30,7 @@ Owner 以 A 为主。默认映射：`FR-001、FR-006、FR-009、FR-011、FR-012`
 
 ## 3. A1：权威案件生命周期与 Coordinator/Assessment
 
-F.01 的接口交接材料见 [v1 契约候选与三人验收清单](09-interface-contract-v1.md)，已与旧文档对齐稿一同上传 [PR #9](https://github.com/shuxiachai/returnops-au/pull/9) 供 B/C 确认，尚未合并。这只是可评审交付物入口，不表示 F.01 已验收或解除以下开始依赖；不在本表维护实时 Jira 状态。A2.01 的提案绑定概括与无提案故障人工目标的措辞，须按 docs/00 第 4.4 节及 docs/09 第 8.1 节共同确认；本次未改变 Owner、九功能或依赖关系。
+F.01 的接口交接材料见 [v1 契约候选与三人验收清单](09-interface-contract-v1.md)，已与旧文档对齐稿一同上传 [PR #9](https://github.com/shuxiachai/returnops-au/pull/9) 供 B/C 确认；组长随后指示发布到 main，实际结果以 PR 合并记录为准。这只是可评审交付物入口，不表示 F.01 已验收或解除以下开始依赖；不在本表维护实时 Jira 状态。A2.01 的提案绑定概括与无提案故障人工目标的措辞，须按 docs/00 第 4.4 节及 docs/09 第 8.1 节共同确认；本次未改变 Owner、九功能或依赖关系。
 
 默认映射：`FR-001～FR-005、FR-007、FR-011、FR-012`，`NFR-002、NFR-004、NFR-005、NFR-007～NFR-009`；`UC-01、UC-01E、UC-02、UC-03、UC-05`；共享 ReturnCase/DecisionPacket Class、领域状态表和案件编排交互。A 实现 Coordinator/Assessment 及编排；C 提供检索、引用核验和独立 Risk；B 提供用户界面。
 

@@ -1,6 +1,6 @@
 # F.01：公共接口与数据契约 v1
 
-> 版本：`1.0.0-rc.2`；2026-09-07。状态：**已上传 [PR #9](https://github.com/shuxiachai/returnops-au/pull/9) 供评审，尚未合并或获三人验收**。
+> 版本：`1.0.0-rc.2`；2026-09-07。状态：**通过 [PR #9](https://github.com/shuxiachai/returnops-au/pull/9) 发布；组长已指示合并，实际合并结果以 PR 记录为准，三人验收仍待完成**。
 > Owner：A；指定 Reviewer：C；B 必须确认前端消费边界。Jira key 尚未映射。
 > 本文落实 [固定分工](07-frozen-work-allocation.md) 与 [F.01](08-delivery-work-packages.md)，不重开业务范围，不代替 tutor 确认。
 > 这是“数据如何交接”的约定，不是已经运行的服务；没有实现鉴权、数据库、状态守卫、LLM 或 provider。本次补齐五项契约缺口，不等于相应运行行为已实现。

@@ -5,7 +5,7 @@
 > [the lead-approved product candidate](00-project-definition-v1.md), not a
 > second authority for acceptance criteria. IDs are preserved. Team/tutor
 > adoption and review of this alignment remain pending. The aligned version is
-> published in [PR #9](https://github.com/shuxiachai/returnops-au/pull/9), not merged into main.
+> published in [PR #9](https://github.com/shuxiachai/returnops-au/pull/9); consult its merge record separately from acceptance.
 > The proposal-bound FR-009 summary and failure-target manual exception need
 > the joint wording confirmation recorded in docs/00 section 4.4 and docs/09.
 >

@@ -1,6 +1,6 @@
 # System Design
 
-> **Published v1 alignment draft — 2026-09-07:** [PR #9](https://github.com/shuxiachai/returnops-au/pull/9), not merged.
+> **Published v1 alignment draft — 2026-09-07:** [PR #9](https://github.com/shuxiachai/returnops-au/pull/9); its merge record is separate from pending acceptance.
 > This design follows the lead's
 > published working baseline, [fixed ownership](07-frozen-work-allocation.md)
 > and [work packages](08-delivery-work-packages.md). B/C shared-model review

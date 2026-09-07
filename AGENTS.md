@@ -16,7 +16,8 @@
 > on 2026-09-06 (PRs #2/#4/#6), but current B/C approval, tutor feedback
 > disposition and reviewed model-alignment adoption remain outstanding.
 > Alignment and F.01 rc.2 were published for review in PR #9 on 2026-09-07,
-> not merged into main; check its current review/merge state before acting.
+> and the lead subsequently directed main publication. Check the PR's actual
+> merge record and remaining review state before acting.
 > Older seven-agent/multi-SME versions are historical inputs, not current scope.
 
 ---
@@ -62,7 +63,7 @@ either PR as merged by this edit. F.01 rc.2 now includes the separate five-gap
 contract revision. These changes are published in
 [PR #9](https://github.com/shuxiachai/returnops-au/pull/9) on
 `docs/5-f01-interface-contract`; review requests were sent to B and C.
-Joint contract/model review and merge remain pending; no runtime implementation
+Joint contract/model review remains pending; no runtime implementation
 or Jira update is implied. The proposal-bound summary in docs/00 section 4.4
 and FR-009 versus the failure-target manual exception remains an explicit
 joint-confirmation item, not a silently adopted baseline change.
