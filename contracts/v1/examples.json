@@ -1,0 +1,2461 @@
+{
+  "contract_version": "1.0.0-rc.2",
+  "description": "Synthetic fixtures only, not a live run or Gold evaluation. Positive validates shape; runtime_guards are unexecuted acceptance scenarios, not guard implementations.",
+  "positive": [
+    {
+      "name": "processing-failure",
+      "schema": "ProcessingFailure",
+      "value": {
+        "failure_id": "failure-demo-001",
+        "case_id": "case-failure-001",
+        "input_version": 1,
+        "stage": "ASSESSMENT",
+        "error": {
+          "error": {
+            "code": "INTERNAL_ERROR",
+            "message": "Assessment could not produce a valid decision packet.",
+            "correlation_id": "correlation-failure-001",
+            "retryable": false,
+            "details": []
+          }
+        },
+        "occurred_at": "2026-09-07T02:01:00Z"
+      }
+    },
+    {
+      "name": "founder-no-proposal-view",
+      "schema": "CaseView",
+      "value": {
+        "case_id": "case-failure-001",
+        "case_version": 2,
+        "input_version": 1,
+        "status": "ESCALATED",
+        "created_at": "2026-09-07T02:00:00Z",
+        "updated_at": "2026-09-07T02:01:00Z",
+        "statements": [
+          {
+            "statement_id": "stmt-failure-001",
+            "kind": "ORIGINAL",
+            "raw_text": "Please review the return of a synthetic mug from order ORD-FAIL-001.",
+            "requested_outcome": "RETURN",
+            "submitted_at": "2026-09-07T02:00:00Z"
+          }
+        ],
+        "evidence": [],
+        "decisions": [],
+        "approvals": [],
+        "operations": [],
+        "notifications": [],
+        "cited_passages": [],
+        "processing_failure": {
+          "failure_id": "failure-demo-001",
+          "case_id": "case-failure-001",
+          "input_version": 1,
+          "stage": "ASSESSMENT",
+          "error": {
+            "error": {
+              "code": "INTERNAL_ERROR",
+              "message": "Assessment could not produce a valid decision packet.",
+              "correlation_id": "correlation-failure-001",
+              "retryable": false,
+              "details": []
+            }
+          },
+          "occurred_at": "2026-09-07T02:01:00Z"
+        }
+      }
+    },
+    {
+      "name": "founder-manual-no-proposal",
+      "schema": "FounderDecisionRequest",
+      "value": {
+        "expected_case_version": 2,
+        "processing_failure_id": "failure-demo-001",
+        "decision": "MANUAL_HANDLING",
+        "reason": "After manual review, the Founder chose a direct explanation. No simulated return or label is authorised."
+      }
+    },
+    {
+      "name": "manual-no-proposal-record",
+      "schema": "FounderDecisionRecord",
+      "value": {
+        "decision_id": "decision-manual-001",
+        "case_id": "case-failure-001",
+        "processing_failure_id": "failure-demo-001",
+        "decision": "MANUAL_HANDLING",
+        "principal_id": "founder-demo-001",
+        "reason": "After manual review, the Founder chose a direct explanation. No simulated return or label is authorised.",
+        "decided_at": "2026-09-07T02:03:00Z"
+      }
+    },
+    {
+      "name": "manual-no-proposal-receipt",
+      "schema": "DecisionReceipt",
+      "value": {
+        "case_id": "case-failure-001",
+        "case_version": 3,
+        "decision_id": "decision-manual-001",
+        "decision": "MANUAL_HANDLING",
+        "accepted_at": "2026-09-07T02:03:00Z",
+        "processing_status": "ACCEPTED"
+      }
+    },
+    {
+      "name": "manual-no-proposal-notification",
+      "schema": "NotificationRecord",
+      "value": {
+        "notification_id": "notification-manual-001",
+        "case_id": "case-failure-001",
+        "case_version": 3,
+        "status": "PENDING",
+        "outcome": "MANUAL_HANDLED",
+        "message": "The Founder completed manual review. No automated return or label will be created.",
+        "next_steps": ["Contact the Founder to discuss this outcome."],
+        "attempt_count": 0,
+        "updated_at": "2026-09-07T02:03:00Z"
+      }
+    },
+    {
+      "name": "analytics-query-window",
+      "schema": "AnalyticsQuery",
+      "value": {
+        "created_from": "2026-09-06T00:00:00Z",
+        "created_before": "2026-09-07T00:00:00Z"
+      }
+    },
+    {
+      "name": "analytics-windowed",
+      "schema": "AnalyticsSnapshot",
+      "value": {
+        "as_of": "2026-09-07T02:00:00Z",
+        "filters": {
+          "created_from": "2026-09-06T00:00:00Z",
+          "created_before": "2026-09-07T00:00:00Z"
+        },
+        "case_count": 3,
+        "cases_by_status": [
+          {"status": "COMPLETED", "count": 1},
+          {"status": "ESCALATED", "count": 1},
+          {"status": "AWAITING_INFORMATION", "count": 1}
+        ],
+        "current_risk_counts": [{"outcome": "PASS", "count": 1}],
+        "cases_without_current_review": 2,
+        "proposal_latency": {
+          "metric_version": "proposal-latency-v1",
+          "sample_count": 1,
+          "failed_count": 1,
+          "unmeasured_count": 1,
+          "p50_ms": 1200,
+          "p95_ms": 1200
+        }
+      }
+    },
+    {
+      "name": "customer-session",
+      "schema": "Principal",
+      "value": {
+        "principal_id": "customer-demo-001",
+        "role": "CUSTOMER"
+      }
+    },
+    {
+      "name": "staged-photo",
+      "schema": "EvidenceAttachment",
+      "value": {
+        "evidence_id": "evidence-photo-001",
+        "filename": "synthetic-chipped-mugs.jpg",
+        "media_type": "image/jpeg",
+        "size_bytes": 24000,
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "created_at": "2026-09-07T02:00:00Z",
+        "status": "STAGED",
+        "content_path": "/v1/evidence/evidence-photo-001/content"
+      }
+    },
+    {
+      "name": "bound-photo",
+      "schema": "EvidenceAttachment",
+      "value": {
+        "evidence_id": "evidence-photo-001",
+        "filename": "synthetic-chipped-mugs.jpg",
+        "media_type": "image/jpeg",
+        "size_bytes": 24000,
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "created_at": "2026-09-07T02:00:00Z",
+        "status": "BOUND",
+        "case_id": "case-demo-001",
+        "content_path": "/v1/evidence/evidence-photo-001/content"
+      }
+    },
+    {
+      "name": "customer-create",
+      "schema": "CreateCaseRequest",
+      "value": {
+        "original_message": "Two mugs arrived chipped. I would like to return both. The order is ORD-DEMO-001.",
+        "order_reference": "ORD-DEMO-001",
+        "requested_outcome": "RETURN",
+        "evidence_ids": [
+          "evidence-photo-001"
+        ]
+      }
+    },
+    {
+      "name": "customer-submitted-view",
+      "schema": "CustomerCaseView",
+      "value": {
+        "case_id": "case-demo-001",
+        "case_version": 1,
+        "input_version": 1,
+        "status": "SUBMITTED",
+        "created_at": "2026-09-07T02:00:00Z",
+        "updated_at": "2026-09-07T02:00:00Z",
+        "statements": [
+          {
+            "statement_id": "stmt-original-001",
+            "kind": "ORIGINAL",
+            "raw_text": "Two mugs arrived chipped. I would like to return both. The order is ORD-DEMO-001.",
+            "requested_outcome": "RETURN",
+            "submitted_at": "2026-09-07T02:00:00Z"
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "evidence-photo-001",
+            "filename": "synthetic-chipped-mugs.jpg",
+            "media_type": "image/jpeg",
+            "size_bytes": 24000,
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "created_at": "2026-09-07T02:00:00Z",
+            "status": "BOUND",
+            "case_id": "case-demo-001",
+            "content_path": "/v1/evidence/evidence-photo-001/content"
+          }
+        ]
+      }
+    },
+    {
+      "name": "customer-clarification",
+      "schema": "ClarificationRequest",
+      "value": {
+        "expected_case_version": 2,
+        "question_set_id": "question-set-demo-001",
+        "answers": [
+          {
+            "question_id": "question-proof-001",
+            "text": "My reference is ORD-DEMO-001."
+          }
+        ],
+        "evidence_ids": []
+      }
+    },
+    {
+      "name": "coordinator-output",
+      "schema": "CoordinatorResult",
+      "value": {
+        "case_id": "case-demo-001",
+        "input_version": 1,
+        "original_statement_id": "stmt-original-001",
+        "facts": {
+          "issue_category": "FAULTY_OR_QUALITY_ISSUE",
+          "customer_requested_outcome": "RETURN",
+          "possible_basis": "STORE_POLICY",
+          "assessment_status": "SUPPORTED",
+          "line_items": [
+            {
+              "line_item_id": "line-mug-blue",
+              "quantity": 1
+            },
+            {
+              "line_item_id": "line-mug-white",
+              "quantity": 1
+            }
+          ],
+          "summary": "Customer reports visible chips in two items; no responsibility determination is made."
+        },
+        "evidence_matrix": [
+          {
+            "criterion_id": "criterion-item-condition",
+            "status": "PRESENT",
+            "statement_ids": [
+              "stmt-original-001"
+            ],
+            "evidence_ids": [
+              "evidence-photo-001"
+            ],
+            "rationale": "Customer statement and synthetic photo are available; this is not a legal finding."
+          },
+          {
+            "criterion_id": "criterion-original-packaging",
+            "status": "NOT_APPLICABLE",
+            "statement_ids": [],
+            "evidence_ids": [],
+            "rationale": "Original packaging is not used as a universal gate."
+          }
+        ],
+        "questions": [],
+        "model_run": {
+          "run_id": "run-coordinator-001",
+          "role": "COORDINATOR",
+          "provider_id": "provider-fixture",
+          "model_id": "fixture-no-live-model",
+          "prompt_version": "fixture-v1",
+          "started_at": "2026-09-07T02:00:00Z",
+          "finished_at": "2026-09-07T02:00:00Z",
+          "input_tokens": 0,
+          "output_tokens": 0
+        }
+      }
+    },
+    {
+      "name": "matched-order",
+      "schema": "OrderLookupResult",
+      "value": {
+        "case_id": "case-demo-001",
+        "input_version": 1,
+        "status": "MATCHED",
+        "snapshot": {
+          "snapshot_id": "snapshot-demo-001",
+          "order_id": "order-demo-001",
+          "provider_id": "provider-mock-order",
+          "snapshot_version": 1,
+          "purchased_at": "2026-09-01T02:00:00Z",
+          "currency": "AUD",
+          "line_items": [
+            {
+              "line_item_id": "line-mug-blue",
+              "sku": "MUG-BLUE",
+              "description": "Synthetic blue mug",
+              "quantity": 1,
+              "unit_price_minor": 2000
+            },
+            {
+              "line_item_id": "line-mug-white",
+              "sku": "MUG-WHITE",
+              "description": "Synthetic white mug",
+              "quantity": 1,
+              "unit_price_minor": 2000
+            }
+          ],
+          "retrieved_at": "2026-09-07T02:00:00Z"
+        },
+        "message": "Matched a synthetic readonly order."
+      }
+    },
+    {
+      "name": "order-not_found",
+      "schema": "OrderLookupResult",
+      "value": {
+        "case_id": "case-demo-001",
+        "input_version": 1,
+        "status": "NOT_FOUND",
+        "message": "Synthetic NOT_FOUND branch; no mutation."
+      }
+    },
+    {
+      "name": "order-conflict",
+      "schema": "OrderLookupResult",
+      "value": {
+        "case_id": "case-demo-001",
+        "input_version": 1,
+        "status": "CONFLICT",
+        "message": "Synthetic CONFLICT branch; no mutation."
+      }
+    },
+    {
+      "name": "order-authority_denied",
+      "schema": "OrderLookupResult",
+      "value": {
+        "case_id": "case-demo-001",
+        "input_version": 1,
+        "status": "AUTHORITY_DENIED",
+        "message": "Synthetic AUTHORITY_DENIED branch; no mutation."
+      }
+    },
+    {
+      "name": "order-provider_failure",
+      "schema": "OrderLookupResult",
+      "value": {
+        "case_id": "case-demo-001",
+        "input_version": 1,
+        "status": "PROVIDER_FAILURE",
+        "message": "Synthetic PROVIDER_FAILURE branch; no mutation."
+      }
+    },
+    {
+      "name": "retrieval-request",
+      "schema": "RetrievalRequest",
+      "value": {
+        "case_id": "case-demo-001",
+        "input_version": 1,
+        "query": "Damaged mugs return",
+        "issue_category": "FAULTY_OR_QUALITY_ISSUE",
+        "corpus_version": "demo-corpus-1"
+      }
+    },
+    {
+      "name": "retrieval-result",
+      "schema": "RetrievalResult",
+      "value": {
+        "case_id": "case-demo-001",
+        "input_version": 1,
+        "corpus_version": "demo-corpus-1",
+        "status": "MATCHED",
+        "passages": [
+          {
+            "passage_id": "passage-demo-001",
+            "document_id": "document-demo-policy",
+            "source_type": "STORE_POLICY",
+            "title": "Synthetic store policy, not real consumer guidance",
+            "source_uri": "urn:returnops:synthetic:store-policy:demo-v1",
+            "accessed_on": "2026-09-07",
+            "source_version": "demo-policy-1",
+            "corpus_version": "demo-corpus-1",
+            "location": "section-2",
+            "content": "For this synthetic scenario, the operator may arrange a free return of damaged mugs after reviewing available evidence.",
+            "content_sha256": "3d82cc88630ce99da46ac762ba7635e0c476d81d951d9a464354dabb7ed5c925",
+            "retrieved_at": "2026-09-07T02:00:00Z",
+            "is_synthetic": true
+          }
+        ],
+        "conflicts": [],
+        "retrieved_at": "2026-09-07T02:00:00Z"
+      }
+    },
+    {
+      "name": "retrieval-no-match",
+      "schema": "RetrievalResult",
+      "value": {
+        "case_id": "case-demo-001",
+        "input_version": 1,
+        "corpus_version": "demo-corpus-1",
+        "status": "NO_MATCH",
+        "passages": [],
+        "conflicts": [],
+        "retrieved_at": "2026-09-07T02:00:00Z"
+      }
+    },
+    {
+      "name": "citation-check-request",
+      "schema": "CitationVerificationRequest",
+      "value": {
+        "case_id": "case-demo-001",
+        "input_version": 1,
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "corpus_version": "demo-corpus-1",
+        "citations": [
+          {
+            "citation_id": "citation-demo-001",
+            "passage_id": "passage-demo-001",
+            "document_id": "document-demo-policy",
+            "source_version": "demo-policy-1",
+            "corpus_version": "demo-corpus-1",
+            "content_sha256": "3d82cc88630ce99da46ac762ba7635e0c476d81d951d9a464354dabb7ed5c925",
+            "location": "section-2"
+          }
+        ]
+      }
+    },
+    {
+      "name": "citation-check-result",
+      "schema": "CitationVerificationResult",
+      "value": {
+        "case_id": "case-demo-001",
+        "input_version": 1,
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "corpus_version": "demo-corpus-1",
+        "checks": [
+          {
+            "citation_id": "citation-demo-001",
+            "result": "VALID",
+            "message": "Identifier, version, hash and location match the synthetic corpus."
+          }
+        ],
+        "checked_at": "2026-09-07T02:00:00Z"
+      }
+    },
+    {
+      "name": "decision-packet",
+      "schema": "DecisionPacket",
+      "value": {
+        "case_id": "case-demo-001",
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "input_version": 1,
+        "original_statement_id": "stmt-original-001",
+        "created_at": "2026-09-07T02:00:00Z",
+        "facts": {
+          "issue_category": "FAULTY_OR_QUALITY_ISSUE",
+          "customer_requested_outcome": "RETURN",
+          "possible_basis": "STORE_POLICY",
+          "assessment_status": "SUPPORTED",
+          "line_items": [
+            {
+              "line_item_id": "line-mug-blue",
+              "quantity": 1
+            },
+            {
+              "line_item_id": "line-mug-white",
+              "quantity": 1
+            }
+          ],
+          "summary": "Customer reports visible chips in two items; no responsibility determination is made."
+        },
+        "evidence_matrix": [
+          {
+            "criterion_id": "criterion-item-condition",
+            "status": "PRESENT",
+            "statement_ids": [
+              "stmt-original-001"
+            ],
+            "evidence_ids": [
+              "evidence-photo-001"
+            ],
+            "rationale": "Customer statement and synthetic photo are available; this is not a legal finding."
+          },
+          {
+            "criterion_id": "criterion-original-packaging",
+            "status": "NOT_APPLICABLE",
+            "statement_ids": [],
+            "evidence_ids": [],
+            "rationale": "Original packaging is not used as a universal gate."
+          }
+        ],
+        "recommended_action": "PROPOSE_RETURN",
+        "rationale": "Propose one free simulated return for the two selected mugs, subject to independent review and Founder approval.",
+        "alternatives": [
+          "Refer for manual handling if evidence conflicts."
+        ],
+        "conditions": [
+          "Synthetic order quantities must match.",
+          "No chargeable label or refund may be issued."
+        ],
+        "cost_responsibility_note": "The mock return and label are free; no real allocation of legal costs is decided.",
+        "citations": [
+          {
+            "citation_id": "citation-demo-001",
+            "passage_id": "passage-demo-001",
+            "document_id": "document-demo-policy",
+            "source_version": "demo-policy-1",
+            "corpus_version": "demo-corpus-1",
+            "content_sha256": "3d82cc88630ce99da46ac762ba7635e0c476d81d951d9a464354dabb7ed5c925",
+            "location": "section-2"
+          }
+        ],
+        "corpus_version": "demo-corpus-1",
+        "confidence": 0.8,
+        "unresolved_questions": [],
+        "model_run": {
+          "run_id": "run-assessment-001",
+          "role": "ASSESSMENT",
+          "provider_id": "provider-fixture",
+          "model_id": "fixture-no-live-model",
+          "prompt_version": "fixture-v1",
+          "started_at": "2026-09-07T02:00:00Z",
+          "finished_at": "2026-09-07T02:00:00Z",
+          "input_tokens": 0,
+          "output_tokens": 0
+        }
+      }
+    },
+    {
+      "name": "risk-review-request",
+      "schema": "RiskReviewRequest",
+      "value": {
+        "packet": {
+          "case_id": "case-demo-001",
+          "proposal_id": "proposal-demo-001",
+          "proposal_version": 1,
+          "input_version": 1,
+          "original_statement_id": "stmt-original-001",
+          "created_at": "2026-09-07T02:00:00Z",
+          "facts": {
+            "issue_category": "FAULTY_OR_QUALITY_ISSUE",
+            "customer_requested_outcome": "RETURN",
+            "possible_basis": "STORE_POLICY",
+            "assessment_status": "SUPPORTED",
+            "line_items": [
+              {
+                "line_item_id": "line-mug-blue",
+                "quantity": 1
+              },
+              {
+                "line_item_id": "line-mug-white",
+                "quantity": 1
+              }
+            ],
+            "summary": "Customer reports visible chips in two items; no responsibility determination is made."
+          },
+          "evidence_matrix": [
+            {
+              "criterion_id": "criterion-item-condition",
+              "status": "PRESENT",
+              "statement_ids": [
+                "stmt-original-001"
+              ],
+              "evidence_ids": [
+                "evidence-photo-001"
+              ],
+              "rationale": "Customer statement and synthetic photo are available; this is not a legal finding."
+            },
+            {
+              "criterion_id": "criterion-original-packaging",
+              "status": "NOT_APPLICABLE",
+              "statement_ids": [],
+              "evidence_ids": [],
+              "rationale": "Original packaging is not used as a universal gate."
+            }
+          ],
+          "recommended_action": "PROPOSE_RETURN",
+          "rationale": "Propose one free simulated return for the two selected mugs, subject to independent review and Founder approval.",
+          "alternatives": [
+            "Refer for manual handling if evidence conflicts."
+          ],
+          "conditions": [
+            "Synthetic order quantities must match.",
+            "No chargeable label or refund may be issued."
+          ],
+          "cost_responsibility_note": "The mock return and label are free; no real allocation of legal costs is decided.",
+          "citations": [
+            {
+              "citation_id": "citation-demo-001",
+              "passage_id": "passage-demo-001",
+              "document_id": "document-demo-policy",
+              "source_version": "demo-policy-1",
+              "corpus_version": "demo-corpus-1",
+              "content_sha256": "3d82cc88630ce99da46ac762ba7635e0c476d81d951d9a464354dabb7ed5c925",
+              "location": "section-2"
+            }
+          ],
+          "corpus_version": "demo-corpus-1",
+          "confidence": 0.8,
+          "unresolved_questions": [],
+          "model_run": {
+            "run_id": "run-assessment-001",
+            "role": "ASSESSMENT",
+            "provider_id": "provider-fixture",
+            "model_id": "fixture-no-live-model",
+            "prompt_version": "fixture-v1",
+            "started_at": "2026-09-07T02:00:00Z",
+            "finished_at": "2026-09-07T02:00:00Z",
+            "input_tokens": 0,
+            "output_tokens": 0
+          }
+        },
+        "statements": [
+          {
+            "statement_id": "stmt-original-001",
+            "kind": "ORIGINAL",
+            "raw_text": "Two mugs arrived chipped. I would like to return both. The order is ORD-DEMO-001.",
+            "requested_outcome": "RETURN",
+            "submitted_at": "2026-09-07T02:00:00Z"
+          }
+        ],
+        "evidence_matrix": [
+          {
+            "criterion_id": "criterion-item-condition",
+            "status": "PRESENT",
+            "statement_ids": [
+              "stmt-original-001"
+            ],
+            "evidence_ids": [
+              "evidence-photo-001"
+            ],
+            "rationale": "Customer statement and synthetic photo are available; this is not a legal finding."
+          },
+          {
+            "criterion_id": "criterion-original-packaging",
+            "status": "NOT_APPLICABLE",
+            "statement_ids": [],
+            "evidence_ids": [],
+            "rationale": "Original packaging is not used as a universal gate."
+          }
+        ],
+        "retrieval_result": {
+          "case_id": "case-demo-001",
+          "input_version": 1,
+          "corpus_version": "demo-corpus-1",
+          "status": "MATCHED",
+          "passages": [
+            {
+              "passage_id": "passage-demo-001",
+              "document_id": "document-demo-policy",
+              "source_type": "STORE_POLICY",
+              "title": "Synthetic store policy, not real consumer guidance",
+              "source_uri": "urn:returnops:synthetic:store-policy:demo-v1",
+              "accessed_on": "2026-09-07",
+              "source_version": "demo-policy-1",
+              "corpus_version": "demo-corpus-1",
+              "location": "section-2",
+              "content": "For this synthetic scenario, the operator may arrange a free return of damaged mugs after reviewing available evidence.",
+              "content_sha256": "3d82cc88630ce99da46ac762ba7635e0c476d81d951d9a464354dabb7ed5c925",
+              "retrieved_at": "2026-09-07T02:00:00Z",
+              "is_synthetic": true
+            }
+          ],
+          "conflicts": [],
+          "retrieved_at": "2026-09-07T02:00:00Z"
+        },
+        "citation_verification": {
+          "case_id": "case-demo-001",
+          "input_version": 1,
+          "proposal_id": "proposal-demo-001",
+          "proposal_version": 1,
+          "corpus_version": "demo-corpus-1",
+          "checks": [
+            {
+              "citation_id": "citation-demo-001",
+              "result": "VALID",
+              "message": "Identifier, version, hash and location match the synthetic corpus."
+            }
+          ],
+          "checked_at": "2026-09-07T02:00:00Z"
+        },
+        "order_lookup": {
+          "case_id": "case-demo-001",
+          "input_version": 1,
+          "status": "MATCHED",
+          "snapshot": {
+            "snapshot_id": "snapshot-demo-001",
+            "order_id": "order-demo-001",
+            "provider_id": "provider-mock-order",
+            "snapshot_version": 1,
+            "purchased_at": "2026-09-01T02:00:00Z",
+            "currency": "AUD",
+            "line_items": [
+              {
+                "line_item_id": "line-mug-blue",
+                "sku": "MUG-BLUE",
+                "description": "Synthetic blue mug",
+                "quantity": 1,
+                "unit_price_minor": 2000
+              },
+              {
+                "line_item_id": "line-mug-white",
+                "sku": "MUG-WHITE",
+                "description": "Synthetic white mug",
+                "quantity": 1,
+                "unit_price_minor": 2000
+              }
+            ],
+            "retrieved_at": "2026-09-07T02:00:00Z"
+          },
+          "message": "Matched a synthetic readonly order."
+        },
+        "attachments": [
+          {
+            "evidence_id": "evidence-photo-001",
+            "filename": "synthetic-chipped-mugs.jpg",
+            "media_type": "image/jpeg",
+            "size_bytes": 24000,
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "created_at": "2026-09-07T02:00:00Z",
+            "status": "BOUND",
+            "case_id": "case-demo-001",
+            "content_path": "/v1/evidence/evidence-photo-001/content"
+          }
+        ]
+      }
+    },
+    {
+      "name": "risk-pass",
+      "schema": "RiskReview",
+      "value": {
+        "review_id": "review-demo-001",
+        "case_id": "case-demo-001",
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "input_version": 1,
+        "corpus_version": "demo-corpus-1",
+        "outcome": "PASS",
+        "findings": [],
+        "revision_requests": [],
+        "questions": [],
+        "reviewed_at": "2026-09-07T02:00:00Z",
+        "model_run": {
+          "run_id": "run-risk_reviewer-001",
+          "role": "RISK_REVIEWER",
+          "provider_id": "provider-fixture",
+          "model_id": "fixture-no-live-model",
+          "prompt_version": "fixture-v1",
+          "started_at": "2026-09-07T02:00:00Z",
+          "finished_at": "2026-09-07T02:00:00Z",
+          "input_tokens": 0,
+          "output_tokens": 0
+        }
+      }
+    },
+    {
+      "name": "risk-warning",
+      "schema": "RiskReview",
+      "value": {
+        "review_id": "review-demo-001",
+        "case_id": "case-demo-001",
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "input_version": 1,
+        "corpus_version": "demo-corpus-1",
+        "outcome": "PASS_WITH_WARNING",
+        "findings": [
+          {
+            "finding_id": "finding-demo-001",
+            "severity": "WARNING",
+            "category": "LOW_CONFIDENCE",
+            "message": "Synthetic photo is imperfect; retain the warning in the Founder view.",
+            "citation_ids": [],
+            "evidence_ids": []
+          }
+        ],
+        "revision_requests": [],
+        "questions": [],
+        "reviewed_at": "2026-09-07T02:00:00Z",
+        "model_run": {
+          "run_id": "run-risk_reviewer-001",
+          "role": "RISK_REVIEWER",
+          "provider_id": "provider-fixture",
+          "model_id": "fixture-no-live-model",
+          "prompt_version": "fixture-v1",
+          "started_at": "2026-09-07T02:00:00Z",
+          "finished_at": "2026-09-07T02:00:00Z",
+          "input_tokens": 0,
+          "output_tokens": 0
+        }
+      }
+    },
+    {
+      "name": "risk-revise",
+      "schema": "RiskReview",
+      "value": {
+        "review_id": "review-demo-001",
+        "case_id": "case-demo-001",
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "input_version": 1,
+        "corpus_version": "demo-corpus-1",
+        "outcome": "REVISE",
+        "findings": [
+          {
+            "finding_id": "finding-demo-001",
+            "severity": "BLOCK",
+            "category": "SUPPORT",
+            "message": "The proposal overstates its evidence.",
+            "citation_ids": [],
+            "evidence_ids": []
+          }
+        ],
+        "revision_requests": [
+          "Remove the unsupported responsibility claim."
+        ],
+        "questions": [],
+        "reviewed_at": "2026-09-07T02:00:00Z",
+        "model_run": {
+          "run_id": "run-risk_reviewer-001",
+          "role": "RISK_REVIEWER",
+          "provider_id": "provider-fixture",
+          "model_id": "fixture-no-live-model",
+          "prompt_version": "fixture-v1",
+          "started_at": "2026-09-07T02:00:00Z",
+          "finished_at": "2026-09-07T02:00:00Z",
+          "input_tokens": 0,
+          "output_tokens": 0
+        }
+      }
+    },
+    {
+      "name": "risk-needs-information",
+      "schema": "RiskReview",
+      "value": {
+        "review_id": "review-demo-001",
+        "case_id": "case-demo-001",
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "input_version": 1,
+        "corpus_version": "demo-corpus-1",
+        "outcome": "NEEDS_INFORMATION",
+        "findings": [
+          {
+            "finding_id": "finding-demo-001",
+            "severity": "BLOCK",
+            "category": "MISSING_INFORMATION",
+            "message": "Purchase proof is not matched.",
+            "citation_ids": [],
+            "evidence_ids": []
+          }
+        ],
+        "revision_requests": [],
+        "questions": [
+          {
+            "question_id": "question-proof-001",
+            "text": "Please provide the order reference or another available proof of purchase.",
+            "reason": "The order cannot yet be matched; an order number is not the only acceptable proof."
+          }
+        ],
+        "reviewed_at": "2026-09-07T02:00:00Z",
+        "model_run": {
+          "run_id": "run-risk_reviewer-001",
+          "role": "RISK_REVIEWER",
+          "provider_id": "provider-fixture",
+          "model_id": "fixture-no-live-model",
+          "prompt_version": "fixture-v1",
+          "started_at": "2026-09-07T02:00:00Z",
+          "finished_at": "2026-09-07T02:00:00Z",
+          "input_tokens": 0,
+          "output_tokens": 0
+        }
+      }
+    },
+    {
+      "name": "risk-escalate",
+      "schema": "RiskReview",
+      "value": {
+        "review_id": "review-demo-001",
+        "case_id": "case-demo-001",
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "input_version": 1,
+        "corpus_version": "demo-corpus-1",
+        "outcome": "ESCALATE",
+        "findings": [
+          {
+            "finding_id": "finding-demo-001",
+            "severity": "BLOCK",
+            "category": "INJECTION",
+            "message": "Untrusted text requests an unauthorized money transfer.",
+            "citation_ids": [],
+            "evidence_ids": []
+          }
+        ],
+        "revision_requests": [],
+        "questions": [],
+        "reviewed_at": "2026-09-07T02:00:00Z",
+        "model_run": {
+          "run_id": "run-risk_reviewer-001",
+          "role": "RISK_REVIEWER",
+          "provider_id": "provider-fixture",
+          "model_id": "fixture-no-live-model",
+          "prompt_version": "fixture-v1",
+          "started_at": "2026-09-07T02:00:00Z",
+          "finished_at": "2026-09-07T02:00:00Z",
+          "input_tokens": 0,
+          "output_tokens": 0
+        }
+      }
+    },
+    {
+      "name": "action-preview",
+      "schema": "ActionPreview",
+      "value": {
+        "preview_id": "preview-demo-001",
+        "scope": {
+          "case_id": "case-demo-001",
+          "input_version": 1,
+          "proposal_id": "proposal-demo-001",
+          "proposal_version": 1,
+          "review_id": "review-demo-001",
+          "parcel_id": "parcel-demo-001",
+          "commands": [
+            {
+              "command_id": "command-return-001",
+              "type": "CREATE_RETURN",
+              "provider_id": "provider-mock-return",
+              "parameters": {
+                "order_id": "order-demo-001",
+                "line_items": [
+                  {
+                    "line_item_id": "line-mug-blue",
+                    "quantity": 1
+                  },
+                  {
+                    "line_item_id": "line-mug-white",
+                    "quantity": 1
+                  }
+                ],
+                "parcel_id": "parcel-demo-001"
+              }
+            },
+            {
+              "command_id": "command-label-001",
+              "type": "GENERATE_LABEL",
+              "provider_id": "provider-mock-label",
+              "parameters": {
+                "parcel_id": "parcel-demo-001",
+                "return_command_id": "command-return-001",
+                "label_format": "PDF",
+                "chargeable": false
+              }
+            }
+          ],
+          "currency": "AUD",
+          "amount_ceiling_minor": 0,
+          "expires_at": "2026-09-07T02:05:00Z",
+          "allowlist_version": "mock-v1",
+          "environment": "SIMULATED"
+        },
+        "scope_fingerprint": "33d8bb75e79e1219c9e3b0b1682361e32e9f573d391ef7c3d60e829875245a17"
+      }
+    },
+    {
+      "name": "founder-approve",
+      "schema": "FounderDecisionRequest",
+      "value": {
+        "expected_case_version": 5,
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "decision": "APPROVE",
+        "reason": "Reviewed the current evidence and exact free mock action scope.",
+        "preview_id": "preview-demo-001",
+        "scope_fingerprint": "33d8bb75e79e1219c9e3b0b1682361e32e9f573d391ef7c3d60e829875245a17"
+      }
+    },
+    {
+      "name": "founder-reject",
+      "schema": "FounderDecisionRequest",
+      "value": {
+        "expected_case_version": 5,
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "decision": "REJECT",
+        "reason": "Synthetic REJECT decision with an explicit rationale."
+      }
+    },
+    {
+      "name": "founder-request_revision",
+      "schema": "FounderDecisionRequest",
+      "value": {
+        "expected_case_version": 5,
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "decision": "REQUEST_REVISION",
+        "reason": "Synthetic REQUEST_REVISION decision with an explicit rationale."
+      }
+    },
+    {
+      "name": "founder-manual_handling",
+      "schema": "FounderDecisionRequest",
+      "value": {
+        "expected_case_version": 5,
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "decision": "MANUAL_HANDLING",
+        "reason": "Synthetic MANUAL_HANDLING decision with an explicit rationale."
+      }
+    },
+    {
+      "name": "approval-record",
+      "schema": "ApprovalRecord",
+      "value": {
+        "approval_id": "approval-demo-001",
+        "decision_id": "decision-demo-001",
+        "principal_id": "founder-demo-001",
+        "issued_at": "2026-09-07T02:00:00Z",
+        "preview_id": "preview-demo-001",
+        "scope": {
+          "case_id": "case-demo-001",
+          "input_version": 1,
+          "proposal_id": "proposal-demo-001",
+          "proposal_version": 1,
+          "review_id": "review-demo-001",
+          "parcel_id": "parcel-demo-001",
+          "commands": [
+            {
+              "command_id": "command-return-001",
+              "type": "CREATE_RETURN",
+              "provider_id": "provider-mock-return",
+              "parameters": {
+                "order_id": "order-demo-001",
+                "line_items": [
+                  {
+                    "line_item_id": "line-mug-blue",
+                    "quantity": 1
+                  },
+                  {
+                    "line_item_id": "line-mug-white",
+                    "quantity": 1
+                  }
+                ],
+                "parcel_id": "parcel-demo-001"
+              }
+            },
+            {
+              "command_id": "command-label-001",
+              "type": "GENERATE_LABEL",
+              "provider_id": "provider-mock-label",
+              "parameters": {
+                "parcel_id": "parcel-demo-001",
+                "return_command_id": "command-return-001",
+                "label_format": "PDF",
+                "chargeable": false
+              }
+            }
+          ],
+          "currency": "AUD",
+          "amount_ceiling_minor": 0,
+          "expires_at": "2026-09-07T02:05:00Z",
+          "allowlist_version": "mock-v1",
+          "environment": "SIMULATED"
+        },
+        "scope_fingerprint": "33d8bb75e79e1219c9e3b0b1682361e32e9f573d391ef7c3d60e829875245a17"
+      }
+    },
+    {
+      "name": "founder-decision-record",
+      "schema": "FounderDecisionRecord",
+      "value": {
+        "decision_id": "decision-demo-001",
+        "case_id": "case-demo-001",
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "decision": "APPROVE",
+        "principal_id": "founder-demo-001",
+        "reason": "Reviewed the current evidence and exact free mock action scope.",
+        "decided_at": "2026-09-07T02:00:00Z",
+        "approval_id": "approval-demo-001"
+      }
+    },
+    {
+      "name": "decision-accepted",
+      "schema": "DecisionReceipt",
+      "value": {
+        "case_id": "case-demo-001",
+        "case_version": 6,
+        "decision_id": "decision-demo-001",
+        "decision": "APPROVE",
+        "accepted_at": "2026-09-07T02:00:00Z",
+        "processing_status": "ACCEPTED",
+        "approval_id": "approval-demo-001"
+      }
+    },
+    {
+      "name": "founder-review-ready-view",
+      "schema": "CaseView",
+      "value": {
+        "case_id": "case-demo-001",
+        "case_version": 5,
+        "input_version": 1,
+        "status": "AWAITING_APPROVAL",
+        "created_at": "2026-09-07T02:00:00Z",
+        "updated_at": "2026-09-07T02:00:00Z",
+        "statements": [
+          {
+            "statement_id": "stmt-original-001",
+            "kind": "ORIGINAL",
+            "raw_text": "Two mugs arrived chipped. I would like to return both. The order is ORD-DEMO-001.",
+            "requested_outcome": "RETURN",
+            "submitted_at": "2026-09-07T02:00:00Z"
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "evidence-photo-001",
+            "filename": "synthetic-chipped-mugs.jpg",
+            "media_type": "image/jpeg",
+            "size_bytes": 24000,
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "created_at": "2026-09-07T02:00:00Z",
+            "status": "BOUND",
+            "case_id": "case-demo-001",
+            "content_path": "/v1/evidence/evidence-photo-001/content"
+          }
+        ],
+        "facts": {
+          "issue_category": "FAULTY_OR_QUALITY_ISSUE",
+          "customer_requested_outcome": "RETURN",
+          "possible_basis": "STORE_POLICY",
+          "assessment_status": "SUPPORTED",
+          "line_items": [
+            {
+              "line_item_id": "line-mug-blue",
+              "quantity": 1
+            },
+            {
+              "line_item_id": "line-mug-white",
+              "quantity": 1
+            }
+          ],
+          "summary": "Customer reports visible chips in two items; no responsibility determination is made."
+        },
+        "order_snapshot": {
+          "snapshot_id": "snapshot-demo-001",
+          "order_id": "order-demo-001",
+          "provider_id": "provider-mock-order",
+          "snapshot_version": 1,
+          "purchased_at": "2026-09-01T02:00:00Z",
+          "currency": "AUD",
+          "line_items": [
+            {
+              "line_item_id": "line-mug-blue",
+              "sku": "MUG-BLUE",
+              "description": "Synthetic blue mug",
+              "quantity": 1,
+              "unit_price_minor": 2000
+            },
+            {
+              "line_item_id": "line-mug-white",
+              "sku": "MUG-WHITE",
+              "description": "Synthetic white mug",
+              "quantity": 1,
+              "unit_price_minor": 2000
+            }
+          ],
+          "retrieved_at": "2026-09-07T02:00:00Z"
+        },
+        "current_proposal": {
+          "case_id": "case-demo-001",
+          "proposal_id": "proposal-demo-001",
+          "proposal_version": 1,
+          "input_version": 1,
+          "original_statement_id": "stmt-original-001",
+          "created_at": "2026-09-07T02:00:00Z",
+          "facts": {
+            "issue_category": "FAULTY_OR_QUALITY_ISSUE",
+            "customer_requested_outcome": "RETURN",
+            "possible_basis": "STORE_POLICY",
+            "assessment_status": "SUPPORTED",
+            "line_items": [
+              {
+                "line_item_id": "line-mug-blue",
+                "quantity": 1
+              },
+              {
+                "line_item_id": "line-mug-white",
+                "quantity": 1
+              }
+            ],
+            "summary": "Customer reports visible chips in two items; no responsibility determination is made."
+          },
+          "evidence_matrix": [
+            {
+              "criterion_id": "criterion-item-condition",
+              "status": "PRESENT",
+              "statement_ids": [
+                "stmt-original-001"
+              ],
+              "evidence_ids": [
+                "evidence-photo-001"
+              ],
+              "rationale": "Customer statement and synthetic photo are available; this is not a legal finding."
+            },
+            {
+              "criterion_id": "criterion-original-packaging",
+              "status": "NOT_APPLICABLE",
+              "statement_ids": [],
+              "evidence_ids": [],
+              "rationale": "Original packaging is not used as a universal gate."
+            }
+          ],
+          "recommended_action": "PROPOSE_RETURN",
+          "rationale": "Propose one free simulated return for the two selected mugs, subject to independent review and Founder approval.",
+          "alternatives": [
+            "Refer for manual handling if evidence conflicts."
+          ],
+          "conditions": [
+            "Synthetic order quantities must match.",
+            "No chargeable label or refund may be issued."
+          ],
+          "cost_responsibility_note": "The mock return and label are free; no real allocation of legal costs is decided.",
+          "citations": [
+            {
+              "citation_id": "citation-demo-001",
+              "passage_id": "passage-demo-001",
+              "document_id": "document-demo-policy",
+              "source_version": "demo-policy-1",
+              "corpus_version": "demo-corpus-1",
+              "content_sha256": "3d82cc88630ce99da46ac762ba7635e0c476d81d951d9a464354dabb7ed5c925",
+              "location": "section-2"
+            }
+          ],
+          "corpus_version": "demo-corpus-1",
+          "confidence": 0.8,
+          "unresolved_questions": [],
+          "model_run": {
+            "run_id": "run-assessment-001",
+            "role": "ASSESSMENT",
+            "provider_id": "provider-fixture",
+            "model_id": "fixture-no-live-model",
+            "prompt_version": "fixture-v1",
+            "started_at": "2026-09-07T02:00:00Z",
+            "finished_at": "2026-09-07T02:00:00Z",
+            "input_tokens": 0,
+            "output_tokens": 0
+          }
+        },
+        "current_review": {
+          "review_id": "review-demo-001",
+          "case_id": "case-demo-001",
+          "proposal_id": "proposal-demo-001",
+          "proposal_version": 1,
+          "input_version": 1,
+          "corpus_version": "demo-corpus-1",
+          "outcome": "PASS",
+          "findings": [],
+          "revision_requests": [],
+          "questions": [],
+          "reviewed_at": "2026-09-07T02:00:00Z",
+          "model_run": {
+            "run_id": "run-risk_reviewer-001",
+            "role": "RISK_REVIEWER",
+            "provider_id": "provider-fixture",
+            "model_id": "fixture-no-live-model",
+            "prompt_version": "fixture-v1",
+            "started_at": "2026-09-07T02:00:00Z",
+            "finished_at": "2026-09-07T02:00:00Z",
+            "input_tokens": 0,
+            "output_tokens": 0
+          }
+        },
+        "action_preview": {
+          "preview_id": "preview-demo-001",
+          "scope": {
+            "case_id": "case-demo-001",
+            "input_version": 1,
+            "proposal_id": "proposal-demo-001",
+            "proposal_version": 1,
+            "review_id": "review-demo-001",
+            "parcel_id": "parcel-demo-001",
+            "commands": [
+              {
+                "command_id": "command-return-001",
+                "type": "CREATE_RETURN",
+                "provider_id": "provider-mock-return",
+                "parameters": {
+                  "order_id": "order-demo-001",
+                  "line_items": [
+                    {
+                      "line_item_id": "line-mug-blue",
+                      "quantity": 1
+                    },
+                    {
+                      "line_item_id": "line-mug-white",
+                      "quantity": 1
+                    }
+                  ],
+                  "parcel_id": "parcel-demo-001"
+                }
+              },
+              {
+                "command_id": "command-label-001",
+                "type": "GENERATE_LABEL",
+                "provider_id": "provider-mock-label",
+                "parameters": {
+                  "parcel_id": "parcel-demo-001",
+                  "return_command_id": "command-return-001",
+                  "label_format": "PDF",
+                  "chargeable": false
+                }
+              }
+            ],
+            "currency": "AUD",
+            "amount_ceiling_minor": 0,
+            "expires_at": "2026-09-07T02:05:00Z",
+            "allowlist_version": "mock-v1",
+            "environment": "SIMULATED"
+          },
+          "scope_fingerprint": "33d8bb75e79e1219c9e3b0b1682361e32e9f573d391ef7c3d60e829875245a17"
+        },
+        "decisions": [],
+        "approvals": [],
+        "operations": [],
+        "notifications": [],
+        "cited_passages": [
+          {
+            "passage_id": "passage-demo-001",
+            "document_id": "document-demo-policy",
+            "source_type": "STORE_POLICY",
+            "title": "Synthetic store policy, not real consumer guidance",
+            "source_uri": "urn:returnops:synthetic:store-policy:demo-v1",
+            "accessed_on": "2026-09-07",
+            "source_version": "demo-policy-1",
+            "corpus_version": "demo-corpus-1",
+            "location": "section-2",
+            "content": "For this synthetic scenario, the operator may arrange a free return of damaged mugs after reviewing available evidence.",
+            "content_sha256": "3d82cc88630ce99da46ac762ba7635e0c476d81d951d9a464354dabb7ed5c925",
+            "retrieved_at": "2026-09-07T02:00:00Z",
+            "is_synthetic": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "case-list",
+      "schema": "CaseList",
+      "value": {
+        "items": [
+          {
+            "case_id": "case-demo-001",
+            "case_version": 5,
+            "input_version": 1,
+            "status": "AWAITING_APPROVAL",
+            "created_at": "2026-09-07T02:00:00Z",
+            "updated_at": "2026-09-07T02:00:00Z",
+            "issue_category": "FAULTY_OR_QUALITY_ISSUE",
+            "current_risk_outcome": "PASS"
+          }
+        ]
+      }
+    },
+    {
+      "name": "operation-unknown",
+      "schema": "OperationAttempt",
+      "value": {
+        "operation_id": "operation-return-001",
+        "case_id": "case-demo-001",
+        "case_version": 7,
+        "command_id": "command-return-001",
+        "approval_id": "approval-demo-001",
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "input_version": 1,
+        "provider_id": "provider-mock-return",
+        "operation_fingerprint": "f212adb1bda9f16dd6587f8f1d6b38a988548a246d54b38e0e7d23569a898a81",
+        "status": "UNKNOWN",
+        "attempt_count": 1,
+        "updated_at": "2026-09-07T02:00:00Z",
+        "error": {
+          "error": {
+            "code": "PROVIDER_UNAVAILABLE",
+            "message": "Provider outcome is unknown. Query for evidence before considering a new dispatch.",
+            "correlation_id": "correlation-demo-001",
+            "retryable": false,
+            "details": []
+          }
+        },
+        "idempotency_key": "operation-return-key-001"
+      }
+    },
+    {
+      "name": "operation-reconciling",
+      "schema": "OperationAttempt",
+      "value": {
+        "operation_id": "operation-return-001",
+        "case_id": "case-demo-001",
+        "case_version": 8,
+        "command_id": "command-return-001",
+        "approval_id": "approval-demo-001",
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "input_version": 1,
+        "provider_id": "provider-mock-return",
+        "operation_fingerprint": "f212adb1bda9f16dd6587f8f1d6b38a988548a246d54b38e0e7d23569a898a81",
+        "status": "RECONCILING",
+        "attempt_count": 1,
+        "updated_at": "2026-09-07T02:00:00Z",
+        "error": {
+          "error": {
+            "code": "PROVIDER_UNAVAILABLE",
+            "message": "Provider outcome is unknown. Query for evidence before considering a new dispatch.",
+            "correlation_id": "correlation-demo-001",
+            "retryable": false,
+            "details": []
+          }
+        },
+        "idempotency_key": "operation-return-key-001"
+      }
+    },
+    {
+      "name": "operation-success",
+      "schema": "OperationAttempt",
+      "value": {
+        "operation_id": "operation-return-001",
+        "case_id": "case-demo-001",
+        "case_version": 9,
+        "command_id": "command-return-001",
+        "approval_id": "approval-demo-001",
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "input_version": 1,
+        "provider_id": "provider-mock-return",
+        "operation_fingerprint": "f212adb1bda9f16dd6587f8f1d6b38a988548a246d54b38e0e7d23569a898a81",
+        "status": "SUCCEEDED",
+        "attempt_count": 1,
+        "updated_at": "2026-09-07T02:00:00Z",
+        "result": {
+          "type": "CREATE_RETURN",
+          "provider_return_id": "provider-return-001",
+          "parcel_id": "parcel-demo-001"
+        },
+        "idempotency_key": "operation-return-key-001"
+      }
+    },
+    {
+      "name": "notification-failed",
+      "schema": "NotificationRecord",
+      "value": {
+        "notification_id": "notification-demo-001",
+        "case_id": "case-demo-001",
+        "case_version": 10,
+        "status": "FAILED",
+        "outcome": "RETURN_CREATED",
+        "message": "The simulated return and free label were recorded. Notification delivery failed.",
+        "next_steps": [
+          "Resend this message only; do not recreate the return or label."
+        ],
+        "attempt_count": 1,
+        "updated_at": "2026-09-07T02:00:00Z",
+        "error": {
+          "error": {
+            "code": "PROVIDER_UNAVAILABLE",
+            "message": "Mock notification delivery failed.",
+            "correlation_id": "correlation-demo-001",
+            "retryable": true,
+            "details": []
+          }
+        }
+      }
+    },
+    {
+      "name": "notification-sent",
+      "schema": "NotificationRecord",
+      "value": {
+        "notification_id": "notification-demo-001",
+        "case_id": "case-demo-001",
+        "case_version": 11,
+        "status": "SENT",
+        "outcome": "RETURN_CREATED",
+        "message": "The simulated return and free label were recorded. Notification delivery failed.",
+        "next_steps": [
+          "Resend this message only; do not recreate the return or label."
+        ],
+        "attempt_count": 2,
+        "updated_at": "2026-09-07T02:00:00Z",
+        "sent_at": "2026-09-07T02:00:00Z"
+      }
+    },
+    {
+      "name": "reconcile-or-notify-precondition",
+      "schema": "VersionPrecondition",
+      "value": {
+        "expected_case_version": 7
+      }
+    },
+    {
+      "name": "stale-case-error",
+      "schema": "ErrorEnvelope",
+      "value": {
+        "error": {
+          "code": "STALE_CASE_VERSION",
+          "message": "Reload the latest case before making a new decision.",
+          "correlation_id": "correlation-demo-001",
+          "retryable": false,
+          "details": []
+        }
+      }
+    },
+    {
+      "name": "empty-audit-page",
+      "schema": "AuditPage",
+      "value": {
+        "items": []
+      }
+    },
+    {
+      "name": "analytics-empty",
+      "schema": "AnalyticsSnapshot",
+      "value": {
+        "as_of": "2026-09-07T02:00:00Z",
+        "filters": {},
+        "case_count": 0,
+        "cases_by_status": [],
+        "current_risk_counts": [],
+        "cases_without_current_review": 0,
+        "proposal_latency": {
+          "metric_version": "proposal-latency-v1",
+          "sample_count": 0,
+          "failed_count": 0,
+          "unmeasured_count": 0
+        }
+      }
+    },
+    {
+      "name": "image-observation-request",
+      "schema": "ImageObservationRequest",
+      "value": {
+        "case_id": "case-demo-001",
+        "input_version": 1,
+        "evidence_ids": [
+          "evidence-photo-001"
+        ]
+      }
+    },
+    {
+      "name": "image-observation-result",
+      "schema": "ImageObservationResult",
+      "value": {
+        "case_id": "case-demo-001",
+        "input_version": 1,
+        "observations": [
+          {
+            "evidence_id": "evidence-photo-001",
+            "visible_observations": [
+              "A visible edge chip appears in the synthetic image."
+            ],
+            "limitations": [
+              "Image cannot establish cause, responsibility, or legal entitlement."
+            ],
+            "confidence": 0.7
+          }
+        ],
+        "component_version": "fixture-image-v1"
+      }
+    },
+    {
+      "name": "minimal-create-missing-details",
+      "schema": "CreateCaseRequest",
+      "value": {
+        "original_message": "I need help with an item."
+      }
+    },
+    {
+      "name": "unversioned-source",
+      "schema": "PolicyPassage",
+      "value": {
+        "passage_id": "passage-demo-001",
+        "document_id": "document-demo-policy",
+        "source_type": "STORE_POLICY",
+        "title": "Synthetic store policy, not real consumer guidance",
+        "source_uri": "urn:returnops:synthetic:store-policy:demo-v1",
+        "accessed_on": "2026-09-07",
+        "source_version": null,
+        "corpus_version": "demo-corpus-1",
+        "location": "section-2",
+        "content": "For this synthetic scenario, the operator may arrange a free return of damaged mugs after reviewing available evidence.",
+        "content_sha256": "3d82cc88630ce99da46ac762ba7635e0c476d81d951d9a464354dabb7ed5c925",
+        "retrieved_at": "2026-09-07T02:00:00Z",
+        "is_synthetic": true
+      }
+    },
+    {
+      "name": "notification-retry-accepted",
+      "schema": "NotificationRecord",
+      "value": {
+        "notification_id": "notification-demo-001",
+        "case_id": "case-demo-001",
+        "case_version": 11,
+        "status": "PENDING",
+        "outcome": "RETURN_CREATED",
+        "message": "The simulated return and free label were recorded. Notification delivery failed.",
+        "next_steps": [
+          "Resend this message only; do not recreate the return or label."
+        ],
+        "attempt_count": 1,
+        "updated_at": "2026-09-07T02:00:00Z"
+      }
+    }
+  ],
+  "negative": [
+    {
+      "name": "id-trailing-newline",
+      "schema": "Id",
+      "reason": "An ID cannot hide a line ending after its permitted ASCII characters.",
+      "value": "case-demo-001\n"
+    },
+    {
+      "name": "idempotency-key-trailing-newline",
+      "schema": "IdempotencyKey",
+      "reason": "Request keys must end after the last allowed ASCII character.",
+      "value": "request-key-001\n"
+    },
+    {
+      "name": "failure-target-cannot-approve",
+      "schema": "FounderDecisionRequest",
+      "reason": "A processing failure is a manual-handling target, never an approvable proposal.",
+      "value": {
+        "expected_case_version": 2,
+        "processing_failure_id": "failure-demo-001",
+        "decision": "APPROVE",
+        "reason": "This must be rejected before any authority is created.",
+        "preview_id": "preview-demo-001",
+        "scope_fingerprint": "33d8bb75e79e1219c9e3b0b1682361e32e9f573d391ef7c3d60e829875245a17"
+      }
+    },
+    {
+      "name": "manual-mixed-targets",
+      "schema": "FounderDecisionRequest",
+      "reason": "A decision must identify exactly one target, not a failure and a proposal together.",
+      "value": {
+        "expected_case_version": 2,
+        "processing_failure_id": "failure-demo-001",
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "decision": "MANUAL_HANDLING",
+        "reason": "Ambiguous target must be rejected."
+      }
+    },
+    {
+      "name": "analytics-unknown-status",
+      "schema": "AnalyticsQuery",
+      "reason": "Statistics use the frozen CaseStatus vocabulary, not an arbitrary frontend status.",
+      "value": {"status": "CLOSED"}
+    },
+    {
+      "name": "client-forges-role",
+      "schema": "CreateCaseRequest",
+      "value": {
+        "original_message": "Two mugs arrived chipped. I would like to return both. The order is ORD-DEMO-001.",
+        "order_reference": "ORD-DEMO-001",
+        "requested_outcome": "RETURN",
+        "evidence_ids": [
+          "evidence-photo-001"
+        ],
+        "role": "FOUNDER"
+      },
+      "reason": "Identity is server-derived; no client role field."
+    },
+    {
+      "name": "client-forges-approval",
+      "schema": "FounderDecisionRequest",
+      "value": {
+        "expected_case_version": 5,
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "decision": "APPROVE",
+        "reason": "Reviewed the current evidence and exact free mock action scope.",
+        "preview_id": "preview-demo-001",
+        "scope_fingerprint": "33d8bb75e79e1219c9e3b0b1682361e32e9f573d391ef7c3d60e829875245a17",
+        "approval_id": "forged-approval"
+      },
+      "reason": "Client may acknowledge a preview, not create a trusted approval."
+    },
+    {
+      "name": "approve-missing-preview",
+      "schema": "FounderDecisionRequest",
+      "value": {
+        "expected_case_version": 5,
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "decision": "APPROVE",
+        "reason": "Missing scope."
+      },
+      "reason": "APPROVE requires preview ID and fingerprint."
+    },
+    {
+      "name": "manual-carries-execution-scope",
+      "schema": "FounderDecisionRequest",
+      "value": {
+        "expected_case_version": 5,
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "decision": "MANUAL_HANDLING",
+        "reason": "Reviewed the current evidence and exact free mock action scope.",
+        "preview_id": "preview-demo-001",
+        "scope_fingerprint": "33d8bb75e79e1219c9e3b0b1682361e32e9f573d391ef7c3d60e829875245a17"
+      },
+      "reason": "Non-approve decisions must not carry an executable scope acknowledgement."
+    },
+    {
+      "name": "zero-case-version",
+      "schema": "VersionPrecondition",
+      "value": {
+        "expected_case_version": 0
+      },
+      "reason": "Versions start at one."
+    },
+    {
+      "name": "packet-carries-command",
+      "schema": "DecisionPacket",
+      "value": {
+        "case_id": "case-demo-001",
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "input_version": 1,
+        "original_statement_id": "stmt-original-001",
+        "created_at": "2026-09-07T02:00:00Z",
+        "facts": {
+          "issue_category": "FAULTY_OR_QUALITY_ISSUE",
+          "customer_requested_outcome": "RETURN",
+          "possible_basis": "STORE_POLICY",
+          "assessment_status": "SUPPORTED",
+          "line_items": [
+            {
+              "line_item_id": "line-mug-blue",
+              "quantity": 1
+            },
+            {
+              "line_item_id": "line-mug-white",
+              "quantity": 1
+            }
+          ],
+          "summary": "Customer reports visible chips in two items; no responsibility determination is made."
+        },
+        "evidence_matrix": [
+          {
+            "criterion_id": "criterion-item-condition",
+            "status": "PRESENT",
+            "statement_ids": [
+              "stmt-original-001"
+            ],
+            "evidence_ids": [
+              "evidence-photo-001"
+            ],
+            "rationale": "Customer statement and synthetic photo are available; this is not a legal finding."
+          },
+          {
+            "criterion_id": "criterion-original-packaging",
+            "status": "NOT_APPLICABLE",
+            "statement_ids": [],
+            "evidence_ids": [],
+            "rationale": "Original packaging is not used as a universal gate."
+          }
+        ],
+        "recommended_action": "PROPOSE_RETURN",
+        "rationale": "Propose one free simulated return for the two selected mugs, subject to independent review and Founder approval.",
+        "alternatives": [
+          "Refer for manual handling if evidence conflicts."
+        ],
+        "conditions": [
+          "Synthetic order quantities must match.",
+          "No chargeable label or refund may be issued."
+        ],
+        "cost_responsibility_note": "The mock return and label are free; no real allocation of legal costs is decided.",
+        "citations": [
+          {
+            "citation_id": "citation-demo-001",
+            "passage_id": "passage-demo-001",
+            "document_id": "document-demo-policy",
+            "source_version": "demo-policy-1",
+            "corpus_version": "demo-corpus-1",
+            "content_sha256": "3d82cc88630ce99da46ac762ba7635e0c476d81d951d9a464354dabb7ed5c925",
+            "location": "section-2"
+          }
+        ],
+        "corpus_version": "demo-corpus-1",
+        "confidence": 0.8,
+        "unresolved_questions": [],
+        "model_run": {
+          "run_id": "run-assessment-001",
+          "role": "ASSESSMENT",
+          "provider_id": "provider-fixture",
+          "model_id": "fixture-no-live-model",
+          "prompt_version": "fixture-v1",
+          "started_at": "2026-09-07T02:00:00Z",
+          "finished_at": "2026-09-07T02:00:00Z",
+          "input_tokens": 0,
+          "output_tokens": 0
+        },
+        "commands": [
+          {
+            "command_id": "command-return-001",
+            "type": "CREATE_RETURN",
+            "provider_id": "provider-mock-return",
+            "parameters": {
+              "order_id": "order-demo-001",
+              "line_items": [
+                {
+                  "line_item_id": "line-mug-blue",
+                  "quantity": 1
+                },
+                {
+                  "line_item_id": "line-mug-white",
+                  "quantity": 1
+                }
+              ],
+              "parcel_id": "parcel-demo-001"
+            }
+          },
+          {
+            "command_id": "command-label-001",
+            "type": "GENERATE_LABEL",
+            "provider_id": "provider-mock-label",
+            "parameters": {
+              "parcel_id": "parcel-demo-001",
+              "return_command_id": "command-return-001",
+              "label_format": "PDF",
+              "chargeable": false
+            }
+          }
+        ]
+      },
+      "reason": "AI packet is non-executable."
+    },
+    {
+      "name": "sixth-risk-outcome",
+      "schema": "RiskReview",
+      "value": {
+        "review_id": "review-demo-001",
+        "case_id": "case-demo-001",
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "input_version": 1,
+        "corpus_version": "demo-corpus-1",
+        "outcome": "APPROVE",
+        "findings": [],
+        "revision_requests": [],
+        "questions": [],
+        "reviewed_at": "2026-09-07T02:00:00Z",
+        "model_run": {
+          "run_id": "run-risk_reviewer-001",
+          "role": "RISK_REVIEWER",
+          "provider_id": "provider-fixture",
+          "model_id": "fixture-no-live-model",
+          "prompt_version": "fixture-v1",
+          "started_at": "2026-09-07T02:00:00Z",
+          "finished_at": "2026-09-07T02:00:00Z",
+          "input_tokens": 0,
+          "output_tokens": 0
+        }
+      },
+      "reason": "Only five outcomes are allowed."
+    },
+    {
+      "name": "pass-hides-block",
+      "schema": "RiskReview",
+      "value": {
+        "review_id": "review-demo-001",
+        "case_id": "case-demo-001",
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "input_version": 1,
+        "corpus_version": "demo-corpus-1",
+        "outcome": "PASS",
+        "findings": [
+          {
+            "finding_id": "finding-demo-001",
+            "severity": "BLOCK",
+            "category": "AUTHORITY",
+            "message": "No permission.",
+            "citation_ids": [],
+            "evidence_ids": []
+          }
+        ],
+        "revision_requests": [],
+        "questions": [],
+        "reviewed_at": "2026-09-07T02:00:00Z",
+        "model_run": {
+          "run_id": "run-risk_reviewer-001",
+          "role": "RISK_REVIEWER",
+          "provider_id": "provider-fixture",
+          "model_id": "fixture-no-live-model",
+          "prompt_version": "fixture-v1",
+          "started_at": "2026-09-07T02:00:00Z",
+          "finished_at": "2026-09-07T02:00:00Z",
+          "input_tokens": 0,
+          "output_tokens": 0
+        }
+      },
+      "reason": "PASS cannot contain a BLOCK finding."
+    },
+    {
+      "name": "revise-without-feedback",
+      "schema": "RiskReview",
+      "value": {
+        "review_id": "review-demo-001",
+        "case_id": "case-demo-001",
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "input_version": 1,
+        "corpus_version": "demo-corpus-1",
+        "outcome": "REVISE",
+        "findings": [],
+        "revision_requests": [],
+        "questions": [],
+        "reviewed_at": "2026-09-07T02:00:00Z",
+        "model_run": {
+          "run_id": "run-risk_reviewer-001",
+          "role": "RISK_REVIEWER",
+          "provider_id": "provider-fixture",
+          "model_id": "fixture-no-live-model",
+          "prompt_version": "fixture-v1",
+          "started_at": "2026-09-07T02:00:00Z",
+          "finished_at": "2026-09-07T02:00:00Z",
+          "input_tokens": 0,
+          "output_tokens": 0
+        }
+      },
+      "reason": "REVISE must identify requested changes."
+    },
+    {
+      "name": "empty-clarification",
+      "schema": "ClarificationRequest",
+      "value": {
+        "expected_case_version": 2,
+        "question_set_id": "question-set-demo-001",
+        "answers": [],
+        "evidence_ids": []
+      },
+      "reason": "Clarification must add text or evidence."
+    },
+    {
+      "name": "unbound-evidence-with-case",
+      "schema": "EvidenceAttachment",
+      "value": {
+        "evidence_id": "evidence-photo-001",
+        "filename": "synthetic-chipped-mugs.jpg",
+        "media_type": "image/jpeg",
+        "size_bytes": 24000,
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "created_at": "2026-09-07T02:00:00Z",
+        "status": "STAGED",
+        "content_path": "/v1/evidence/evidence-photo-001/content",
+        "case_id": "case-demo-001"
+      },
+      "reason": "STAGED evidence cannot claim a case binding."
+    },
+    {
+      "name": "fractional-money",
+      "schema": "LineItem",
+      "value": {
+        "line_item_id": "line-mug-blue",
+        "sku": "MUG-BLUE",
+        "description": "Synthetic blue mug",
+        "quantity": 1,
+        "unit_price_minor": 20.5
+      },
+      "reason": "Monetary amounts are integer AUD cents."
+    },
+    {
+      "name": "chargeable-label",
+      "schema": "ApprovalScope",
+      "value": {
+        "case_id": "case-demo-001",
+        "input_version": 1,
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "review_id": "review-demo-001",
+        "parcel_id": "parcel-demo-001",
+        "commands": [
+          {
+            "command_id": "command-return-001",
+            "type": "CREATE_RETURN",
+            "provider_id": "provider-mock-return",
+            "parameters": {
+              "order_id": "order-demo-001",
+              "line_items": [
+                {
+                  "line_item_id": "line-mug-blue",
+                  "quantity": 1
+                },
+                {
+                  "line_item_id": "line-mug-white",
+                  "quantity": 1
+                }
+              ],
+              "parcel_id": "parcel-demo-001"
+            }
+          },
+          {
+            "command_id": "command-label-001",
+            "type": "GENERATE_LABEL",
+            "provider_id": "provider-mock-label",
+            "parameters": {
+              "parcel_id": "parcel-demo-001",
+              "return_command_id": "command-return-001",
+              "label_format": "PDF",
+              "chargeable": true
+            }
+          }
+        ],
+        "currency": "AUD",
+        "amount_ceiling_minor": 0,
+        "expires_at": "2026-09-07T02:05:00Z",
+        "allowlist_version": "mock-v1",
+        "environment": "SIMULATED"
+      },
+      "reason": "No chargeable labels."
+    },
+    {
+      "name": "refund-command",
+      "schema": "ApprovalScope",
+      "value": {
+        "case_id": "case-demo-001",
+        "input_version": 1,
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "review_id": "review-demo-001",
+        "parcel_id": "parcel-demo-001",
+        "commands": [
+          {
+            "command_id": "command-return-001",
+            "type": "REFUND",
+            "provider_id": "provider-mock-return",
+            "parameters": {
+              "order_id": "order-demo-001",
+              "line_items": [
+                {
+                  "line_item_id": "line-mug-blue",
+                  "quantity": 1
+                },
+                {
+                  "line_item_id": "line-mug-white",
+                  "quantity": 1
+                }
+              ],
+              "parcel_id": "parcel-demo-001"
+            }
+          },
+          {
+            "command_id": "command-label-001",
+            "type": "GENERATE_LABEL",
+            "provider_id": "provider-mock-label",
+            "parameters": {
+              "parcel_id": "parcel-demo-001",
+              "return_command_id": "command-return-001",
+              "label_format": "PDF",
+              "chargeable": false
+            }
+          }
+        ],
+        "currency": "AUD",
+        "amount_ceiling_minor": 0,
+        "expires_at": "2026-09-07T02:05:00Z",
+        "allowlist_version": "mock-v1",
+        "environment": "SIMULATED"
+      },
+      "reason": "No money movement command is allowed."
+    },
+    {
+      "name": "second-label",
+      "schema": "ApprovalScope",
+      "value": {
+        "case_id": "case-demo-001",
+        "input_version": 1,
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "review_id": "review-demo-001",
+        "parcel_id": "parcel-demo-001",
+        "commands": [
+          {
+            "command_id": "command-return-001",
+            "type": "CREATE_RETURN",
+            "provider_id": "provider-mock-return",
+            "parameters": {
+              "order_id": "order-demo-001",
+              "line_items": [
+                {
+                  "line_item_id": "line-mug-blue",
+                  "quantity": 1
+                },
+                {
+                  "line_item_id": "line-mug-white",
+                  "quantity": 1
+                }
+              ],
+              "parcel_id": "parcel-demo-001"
+            }
+          },
+          {
+            "command_id": "command-label-001",
+            "type": "GENERATE_LABEL",
+            "provider_id": "provider-mock-label",
+            "parameters": {
+              "parcel_id": "parcel-demo-001",
+              "return_command_id": "command-return-001",
+              "label_format": "PDF",
+              "chargeable": false
+            }
+          },
+          {
+            "command_id": "command-label-001",
+            "type": "GENERATE_LABEL",
+            "provider_id": "provider-mock-label",
+            "parameters": {
+              "parcel_id": "parcel-demo-001",
+              "return_command_id": "command-return-001",
+              "label_format": "PDF",
+              "chargeable": false
+            }
+          }
+        ],
+        "currency": "AUD",
+        "amount_ceiling_minor": 0,
+        "expires_at": "2026-09-07T02:05:00Z",
+        "allowlist_version": "mock-v1",
+        "environment": "SIMULATED"
+      },
+      "reason": "Exactly one return and one label in one parcel."
+    },
+    {
+      "name": "unknown-claims-result",
+      "schema": "OperationAttempt",
+      "value": {
+        "operation_id": "operation-return-001",
+        "case_id": "case-demo-001",
+        "case_version": 7,
+        "command_id": "command-return-001",
+        "approval_id": "approval-demo-001",
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "input_version": 1,
+        "provider_id": "provider-mock-return",
+        "operation_fingerprint": "f212adb1bda9f16dd6587f8f1d6b38a988548a246d54b38e0e7d23569a898a81",
+        "status": "UNKNOWN",
+        "attempt_count": 1,
+        "updated_at": "2026-09-07T02:00:00Z",
+        "error": {
+          "error": {
+            "code": "PROVIDER_UNAVAILABLE",
+            "message": "Provider outcome is unknown. Query for evidence before considering a new dispatch.",
+            "correlation_id": "correlation-demo-001",
+            "retryable": false,
+            "details": []
+          }
+        },
+        "result": {
+          "type": "CREATE_RETURN",
+          "provider_return_id": "provider-return-001",
+          "parcel_id": "parcel-demo-001"
+        },
+        "idempotency_key": "operation-return-key-001"
+      },
+      "reason": "Unknown operations cannot advertise successful results."
+    },
+    {
+      "name": "out-of-range-attachment",
+      "schema": "EvidenceAttachment",
+      "value": {
+        "evidence_id": "evidence-photo-001",
+        "filename": "synthetic-chipped-mugs.jpg",
+        "media_type": "image/jpeg",
+        "size_bytes": 10485761,
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "created_at": "2026-09-07T02:00:00Z",
+        "status": "STAGED",
+        "content_path": "/v1/evidence/evidence-photo-001/content"
+      },
+      "reason": "Upload exceeds the contract's reviewable 10 MiB limit."
+    },
+    {
+      "name": "empty-latency-has-percentile",
+      "schema": "AnalyticsSnapshot",
+      "value": {
+        "as_of": "2026-09-07T02:00:00Z",
+        "case_count": 0,
+        "cases_by_status": [],
+        "current_risk_counts": [],
+        "cases_without_current_review": 0,
+        "proposal_latency": {
+          "metric_version": "proposal-latency-v1",
+          "sample_count": 0,
+          "failed_count": 0,
+          "p50_ms": 0,
+          "p95_ms": 0
+        }
+      },
+      "reason": "No percentile is invented for an empty sample."
+    },
+    {
+      "name": "wrong-generator-role",
+      "schema": "RiskReview",
+      "value": {
+        "review_id": "review-demo-001",
+        "case_id": "case-demo-001",
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "input_version": 1,
+        "corpus_version": "demo-corpus-1",
+        "outcome": "PASS",
+        "findings": [],
+        "revision_requests": [],
+        "questions": [],
+        "reviewed_at": "2026-09-07T02:00:00Z",
+        "model_run": {
+          "run_id": "run-assessment-001",
+          "role": "ASSESSMENT",
+          "provider_id": "provider-fixture",
+          "model_id": "fixture-no-live-model",
+          "prompt_version": "fixture-v1",
+          "started_at": "2026-09-07T02:00:00Z",
+          "finished_at": "2026-09-07T02:00:00Z",
+          "input_tokens": 0,
+          "output_tokens": 0
+        }
+      },
+      "reason": "Risk must be a separately identified Risk Reviewer invocation."
+    }
+  ],
+  "runtime_guards": [
+    {
+      "name": "manual-stale-processing-failure",
+      "request_schema": "FounderDecisionRequest",
+      "request": {
+        "expected_case_version": 2,
+        "processing_failure_id": "failure-demo-001",
+        "decision": "MANUAL_HANDLING",
+        "reason": "Record the manually reviewed outcome without authorising execution."
+      },
+      "precondition": "The authenticated Founder supplied the current case version, but the failure belongs to a different case or an older input version. Failure identity must be checked against persisted server state.",
+      "http_status": 409,
+      "error": {
+        "error": {
+          "code": "INVALID_STATE",
+          "message": "The processing failure is not current for this case input.",
+          "correlation_id": "correlation-failure-001",
+          "retryable": false,
+          "details": []
+        }
+      },
+      "expected_provider_effects": 0
+    },
+    {
+      "name": "manual-failure-with-current-proposal",
+      "request_schema": "FounderDecisionRequest",
+      "request": {
+        "expected_case_version": 4,
+        "processing_failure_id": "failure-demo-001",
+        "decision": "MANUAL_HANDLING",
+        "reason": "Record the manually reviewed outcome without authorising execution."
+      },
+      "precondition": "The referenced failure is historical. The case now has a current proposal or is no longer ESCALATED, so the no-proposal failure-target path must reject despite a current expected_case_version.",
+      "http_status": 409,
+      "error": {
+        "error": {
+          "code": "INVALID_STATE",
+          "message": "Review the current case before choosing a decision target.",
+          "correlation_id": "correlation-failure-001",
+          "retryable": false,
+          "details": []
+        }
+      },
+      "expected_provider_effects": 0
+    },
+    {
+      "name": "stale-browser-approval",
+      "request_schema": "FounderDecisionRequest",
+      "request": {
+        "expected_case_version": 5,
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "decision": "APPROVE",
+        "reason": "Reviewed the current evidence and exact free mock action scope.",
+        "preview_id": "preview-demo-001",
+        "scope_fingerprint": "33d8bb75e79e1219c9e3b0b1682361e32e9f573d391ef7c3d60e829875245a17"
+      },
+      "precondition": "Stored case_version is 6; this new request acknowledges version 5.",
+      "http_status": 409,
+      "error": {
+        "error": {
+          "code": "STALE_CASE_VERSION",
+          "message": "Reload current case.",
+          "correlation_id": "correlation-demo-001",
+          "retryable": false,
+          "details": []
+        }
+      },
+      "expected_provider_effects": 0
+    },
+    {
+      "name": "expired-preview",
+      "request_schema": "FounderDecisionRequest",
+      "request": {
+        "expected_case_version": 5,
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "decision": "APPROVE",
+        "reason": "Reviewed the current evidence and exact free mock action scope.",
+        "preview_id": "preview-demo-001",
+        "scope_fingerprint": "33d8bb75e79e1219c9e3b0b1682361e32e9f573d391ef7c3d60e829875245a17"
+      },
+      "precondition": "Current server time is after the persisted preview expiry.",
+      "http_status": 409,
+      "error": {
+        "error": {
+          "code": "APPROVAL_EXPIRED",
+          "message": "The approval scope expired. Refresh the preview.",
+          "correlation_id": "correlation-demo-001",
+          "retryable": false,
+          "details": []
+        }
+      },
+      "expected_provider_effects": 0
+    },
+    {
+      "name": "changed-scope",
+      "request_schema": "FounderDecisionRequest",
+      "request": {
+        "expected_case_version": 5,
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "decision": "APPROVE",
+        "reason": "Reviewed the current evidence and exact free mock action scope.",
+        "preview_id": "preview-demo-001",
+        "scope_fingerprint": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "precondition": "The submitted fingerprint differs from the persisted preview; all fields are otherwise well formed.",
+      "http_status": 409,
+      "error": {
+        "error": {
+          "code": "INVALID_APPROVAL_SCOPE",
+          "message": "Scope differs from the server preview.",
+          "correlation_id": "correlation-demo-001",
+          "retryable": false,
+          "details": []
+        }
+      },
+      "expected_provider_effects": 0
+    },
+    {
+      "name": "escalated-proposal",
+      "request_schema": "FounderDecisionRequest",
+      "request": {
+        "expected_case_version": 5,
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "decision": "APPROVE",
+        "reason": "Reviewed the current evidence and exact free mock action scope.",
+        "preview_id": "preview-demo-001",
+        "scope_fingerprint": "33d8bb75e79e1219c9e3b0b1682361e32e9f573d391ef7c3d60e829875245a17"
+      },
+      "precondition": "The latest valid review for the referenced proposal is ESCALATE; an old preview must not enable execution.",
+      "http_status": 409,
+      "error": {
+        "error": {
+          "code": "RISK_NOT_PASSED",
+          "message": "A newly reviewed proposal is required.",
+          "correlation_id": "correlation-demo-001",
+          "retryable": false,
+          "details": []
+        }
+      },
+      "expected_provider_effects": 0
+    },
+    {
+      "name": "customer-calls-founder",
+      "request_schema": "FounderDecisionRequest",
+      "request": {
+        "expected_case_version": 5,
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "decision": "APPROVE",
+        "reason": "Reviewed the current evidence and exact free mock action scope.",
+        "preview_id": "preview-demo-001",
+        "scope_fingerprint": "33d8bb75e79e1219c9e3b0b1682361e32e9f573d391ef7c3d60e829875245a17"
+      },
+      "precondition": "Verified session role is CUSTOMER. No client field can elevate it.",
+      "http_status": 403,
+      "error": {
+        "error": {
+          "code": "FORBIDDEN",
+          "message": "This action is not available to this principal.",
+          "correlation_id": "correlation-demo-001",
+          "retryable": false,
+          "details": []
+        }
+      },
+      "expected_provider_effects": 0
+    },
+    {
+      "name": "idempotency-key-body-conflict",
+      "request_schema": "FounderDecisionRequest",
+      "request": {
+        "expected_case_version": 5,
+        "proposal_id": "proposal-demo-001",
+        "proposal_version": 1,
+        "decision": "APPROVE",
+        "reason": "Changed reason with the previous key.",
+        "preview_id": "preview-demo-001",
+        "scope_fingerprint": "33d8bb75e79e1219c9e3b0b1682361e32e9f573d391ef7c3d60e829875245a17"
+      },
+      "precondition": "Same principal, route, resource and Idempotency-Key already have a different canonical request body.",
+      "http_status": 409,
+      "error": {
+        "error": {
+          "code": "IDEMPOTENCY_CONFLICT",
+          "message": "Use a new key for a different intent after reviewing the current state.",
+          "correlation_id": "correlation-demo-001",
+          "retryable": false,
+          "details": []
+        }
+      },
+      "expected_provider_effects": 0
+    }
+  ]
+}

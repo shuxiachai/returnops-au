@@ -192,14 +192,16 @@ Acceptance:
 Input from lead:
 
 - risk-review contract and escalation rules;
-- Gold-case schema and labelling guide;
-- examples of valid and invalid labels;
-- B4 invocation and telemetry contract from A; C owns the evaluation runner.
+- shared case/proposal, error and metric contracts;
+- B4 invocation and telemetry contract from A.
 
 Output from Member C:
 
 - independent `PASS`, `PASS_WITH_WARNING`, `REVISE`, `NEEDS_INFORMATION`, and `ESCALATE` outcomes;
+- Gold-case schema, labelling guide and valid/invalid label examples authored
+  by C and reviewed by the team; A does not own or write all of this input;
 - 30 double-reviewed Gold cases;
+- evaluation runner owned by C;
 - required `B1` versus `B4` comparison report;
 - aggregated safety/workflow results; each member implements the tests for
   their own functionality.
@@ -450,3 +452,36 @@ Use the dependency-based Gate 0–3 checks in `docs/00` and `docs/08`. The older
 illustrative calendar is not an authoritative assessment schedule. C records
 dates in Jira only after checking the current Canvas/tutor notice; do not infer
 interview or submission dates from earlier planning text.
+
+## 16. Existing branch hand-off for the 2026-09-07 alignment
+
+The lead-directed publication of PRs #2/#4/#6 to main on 2026-09-06 did not
+complete current B/C/tutor adoption or merge their follow-up work. This local
+document pass does not update remote branches, reviews or Jira history.
+
+- **B / [PR #8](https://github.com/shuxiachai/returnops-au/pull/8):** the charter,
+  architecture, class and sequence revisions reuse the three-role/service
+  separation and model ideas from B's existing work, with source attribution.
+  Compare B's branch against the aligned files before integration; preserve
+  authored commits and review the remaining scope/guard differences. Do not
+  discard the PR simply because related files were aligned here.
+- **C / [PR #7](https://github.com/shuxiachai/returnops-au/pull/7):** its
+  `docs/jira-delivery-guide/README.md` and `team-assignments.md` are still branch
+  artefacts, not current main files. Keep the 2026-09-02 Jira snapshot labelled
+  as historical, and make the following changes on C's branch before review:
+  1. Replace the instruction to merge `#2 → #4 → #6` with the publication fact
+     above; distinguish it from remaining adoption/model reviews.
+  2. Do not treat C's older candidate review as approval of later allocation or
+     this alignment. Preserve the original review and obtain current confirmation.
+  3. Replace `Portfolio / unscheduled` for A3/OF-004, B3/OF-006 and C3/OF-001
+     with selected course deliverables and the prerequisites in `docs/07/08`.
+     Verify actual dates in Jira; do not fabricate replacement dates.
+  4. Replace snapshot-specific WIP/blocked/Ready instructions with live Jira
+     checks. Map existing keys to stable work-package IDs; verify the delivery
+     item versus parent key for Issue #5 and PRs #7/#8 without guessing new keys.
+  5. Align default reviewers (A reviewed by C, B/C by A, plus relevant consumers),
+     C-owned label guide/runner and each member's own feature tests; retain the
+     blind human-timing and independent Gold-review rules in `docs/07`.
+
+No update listed here is evidence that a Jira status, date or permission was
+queried or changed in this local pass. C owns that live reconciliation.

@@ -4,18 +4,22 @@
 
 | Field | Value |
 |---|---|
-| Status | Lead-approved candidate; team and tutor review required |
+| Status | Lead-approved candidate, published to main on 2026-09-06; current team/tutor adoption reviews remain required |
 | Candidate baseline | v1.0 |
 | Lead approval date | 2026-08-31 |
 | Course | ELEC5620 Model-Based Software Engineering |
 | Project theme | One-Person AI Company / E-commerce and Retail |
-| Adoption condition | Becomes canonical only after Member B and Member C record approval, tutor feedback is reviewed and dispositioned, and the reviewed baseline pull request is merged |
+| Adoption condition | Main publication is complete, but full adoption still requires B/C approval of the current baseline/allocation and aligned models, tutor feedback disposition, and review/publication of the alignment change; an early merge is not evidence of those reviews |
 
 > This document is the lead-approved candidate baseline. Technologies marked
 > `Planned` are not implemented claims. They may be marked `Implemented` only
 > when code, automated tests, and reproducible run evidence exist. Until the
-> adoption condition above is met, the existing v0.2 documents remain historical
-> inputs to this candidate rather than silently changing status.
+> adoption condition above is met, earlier v0.2 versions remain historical
+> inputs. Documents `01`–`05` and the five shared diagrams now have a local
+> v1.0 alignment draft; that does not itself establish peer/tutor acceptance.
+> [PR #6](https://github.com/shuxiachai/returnops-au/pull/6) published the candidate
+> and frozen allocation under the lead's early-publication instruction; current
+> model alignment and individual contributions must still be reviewed.
 
 ---
 
@@ -228,6 +232,11 @@ flowchart LR
     Founder --> Store
     Ops --> Store
 ```
+
+This is a business-workflow overview, not a direct database-access diagram.
+Founder decisions, agent outputs and observed provider results all pass through
+deterministic validation; Domain Service alone commits business-state changes.
+See the [system design](02-system-design.md) for component/write boundaries.
 
 ### 4.1 Customer Case Coordinator Agent
 
@@ -706,7 +715,8 @@ evidence rather than population-level performance.
 - Record a disposition for `CP-001–CP-012`.
 - Confirm verification for every FR/NFR.
 - Confirm each member's individual model chain.
-- Create the Jira project and link its initial backlog to GitHub delivery items.
+- Verify the existing Jira project and map its actual backlog to GitHub delivery
+  items; do not create a duplicate project or infer live status from this plan.
 - Complete team and tutor review.
 
 ### Gate 1 — Executable Safety Spine
@@ -875,5 +885,10 @@ Evidence: CI run, audit trace, and demo recording
 - [ ] Member C reviews grounding, risk, benchmark labels, and personal model chain.
 - [ ] The tutor reviews course fit, individual contribution, scope, model
   feasibility, and the Jira/GitHub evidence split.
-- [ ] The team updates affected v0.2 documents and UML in one traceable baseline-adoption change.
-- [ ] The baseline-adoption pull request is reviewed and merged.
+- [x] The lead-directed initial publication merged PRs #2, #4 and #6 into main
+  on 2026-09-06; publication is separate from final team/tutor adoption.
+- [ ] The local 2026-09-07 alignment of older documents and shared UML receives
+  team review and a traceable publication record, preserving B/C contributions.
+- [ ] B/C approve the current allocation and aligned models, tutor feedback is
+  dispositioned, and the reviewed alignment change is merged. Earlier reviews
+  of older commits do not automatically approve this revision.

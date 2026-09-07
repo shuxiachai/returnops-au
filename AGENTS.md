@@ -12,9 +12,10 @@
 > single Human Founder,
 > three AI business roles, a deterministic Operations Service, and an MVP ending
 > at an approved simulated return/label outcome plus notification. Use that
-> candidate for new planning on this branch. It becomes canonical only after
-> Member B, Member C, and tutor review and a reviewed baseline-adoption merge;
-> older seven-agent and multi-SME wording remains historical input until then.
+> candidate for new planning. The lead-directed publication to main occurred
+> on 2026-09-06 (PRs #2/#4/#6), but current B/C approval, tutor feedback
+> disposition and reviewed model-alignment publication remain outstanding.
+> Older seven-agent/multi-SME versions are historical inputs, not current scope.
 
 ---
 
@@ -24,13 +25,40 @@ The lead approved [Frozen Work Allocation v1.0](docs/07-frozen-work-allocation.m
 and [Detailed Work Packages](docs/08-delivery-work-packages.md). Read both after
 `docs/00` before assigning work. Nine feature owners, course-selected optionals,
 hand-offs and acceptance boundaries stay fixed unless the lead explicitly
-approves a material change. This does not claim B/C/tutor approval,
-implementation completion, Jira updates or a merged baseline.
+approves a material change. The plan has been published to main; this does not
+claim B/C/tutor approval of the current revision, implementation completion or
+live Jira updates.
 
 C coordinates evaluation; A/B/C each implement tests for their own features and
 participate in Gold label review. A implements Coordinator/Assessment and the
 orchestrator; C implements Risk Reviewer, retrieval and image analysis. Consult
 `docs/07` for submodule ownership rather than treating all agent code as A-owned.
+
+## F.01 contract hand-off — 2026-09-07
+
+The lead requested the first implementation-preparation step, F.01. Read
+[the interface contract candidate](docs/09-interface-contract-v1.md) before
+changing cross-member DTOs. `contracts/v1/schemas.json` is the shared wire
+schema candidate and `openapi.json` defines planned public operations;
+`tests/contracts` checks artifacts, not runtime authorization or safety.
+B/C confirmation is pending. Do not mark F.01 accepted, claim a working API,
+or treat old `packages/domain/models.py` as already migrated to this contract.
+No change to the frozen nine-feature allocation is implied. The rc.2 revision
+addresses the five identified contract-shape/hand-off gaps with offline
+regressions: no-proposal manual handling, full retrieval/conflict propagation,
+compatible citation capacities, analytics filters/denominators and strict ID
+boundaries. The corresponding runtime guards are not implemented.
+
+## Old-document alignment — 2026-09-07
+
+`docs/01`, `02`, `04`, `05` and the five existing shared diagrams have been
+aligned locally with `docs/00`, `07` and `08`; `docs/03` and navigation/status
+wording were corrected as well. This is a lead-led integration draft, not B/C
+individual authorship, accepted personal behaviour models or completed Stage 1.
+Retain B's PR #8 source attribution and C's PR #7 branch history; do not treat
+either PR as merged by this edit. F.01 rc.2 now includes the separate five-gap
+contract revision; joint contract/model review is still pending. No runtime
+code or remote/Jira updates are implied.
 
 ## 1. Project Background & One-Sentence Pitch
 
@@ -138,10 +166,11 @@ returnops-au/
 4. **Synthetic Data Only**: Never commit real personal customer data or copyrighted USYD lecture materials to public Git repos.
 5. **Check Current Status**: Read the lead-approved candidate
    `docs/00-project-definition-v1.md`, its remaining adoption reviews, and
-   GitHub Issues before creating new components. Use `docs/04` as the historical
-   v0.2 baseline until the candidate adoption PR is formally approved and
-   merged; do not reintroduce the old seven-agent or multi-SME scope into new
-   planning.
+   GitHub Issues before creating new components. `docs/04` is a derived
+   requirements/backlog view, not an alternate authority; its v0.2 version is
+   retained in history. Use `docs/07` and `docs/08` for fixed ownership and
+   work-package dependencies. Do not reintroduce the old seven-agent or
+   multi-SME scope, or confuse main publication with final adoption.
 6. **Preserve the Delivery Record**: Jira is the Agile planning/timeline system
    of record; GitHub Issues/PRs/commits/CI are the technical delivery record.
    Every delivery item must carry one Jira key and link the corresponding GitHub

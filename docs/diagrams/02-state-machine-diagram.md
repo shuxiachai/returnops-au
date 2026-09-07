@@ -1,66 +1,116 @@
 # State Machine Diagram (ReturnCase Lifecycle)
 
-> **MBSE Model Type**: Dynamic Behavioral State Machine  
-> **Course Requirement**: System lifecycle processes, component states, exceptions, guard conditions  
-> **Traceability**: [FR-001 to FR-012; NFR-002, NFR-004, and NFR-009](../04-requirements-and-backlog.md)
+> **Status — 2026-09-07:** v1 alignment draft; Member B/C review remains pending.
+> Earlier modelling contributions and their Git history are retained. This
+> revision does not claim product-baseline adoption, F.01 acceptance, or a
+> running implementation.
+>
+> **MBSE model type:** Shared behavioural state machine for `ReturnCase`.
+> **Traceability:** [v1.0 candidate, FR-001–FR-012 and NFR-002/004/009](../00-project-definition-v1.md).
+> **Ownership:** [Frozen allocation and individual model chains](../07-frozen-work-allocation.md).
 
----
+## 1. Shared lifecycle model
 
-## 1. Mermaid State Machine Model
+**Domain Service alone commits authoritative case transitions.** AI roles return
+typed analysis; API, orchestration, and the deterministic Operations Service
+submit results/events for Domain Service to validate and persist. Arrows below
+describe guarded business transitions, not permission for an AI or provider
+adapter to write case state directly.
+
+This shared overview does not replace the three individual state-machine
+subjects: A's `OperationAttempt`, B's `IntakeSession`, and C's `ProposalReview`.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> SUBMITTED : Customer submits request [FR-001]
-    
-    SUBMITTED --> AWAITING_INFORMATION : Missing mandatory fields [Order ID/Description missing]
-    AWAITING_INFORMATION --> UNDER_INVESTIGATION : Customer provides clarification [FR-002]
-    SUBMITTED --> UNDER_INVESTIGATION : Mandatory fields present [FR-002]
-    
-    UNDER_INVESTIGATION --> POLICY_ASSESSMENT : Order matched in commerce system [FR-003]
-    UNDER_INVESTIGATION --> AWAITING_INFORMATION : Order identifier missing / likely correctable [FR-003]
-    UNDER_INVESTIGATION --> UNDER_INVESTIGATION : Provider timeout / safe retry below limit [FR-003, NFR-004]
-    UNDER_INVESTIGATION --> ESCALATED : Confirmed conflict / Unsafe content / Provider retry limit [FR-003, FR-008, NFR-009]
-    
-    POLICY_ASSESSMENT --> AWAITING_INFORMATION : Diagnostic evidence gap detected [FR-005]
-    POLICY_ASSESSMENT --> RISK_REVIEW : Policy & ACL passages retrieved [FR-006, FR-007]
-    
-    RISK_REVIEW --> POLICY_ASSESSMENT : Revision requested by Risk Reviewer [FR-008]
-    RISK_REVIEW --> ESCALATED : Low confidence (<80%) / Policy conflict / Out of scope [FR-008]
-    RISK_REVIEW --> AWAITING_APPROVAL : Independent review passed [FR-008]
-    
-    AWAITING_APPROVAL --> APPROVED : Human Founder approves remedy [FR-009]
-    AWAITING_APPROVAL --> REJECTED : Human Founder rejects remedy [FR-009]
-    AWAITING_APPROVAL --> ESCALATED : Human Founder flags for manual handling [FR-009]
-    AWAITING_APPROVAL --> POLICY_ASSESSMENT : Human Founder requests AI re-investigation [FR-009]
-    
-    APPROVED --> ACTION_IN_PROGRESS : Exact-scope approval and allowlist guards pass [FR-010, NFR-002, NFR-009]
-    ACTION_IN_PROGRESS --> ACTION_FAILED : Tool call timeout / API error [NFR-004]
-    ACTION_FAILED --> ACTION_IN_PROGRESS : Safe idempotent retry (<3 attempts) [NFR-004]
-    ACTION_FAILED --> ESCALATED : Retry limit reached [NFR-004]
-    ACTION_IN_PROGRESS --> RESOLVED : Simulated return/label/refund confirmed [FR-010]
-    
-    RESOLVED --> CLOSED : Approved outcome notified and audited [FR-010, FR-011]
-    REJECTED --> CLOSED : Founder-approved rejection outcome notified and audited [FR-009, FR-011]
-    ESCALATED --> CLOSED : Founder records and notifies manual outcome [FR-009, FR-011]
-    
-    CLOSED --> [*]
+    [*] --> SUBMITTED : Request accepted and original statement preserved
+
+    SUBMITTED --> AWAITING_INFORMATION : Relevant facts missing or ambiguous
+    SUBMITTED --> UNDER_INVESTIGATION : Sufficient information for read-only lookup
+    AWAITING_INFORMATION --> AWAITING_INFORMATION : Partial answer and remaining questions
+    AWAITING_INFORMATION --> UNDER_INVESTIGATION : New input recorded and dependent decisions invalidated
+
+    UNDER_INVESTIGATION --> POLICY_ASSESSMENT : Authorised mock order snapshot matched
+    UNDER_INVESTIGATION --> AWAITING_INFORMATION : Correctable reference or purchase-proof gap
+    UNDER_INVESTIGATION --> UNDER_INVESTIGATION : Read-only provider failure and bounded safe retry
+    UNDER_INVESTIGATION --> ESCALATED : Unresolved conflict or authority denial or retry exhaustion
+
+    POLICY_ASSESSMENT --> AWAITING_INFORMATION : Relevant evidence gap
+    POLICY_ASSESSMENT --> RISK_REVIEW : Versioned conditional proposal and source context ready
+    POLICY_ASSESSMENT --> ESCALATED : Cannot produce a usable result after bounded recovery
+
+    RISK_REVIEW --> POLICY_ASSESSMENT : REVISE and create a new proposal version
+    RISK_REVIEW --> AWAITING_INFORMATION : NEEDS_INFORMATION
+    RISK_REVIEW --> ESCALATED : ESCALATE or unrecoverable review failure
+    RISK_REVIEW --> AWAITING_APPROVAL : PASS for current input and proposal
+    RISK_REVIEW --> AWAITING_APPROVAL : PASS_WITH_WARNING and non-blocking warnings displayed
+
+    AWAITING_APPROVAL --> APPROVED : APPROVE and bind exact scope to trusted Founder
+    AWAITING_APPROVAL --> POLICY_ASSESSMENT : REQUEST_REVISION and invalidate approval
+    AWAITING_APPROVAL --> NOTIFICATION_PENDING : REJECT and save reason and customer outcome
+    AWAITING_APPROVAL --> NOTIFICATION_PENDING : MANUAL_HANDLING and save customer outcome
+    AWAITING_APPROVAL --> UNDER_INVESTIGATION : New evidence invalidates proposal review and approval
+    ESCALATED --> POLICY_ASSESSMENT : Founder requests new proposal and fresh risk review
+    ESCALATED --> NOTIFICATION_PENDING : Founder records manual outcome preserving operation uncertainty
+
+    APPROVED --> ACTION_IN_PROGRESS : Current risk scope expiry provider-authority and idempotency guards pass
+    APPROVED --> AWAITING_APPROVAL : Approval expired before any effect and fresh approval required
+    APPROVED --> UNDER_INVESTIGATION : New input before dispatch invalidates dependent decisions
+    APPROVED --> ESCALATED : Dispatch blocked without an external effect
+
+    ACTION_IN_PROGRESS --> ACTION_FAILED : Confirmed command failure and completed results preserved
+    ACTION_IN_PROGRESS --> RECONCILING : Ambiguous timeout and OperationAttempt UNKNOWN
+    ACTION_FAILED --> ACTION_IN_PROGRESS : Safe unfinished-command retry with valid approval and same key
+    ACTION_FAILED --> ESCALATED : Retry unavailable or configured limit reached
+    RECONCILING --> RECONCILING : Effect still unknown and lookup only
+    RECONCILING --> ACTION_FAILED : Lookup confirms no effect and recoverable failure
+    RECONCILING --> ACTION_IN_PROGRESS : Save confirmed effect and process only approved unfinished command
+    RECONCILING --> NOTIFICATION_PENDING : Return and label effects both confirmed and saved
+    RECONCILING --> ESCALATED : Unresolved effect preserved for manual handling
+    ESCALATED --> RECONCILING : Authorised lookup of historical unknown operation
+    ACTION_IN_PROGRESS --> NOTIFICATION_PENDING : Simulated return and label both confirmed and saved
+
+    NOTIFICATION_PENDING --> NOTIFICATION_FAILED : Delivery failed and outcome retained
+    NOTIFICATION_FAILED --> NOTIFICATION_PENDING : Retry notification only
+    NOTIFICATION_PENDING --> COMPLETED : Notification SENT and both simulated commands succeeded
+    NOTIFICATION_PENDING --> REJECTED : Notification SENT for saved rejection outcome
+    NOTIFICATION_PENDING --> MANUAL_HANDLED : Notification SENT for saved manual outcome
+    COMPLETED --> [*]
+    REJECTED --> [*]
+    MANUAL_HANDLED --> [*]
 ```
 
----
+`UNKNOWN` belongs to an individual `OperationAttempt`; it is not a case state.
+The case's `RECONCILING` state reflects lookup of that attempt while its result
+is unknown. A historical-status lookup may remain authorised after execution
+approval expires; it does not authorise a new command, a replay, or continuation
+under an expired approval.
 
-## 2. Transition Guard Conditions & Invariants Table
+## 2. Guard conditions and invariants
 
-| Source State | Target State | Trigger Event | Guard Condition / Rule |
-| :--- | :--- | :--- | :--- |
-| `SUBMITTED` | `UNDER_INVESTIGATION` | `IntakeCompleted` | `order_number != None` and `raw_text.length >= 10` |
-| `SUBMITTED` | `AWAITING_INFORMATION` | `IntakeIncomplete` | `order_number == None` or ambiguous product name |
-| `UNDER_INVESTIGATION` | `POLICY_ASSESSMENT` | `OrderLookupSuccess` | Order exists in Shopify, customer identity verified |
-| `UNDER_INVESTIGATION` | `AWAITING_INFORMATION` | `OrderLookupNeedsCorrection` | Order identifier is missing, malformed, or plausibly mistyped; no confirmed mismatch |
-| `UNDER_INVESTIGATION` | `ESCALATED` | `OrderConflictConfirmed` | A conflict, suspected abuse, or unsafe content remains after clarification |
-| `UNDER_INVESTIGATION` | `UNDER_INVESTIGATION` | `OrderProviderRetry` | Provider failure is auditable, no snapshot is invented, and retry count remains below the configured limit |
-| `UNDER_INVESTIGATION` | `ESCALATED` | `OrderProviderRetryLimitReached` | Provider failure remains after the configured retry limit |
-| `POLICY_ASSESSMENT` | `RISK_REVIEW` | `ProposalGenerated` | Proposal has $\ge 1$ cited policy/ACL passage |
-| `RISK_REVIEW` | `AWAITING_APPROVAL` | `RiskReviewPassed` | No unsupported claim, citation/source conflict, prompt injection, out-of-scope result, or unresolved high-risk finding; confidence $\ge 0.80$ |
-| `AWAITING_APPROVAL` | `APPROVED` | `FounderApprove` | Trusted actor is authorised; case and proposal version are current; exact command set, amount limit, reason, and expiry are complete |
-| `APPROVED` | `ACTION_IN_PROGRESS` | `DispatchCommand` | Approval decision is approved, unexpired, and bound to this case and current proposal; every typed command and amount exactly matches scope, is allowlisted, and has a stable idempotency key |
-| `ACTION_IN_PROGRESS` | `RESOLVED` | `ToolExecutionSuccess` | External API returns HTTP 200 / success payload |
+| Boundary | Required guard or rule |
+|---|---|
+| Intake and clarification — FR-001/002 | Preserve the original customer statement. An order number and desired remedy are not universally mandatory at initial submission. Ask targeted questions and allow relevant alternative purchase proof; do not invent an arbitrary ten-character gate. |
+| Order lookup — FR-003 | Distinguish match, correctable missing information, confirmed conflict, authority denial, and provider failure. A timeout never becomes an invented matched order. Retry only read-only lookup within a configured bound. |
+| Assessment — FR-005/006/007 | Keep customer claims, verified facts, evidence gaps, citations, and uncertainty distinct. A versioned conditional packet can report missing or conflicting grounding; packet creation alone is not approval eligibility. |
+| Risk gate — FR-008 | Only a current-input/current-proposal `PASS` or `PASS_WITH_WARNING` supports approval. The other results are `REVISE`, `NEEDS_INFORMATION`, and `ESCALATE`. A single confidence threshold is not a substitute for these decisions and findings. |
+| Escalation recovery — FR-008/009 | Founder cannot approve an escalated proposal directly. A renewed assessment creates a new proposal version and requires a new passing risk review before approval. |
+| Founder approval — FR-009 | Bind authenticated Founder identity, case/input/proposal/review versions, exact commands and parameter fingerprint, applicable amount ceiling, reason, and expiry. Record `APPROVE`, `REJECT`, `REQUEST_REVISION`, or `MANUAL_HANDLING` distinctly. |
+| Dispatch — FR-010, NFR-002/009 | Recheck current passing review, valid approval, parameter scope, provider authority, allowlist, and stable command idempotency before each new effect. Course commands are simulated `CREATE_RETURN` and `GENERATE_LABEL`, not refunds, charges, or inventory changes. |
+| Provider result — FR-010/011 | HTTP 200 alone is not business success. Validate the typed business result, operation identity, and scope, then ask Domain Service to save the result before advancing the workflow. |
+| Partial failure and unknown effect — NFR-004 | Preserve completed commands. Query an `UNKNOWN`/`RECONCILING` attempt before considering retry; retry only a confirmed-safe unfinished command with the same idempotency key and valid approval. Never replay a successful return because its label or notification failed. |
+| New information — FR-002/009 | New decision-relevant input invalidates dependent proposal/review/approval before further effects. It never erases an already produced result or an unresolved effect; in-flight effects must be reconciled rather than treated as not executed. |
+| Notifications and terminal states — FR-009/010/011 | Keep notification status separate from command status. Return completion requires saved successful return and label results plus `SENT` notification. A rejection/manual outcome is likewise terminal only after its own successful notification; notification retry causes no operational replay. |
+| Manual closure — FR-009/011 | Persist the actual outcome and any unresolved operation uncertainty. `MANUAL_HANDLED` must not assert that an unknown provider effect did not happen or permit automatic resubmission of that operation. |
+
+## 3. Verification and implementation boundary
+
+A implements and self-tests lifecycle, approval, and operation guards; B
+self-tests the corresponding UI behaviours; C self-tests retrieval/risk and
+coordinates cross-system evaluation. The [work packages](../08-delivery-work-packages.md)
+define the individual deliverables and cross-review responsibilities.
+
+This is a modelling draft, not proof that runtime guards exist. In particular,
+the Founder manual path after an AI failure **before any proposal exists** must
+remain possible without inventing a proposal. Its request shape is now in the
+[F.01 rc.2 candidate](../09-interface-contract-v1.md); runtime state checks and
+joint contract/model acceptance remain outstanding.

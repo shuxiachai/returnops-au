@@ -1,0 +1,4 @@
+# Contract validation only; this is not the application's dependency lockfile.
+jsonschema[format]==4.23.0
+referencing==0.35.1
+openapi-spec-validator==0.7.2
