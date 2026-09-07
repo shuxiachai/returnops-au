@@ -66,6 +66,7 @@ OD_RECEIPT -- OR_RECEIPTS : A18
 SO_RECEIPT -- OR_RECEIPTS : A19
 
 legend bottom
+  CS-0.2 candidate; F.01 rc.5 / MA-0.3 alignment; no runtime or human acceptance claimed.
   No Assessment-to-Reviewer connector; Orchestrator constructs RiskReviewRequest.
   Risk receives packet, original statements, order_lookup, attachments, evidence_matrix,
   full retrieval_result (including conflicts), citation_verification, optional image_observations.

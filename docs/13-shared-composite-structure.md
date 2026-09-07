@@ -1,10 +1,14 @@
 # 共享复合结构：Governed Case Assessment
 
-> `CS-0.1`，2026-09-07；**评审候选，未完成人审或运行验收**。对应 M-S.02，Owner A、Reviewer C；原开始依赖 M-S.01 保持不变。不把 F.01/M-S.01 标为已接受。
+> **rc.5 发布定位（2026-09-07）：**本版交付至 [PR #11](https://github.com/shuxiachai/returnops-au/pull/11)，由包含本说明的实际提交定位。PR 中记录准确 source SHA、CI run 与评审状态；C 复现使用该准确 SHA，不能使用旧 `57d86fe` 或浮动分支。下文“未发布/本地准备”、旧测试和旧哈希是发布前历史；当前提交以 Git 文件内容及 `docs/reviews/rc5-publication-artifacts-20260907.json` 为准。发布不等于 F.01/F.02 接受、B/C 本人审阅/复现或课程提交，Jira 未由此同步。
+
+> `CS-0.2`，2026-09-07；**评审候选，未完成人审或运行验收**。对应 M-S.02，Owner A、Reviewer C；原开始依赖 M-S.01 保持不变。不把 F.01/M-S.01 标为已接受。
 >
-> rc.3 提交 `90931562f7e8d038b994d8d3ff3b2f289e462643` 是历史起点；本候选对齐 rc.4 与 [A 的 MA-0.2 模型链](12-member-a-model-chain.md)。评审入口为 [PR #11](https://github.com/shuxiachai/returnops-au/pull/11)，具体 head、收录文件和评审状态以 PR 为准，不表示模型已接受或 CI 已通过。发布前于 2026-09-07 读取 [KAN-13](https://lucastaooo.atlassian.net/browse/KAN-13)：其范围明确含 M-A.01–06 及 A 负责的 M-S.01/M-S.02，故本稿沿用该交付主卡；该核验不等于已回填本次候选或完成模型验收。KAN-32 仍专用于 F.01。
+> rc.3 提交 `90931562f7e8d038b994d8d3ff3b2f289e462643` 是历史起点；`57d86fe` 发布的 rc.4/MA-0.2/CS-0.1 是本轮修正历史依据；本地候选对齐 rc.5 与 [A 的 MA-0.3 模型链](12-member-a-model-chain.md)。评审入口为 [PR #11](https://github.com/shuxiachai/returnops-au/pull/11)，具体 head、收录文件和评审状态以 PR 为准，不表示模型已接受或 CI 已通过。发布前于 2026-09-07 读取 [KAN-13](https://lucastaooo.atlassian.net/browse/KAN-13)：其范围明确含 M-A.01–06 及 A 负责的 M-S.01/M-S.02，故本稿沿用该交付主卡；该核验不等于已回填本次候选或完成模型验收。KAN-32 仍专用于 F.01。
 >
 > AI 辅助起草与静态走查；A 负责整合并解释，C 本人评审，B/C 分别确认自己的共享贡献。本文不替代 B/C 的个人模型链、个人署名或 tutor 接受。
+
+当前修正版本与本地检查证据见 [缺陷修正记录](reviews/a-defect-closure-20260907.md)；先前发布与准备记录仅作历史依据。
 
 ## 1. 依据与所补缺口
 
@@ -64,11 +68,11 @@ Agent part 包含受控的确定性调用包装；原始 LLM 输出不拥有其�
 
 Domain 通过 decisionCheck 验证 Founder 决定，再按合法结果生成并保存批准/工作。Operations 使用当前权威记录，通过 dispatchCheck 在每个新效果前核验，并独立检查 provider 资格及持久化 claim/幂等。Guard 的 Boolean verdict 不是 ApprovalRecord，也不产生工作。
 
-**A21 的守卫是 A22 新调用的前置条件；连接线本身不证明先后或不可绕过。**顺序和失败恢复由 [UC-03/04](05-lab-3-requirement-modelling.md)、[MA-0.2](12-member-a-model-chain.md) 的 G-DISPATCH/G-LOOKUP 与 Sequence 约束。通知工作可以来自拒绝/人工结果，它要求已保存结果，不要求伪造执行批准。
+**A21 的守卫是 A22 新调用的前置条件；连接线本身不证明先后或不可绕过。**顺序和失败恢复由 [UC-03/04](05-lab-3-requirement-modelling.md)、[MA-0.3](12-member-a-model-chain.md) 的 G-DISPATCH/G-LOOKUP/G-ARTIFACT 与 Sequence 约束。通知工作可以来自拒绝/人工结果，它要求已保存结果，不要求伪造执行批准。
 
 ## 3. 端口契约与连接登记
 
-本节是图中端口的类型/操作说明。已有 wire 类型以 [rc.4 Schema](../contracts/v1/schemas.json)、[OpenAPI](../contracts/v1/openapi.json)和[接口说明](09-interface-contract-v1.md)为准。原 13 个公共操作保留，rc.4 新增两个角色隔离的历史 GET，共 15 个；历史读取复用 D01 的 Domain 应用读边界。下面的 `analysisWork / analysisControl / operationControl / sourceReceipts` 等仍是内部能力别名，不另加公共路由、输入 DTO 或可信结果类型。
+本节是图中端口的类型/操作说明。已有 wire 类型以 [rc.5 Schema](../contracts/v1/schemas.json)、[OpenAPI](../contracts/v1/openapi.json)和[接口说明](09-interface-contract-v1.md)为准。原 13 个公共操作保留，rc.4 新增两个角色隔离的历史 GET，共 15 个；rc.5 只修订本轮语义，shape 不变；历史读取复用 D01 的 Domain 应用读边界。下面的 `analysisWork / analysisControl / operationControl / sourceReceipts` 等仍是内部能力别名，不另加公共路由、输入 DTO 或可信结果类型。
 
 ### 3.1 CS-01
 
@@ -115,12 +119,14 @@ Risk 输入必须包含 `packet + statements + evidence_matrix + order_lookup + 
 | D21 | `work (P)` ↔ `operations.work (P)` | 委派 A03；准确区分新效果、历史 query、保存结果的 notification。 |
 | D22 | `decisionCheck (P)` ↔ `guard.decision (P)` | 委派 A04；调用者 Domain 提供当前记录和可信上下文，得到 verdict 而非批准。 |
 | D23 | `operations.domain (R)` ↔ `domain (R)` | 委派 A05；获准快照/claim/意图/结果/观测；返回的 OperationAttempt/NotificationRecord 必须是 Domain 已保存结果。 |
-| D24 | `operations.labelStore (R)` ↔ `labelStore (R)` | 委派 D03；只保存已发生标签结果的受控内容引用，存储故障不能等同 provider 没有效果。 |
+| D24 | `operations.labelStore (R)` ↔ `labelStore (R)` | 委派 D03；原效果 receipt 先经 D23/A05 保存，再按 G-ARTIFACT 取回/存储原标签内容。完整 label_evidence_id 绑定提交前保持 EXECUTING、无 result；存储故障不变 FAILED/UNKNOWN，不再创建标签。 |
 | A21 | `operations.dispatchCheck (R)` ↔ `guard.dispatch (P)` | `validate_dispatch_scope(CommandSpec, current_records)`；每次新效果重新检查。当前状态仍允许、Risk 当前通过、精确批准/版本/范围/expiry；MA-Q03 的调用时并发保证仍待实现。 |
-| A22 | `operations.returnsLogistics (R)` ↔ `returnsLogistics.returnsLogistics (P)` | `ReturnsLogisticsPort`：`check_authority(CommandSpec, provider_context) → Boolean`；`invoke_approved_command(CommandSpec, attempt_context)` / `query_operation(OperationAttempt, provider_context) → provider_observation`。权限 verdict 不等于业务结果；只有成功观测分支含 OperationResult，未知须查询。 |
+| A22 | `operations.returnsLogistics (R)` ↔ `returnsLogistics.returnsLogistics (P)` | `ReturnsLogisticsPort`：`check_authority(CommandSpec, provider_context) → Boolean`；`invoke_approved_command(CommandSpec, attempt_context)` / `query_operation(OperationAttempt, provider_context) → provider_observation`。权限 verdict 不等于业务结果；原始 provider 观察不是 OperationResult，标签确认观察尚无本地 label_evidence_id。Domain 验证并保存原效果事实后，经 D24 完成受控附件绑定，才形成完整成功结果；未知效果须查询。 |
 | A23 | `operations.notification (R)` ↔ `notification.notification (P)` | `NotificationPort.send_recorded_message(NotificationRecord, delivery_context)` → 内部 delivery_observation。已保存的拒绝/人工结果也可通知；通知恢复不调用 A22。 |
 
 returns/logistics 配置按一个订单、一包裹、CREATE_RETURN→GENERATE_LABEL；第二步使用已保存的 return 结果。A22 的历史查询可在独立读取/恢复授权下进行，不因旧批准过期丢失事实，也不授予新效果。MA-D01/02 与 MA-Q01/02/03 的尝试身份、查询阶段、跨批准映射和并发问题保持待确认。
+
+标签效果确认但尚无受控附件时，Domain 先在同工作单元保存原 attempt/command/parcel/provider 配置与 operation ID、最小确认依据/hash、审计及 artifact-only 工作。公开 OperationAttempt 使用既有 EXECUTING，无 result；可带既有 provider_operation_id 与实际保存错误。receipt/内部工作不成为新 wire DTO，也不把敏感内容放审计。恢复先读 receipt：有确认事实时只能按当前身份/访问、原绑定、claim 和保留规则 query/retrieve/store 原标签，不能重新 invoke 或降为 UNKNOWN；无可靠确认事实才查询原未知效果。创建批准过期不阻止独立授权的制品恢复，也不授予新创建权限。文件保存但完整结果事务未确认时重读并复用原引用/hash；只在完整 OperationResult（含 label_evidence_id）和 audit 已提交后 SUCCEEDED。耗尽恢复可在无已接受人工/拒绝 outcome 时升级案件，仍保留 EXECUTING/已知效果；不得恢复已允许删除内容或改写既有人工 outcome/通知。内部存储方法名仍是 CS-Q02，语义约束已在本候选写明。
 
 ## 4. Material events 如何进入 Audit Port
 
@@ -140,6 +146,8 @@ AuditPort 只接收服务建立的非个人事件，不接收 AI 发来的“把
 
 ## 5. 设计选择、未决项与具体贡献
 
+后续 [AD-0.2](14-member-a-design-decisions.md)细化原始来源 wrapper、业务/审计同工作单元、独立 provider 配置及两种附件内部上下文；[Package/Deployment 候选](15-package-deployment-models.md)补充 CS-Q01 的模块/部署映射。二者没有改动本版三幅 Composite 的连接或宣称 A/C 已接受，CS-Q02 的内部方法仍待确认。
+
 | ID | 本稿如何处理 | 接受前需确认什么 |
 |---|---|---|
 | CS-D01 原始 source receipts | 用 adapter 的 required callback 接至 Orchestrator，保留生成器之外的原始来源，并经 Domain 校验后才供 Risk。 | A/C 确认 callback 或等价包装实现、同次调用关联/去重、失败传播和版本复核；不把回调形状宣称为新 wire DTO。 |
@@ -148,15 +156,15 @@ AuditPort 只接收服务建立的非个人事件，不接收 AI 发来的“把
 | CS-Q01 结构化类型与已有类的映射 | 三个整体类型是本模型分组；内部 part 复用既有 class/capability。 | A/C 确认最终类/模块归属及 multiplicity；不据逻辑 `[1]` 声称已部署单进程或只有单 worker。 |
 | CS-Q02 图片读取与标签存储 | 图明确 required boundary、权限与失败方向。`ImageObservationCapability` 为既有 C3 能力的概念类型；两个附件内部方法尚未命名/冻结。 | A/C 细化只读与写入的不同调用上下文、ID/内容/失败关联；B 确认附件读模型。无任意 URL/path、无 token 交给模型、无客户上传接口冒用。 |
 
-这些选择在候选内已明确，不能因此宣布 F.01 变更被接受；若影响公共字段或消费语义，走原双方审阅与版本处置。Package/Deployment、M-S.01 的完整核验仍需单独补，不因本图有矩形和接口便已完成。
+这些选择在候选内已明确，不能因此宣布 F.01 变更被接受；若影响公共字段或消费语义，走原双方审阅与版本处置。Package/Deployment 已另有候选，M-S.01 的完整核验及前置接受仍待完成，不因本图有矩形和接口便已完成。
 
 | 来源 / 责任 | 当前可证明的材料 | 仍待本人完成 |
 |---|---|---|
-| A：M-S.02 Owner | 本轮组织三图、端口表、走查和与 MA-0.2 的对应；AI 辅助过程明示 | 亲自解释/修订、实际提交与回复 C 意见 |
+| A：M-S.02 Owner | 本轮组织三图、端口表、走查和与 MA-0.3 的对应；AI 辅助过程明示 | 亲自解释/修订、实际提交与回复 C 意见 |
 | B：既有共享设计来源 | docs/02 已记录 PR #8、`cbba595` 的三角色/只读 order/确定性 Ops 来源；本轮保留原 PR 与署名 | 确认当前 UI/API/三目标读模型映射及自己的共享贡献；M-S.03 最终索引仍由 B 整合 |
-| C：风险/来源与指定 Reviewer | 固定 C1/C2/C3 边界及本地 rc.4 候选可定位，不代表 C 已审本图 | 核对 CS-D01/02、完整 Risk 输入、来源分类及模型走查，记录实际发现和确认 |
+| C：风险/来源与指定 Reviewer | 固定 C1/C2/C3 边界及本地 rc.5 候选可定位，不代表 C 已审本图 | 核对 CS-D01/02、完整 Risk 输入、来源分类及模型走查，记录实际发现和确认 |
 
-## 6. 十二个静态结构走查
+## 6. 十三个静态结构走查
 
 下面是 AI 对候选图的静态检查记录；连接能够表达必要边界，不证明运行代码会强制执行。人审结果由 C 对确定版本另行填写。
 
@@ -174,6 +182,7 @@ AuditPort 只接收服务建立的非个人事件，不接收 AI 发来的“把
 | MS-T10 通知失败与人工结果 | A23 与 A22 是不同契约；通知回调经 Domain，拒绝/人工可以零操作通知，不能触发 return/label 重放。 | FR-012；UC-03 3d / UC-04 9a |
 | MS-T11 伪造 audit actor/业务写失败 | 第 4 节的观测路径经 Domain 建立 AuditEvent，再用 A07；A06/A07 同事务上下文。AI 不直连 AuditAdapter 或业务 DB。 | FR-011；NFR-003/008/009 |
 | MS-T12 A3 替代/C3 启用 | 核心配置不双派发；A3 必须维持 A21/A22 守卫。C3 只经 A17/D13 读取受限证据，selected optional 不取消。 | OF-001/004；NFR-002/007/009；CS-D03/Q02 |
+| MS-T13 标签确认与制品失败 | A22 原始确认 → D23/A05 → Domain 同事务保存最小 receipt、audit、artifact-only 工作；D24 失败时保留 EXECUTING/no result。恢复先读 receipt，只在当前 G-ARTIFACT 下取回/保存原标签，完整绑定提交才 SUCCEEDED。过期创建批准不授予新效果；已允许删除内容不恢复，人工 outcome 不改写。 | FR-010/011；NFR-004；MA-T20/21；CS-Q02 |
 
 本轮消歧：将 Domain 端口命名为 analysisControl/operationControl，明确结果提交之外的获准读取与 claim/意图请求；sourceReceipt 先是观测，Domain 接受后才可作为 Risk 原始来源；Guard 的调用前置条件与静态连接分开表达；业务审计统一通过确定性写入路径。未给这些场景填写运行测试通过或 C 认可。
 
@@ -181,7 +190,7 @@ AuditPort 只接收服务建立的非个人事件，不接收 AI 发来的“把
 
 ## 7. 复现与接受条件
 
-使用已有本机 Java 与本地 PlantUML 1.2026.8；[官方端口语法](https://plantuml.com/component-diagram)提供方形边界端口的绘制能力，`portin/portout` 在本稿用于排版，P/R 含义以图例和端口表为准。没有发送项目模型到在线渲染服务。JAR/hash 与 Java 路径说明沿用 [MA-0.2 复现说明](12-member-a-model-chain.md#10-复现评审与后续验收)。
+使用已有本机 Java 与本地 PlantUML 1.2026.8；[官方端口语法](https://plantuml.com/component-diagram)提供方形边界端口的绘制能力，`portin/portout` 在本稿用于排版，P/R 含义以图例和端口表为准。没有发送项目模型到在线渲染服务。JAR/hash 与 Java 路径说明沿用 [MA-0.3 复现说明](12-member-a-model-chain.md#10-复现评审与后续验收)。
 
 ```powershell
 java '-Djava.awt.headless=true' -jar tmp/uml-tools/plantuml-1.2026.8.jar -charset UTF-8 -failfast2 -tsvg 'docs/diagrams/shared/*.puml'
@@ -189,13 +198,13 @@ java '-Djava.awt.headless=true' -jar tmp/uml-tools/plantuml-1.2026.8.jar -charse
 
 三个 SVG 是完整可缩放产物；PNG 仅为忽略的本地视觉核验缓存。检查渲染、端口边界、连接两端/类型、图例与文字无重叠；语法通过不等于 UML 语义或课程接受。后续报告应分别放置三幅图和必要端口说明，不能缩成不可读的一张全系统长图。
 
-本轮检查记录（2026-09-07）：3/3 PlantUML 成功渲染，并逐图打开 PNG 检查可读性；57 次端口出现（含外层/展开视图的重复展示）、10 条 delegation 与 19 条 assembly 的端点/作用域及 P/R 对应检查通过，29 条连接全部有契约登记。十二个静态场景可定位；21 份文档、15 个既有 Mermaid 块、178 个本地文件链接检查通过。与 HEAD 比较，89 个 WBS 的 Owner/Reviewer/S/F 不变；新增源文件空白检查及 `git diff --check` 通过。未运行 API/provider/数据库或重复执行无变更的契约测试；静态连接检查不是 UML 元模型或运行权限验证。
+CS-0.1 发布前检查历史（2026-09-07）：3/3 PlantUML 成功渲染，并逐图打开 PNG 检查可读性；57 次端口出现（含外层/展开视图的重复展示）、10 条 delegation 与 19 条 assembly 的端点/作用域及 P/R 对应检查通过，29 条连接全部有契约登记。十二个静态场景可定位；21 份文档、15 个既有 Mermaid 块、178 个本地文件链接检查通过。与 HEAD 比较，89 个 WBS 的 Owner/Reviewer/S/F 不变；新增源文件空白检查及 `git diff --check` 通过。未运行 API/provider/数据库或重复执行无变更的契约测试；静态连接检查不是 UML 元模型或运行权限验证。
 
-- [ ] A 亲自阅读三图及十二场景，修订并解释设计取舍。
+- [ ] A 亲自阅读三图及十三场景，修订并解释设计取舍。
 - [ ] C 对确定的文件版本核对 ports/connectors、完整来源与审计/授权路径；B 确认消费边界及本人共享贡献。
 - [ ] 处置 CS-D01/02/03、CS-Q01/02 及继承的 MA-D/Q，必要时同步 F.01 与共享类；不绕过原 S/F 依赖。
 - [ ] M-S.01 的 Class/Package/Deployment 核验完成后再按原条件接受 M-S.02；本稿不声称补齐前者。
 - [ ] 按组长授权发布实际模型版本，再核验 M-S.02 Jira 映射与回填证据；不以既有 PR/KAN 替代本次发布。
 - [ ] B 按 M-S.03 整合最终全模型索引，三人提供真实贡献与报告/答辩证据；tutor/课程提交按实际规则另行记录。
 
-下一项可继续准备 M-S.01 尚缺的 Package/Deployment 候选及全链一致性材料，同时由原 Reviewer 审阅 MA-0.2 和 CS-0.1。个人链、人审、外部测试资格与运行实现的未决项继续保留；视频仍由组长后续自行录制。
+M-S.01 的 [Package/Deployment 候选](15-package-deployment-models.md)现已补齐两幅源图；接下来核对 Class/Package/Deployment/CS/MA 全链一致性并由原 Reviewer 审阅，不把候选文件齐全当作依赖或人审完成。个人链、外部测试资格与运行实现的未决项继续保留；视频仍由组长后续自行录制。

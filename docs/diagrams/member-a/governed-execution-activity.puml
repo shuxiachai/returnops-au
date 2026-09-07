@@ -21,7 +21,7 @@ else (yes)
 endif
 :A02c Read accepted-request record in trusted\nprincipal / method / route / resource / key scope;
 if (Exact accepted request replay?) then (yes)
-  :A03 Return original receipt;\nno new decision or work;
+  :A03 Reuse accepted fact after auth; if receipt body\nstill readable return original receipt, otherwise\n409 INVALID_STATE / retryable=false after permitted deletion;\nno new write, dispatch or automatic new key; B GET current/history;
   stop
 else (no)
 endif
@@ -73,11 +73,18 @@ while (Approved commands remain unfinished?) is (yes)
   if (Prior successful result exists?) then (yes)
     :A11 Reuse saved effect; advance cursor only;
   else (no)
+    if (Durable label-effect receipt, artifact pending?) then (yes)
+      |Operations / provider ports|
+      :A10b Current G-ARTIFACT and claim permit only\noriginal-label query, retrieval and storage;\nDomain saves full result or retains EXECUTING receipt;\nnever create a new label or classify file failure UNKNOWN;
+      stop
+    else (no confirmed receipt)
+      |API / Domain Service|
+    endif
     if (Prior EXECUTING / UNKNOWN / RECONCILING?) then (yes)
       |Operations / provider ports|
-      :A12 If invocation or query worker is live, yield;\notherwise ask Domain to claim orphan recovery\nand save UNKNOWN then RECONCILING;\nonly after confirmation, query original identity;
+      :A12 Without a confirmed-effect receipt:\nif invocation or query worker is live, yield;\notherwise claim orphan recovery and save UNKNOWN\nthen RECONCILING before querying original identity;
       |API / Domain Service|
-      :A13 Persist validated observation when possible;\nno conclusion or unavailable storage means\nno new dispatch in this work cycle;
+      :A13 Persist validated observation when possible;\nconfirmed label -> durable receipt + EXECUTING artifact work;\ncomplete result only -> SUCCEEDED;\nno conclusion / unavailable storage -> no new dispatch;
       note right
         Query success is reused later.
         Confirmed no effect may allow a
@@ -117,11 +124,27 @@ while (Approved commands remain unfinished?) is (yes)
         and the same single parcel.
       end note
       |API / Domain Service|
-      :A18 Validate business observation and\nsave status/result/error plus audit;
-      if (Confirmed success saved?) then (yes)
-        :A19 Mark this attempt SUCCEEDED;\npreserve the result before advancing;
+      :A18 Validate raw provider observation;\nconfirmed label -> persist original effect receipt,\naudit and artifact-only work in EXECUTING;
+      if (Confirmed label still needs artifact binding?) then (yes)
+        if (Receipt committed and G-ARTIFACT claim held?) then (no)
+          :A18c Retain last durable intent or confirmed receipt;\nno unconfirmed success, new create or invented status;
+          stop
+        else (yes)
+        endif
+        |Operations / provider ports|
+        :A18b Retrieve original content only if needed;\nvalidate PDF/hash/parcel and store scoped label;\nsubmit reference or storage error to Domain;
+        |API / Domain Service|
+      else (return / no-effect failure / uncertainty)
+      endif
+      if (Complete success result available and valid?) then (yes)
+        :A19 Atomically save complete OperationResult,\nSUCCEEDED and audit before advancing;\nlabel result requires saved label_evidence_id;
+        if (Full-result commit confirmed?) then (no)
+          :A19b Retain last durable receipt / intent;\nrecover original result or artifact without a new invoke;
+          stop
+        else (yes)
+        endif
       else (failure / uncertainty)
-        :A20 Confirmed no-effect failure -> FAILED;\nuncertain effect -> UNKNOWN when writable;\nfailed save -> retain durable intent for recovery;
+        :A20 Confirmed receipt but missing artifact -> EXECUTING;\nconfirmed no-effect failure -> FAILED;\nuncertain effect without receipt -> UNKNOWN when writable;\nfailed save -> retain last durable facts, never repeat known effect;
         stop
       endif
     endif
@@ -162,11 +185,11 @@ endif
 stop
 
 legend bottom
-  MA-0.2 candidate for A to validate and C to review; not runtime evidence.
+  MA-0.3 candidate for A to validate and C to review; not runtime evidence.
   Final nodes end this activity invocation, not necessarily the case.
   Only Domain Service commits case/attempt/notification state.
   Every decision saves a receipt atomically; failed/unconfirmed writes
   preserve prior durable facts and require the same HTTP key for recovery.
-  G-DISPATCH, recovery rules and open decisions are defined in docs/12.
+  G-DISPATCH / G-ARTIFACT, recovery rules and open decisions are defined in docs/12.
 endlegend
 @enduml

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://returnops.example/contracts/v1/schemas.json",
-  "title": "ReturnOps AU F.01 wire contract 1.0.0-rc.4",
+  "title": "ReturnOps AU F.01 wire contract 1.0.0-rc.5",
   "description": "Review-ready contract, not an implemented API or a replacement for runtime authorization and state guards. Validate a named $defs schema, never this permissive registry root.",
   "$defs": {
     "Id": {
@@ -2584,7 +2584,8 @@
             }
           }
         }
-      ]
+      ],
+      "description": "EXECUTING also covers a confirmed provider effect whose local label artifact is not yet durably saved. Persist the trusted effect receipt and artifact-only recovery work internally on the original attempt; do not expose result or invoke a new effect. UNKNOWN remains effect uncertainty, not a label-store failure. Only Domain persistence of the complete OperationResult, including label_evidence_id for GENERATE_LABEL, permits SUCCEEDED. These are runtime invariants; the unchanged wire schema validates shape only."
     },
     "NotificationRecord": {
       "type": "object",

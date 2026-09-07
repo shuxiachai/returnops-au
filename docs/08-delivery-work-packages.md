@@ -34,6 +34,8 @@ Owner 以 A 为主。默认映射：`FR-001、FR-006、FR-009、FR-011、FR-012`
 
 F.01 的接口交接材料见 [v1 契约候选与三人验收清单](09-interface-contract-v1.md)。[PR #9](https://github.com/shuxiachai/returnops-au/pull/9) 是 rc.2 与旧文档对齐稿的历史 main 发布，[PR #11](https://github.com/shuxiachai/returnops-au/pull/11) 是 rc.3 发布来源；本轮 rc.4 是 KAN-32 的本地缺陷修订候选，尚未发布或联合接受。发布不表示 F.01 已验收或解除以下开始依赖；不在本表维护实时 Jira 状态。当前提案、技术故障或提案前 OrderLookupBlock 仍是互斥决定目标，非提案目标只允许 MANUAL_HANDLING，不产生批准或退货/标签命令；三目标和本轮修订须按 docs/00 第 4.4 节及 docs/09 的版本/联合验收说明确认。本次未改变 Owner、九功能或依赖关系。
 
+**发布状态补充（2026-09-07）：**上段“rc.4 尚未发布”是准备期记录；rc.4、MA-0.2/CS-0.1 和 F.02 已发布到 PR #11 的 `57d86fe`，具体证据见 [F.02 记录](10-f02-environment-readiness.md)。本轮新增的设计决定、Package/Deployment、身份设计及报告仍是本地候选，见[准备交付记录](reviews/a-preimplementation-readiness-20260907.md)。发布和 CI 不解除 F.01 接受及下面 S/F 条件，本补充不改变任何工作包固定字段。
+
 默认映射：`FR-001～FR-005、FR-007、FR-011、FR-012`，`NFR-002、NFR-004、NFR-005、NFR-007～NFR-009`；`UC-01、UC-01E、UC-02、UC-03、UC-05`；共享 ReturnCase/DecisionPacket Class、领域状态表和案件编排交互。A 实现 Coordinator/Assessment 及编排；C 提供检索、引用核验和独立 Risk；B 提供用户界面。
 
 | ID | Owner | Reviewer | S：开始依赖 | F：完成依赖 | 交付物 | 可验证验收 |

@@ -1,10 +1,14 @@
 # A 个人模型链：精确批准、执行与恢复
 
-> 版本：`MA-0.2`，2026-09-07；**评审候选，未完成人审或运行验收**。Owner A，Reviewer C；对应 [KAN-13](https://lucastaooo.atlassian.net/browse/KAN-13) 与 M-A.01–.06。
+> **rc.5 发布定位（2026-09-07）：**本版交付至 [PR #11](https://github.com/shuxiachai/returnops-au/pull/11)，由包含本说明的实际提交定位。PR 中记录准确 source SHA、CI run 与评审状态；C 复现使用该准确 SHA，不能使用旧 `57d86fe` 或浮动分支。下文“未发布/本地准备”、旧测试和旧哈希是发布前历史；当前提交以 Git 文件内容及 `docs/reviews/rc5-publication-artifacts-20260907.json` 为准。发布不等于 F.01/F.02 接受、B/C 本人审阅/复现或课程提交，Jira 未由此同步。
+
+> 版本：`MA-0.3`，2026-09-07；**本地修正候选，未完成人审或运行验收**。Owner A，Reviewer C；对应 [KAN-13](https://lucastaooo.atlassian.net/browse/KAN-13) 与 M-A.01–.06。
 >
-> rc.3 提交 `90931562f7e8d038b994d8d3ff3b2f289e462643` 是历史起点；MA-0.2 与 F.01 rc.4 对齐候选的评审入口为 [PR #11](https://github.com/shuxiachai/returnops-au/pull/11)。具体 head、提交和评审状态以该 PR 的记录为准；发布不代表本模型或 F.01 已获接受。
+> rc.3 提交 `90931562f7e8d038b994d8d3ff3b2f289e462643` 是历史起点；`57d86fe` 发布的 rc.4/MA-0.2 是本轮修正依据。当前 MA-0.3 对齐 F.01 rc.5 语义候选；评审上下文为 [PR #11](https://github.com/shuxiachai/returnops-au/pull/11)，具体收录内容以其 head/提交为准，不把新本地修改当作已发布、CI 通过或人审接受。
 >
 > 本稿由 AI 辅助起草并静态走查；A 须亲自理解、修订和解释，C 须本人评审。未生成 A 的独立完成声明、C 的认可、tutor 接受或课程提交回执。
+
+当前修正版本与本地检查证据见 [缺陷修正记录](reviews/a-defect-closure-20260907.md)；先前发布与准备记录仅作历史依据。
 
 ## 1. 来源与交付边界
 
@@ -14,7 +18,7 @@ AH-10 原文为：
 
 > Execute only the exact approved simulated action and never perform it twice by accident.
 
-权威来源依次为[产品候选](00-project-definition-v1.md)、[固定归属](07-frozen-work-allocation.md)、[工作包与依赖](08-delivery-work-packages.md)、[AH 与 UC-03/04 规格](05-lab-3-requirement-modelling.md)、[F.01 rc.4 候选](09-interface-contract-v1.md)和[机器契约](../contracts/v1/schemas.json)。共享参照为[类图](diagrams/01-domain-class-diagram.md)、[案件状态图](diagrams/02-state-machine-diagram.md)及[共享顺序图](diagrams/03-sequence-diagram.md)。本稿的 MA-D/MA-Q 仍待明确处置，不因本次版本对齐自动冻结；模型不证明运行代码已实现。
+权威来源依次为[产品候选](00-project-definition-v1.md)、[固定归属](07-frozen-work-allocation.md)、[工作包与依赖](08-delivery-work-packages.md)、[AH 与 UC-03/04 规格](05-lab-3-requirement-modelling.md)、[F.01 rc.5 候选](09-interface-contract-v1.md)和[机器契约](../contracts/v1/schemas.json)。共享参照为[类图](diagrams/01-domain-class-diagram.md)、[案件状态图](diagrams/02-state-machine-diagram.md)及[共享顺序图](diagrams/03-sequence-diagram.md)。本稿的 MA-D/MA-Q 仍待明确处置，不因本次版本对齐自动冻结；模型不证明运行代码已实现。
 
 课程原件已在本地核对，PDF 留在课程目录，未复制入 Git：
 
@@ -33,7 +37,7 @@ AH-10 原文为：
 | M-A.02 | S M-A.01；F F.01 | 第 4 节 UML Activity 源文件与 SVG | 规格自检及 F.01 接受；C 核对守卫、动作、终止语义 |
 | M-A.03 | S M-A.02；F — | 第 5 节 Interaction 两个面板 | 消息、权威写入、调用前检查与恢复顺序得到 C 确认 |
 | M-A.04 | S M-A.03；F — | 第 6 节 OperationAttempt 七态图 | A/C 处置 MA-D01/02、MA-Q01/02；事件/守卫/动作一致 |
-| M-A.05 | S M-A.04；F — | 第 8 节 19 个静态场景及发现处置 | C 对具体图版本实际走查，问题及回复有记录 |
+| M-A.05 | S M-A.04；F — | 第 8 节 21 个静态场景及发现处置 | C 对具体图版本实际走查，问题及回复有记录 |
 | M-A.06 | S M-A.05；F — | 第 9 节报告说明草稿与答辩练习入口 | A 改写并能独立讲解，真实提交/评审/个人贡献证据齐全 |
 
 以上是可并行准备的候选成果，不表示依赖已满足、Jira 已改变或 M-A.01–.06 已 Done。B/C 的个人链仍由本人负责；共享 Composite Structure、Package/Deployment 及全组最终模型索引不在本次个人链中冒充完成。
@@ -60,14 +64,15 @@ AH-10 原文为：
 
 | 名称 | 必须同时成立的条件 / 行为 |
 |---|---|
-| G-REQUEST | 先通过身份、案件访问与格式校验，再按可信 principal + method/route + resource + HTTP key 查已接受请求。相同规范正文返回原回执，不重新验证旧目标为新意图；同 key 不同正文报冲突。新请求再验证当前 case/input/target、版本及决定类型；APPROVE 还需要 AWAITING_APPROVAL、当前 PASS/PASS_WITH_WARNING、服务端 preview、exact scope、适用额度与 expiry。ESCALATE 不能批准；无提案目标只能人工处理。所有决定以原子版本检查提交决定、审计、所需工作和请求回执。 |
-| G-DISPATCH | 重新验证可信原批准与 actor 权限、case/input/proposal/review 绑定、精确命令/参数指纹、额度/expiry、allowlist、独立 provider 资格；当前案件仍处于共享案件机允许该新效果的派发/恢复状态，当前有效 review 仍为 PASS/PASS_WITH_WARNING，已升级或人工收口的残留工作不能续派。先决 command 已成功保存，同 logical command 没有成功效果或其他/历史未决尝试；最后检查仅排除当前 worker 持有效 claim、尚未调用的本次 EXECUTING 保留意图，不能排除其效果已未知的旧调用。已失败工作还需 G-RETRY。必须原子 claim 且调用前意图持久化成功；最终调用边界仍有效，见 MA-Q03。 |
+| G-REQUEST | 先通过身份、案件访问与格式校验，再按可信 principal + method/route + resource + HTTP key 查已接受请求。相同规范正文复用受理事实，不重新验证旧目标为新意图；仅回执正文仍可读时返回原回执。允许删除后返回 409 INVALID_STATE、retryable=false，不新写、不调度、不自动换 key；B 改用当前/历史 GET。同 key 不同正文报冲突。新请求再验证当前 case/input/target、版本及决定类型；APPROVE 还需要 AWAITING_APPROVAL、当前 PASS/PASS_WITH_WARNING、服务端 preview、exact scope、适用额度与 expiry。ESCALATE 不能批准；无提案目标只能人工处理。所有决定以原子版本检查提交决定、审计、所需工作和请求回执。 |
+| G-DISPATCH | 重新验证可信原批准与 actor 权限、case/input/proposal/review 绑定、精确命令/参数指纹、额度/expiry、allowlist、独立 provider 资格；当前案件仍处于共享案件机允许该新效果的派发/恢复状态，当前有效 review 仍为 PASS/PASS_WITH_WARNING，已升级或人工收口的残留工作不能续派。先决 command 已成功保存，同 logical command 没有已确认效果（包括标签制品待完成的 receipt）或其他/历史未决尝试；最后检查仅排除当前 worker 持有效 claim、尚未调用的本次 EXECUTING 保留意图，不能排除其效果已未知的旧调用。已失败工作还需 G-RETRY。必须原子 claim 且调用前意图持久化成功；最终调用边界仍有效，见 MA-Q03。 |
 | G-RETRY | 能证明原调用没有效果、失败类型可重试、预算尚有、无并行 claim/未知效果，且原批准与参数仍有效；然后重走 G-DISPATCH。预算耗尽且尚无已接受人工/拒绝 outcome 才升级案件；否则保留该结果及其案件/通知状态。普通“未找到”或查询服务暂不可见不自动证明无效果。 |
-| G-LOOKUP | 对原案件/尝试有可信读取或恢复权限、provider 查询资格；只有取得查询 claim 的 worker 发起查询。使用保存的原 provider_operation_id 或原 operation_fingerprint；不得重新生成逻辑工作或效果 key。失联的执行/查询先经 claim 恢复并记录未知。原批准过期不阻止独立授权的历史查询，但不能授权新效果。已接受人工/拒绝 outcome 后，查询只更新旧操作事实及审计，保留 outcome、通知身份及 pending/failed/terminal 案件状态。 |
+| G-LOOKUP | 对原案件/尝试有可信读取或恢复权限、provider 查询资格；只有取得查询 claim 的 worker 发起查询。先读已持久化的效果确认 receipt；已有确认事实的标签走 G-ARTIFACT，不因失联重新判为 UNKNOWN。没有可信确认事实的旧执行/查询经 claim 恢复后才记录未知并核实。使用保存的原 provider_operation_id 或原 operation_fingerprint，不生成新效果 key。原批准过期不阻止独立授权的历史查询，也不授予新效果。旧查询保留已接受的人工/拒绝 outcome、通知身份和案件状态。 |
+| G-ARTIFACT | 当前恢复身份对原案件/标签具有受限读取、存储权限，provider 只读资格仍有效；原 attempt/command/provider 配置/parcel/receipt 绑定及 artifact-only claim/代次有效，且内容仍允许保留。只查询/取回/校验/存储原标签，不创建标签、不换 operation_id/key/fingerprint。创建批准的 expiry 不重新授权或阻止这种独立获权恢复；新效果仍完全受 G-DISPATCH 约束。已接受人工/拒绝 outcome 或允许删除的内容不得被恢复过程覆盖/重建。 |
 | G-COMPLETE | 先读当前已接受 outcome 与对应通知。已有 REJECTED/MANUAL_HANDLED 时必须复用其通知并保留结果；旧操作后来成功或仍未知都不能改写它。仅在执行完成仍合法、两个批准命令的有效成功结果及审计已保存且无矛盾未决效果时，原子复核 case/outcome 版本后保存或复用 RETURN_CREATED 通知。领取通知和保存送达均复核当前 outcome/work 身份；已 SENT 则返回原终态不重发。送达后按 NotificationRecord.outcome 互斥选择：RETURN_CREATED 且有效结果仍存→COMPLETED；REJECTED→REJECTED；MANUAL_HANDLED→MANUAL_HANDLED。 |
 | G-INPUT | 客户补充仅来自 AWAITING_INFORMATION 中匹配当前 question_set_id、expected_case_version 及请求内容的合法澄清。AWAITING_APPROVAL/APPROVED 的材料变化只指通过来源、权限、版本检查的受控内部更新；不能推导新的客户编辑/上传 API。Domain 在进一步效果前失效依赖的 proposal/review/approval，并保留历史事实和已接受结果。 |
 
-任何写入失败都保留**最后已持久化的事实**。调用前保存失败不调用；调用后保存失败不能宣称 UNKNOWN 已写入，应凭调用前持久化的 EXECUTING 意图恢复并查询。请求事务结果未知时，用原 HTTP key 查回执，不能假设回滚或另造 key。
+任何写入失败都保留**最后已持久化的事实**。调用前保存失败不调用；调用后先检查可信 receipt，已有标签效果事实就只恢复制品；没有确认事实才凭持久化意图查询原效果，不能宣称 UNKNOWN 已写入。请求事务结果未知时，用原 HTTP key 查回执，不能假设回滚或另造 key。
 
 | 名称 | 在本链中表示什么 | 不能混用为 |
 |---|---|---|
@@ -89,7 +94,7 @@ AH-10 原文为：
 
 A01–A09 是 UC-03 受理；A10–A20 是每个未完成 command 的 UC-04 执行/恢复；A21–A24 是独立通知。A05/A06 的目标复核与写入是原子决定事务；A05 提交未确认时同样使用原 key 恢复，不启动新提案工作。菱形表示分支/合并，循环不表示并行派发；泳道表示责任，业务权威状态只由 Domain Service 写入。
 
-MA-0.2 保留原动作 ID，并在 A21e/f/g 显式分开已有人工/拒绝结果、仍合法的执行完成、无可送达结果三条路径。A23 的终态由当前保存的 outcome 决定；不能仅因两条历史命令成功就写 COMPLETED。
+MA-0.3 保留原动作 ID，并在 A21e/f/g 显式分开已有人工/拒绝结果、仍合法的执行完成、无可送达结果三条路径。A23 的终态由当前保存的 outcome 决定；不能仅因两条历史命令成功就写 COMPLETED。
 
 图中的终止节点结束**本次活动调用**，不意味着案件已到终态。恢复分支可在本次工作周期退出，后续从已保存结果继续。A14b/A16/A16b 的 block 必须有真实绑定及确定“未调用”证据，claim loser 不把别人的 EXECUTING 改为 BLOCKED。
 
@@ -111,7 +116,7 @@ MA-0.2 保留原动作 ID，并在 A21e/f/g 显式分开已有人工/拒绝结�
 
 ![A reconciliation and notification sequence](diagrams/member-a/recovery-notification-sequence.svg)
 
-活跃 EXECUTING/RECONCILING 由原 worker 继续；失联工作经授权回收，先恢复未知再查询。查询确认成功只保存旧效果；确认无效果后的新尝试需另经守卫。无结论继续 UNKNOWN；仅在尚无已接受人工/拒绝 outcome 时，预算耗尽才升级案件。人工处理不更改未知操作为 FAILED，也不阻止有权限的历史查询。
+活跃执行/查询/制品 claim 由原 worker 继续；失联恢复先重读可信 receipt，已确认标签只恢复制品。只有没有确认事实的旧意图才经授权回收、记录未知并查询。查询确认标签效果时先保存 receipt/EXECUTING，再完成附件；完整结果才 SUCCEEDED。确认无效果后的新尝试需另经守卫。无结论继续 UNKNOWN；无已接受人工/拒绝 outcome 时预算耗尽才升级案件。人工处理不将未知操作改为 FAILED，也不阻止当前获权的历史查询/制品恢复。
 
 该面板先读取当前已接受结果；人工/拒绝结果优先沿用 A06/A07 的 outcome 与通知，最终为 MANUAL_HANDLED/REJECTED。只有没有该结果且执行完成仍合法时，才可形成 RETURN_CREATED 通知。历史查询无论确认成功、无效果或仍未知，都不能重开已有结果的案件；此规则不依赖 MA-Q02 的跨批准续派方案，也不伪造 return/label 成功。
 
@@ -121,25 +126,31 @@ MA-0.2 保留原动作 ID，并在 A21e/f/g 显式分开已有人工/拒绝结�
 
 ![A OperationAttempt state machine](diagrams/member-a/operation-attempt-state.svg)
 
-转移读作 `event [guard] / Domain effect`。对象初建 PENDING，意图已持久化且取得调用资格后 EXECUTING。SUCCEEDED、确认无效果的 FAILED、确定未调用的 BLOCKED 结束该次尝试，审计与记录继续保留；最终节点不是删除。UNKNOWN/RECONCILING 不因人工升级或收口而终结；其历史查询转移不改变已接受的案件 outcome 或通知终态。
+转移读作 `event [guard] / Domain effect`。对象初建 PENDING，意图已持久化且取得调用资格后 EXECUTING。MA-0.3 将“已确认标签效果、制品待完成”明确映射为 EXECUTING 的内部子阶段；它与尚未确认效果的调用意图靠可信持久化 receipt 区分，不增加 wire 状态/字段。SUCCEEDED、确认无效果的 FAILED、确定未调用的 BLOCKED 结束该次尝试，不删除原记录；个人正文按保留政策处置，最小非个人完整性与受理/效果关联保留。UNKNOWN 仅为效果未确立，不用于伪装本地文件失败。
 
-状态图使用真实 rc.3 枚举，但转移细节仍是候选设计；JSON Schema 只限制形状，不能证明转移、并发或 at-most-once 性质成立。`save...` 是 Domain 的概念性效果，不是已实现的函数或新增契约操作。
+标签的原始 provider 观察不要求 `label_evidence_id`，也不是公开 OperationResult。Domain 先验证并持久化原 attempt/command/parcel、provider/config/operation ID、最小确认事实与内容/响应 hash、审计及 artifact-only 待办；敏感 bytes/凭据不放普通审计。随后 Operations 在 G-ARTIFACT 下取回/存储原 PDF，Domain 验证受控附件引用后，才原子保存完整 OperationResult 与 SUCCEEDED。公开非成功记录不带 result，可用既有 provider_operation_id 和适用 ErrorEnvelope；完整内部 receipt/工作放受控持久化中，不发明公开 DTO。
+
+存储失败或预算耗尽保留 receipt 与 EXECUTING 待办，可升级案件供人工处理（若已有人工/拒绝结果则保留该结果）。任何新 invoke 都被该确认事实阻断。崩溃恢复先检查 receipt；已有事实不能被 claim 过期变回“效果未知”，没有可信确认事实才按原身份查询。文件写好而结果事务失败时复核已存引用/内容 hash，不重新创建标签；真实内部存储/清理规则仍需实现。所有历史恢复保持已接受的案件 outcome，通知不等待其生成新的执行结果。
+
+状态图使用 rc.5 沿用的七态枚举，但转移细节仍是候选设计；JSON Schema 只限制形状，不能证明转移、并发或 at-most-once 性质成立。`save...` 是 Domain 的概念性效果，不是已实现的函数或新增契约操作。
 
 ## 7. 明确提出的设计选择与待确认点
+
+**具体方案候选：**[AD-0.2 设计决定包](14-member-a-design-decisions.md)与 MA-0.3 / rc.5 一起修正标签原始观测、制品保存及现有状态映射。1-based 尝试序号仍未成为共享契约，MA-Q02/.03 仍有明确运行边界待验证；本次未以修复授权冒充人的技术确认。
 
 | ID | 本稿采用的候选 / 未决问题 | 为什么不能默认为已冻结 | 处置与确认责任 |
 |---|---|---|---|
 | MA-D01 | 一次尝试一个 OperationAttempt。FAILED/BLOCKED 不回 PENDING；符合条件的重试创建新 operation_id，保留旧记录。同一原批准下保留 command、provider key、fingerprint。 | 共享类已有一个 command 多个 attempts 的关系，但 wire 的计数/ID 映射尚未完全解释；这是建模选择，不是 Schema 唯一推导结果。 | A 说明取舍，C 评审；如影响消费者，由 B 确认；通过 F.01 后续处置再冻结。 |
-| MA-D02 | UNKNOWN 表示没有活跃查询的未决效果；RECONCILING 表示查询进行中；无结论/失联查询回 UNKNOWN。 | case 的 RECONCILING 与 attempt 的查询阶段不同；状态枚举未独自规定查询生命周期。 | A/C 确认 phase、claim 回收与重试预算；失联阈值仍是运行设计待定项。 |
+| MA-D02 | UNKNOWN 表示没有活跃查询的未决效果；RECONCILING 表示查询进行中；无结论/失联查询回 UNKNOWN。已持久化标签确认 receipt 的制品阶段留在 EXECUTING，不适用未知效果回退。 | case 的 RECONCILING 与 attempt 的查询阶段不同；状态枚举未独自规定查询生命周期。 | A/C 确认 phase、claim 回收与重试预算；失联阈值仍是运行设计待定项。 |
 | MA-Q01 | `attempt_id` / `attempt_number`（共享类概念）与 `operation_id` / `attempt_count`（wire）的映射及计数含义。 | 不能同时把 attempt_count 当单对象重试次数与新尝试序号。本图不指定递增规则。 | A 提出唯一映射，C 核对审计/评测，B 核对展示；修改共享类或契约须明确版本处置。 |
 | MA-Q02 | 原批准失效后，如何把新批准的 fingerprint 与原逻辑效果/provider key 关联。 | fingerprint 包含 approval_id；换批准就变，不能声称“换批准后 fingerprint 仍不变”。旧成功/未知效果必须保留。 | 当前图不允许跨批准自动续派；A/C 先定义新批准映射及 provider 防重能力，之后再进入实现验收。 |
 | MA-Q03 | 最后守卫检查与真实 provider 调用之间如何防止版本/权限竞争。 | 在图中多写一次检查不能证明原子性；必须明确提交/调用的有效时点、锁/claim/版本或其他并发策略及故障恢复。 | A 在 A2 运行设计中落实，C 用并发/过期/故障场景验证。当前是必要守卫与待实现约束，非已证明性质。 |
 
 MA-D01/02 可供 A/C 审阅本链；尚未确认前不把涉及其选择的走查记为正式验收。MA-Q02/03 不授权绕过守卫，也不能因难以实现就放宽 AH-10 的目标。
 
-## 8. M-A.05：19 个静态走查场景
+## 8. M-A.05：21 个静态走查场景
 
-本节记录的是 AI 对 `MA-0.2` 规格与源图的静态走查，**没有启动 API、数据库或 provider，没有 C 人审结果**。原 MA-T01–15 保留，新增 MA-T16–19 为缺陷回归。定位以稳定动作 ID、状态事件和 Sequence 分支文字为准，自动消息编号会随修订变化。
+本节记录的是 AI 对 `MA-0.3` 规格与源图的静态走查，**没有启动 API、数据库或 provider，没有 C 人审结果**。原 MA-T01–19 保留，追加 MA-T20/21 覆盖标签制品失败及崩溃恢复。定位以稳定动作 ID、状态事件和 Sequence 分支文字为准，自动消息编号会随修订变化。
 
 | ID / 情境 | 实际图上路径及禁止行为 | 规格追踪 | 当前记录 |
 |---|---|---|---|
@@ -148,20 +159,22 @@ MA-D01/02 可供 A/C 审阅本链；尚未确认前不把涉及其选择的走�
 | MA-T03 修改 / ESCALATE | A04 拦截直接批准 ESCALATE；A05 合法 revision→新 proposal 与独立 review；旧批准不延续。 | UC-03 3b/4d；FR-008/009/010 | 静态路径已核对。 |
 | MA-T04 决定与派发各自守卫 | A02b/A04 拒绝无效新意图；A14b/A16b 在调用前拒绝工作；有真实绑定才可 BLOCKED，无批准不造 DTO。 | UC-03 4a–4d；UC-04 1a/2a/3a；FR-009/010/011 | 修正先写 EXECUTING 的歧义后路径已核对。 |
 | MA-T05 两类无提案人工目标 | 当前 technical failure 或 CONFLICT/AUTHORITY_DENIED lookup block 二选一→A06/A07；MANUAL_HANDLED，不造提案/PASS/approval/操作。 | UC-03 1a/3c；FR-003/009/011/012 | 静态路径已核对；所依 rc.3 仍待联合接受。 |
-| MA-T06 过期/混合目标与重放 | 新请求混合目标/错误 case/input→A02b/A04；既有相同正文已接受请求→A03；同 key 不同正文→A03b。旧回执不使旧目标变当前。 | UC-03 1b；F.01 幂等；FR-009/011；NFR-002/004 | 补显式冲突分支后路径已核对。 |
+| MA-T06 过期/混合目标与重放 | 新请求混合目标/错误 case/input→A02b/A04；既有相同正文已接受请求→A03：仍可读才原回执，允许删除后 409 INVALID_STATE / retryable=false，无新写/调度/换 key；B GET 当前/历史。同 key 不同正文→A03b。旧回执不使旧目标变当前。 | UC-03 1b；F.01 幂等；FR-009/011；NFR-002/004 | 补显式冲突分支后路径已核对。 |
 | MA-T07 并发领取 / 重投 | A10–A16 原子 claim；loser 退出不改 winner；已成功 A11；活跃执行/查询 yield；未知进入恢复。 | UC-04 5a；FR-010/011；NFR-004 | 模型边界已核对；MA-Q03 待运行设计与验证。 |
 | MA-T08 部分成功 | return 结果 A11 复用；只恢复未完成 label，使用已存 provider return ID/parcel；不重复 return 或双用 core/A3。 | UC-04 6b/6d；FR-010/011/012 | 候选路径已核对；涉及新尝试时待 MA-D01。 |
 | MA-T09 明确无效果后重试 | 旧 FAILED 终结；G-RETRY + G-DISPATCH→新 operation_id；同批准下保留 command/key/fingerprint。不擅自解释 attempt_count。 | UC-04 6a/6c；FR-010/011 | 候选路径待 MA-D01 / MA-Q01 确认。 |
-| MA-T10 查询确认旧成功 | EXECUTING→UNKNOWN→RECONCILING→SUCCEEDED；保存原结果，无新效果。过期批准不阻止独立授权查询。 | UC-04 6d；FR-010/011 | 静态路径已核对。 |
+| MA-T10 查询确认旧成功 | 无可信 receipt 的旧意图经 UNKNOWN→RECONCILING；完整原结果才 SUCCEEDED，标签缺制品则先存 receipt/EXECUTING 再恢复。过期批准不阻止独立授权查询，不产生新效果。 | UC-04 6d/7b；FR-010/011 | 静态路径已核对。 |
 | MA-T11 查询确认无效果 | UNKNOWN→RECONCILING→FAILED；后续符合原批准及 G-RETRY 才可新尝试；“未找到”不自动等于无效果。 | UC-04 6a/6d；FR-009/010/011 | 查询路径已核对；重试待 MA-D01，跨批准列 MA-Q02。 |
 | MA-T12 无结论 / 查询失联 | RECONCILING→UNKNOWN；活跃查询 yield，失联 claim 回收；无已接受人工/拒绝 outcome 时预算耗尽升级 case，未知 attempt 不终结。 | UC-04 6c/6d；FR-010/011/012 | 补 RECONCILING 恢复及 outcome 优先边界；候选 phase 待 MA-D02 确认。 |
 | MA-T13 决定事务失败 | A09/A06b 及 Interaction 各决定的 commit break；不报告受理、不派发未提交工作；按原 key 恢复。 | UC-03 5a；FR-009/010/011；NFR-004 | 补各决定的原子回执与失败路径后已核对。 |
-| MA-T14 provider 后本地保存失败 | A18/A20 保留最后 durable EXECUTING；恢复后查询旧身份再存结果，不能宣称 UNKNOWN 已写入、直接重试或派发依赖命令。 | UC-04 7a/6d；FR-010/011；NFR-004 | 静态路径已核对。 |
+| MA-T14 provider 后本地保存失败 | A18/A20/A19b 保留最后 durable 事实；先重读receipt，有确认事实仅恢复制品，无确认事实才查询旧身份。不能宣称 UNKNOWN 已写入、直接重试或派发依赖命令。 | UC-04 7a/6d；FR-010/011；NFR-004 | 静态路径已核对。 |
 | MA-T15 通知失败 | A24 / Interaction b 只恢复通知；SUCCEEDED 不变。拒绝/人工沿 A07，送达后使用对应终态。通知写入失败保留旧持久化状态。 | UC-04 9a；UC-03 3d；FR-010/011/012 | 静态路径已核对。 |
 | MA-T16 人工通知待发送时旧 label 确认成功 | return SUCCEEDED、label UNKNOWN→预算耗尽 ESCALATED→Founder 接受 MANUAL_HANDLING，通知 PENDING→历史查询确认 label SUCCEEDED。Interaction b 人工优先分支 / A21e 必须保持原 outcome、notification_id/key，更新旧 attempt/audit；只发送该人工通知，A23→MANUAL_HANDLED。禁止 RETURN_CREATED 通知、COMPLETED 或新操作。 | UC-03 3e；UC-04 6e；UC-05 3a；FR-009/010/011/012 | 修复旧“双方成功即 COMPLETED”路径；候选静态回归已核对。 |
 | MA-T17 人工终态后的历史查询 | 已 MANUAL_HANDLED 且原通知 SENT、历史 label UNKNOWN；授权查询分别确认成功或仍未知并耗尽预算。前者只保存 SUCCEEDED/result/audit，后者保留 UNKNOWN/audit；两者都保留案件 MANUAL_HANDLED、原 SENT 和通知身份，无 RECONCILING/ESCALATED 重开、无重发或新效果。 | UC-04 6c/6e；UC-05 3a；FR-009/011/012 | Interaction b 升级条件和已 SENT break、共享状态规则已核对。 |
 | MA-T18 拒绝结果不被旧效果覆盖 | 已有历史 return/label 成功，当前合法提案收到 REJECT 且通知 FAILED；恢复流程读到两条成功记录。A21e 复用原 REJECTED outcome 和通知；仅该通知可重试，送达后 REJECTED。领取/回写时若 outcome/work 身份不再匹配则不写终态。 | UC-03 3a/3d/3e；UC-05 3a；FR-009/011/012 | 静态结果映射与绑定复核已核对；并发原子实现仍待运行验证。 |
 | MA-T19 合法新材料入口 | 客户在 AWAITING_APPROVAL/APPROVED 无当前问题集，或在 AWAITING_INFORMATION 提交旧 question_set/version：不接受新输入、不启动分析。当前问题集的合法澄清可追加；受控内部订单快照须来源/权限/版本校验并失效依赖批准，保留旧效果。未增加公共上传路由。 | UC-01E 2b；共享 state 新材料守卫；FR-002/009/011 | 共享 Sequence 澄清 break 与 G-INPUT 已核对；不构成已实现 API 证明。 |
+| MA-T20 标签已生成但本地存储失败 | A18 保存原效果 receipt 与 artifact-only 工作；A18b 失败后 A20 保留 EXECUTING、原 provider ID，无 result。A10b 恢复只取回/保存原标签，完整绑定后才 SUCCEEDED；不得产生第二次 GENERATE_LABEL。 | UC-04 7b；FR-010/011；NFR-004；G-ARTIFACT | MA-0.3 静态路径；需真实存储故障与 provider 效果计数验证。 |
+| MA-T21 receipt 提交/进程崩溃与批准过期 | receipt 已持久化后崩溃，即使创建批准过期，当前获权恢复只取回/保存原内容；无恢复权限则保留事实而不读取。receipt 提交未知先重读，确无可信记录才查询原效果；结果事务失败由 A19b 保留事实，不新建 attempt/key。 | UC-04 7a/7b；FR-010/011；NFR-002/004；MA-Q03 | 当前恢复身份/claim、旧确认事实、七态与完整 payload 分别检查，非运行证明。 |
 
 本轮静态检查发现并修正：活动图先检查后才允许 EXECUTING；补已有 RECONCILING 的活跃/失联处理；为非 APPROVE 决定补原子 request receipt、提交失败及受理响应；为活动图补同 key 不同正文冲突、鉴权先行。另将 FAILED 明确为确认无效果、补调用前最后守卫，明确允许的案件状态/当前 passing review，排除最终检查对本 worker 尚未调用的 reservation 的自我阻塞，保持 Domain 唯一写入，并区分持久化失败与已保存 UNKNOWN。通知组补已 SENT 重放、提交/claim 未确认禁止发送。这些是本稿内部修订，不是 C 的评审记录。
 
@@ -171,7 +184,7 @@ MA-0.2 另外修复历史操作结果覆盖已接受人工/拒绝结果的终态
 
 以下可供 A 改写，不可直接用作“我已经独立实现/测试”的贡献证明：
 
-> A's model chain starts from AH-10 and UC-04, with UC-03 as its approval boundary. The activity model separates decision admission, guarded command execution, recovery and notification. The interaction model assigns authoritative writes to Domain Service and permits provider effects only after exact-scope checks and durable work admission. The OperationAttempt state machine distinguishes confirmed success, confirmed no-effect failure and unresolved effects. An uncertain outcome is queried using its original identity before any retry decision; notification recovery cannot replay a successful return or label. Historical observations preserve an accepted manual or rejection outcome and its notification. These are MA-0.2 candidate models aligned with F.01 rc.4, not evidence of implemented runtime guarantees. Attempt identity/counting, cross-approval recovery and concurrent authorisation enforcement still require explicit decisions and verification.
+> A's model chain starts from AH-10 and UC-04, with UC-03 as its approval boundary. The activity model separates decision admission, guarded command execution, recovery and notification. The interaction model assigns authoritative writes to Domain Service and permits provider effects only after exact-scope checks and durable work admission. The OperationAttempt state machine distinguishes confirmed success, confirmed no-effect failure and unresolved effects. An uncertain outcome is queried using its original identity before any retry decision; notification recovery cannot replay a successful return or label. Historical observations preserve an accepted manual or rejection outcome and its notification. A confirmed label awaiting its local artifact remains EXECUTING with a durable effect receipt; recovery cannot create another label. These are MA-0.3 candidate models aligned with F.01 rc.5, not evidence of implemented runtime guarantees. Attempt identity/counting, cross-approval recovery and concurrent authorisation enforcement still require explicit decisions and verification.
 
 A 自查讲解时按三个例子展开：正常的 return→label→通知；return 已成功但 label 超时且本地保存失败；无提案订单阻断下的人工处理。每个例子指出 AH/UC 来源、图上路径、状态写入者、禁止行为及当前缺少的实测证据。
 
@@ -200,10 +213,10 @@ MA-0.2 发布前本地验证记录（2026-09-07）：当时修改的 Activity、
 正式接受仍需：
 
 - [ ] A 阅读并亲自修订本链，记录个人理解、选择和实际贡献。
-- [ ] C 对确定的源文件版本实际走查 MA-T01–19，记录发现、回复与认可。
+- [ ] C 对确定的源文件版本实际走查 MA-T01–21，记录发现、回复与认可。
 - [ ] A/C 处置 MA-D01/02 与 MA-Q01/02；影响 wire/UI 时同步 B，保留 F.01 版本决定。
 - [ ] F.01 与原 M-A S/F 依赖达到相应验收条件；MA-Q03 转入可验证运行设计，不能在模型阶段报已证明。
 - [ ] 在 PR #11 标注确定的模型提交和实际评审记录，再回填 KAN-13 证据；PR 存在或 Jira 状态本身不代表模型接受。
 - [ ] A 的个人报告/讲解材料与图版本一致；B/C 各自链及共享 Composite 等按原 Owner/Reviewer 继续补齐。
 
-下一步先由 A 阅读三个讲解场景并形成自己对 MA-D01/02 的解释，再交 C 审阅可定位版本。[CS-0.1 共享复合结构候选](13-shared-composite-structure.md)已补出对应 ports/connectors，正式验收仍遵循原依赖；Package/Deployment 及全组模型索引继续按原 Owner 推进。视频按组长已有安排后续自行录制，不作为本轮模型推进的前置条件。
+下一步由 A 对照 [AD-0.2](14-member-a-design-decisions.md)形成自己的选择和三个场景解释，再交 C 审阅可定位版本。[CS-0.2](13-shared-composite-structure.md)与 [Package/Deployment 候选](15-package-deployment-models.md)已提供共享对应，正式验收仍遵循原依赖，全组最终模型索引仍由 B 整合。[个人报告草稿](reports/member-a-stage1-draft.md)可供 A 改写并核实真实贡献；视频按组长安排后续录制，不作为当前准备工作的前置条件。

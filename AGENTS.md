@@ -1,5 +1,36 @@
 # Agent Context & Persistent Memory
 
+> **rc.5 publication reference (2026-09-07):** this revision is delivered through [PR #11](https://github.com/shuxiachai/returnops-au/pull/11), identified by the actual commit containing this notice. The PR records the exact source SHA, CI runs and review state; C must reproduce that SHA, not old `57d86fe` or a floating branch. Local-only/unpublished wording, test runs and raw-file hashes below are pre-publication history. Current Git content is recorded in `docs/reviews/rc5-publication-artifacts-20260907.json`. Publication does not establish acceptance, B/C review, C reproduction or a Jira update.
+
+## Latest local defect correction — 2026-09-07
+
+The lead authorised fixing six reviewed defects. Read [A-FIX-0.1](docs/reviews/a-defect-closure-20260907.md) before the older snapshots: local F.01 rc.5 / MA-0.3 / CS-0.2 / AD-0.2 / PD-0.2 / F03-D0.2 supersede the earlier local candidates. Changes cover deleted-receipt replay, durable known-label/artifact recovery, EXECUTING vocabulary, Composite connector parsing, proxy-independent Compose healthcheck and pinned local Docker context in the C reproduction packet. Wire shapes, seven operation states, fifteen routes, nine-feature ownership and 89 WBS dependencies stay unchanged; the 1-based count proposal is not adopted. HEAD remains 57d86fe and these fixes are uncommitted/unpublished. Existing PR #11/CI cover rc.4 only; no merge, Jira write, member signature, business implementation or F.01/F.02 acceptance occurred. C needs a future exact published fix SHA to reproduce. Earlier A-PREP hashes are historical; use the new correction manifest for current bytes.
+
+
+## Latest local preparation — 2026-09-07
+
+The lead requested completion of the ordered A preparation tasks. Read
+[A-PREP-0.1](docs/reviews/a-preimplementation-readiness-20260907.md): new
+AD-0.1 decisions, PD-0.1 Package/Deployment, F.03 authorization design,
+A3 feasibility, C reproduction packet and A report draft are local candidates.
+Existing rc.4 / MA-0.2 / CS-0.1 wire/behavior artifacts remain unchanged.
+The shared-model checker now selects only `*-composite.puml` for CS parsing;
+all nine PUML/SVG pairs remain covered. No F.01 acceptance or business API
+implementation, personal human review, commit/push/merge or Jira write occurred.
+HEAD remains `57d86fe`; the working tree is now dirty with these new materials.
+
+Live read-only checks found PR #11 open at that head, no reviews, four successful
+existing CI checks; main remains `9eb7b0b`. Jira KAN-32 still describes rc.2/PR #9;
+KAN-14 only references F.02 as a dependency, so F.02's actual delivery key is
+still unverified. The lead supplied Canvas course 74323: report 695832 and video
+695833 both display Oct 4, 2026 23:59, locked until Sep 20 0:00; timezone and
+locked upload rules are not visible. Canvas shows 25/5 points versus local
+15/15 report/presentation-interview materials: seek clarification, do not remove
+interviews. The lead explicitly says the team has no Australia Post/StarTrack
+contract or test account; A3 access is unavailable today. Shippo is only a
+public-documentation investigation direction, not an approved replacement.
+Root handover files remain local; earlier snapshots below are historical.
+
 > **Course**: USYD ELEC5620 Model-Based Software Engineering (Semester 2, 2026)  
 > **Course Root**: `d:/AAA树下/硕士/26S2/5620`  
 > **Project Repository**: `d:/AAA树下/硕士/26S2/5620/assignment/returnops-au`  

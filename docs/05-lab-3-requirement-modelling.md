@@ -10,7 +10,7 @@
 > modelling artefact. This revision and individual contributions still require
 > peer/tutor review; historical completion is not current acceptance. The
 > rc.2 alignment was published in [PR #9](https://github.com/shuxiachai/returnops-au/pull/9).
-> The current `1.0.0-rc.4` contract/model review candidate for
+> The current `1.0.0-rc.5` contract/model review candidate for
 > [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32) uses
 > [PR #11](https://github.com/shuxiachai/returnops-au/pull/11) as its review entry;
 > check that PR for the actual head and reviews. rc.3 is an earlier candidate,
@@ -494,8 +494,11 @@ Extension and failure scenarios:
   succeeds, the terminal state is `MANUAL_HANDLED`, not simulated completion.
 - **1b - Missing, mixed, stale or wrong-case no-proposal target:** reject the
   new decision without a state change or new work. A prior accepted request
-  replay may return its original receipt under the same idempotency rule;
-  this does not make a historical target valid for a new decision.
+  replay first requires current authentication/access and reuses its acceptance
+  fact: return the original receipt only while its body remains readable. After
+  permitted deletion return 409 INVALID_STATE/retryable=false, with no new write,
+  scheduling or automatic new key; B reads current/history views. This does not
+  make a historical target valid for a new decision.
 
 ### 4.7 UC-04 - Execute approved simulated action
 
@@ -522,13 +525,19 @@ Main success scenario:
    allowlist; only simulated return and parcel-label operations are eligible.
 4. Domain Service persists typed commands and operation-attempt records with
    stable idempotency keys, provider IDs and operation fingerprints.
-5. The dispatcher checks stored results; a succeeded command is not repeated,
-   and an unknown attempt must be reconciled before any dispatch decision.
+5. The dispatcher checks stored results and confirmed-effect receipts first.
+   A succeeded command is not repeated; a confirmed label awaiting its artifact
+   uses G-ARTIFACT only. Without a receipt, query an unknown/orphaned attempt
+   before considering another dispatch.
 6. Operations Service invokes the provider only for authorised unfinished work.
    One case may include several line items from one order, but one shipment
    produces one label. Core mock and A3 providers are alternatives, not two effects.
-7. Domain Service validates and stores the typed business result/error and audit
-   event. HTTP success alone does not establish business success.
+7. Domain validates the original provider observation; HTTP success alone is
+   insufficient. A confirmed label observation is not OperationResult: Domain
+   first saves its minimal original effect receipt, audit and artifact-only work.
+   Operations stores the original label under current G-ARTIFACT authority; only
+   a validated label_evidence_id and full result committed with audit permit
+   SUCCEEDED. Pending artifact work uses existing EXECUTING without result.
 8. When all approved return/label results are stored and execution completion
    remains eligible, Domain Service atomically rechecks the current case and
    accepted outcome before persisting/reusing `RETURN_CREATED` notification
@@ -548,8 +557,11 @@ Extension and failure scenarios:
   provider call and record `BLOCKED_NO_APPROVAL` or an equivalent typed result.
 - **3a - Provider authority denied or command not allowed:** block before any
   effect, record a typed denial and display it; approval does not imply provider permission.
-- **5a - Duplicate request:** return the prior result without another provider
-  call.
+- **5a - Duplicate request:** reuse stored acceptance/effect facts without a new
+  provider invocation. For HTTP replay, authenticate/authorise first; return the
+  original receipt only while readable, otherwise after permitted deletion return
+  409 INVALID_STATE/retryable=false. Do not write/schedule or automatically change
+  keys; B reads current/history. Original artifact recovery is not a second effect.
 - **6a - Definite failure/no effect:** record `FAILED` and `ACTION_FAILED`;
   revalidate approval/authority and retry only if retry policy allows it, using
   the same command key and unchanged parameters.
@@ -572,8 +584,21 @@ Extension and failure scenarios:
   `COMPLETED`. If already sent, retain the terminal state with no resend; if
   lookup remains unknown, preserve uncertainty without reopening/escalating the
   closed outcome. A new effect still requires current dispatch authority.
-- **7a - Provider success but local persistence failed:** reconcile the existing
-  attempt before further work; do not assume the external effect failed.
+- **7a - Provider success but local persistence failed:** reread durable receipt
+  and original intent first. A confirmed-label receipt selects artifact recovery,
+  never a new invoke or UNKNOWN due to file failure. Without reliable confirmation
+  (including an unconfirmed receipt commit), query only the original provider
+  identity; do not claim the external effect failed or a new status was saved.
+- **7b - Label generated but artifact missing or storage fails:** retain the
+  confirmed original effect receipt, audit and artifact-only work in EXECUTING,
+  with no incomplete OperationResult. Current recovery identity/access, original
+  binding, claim, provider read permission and retention govern query/retrieve/store
+  of that label only. Expired creation approval does not grant new effect authority
+  or block this independently authorised read/store work. A saved file with unknown
+  result commit is verified/reused, never recreated; full label_evidence_id/result
+  and audit must commit before SUCCEEDED. Preserve receipt/EXECUTING on failure;
+  bounded exhaustion uses 6c without rewriting accepted manual/rejection outcome.
+  Never restore deliberately deleted content or issue a second GENERATE_LABEL.
 - **9a - Notification failure after return/label success:** keep
   `NOTIFICATION_PENDING/NOTIFICATION_FAILED`, retry notification independently,
   and never repeat an operational command.
@@ -681,7 +706,7 @@ passage/citation capacities and analytics denominators. It added a separate
 pre-proposal order-lookup block target and aligned the public idempotency header
 with the shared identifier boundary. Actual state, authority, source-integrity
 and aggregation guards still need implementation. Joint B/C contract/model
-review of the current [F.01 `1.0.0-rc.4` candidate](09-interface-contract-v1.md)
+review of the current [F.01 `1.0.0-rc.5` candidate](09-interface-contract-v1.md)
 at the exact reviewed PR head is pending; historical rc.2/rc.3 evidence does not establish that acceptance,
 and no schema test authorises a fabricated proposal or technical error.
 
@@ -720,7 +745,7 @@ original version and contributor record.
   use-case specifications and three individual behaviour models; shared class
   and complex-structure work also needs recorded participation from all three.
 - [x] The earlier rc.2 alignment was published in PR #9, with B/C review requests.
-- [ ] The `1.0.0-rc.4` candidate and its three decision targets receive
+- [ ] The `1.0.0-rc.5` candidate and its three decision targets receive
   B/C contract/model review at the exact reviewed PR head; original authorship remains attributable.
 - [ ] Tutor feedback is recorded and dispositioned; the published revision
   receives current peer review and the required adoption evidence.

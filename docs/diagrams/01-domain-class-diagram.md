@@ -3,7 +3,7 @@
 > **Status:** Shared design candidate synchronised to [docs/00](../00-project-definition-v1.md)
 > and the [frozen allocation](../07-frozen-work-allocation.md). Implementation and
 > team/tutor acceptance remain separate evidence.
-> **Revision:** `1.0.0-rc.4` review candidate for [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32), not accepted. [PR #11](https://github.com/shuxiachai/returnops-au/pull/11) is the review entry; check its actual head and reviews. rc.3 is an earlier candidate; [PR #9](https://github.com/shuxiachai/returnops-au/pull/9) preserves the rc.2 publication history.
+> **Revision:** `1.0.0-rc.5` review candidate for [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32), not accepted. [PR #11](https://github.com/shuxiachai/returnops-au/pull/11) is the review entry; check its actual head and reviews. `57d86fe` published rc.4 is the prior review snapshot; rc.3 is an earlier candidate; [PR #9](https://github.com/shuxiachai/returnops-au/pull/9) preserves the rc.2 publication history.
 > **Traceability:** FR-001–FR-012; NFR-001–NFR-009; UC-01/01E–UC-05;
 > M-S.01 and the three personal chains in [docs/08](../08-delivery-work-packages.md).
 
@@ -357,10 +357,10 @@ block cannot coexist with a current proposal, review or preview. The resolved
 target may remain visible during notification and manual terminal-state reads,
 but cannot authorise another decision. Earlier targets stay in audit history;
 historical approvals, successful operations and unknown effects remain intact.
-The [F.01 rc.4 candidate](../09-interface-contract-v1.md) defines these bindings,
+The [F.01 rc.5 candidate](../09-interface-contract-v1.md) defines these bindings,
 pending joint review; runtime current-state and authority checks remain required.
 
-### Historical read boundary and completion constraints (rc.4 candidate)
+### Historical read boundary and completion constraints (rc.5 candidate)
 
 `HistoryRecord/ActorProvenance/HistoryReference` represent the typed history
 contracts, not a generic arbitrary-object store. Founder history resolves old
@@ -379,7 +379,7 @@ cannot overwrite manual/reject outcomes, reopen terminal cases or create new
 execution notifications. New customer evidence binds only during creation or
 current valid clarification. Other material changes are controlled internal
 version updates subject to state/in-flight-effect guards, not a new customer
-append API. These constraints align the MA-0.2 candidate and shared state/sequence
+append API. These constraints align the MA-0.3 candidate and shared state/sequence
 models; they do not implement the corresponding runtime service.
 
 ## 2. Services and replaceable interfaces
@@ -490,7 +490,7 @@ universal input/output DTO: each role returns its own typed result. Risk receive
 the complete `RiskReviewRequest`, including original evidence, order facts,
 the original accepted `retrieval_result` with all conflicts, and citation checks
 through the controlled orchestration boundary, never the generator's hidden
-reasoning. Its result is the rc.4 `RiskReview` DTO. Domain Service validates and
+reasoning. Its result is the rc.5 `RiskReview` DTO. Domain Service validates and
 records that DTO in the conceptual `ProposalReview` lifecycle shown above;
 `ProposalReview` is not a second return schema. A3 may add an
 independently verified test adapter behind ReturnsLogisticsPort without changing
@@ -498,7 +498,7 @@ these authority rules.
 
 Material components submit correlated events through the deterministic service
 and its Audit Port. This class view specifies dependencies, not runtime ports,
-instances and connectors: the [CS-0.1 Composite Structure](../13-shared-composite-structure.md)
+instances and connectors: the [CS-0.2 Composite Structure](../13-shared-composite-structure.md)
 is a separate M-S.02 candidate and still requires human review. The API and both UIs consume Domain Service and its
 authorised read models; none is another writer of workflow state.
 
@@ -506,7 +506,7 @@ authorised read models; none is another writer of workflow state.
 
 The signatures above are design-time operation contracts, not implemented Python
 methods or additional HTTP routes. Named DTOs below use the existing
-[rc.4 definitions](../../contracts/v1/schemas.json). Lower-case parameters such
+[rc.5 definitions](../../contracts/v1/schemas.json). Lower-case parameters such
 as `case_input`, `trusted_context`, `work_context`, `current_records`,
 `transaction_context`, `provider_observation` and `delivery_observation` are
 descriptions of internal arguments/results; they are **not new wire DTOs**.
@@ -528,21 +528,33 @@ permitted evidence fields and version references.
 | Assessment `assess_case` | Read-only statements/evidence, accepted order lookup, criterion material and complete accepted `RetrievalResult`; returns `DecisionPacket`. | A validates current case/input/source bindings; original retrieval remains available independently of the generator. No approval/command is returned. Invalid output is rejected with bounded recovery; a technical failure is not a fabricated business Risk outcome. |
 | Reviewer `review_independently` | `RiskReviewRequest → RiskReview`, exactly as C2 in F.01. | Separate C-owned invocation; the original retrieval conflicts, citation checks and independent evidence must survive the hand-off. `PASS/PASS_WITH_WARNING/REVISE/NEEDS_INFORMATION/ESCALATE` are business outcomes, not exception fallbacks. Domain Service checks current bindings before updating the `ProposalReview` lifecycle. |
 | Orchestrator `run_bounded_analysis` | Case ID plus current permitted work context; returns after submitting typed results/errors to Domain Service. | A enforces a machine-round budget and only invokes the three agreed roles/ports. `void` means no returned wire payload, not that work succeeded. It cannot persist case transitions, create trusted approvals or reach operational providers; stale work is rejected or safely stopped. |
-| Domain `accept_statement` | Validated `CreateCaseRequest` or addressed `ClarificationRequest` plus trusted request context; returns the accepted `ReturnCase`. The API projects the existing `CustomerCaseView` response. | Verify customer/resource and evidence ownership; preserve the original, append clarification, enforce expected version and request replay. The same accepted request returns its prior receipt; mismatched content or invalid references create no duplicate case/work. Persistence failure cannot be reported as acceptance. |
+| Domain `accept_statement` | Validated `CreateCaseRequest` or addressed `ClarificationRequest` plus trusted request context; returns the accepted `ReturnCase`. The API projects the existing `CustomerCaseView` response. | Verify customer/resource and evidence ownership; preserve the original, append clarification, enforce expected version and request replay. The same accepted request reuses acceptance: return its original receipt only while readable; after permitted deletion return 409 INVALID_STATE/retryable=false, without new writes/work or automatic new key. B reads current/history views. Mismatched content or invalid references create no duplicate case/work. Persistence failure cannot be reported as acceptance. |
 | Domain `validate_and_store_analysis` / `transition_if_valid` | One concrete typed result (`CoordinatorResult`, `OrderLookupResult`, `DecisionPacket` or `RiskReview`) or an actual typed processing error, with expected versions; returns the guarded aggregate. | These are internal overloads, not a public generic result/state endpoint. Validate role/source, shape and bindings; distinguish an accepted pre-proposal lookup block from technical `ProcessingFailure`; preserve old effects when input changes. Reject illegal transitions or stale results. No caller supplies the new authoritative state. |
 | Domain `record_founder_decision` | `FounderDecisionRequest` and trusted Founder/request context for the addressed case; returns `DecisionReceipt`. | Reload current records and require exactly one proposal/failure/block target. Only a current eligible proposal may create an `ApprovalRecord`; failure/block targets permit only `MANUAL_HANDLING`. Persist decision, business audit and appropriate work atomically. A receipt acknowledges acceptance, not delivery/effect success; no-proposal handling creates notification work only. |
 | Approval Guard `validate_current_decision` / `validate_dispatch_scope` | Current persisted records, request or `CommandSpec`, and applicable trusted context; returns an internal Boolean validation verdict. | The verdict grants no authority itself and is not a transport response. A denial carries an internal reason mapped to the existing `ErrorEnvelope`; invalid actor, version, target, risk, expiry, fingerprint or command scope blocks before dispatch. Operations separately checks provider permission and durable idempotency before each new effect. |
-| Domain `record_operation_result` / `record_notification_result` | Persisted operation/notification ID plus an adapter observation and current work context; returns the saved `OperationAttempt` or `NotificationRecord`. | Verify record ownership, provider/command identity and applicable version/result structure. Only Domain Service writes outcomes/transitions. A provider success followed by failed local save remains an unresolved effect to reconcile, not a safe-to-repeat failure. Notification updates never replay return/label work. |
-| Operations `execute_approved_plan` / `reconcile_known_attempt` / `send_recorded_outcome` | A committed approval/work, operation or notification ID; execution returns no new public payload, while recovery/delivery returns the Domain-saved `OperationAttempt`/`NotificationRecord`. | IDs are references, not authority. Reload current scope and saved effects; claim only unfinished authorised work, preserve stable keys and reconcile UNKNOWN before retry. Historical lookup may remain permitted after approval expiry but cannot authorise a new effect. A delivery task uses only the saved message/outcome; it cannot become a return command. |
+| Domain `record_operation_result` / `record_notification_result` | Persisted operation/notification ID plus an adapter observation and current work context; returns the saved `OperationAttempt` or `NotificationRecord`. | Verify record ownership, provider/command identity and applicable version/result structure. Only Domain Service writes outcomes/transitions. Persist a validated original label-effect receipt, correlated audit and artifact-only work before storing content; retain EXECUTING without result until the full label_evidence_id binding and complete OperationResult commit. If saving fails, reread durable receipts before querying any uncertain original effect; known effects cannot become retry-safe failures or UNKNOWN because file storage failed. Notification updates never replay return/label work. |
+| Operations `execute_approved_plan` / `reconcile_known_attempt` / `send_recorded_outcome` | A committed approval/work, operation or notification ID; execution returns no new public payload, while recovery/delivery returns the Domain-saved `OperationAttempt`/`NotificationRecord`. | IDs are references, not authority. Reload current scope and saved effects; claim only unfinished authorised work and preserve stable keys. A durable confirmed-label receipt selects G-ARTIFACT original-label recovery; only absent such a fact may an unresolved effect use UNKNOWN/query before considering retry. Historical lookup may remain permitted after approval expiry but cannot authorise a new effect. A delivery task uses only the saved message/outcome; it cannot become a return command. |
 | Order and retrieval ports | `OrderLookupRequest → OrderLookupResult`; `RetrievalRequest → RetrievalResult`; `CitationVerificationRequest → CitationVerificationResult`. | Provider/corpus access is configured outside model text. Only MATCHED order results carry snapshots; CONFLICT/AUTHORITY_DENIED can become an exact `OrderLookupBlock`, NOT_FOUND can request correction and PROVIDER_FAILURE remains a technical branch. Retrieval NO_MATCH is a valid empty result. Technical port failures use `ErrorEnvelope`, and C2 independently judges claim support. |
-| Returns/logistics and notification ports | Approved `CommandSpec` plus persisted attempt context, or an `OperationAttempt` for lookup; a saved `NotificationRecord` for delivery. | `provider_observation` contains confirmed `OperationResult` success, a known failure or unresolved-effect evidence; `delivery_observation` describes delivery/error evidence. These provider-specific internal results are normalised and submitted to Domain Service. HTTP 200 is insufficient; ambiguous effects remain UNKNOWN. No additional `ProviderResult`/`NotificationResult` wire schema or public dispatch endpoint is implied. |
+| Returns/logistics and notification ports | Approved `CommandSpec` plus persisted attempt context, or an `OperationAttempt` for lookup; a saved `NotificationRecord` for delivery. | `provider_observation` contains original confirmed-effect facts, definite no-effect failure or unresolved-effect evidence; it is not an `OperationResult`. In particular a provider label observation has no local `label_evidence_id`: Domain saves its receipt and later validates the scoped artifact reference before committing a complete success result; `delivery_observation` describes delivery/error evidence. These provider-specific internal results are normalised and submitted to Domain Service. HTTP 200 is insufficient; ambiguous effects remain UNKNOWN. No additional `ProviderResult`/`NotificationResult` wire schema or public dispatch endpoint is implied. |
 | Repository and Audit Port | `load_current_records(case_id) → ReturnCase`; commit a validated internal change set; append a service-created `AuditEvent`. | Only Domain Service may commit business changes. Expected-version/idempotency checks and business audit/work persistence share the transaction boundary. Audit append grants no state authority; reject malformed/untrusted attribution and exclude secrets/PII. A database transaction does not include the provider's external effect. |
 
-Errors at an API boundary use the existing rc.4 `ErrorEnvelope` and endpoint
+Errors at an API boundary use the existing rc.5 `ErrorEnvelope` and endpoint
 status rules. Examples include stale case version, invalid current target/state,
 unauthorised access and unavailable provider; this table adds no error enum.
 Transport-schema validation cannot establish that a context, hash, review or
 provider response came from the required trusted boundary.
+
+The internal receipt binds the original attempt, command, parcel, provider configuration
+and operation ID to minimal confirmed-effect evidence/hash. Domain commits it with
+audit and artifact-only work; sensitive bytes/credentials stay out of audit. It uses
+existing EXECUTING/provider_operation_id and optional actual ErrorEnvelope in public
+views, adding no wire receipt type or state. G-ARTIFACT requires current recovery
+access, original bindings, read/store authority, retention permission and a durable
+claim. Creation-approval expiry is separate from that read/store authority. Recovery
+may retrieve/store only the original label; it cannot restore deliberately deleted
+content or rewrite a manual/rejection outcome. If a file exists but result commit is
+unknown, reread and verify/reuse that reference/hash rather than create another label.
+Only a committed full result including label_evidence_id makes the attempt SUCCEEDED.
 
 ### 2.2 Lab 5 review evidence
 
@@ -591,10 +603,13 @@ feedback remain separate evidence.
    ID or proposal version alone must never reset the logical operation key or
    recreate a successful return; genuinely changed intent needs explicit
    validation against existing effects and its own exact scope.
-5. **Unknown is not failure.** Once an attempt has a result, its values include
-   SUCCEEDED, FAILED, UNKNOWN or RECONCILING. Ambiguous timeout requires provider
-   lookup before retry; unresolved effects remain visible for manual handling.
-   Expiry or new input never erases historical provider facts.
+5. **Effect status and complete result differ.** OperationAttempt uses the seven
+   rc.5 statuses PENDING/EXECUTING/SUCCEEDED/FAILED/UNKNOWN/RECONCILING/BLOCKED.
+   OperationResult is the complete success payload, never a status enum. A durable
+   confirmed-label receipt with missing artifact remains EXECUTING without result;
+   only original-artifact recovery is allowed, not another invoke or UNKNOWN.
+   Unknown effect requires original-provider lookup; FAILED requires confirmed
+   no effect. Expiry or new input never erases historical provider facts.
 6. **Notification is separate.** NotificationRecord uses PENDING/SENT/FAILED.
    The case uses NOTIFICATION_PENDING/NOTIFICATION_FAILED with an outcome kind;
    notification retry never invokes return or label again. Once delivery is
@@ -617,7 +632,7 @@ roles and concrete commands; interface realisation (`<|..`) makes adapters repla
 |---|---|---|
 | IntakeSession | AH-01 → UC-01 / B | Personal activity, interaction and intake state machine, including clarification and failure/retry behaviour |
 | ProposalReview | AH-08 → UC-02 / C | Personal grounding/risk activity, revision-loop interaction and review state machine |
-| OperationAttempt | AH-10 → UC-04 / A | [MA-0.2 candidate](../12-member-a-model-chain.md) now supplies activity, interaction and attempt state views; A's personal revision and C review remain pending |
+| OperationAttempt | AH-10 → UC-04 / A | [MA-0.3 candidate](../12-member-a-model-chain.md) now supplies activity, interaction and attempt state views; A's personal revision and C review remain pending |
 
 These names support the individual models; they do not certify completion or
 fix every private lifecycle state in advance. A owns domain, Coordinator,

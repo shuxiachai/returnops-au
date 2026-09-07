@@ -1,7 +1,7 @@
 # State Machine Diagram (ReturnCase Lifecycle)
 
 > **Status — 2026-09-07:** v1 alignment draft; Member B/C review remains pending.
-> `1.0.0-rc.4` review candidate for [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32), not accepted. [PR #11](https://github.com/shuxiachai/returnops-au/pull/11) is the review entry; check its actual head and reviews. rc.3 is an earlier candidate; [PR #9](https://github.com/shuxiachai/returnops-au/pull/9) is the rc.2 historical publication.
+> `1.0.0-rc.5` review candidate for [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32), not accepted. [PR #11](https://github.com/shuxiachai/returnops-au/pull/11) is the review entry; check its actual head and reviews. `57d86fe` published rc.4 is the prior snapshot; rc.3 is an earlier candidate; [PR #9](https://github.com/shuxiachai/returnops-au/pull/9) is the rc.2 historical publication.
 > Earlier modelling contributions and their Git history are retained. This
 > revision does not claim product-baseline adoption, F.01 acceptance, or a
 > running implementation.
@@ -60,13 +60,16 @@ stateDiagram-v2
     APPROVED --> UNDER_INVESTIGATION : Controlled internal input update before dispatch invalidates dependent decisions
     APPROVED --> ESCALATED : Dispatch blocked without an external effect
 
-    ACTION_IN_PROGRESS --> ACTION_FAILED : Confirmed command failure and completed results preserved
-    ACTION_IN_PROGRESS --> RECONCILING : Ambiguous timeout and OperationAttempt UNKNOWN
+    ACTION_IN_PROGRESS --> ACTION_FAILED : Confirmed no-effect failure and completed results preserved
+    ACTION_IN_PROGRESS --> ACTION_IN_PROGRESS : Confirmed label receipt saved and original artifact recovery pending
+    ACTION_IN_PROGRESS --> ESCALATED : Artifact recovery exhausted and no accepted rejection or manual outcome
+    ACTION_IN_PROGRESS --> RECONCILING : Ambiguous effect without confirmed receipt and OperationAttempt UNKNOWN
     ACTION_FAILED --> ACTION_IN_PROGRESS : Safe unfinished-command retry with valid approval and same key
     ACTION_FAILED --> ESCALATED : Retry unavailable or configured limit reached
     RECONCILING --> RECONCILING : Effect still unknown and lookup only
     RECONCILING --> ACTION_FAILED : Lookup confirms no effect and recoverable failure
-    RECONCILING --> ACTION_IN_PROGRESS : Save confirmed effect and process only approved unfinished command
+    RECONCILING --> ACTION_IN_PROGRESS : Confirmed label receipt saved and original artifact recovery required
+    RECONCILING --> ACTION_IN_PROGRESS : Complete prior result saved and current guards allow next command
     RECONCILING --> NOTIFICATION_PENDING : Eligible RETURN_CREATED outcome and both effects saved
     RECONCILING --> ESCALATED : Unresolved effect preserved for manual handling
     ESCALATED --> RECONCILING : Authorised lookup and no accepted rejection or manual outcome
@@ -96,6 +99,18 @@ commands later prove successful, the saved manual/rejection notification still
 selects `MANUAL_HANDLED`/`REJECTED`, never `COMPLETED`. The three notification
 terminal guards are mutually exclusive by `NotificationRecord.outcome`.
 
+Confirmed label effect with missing artifact is an internal phase of attempt
+`EXECUTING`, not an eighth wire state or uncertain effect. Domain stores the
+minimal original receipt, audit and artifact-only work before content storage;
+crash recovery checks that receipt before any UNKNOWN transition. G-ARTIFACT
+requires current recovery identity/access, original provider binding, claim and
+retention permission. Original creation expiry neither grants new effects nor
+blocks independently authorised original-artifact recovery. Storage failure or
+missing permission retains EXECUTING/known effect; exhaustion escalates the case
+only without an accepted manual/rejection outcome. Recovery cannot restore
+deliberately deleted content. Only a saved full label result permits completion.
+Historical artifact work, like historical lookup, preserves an accepted outcome.
+
 ## 2. Guard conditions and invariants
 
 | Boundary | Required guard or rule |
@@ -107,8 +122,8 @@ terminal guards are mutually exclusive by `NotificationRecord.outcome`.
 | Escalation recovery — FR-003/008/009 | Founder cannot approve an escalated proposal directly. REQUEST_REVISION requires a current proposal and creates a new version needing a fresh passing review. Without a current proposal, exactly one current ProcessingFailure or OrderLookupBlock is required; only MANUAL_HANDLING can target it. No no-proposal revision/restart endpoint is added. |
 | Founder approval — FR-009 | Bind authenticated Founder identity, case/input/proposal/review versions, exact commands and parameter fingerprint, applicable amount ceiling, reason, and expiry. Record `APPROVE`, `REJECT`, `REQUEST_REVISION`, or `MANUAL_HANDLING` distinctly. |
 | Dispatch — FR-010, NFR-002/009 | Recheck current passing review, valid approval, parameter scope, provider authority, allowlist, and stable command idempotency before each new effect. Course commands are simulated `CREATE_RETURN` and `GENERATE_LABEL`, not refunds, charges, or inventory changes. |
-| Provider result — FR-010/011 | HTTP 200 alone is not business success. Validate the typed business result, operation identity, and scope, then ask Domain Service to save the result before advancing the workflow. |
-| Partial failure and unknown effect — NFR-004 | Preserve completed commands. Query an `UNKNOWN`/`RECONCILING` attempt before considering retry; retry only a confirmed-safe unfinished command with the same idempotency key and valid approval. Never replay a successful return because its label or notification failed. |
+| Provider result — FR-010/011 | HTTP 200 alone is not business success. Validate original provider facts, operation identity and scope. Persist a confirmed-label receipt/audit/artifact work first; keep the attempt EXECUTING without result until a complete OperationResult including label_evidence_id is committed. Storage failure is neither no-effect failure nor UNKNOWN. |
+| Partial failure and unknown effect — NFR-004 | Preserve completed commands and confirmed-effect receipts. Recovery reads receipts first: known labels use G-ARTIFACT/current access to retrieve/store only original content; absent confirmation, query an `UNKNOWN`/`RECONCILING` attempt before considering retry; retry only a confirmed-safe unfinished command with the same idempotency key and valid approval. Never replay a successful return because its label or notification failed. |
 | New information — FR-002/009 | An accepted current clarification or a provenance/authority/version-checked internal material update invalidates dependent proposal/review/approval before further effects. The AWAITING_APPROVAL/APPROVED arrows refer only to controlled internal updates, not an additional customer endpoint. No old result or unresolved effect is erased; in-flight effects require reconciliation. |
 | Notifications and terminal states — FR-009/010/011 | Recheck the current accepted outcome and notification identity when claiming work and saving delivery. Only saved `RETURN_CREATED` plus valid saved return/label results and `SENT` permits `COMPLETED`. Saved `REJECTED`/`MANUAL_HANDLED` selects its own terminal after delivery, irrespective of historical operation success. Notification retry cannot change outcome kind or replay operations. |
 | Manual closure — FR-009/011 | Persist the actual outcome and unresolved uncertainty. Later historical lookup updates facts/audit without replacing the accepted outcome or its notification, reopening the case or automatically resubmitting work. `MANUAL_HANDLED` does not assert that an unknown provider effect never happened. |
@@ -125,7 +140,7 @@ This is a modelling draft, not proof that runtime guards exist. In particular,
 the Founder manual path **before any current proposal exists** distinguishes
 actual technical `ProcessingFailure` from an accepted order `CONFLICT` or
 `AUTHORITY_DENIED` stored as `OrderLookupBlock`. Neither needs a fabricated
-proposal, review or technical error. The [F.01 rc.4 review candidate](../09-interface-contract-v1.md)
+proposal, review or technical error. The [F.01 rc.5 review candidate](../09-interface-contract-v1.md)
 defines both manual-only targets; runtime state checks and joint contract/model
 acceptance remain outstanding. Source-policy conflicts continue through a
 conditional packet and independent Risk, not through an order-block shortcut.

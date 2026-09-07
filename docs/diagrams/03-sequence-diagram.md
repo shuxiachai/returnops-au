@@ -3,7 +3,7 @@
 > **Status:** Shared design candidate aligned to [docs/00](../00-project-definition-v1.md)
 > and [docs/07](../07-frozen-work-allocation.md); not runtime or individual-model
 > completion evidence.
-> **Revision:** `1.0.0-rc.4` review candidate for [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32), not accepted. [PR #11](https://github.com/shuxiachai/returnops-au/pull/11) is the review entry; check its actual head and reviews. rc.3 is an earlier candidate; [PR #9](https://github.com/shuxiachai/returnops-au/pull/9) records the earlier rc.2 publication.
+> **Revision:** `1.0.0-rc.5` review candidate for [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32), not accepted. [PR #11](https://github.com/shuxiachai/returnops-au/pull/11) is the review entry; check its actual head and reviews. `57d86fe` published rc.4 is the prior snapshot; rc.3 is an earlier candidate; [PR #9](https://github.com/shuxiachai/returnops-au/pull/9) records the earlier rc.2 publication.
 > **Traceability:** FR-001–FR-012; NFR-001–NFR-009; UC-01/01E–UC-05;
 > shared model review plus M-A/M-B/M-C in [docs/08](../08-delivery-work-packages.md).
 
@@ -18,7 +18,7 @@ The former single long diagram is divided at persisted hand-offs so each
 branch can be reviewed. All business writes shown below go through Domain
 Service; the orchestrator chooses bounded AI work and submits results for
 validation. Messages are conceptual operations, not promises that F.01 already
-implements each route. The rc.4 contract review candidate still needs joint
+implements each route. The rc.5 contract review candidate still needs joint
 review and cannot replace docs/00 or docs/07 as the product/allocation baseline.
 
 ## 1. Intake, grounding and the five risk outcomes
@@ -47,8 +47,8 @@ sequenceDiagram
         API-->>Portal: Safe error and correlation ID
     end
     break Same key and same previously accepted request
-        Domain-->>API: Replay prior receipt without new writes or work
-        API-->>Portal: Prior receipt, then read current authorised case
+        Domain-->>API: Original receipt only while readable, otherwise 409 INVALID_STATE and retryable false after permitted deletion
+        API-->>Portal: Reuse acceptance, no new write or work or automatic new key, GET authorised current or history
     end
     opt Fresh clarification of an existing case
         Domain->>Store: Check AWAITING_INFORMATION, current question_set_id and expected_case_version
@@ -58,7 +58,7 @@ sequenceDiagram
         end
     end
     Domain->>Store: Atomically preserve original statement and accepted evidence
-    Note over Domain,Store: Same key and content replay the prior receipt, no duplicate case or work
+    Note over Domain,Store: Acceptance is reused on same-key same-body replay, receipt content remains subject to retention
     Domain-->>API: Authoritative case receipt
     API-->>Portal: Current case and clarification state
     Domain->>Orch: Start permitted analysis for current input version
@@ -188,7 +188,15 @@ sequenceDiagram
     Founder->>Dashboard: Choose a decision permitted for the displayed current target
     Dashboard->>API: Current context, choice, reason, request key and scope confirmation if approving
     API->>Domain: Verified Founder identity and untrusted decision request
-    Domain->>Store: Resolve replay and read current case/input plus exact proposal or failure or block target
+    Domain->>Store: Read scoped accepted-request fact after authentication and case access
+    break Same key and canonical body already accepted
+        Domain-->>API: Original receipt if still readable, otherwise 409 INVALID_STATE and retryable false after permitted deletion
+        API-->>Dashboard: No new write, dispatch or automatic new key, GET current or history separately
+    end
+    break Same scoped key used for another body
+        Domain-->>API: 409 IDEMPOTENCY_CONFLICT without new work
+    end
+    Domain->>Store: Read current case/input plus exact proposal or failure or block target
     Domain->>Guard: Validate identity, case version, target ownership/freshness, state and decision conditions
     Guard-->>Domain: Validated decision or blocking reason
 
@@ -226,11 +234,13 @@ record to the current case/input and, for an order block, the accepted lookup.
 source-policy conflict remains packet/Risk material. There is no no-proposal
 revision/restart endpoint and no fabricated proposal or technical failure.
 
-The [F.01 rc.4 review candidate](../09-interface-contract-v1.md) still needs joint
+The [F.01 rc.5 review candidate](../09-interface-contract-v1.md) still needs joint
 review. These interactions do not prove a working endpoint. A resolved target
 may remain visible while notification is pending/failed or after manual closure;
-state checks still reject a new decision, and same-key replay returns only the
-prior accepted receipt. Notification retry does not replay operations or erase
+state checks still reject a new decision. Authenticated same-key/same-body replay
+reuses acceptance: original receipt only while readable, otherwise after permitted
+deletion 409 INVALID_STATE/retryable=false, no write/work or automatic new key.
+B reads current/history views. Notification retry does not replay operations or erase
 unknown effects. Exact approval and provider permissions remain separate;
 the browser cannot create a trusted ApprovalRecord.
 
@@ -243,79 +253,106 @@ sequenceDiagram
     participant Ops as Deterministic Operations Service
     participant Guard as Approval Guard
     participant Provider as Mock Returns and Logistics Provider
+    participant Artifacts as Scoped Label Artifact Store
     participant Store as Case and Audit Store
 
-    Domain->>Ops: Process durable work for an approved command set
-    loop Eligible command or reconciliation step within the configured recovery budget
-        Ops->>Domain: Obtain current scope, dependencies and prior attempt for the logical key
-        Domain->>Store: Read durable command/attempt records and enforce single claimant
-        Store-->>Domain: Prior success, unknown attempt, or eligible unfinished command
-        Domain-->>Ops: Authoritative work context or blocked result
-
-        break Work is blocked, concurrently claimed or dependency is not successful
-            Ops-->>Domain: Return existing receipt or safe pending/blocking reason
-            Note over Domain,Store: Never dispatch two effects first and deduplicate afterwards
+    Domain->>Ops: Process committed command or original-recovery work
+    loop Eligible command or recovery step within configured budget
+        Ops->>Domain: Read current scope, dependencies, original attempts and effect receipts
+        Domain->>Store: Read durable records and enforce the appropriate single claimant
+        Store-->>Domain: Saved result, confirmed receipt, unresolved effect or eligible new command
+        Domain-->>Ops: Authoritative work context or rejection
+        break Work blocked, concurrent claimant active or required dependency absent
+            Ops-->>Domain: Retain durable facts and safe pending reason, no invocation
         end
-
-        alt Prior successful result exists
-            Ops-->>Domain: Reuse successful provider result, no invocation
-        else Prior attempt is UNKNOWN or RECONCILING
-            Ops->>Domain: Record reconciliation start
-            Domain->>Store: Attempt RECONCILING and preserve accepted rejection/manual outcome and its case state
-            Note over Domain,Store: Case reconciliation state is allowed only before a rejection/manual outcome is accepted
-            Ops->>Provider: Authorised status query using saved provider ID or operation fingerprint
-            Provider-->>Ops: Confirmed success, confirmed no effect, or still unknown
-            Ops->>Domain: Persist typed reconciliation observation
-            Domain->>Store: Record facts without discarding historical effects
-            alt Confirmed success
-                Note over Domain,Ops: Save historical success only, a later unfinished command still needs current dispatch authority
+        alt Complete prior successful result exists
+            Ops-->>Domain: Reuse saved result, no invocation
+        else Durable confirmed-label receipt exists but artifact is incomplete
+            Note over Domain,Ops: Keep attempt EXECUTING without result, use artifact recovery below, never new create or UNKNOWN
+        else UNKNOWN or orphaned intent without reliable confirmed-effect receipt
+            Ops->>Domain: Claim original-effect query and record RECONCILING
+            Domain->>Store: Preserve original identity and any accepted rejection or manual outcome and case state
+            Ops->>Provider: Authorised query using original provider ID or fingerprint
+            Provider-->>Ops: Confirmed original effect, confirmed no effect or still unknown
+            Ops->>Domain: Submit validated original observation
+            alt Confirmed label effect with incomplete artifact binding
+                Domain->>Store: Atomically persist original receipt, audit and artifact-only work in EXECUTING
+            else Complete confirmed return result
+                Domain->>Store: Persist complete OperationResult, SUCCEEDED and audit
             else Confirmed no effect
-                Note over Domain,Ops: A later eligible step may retry the same key only after current approval and provider checks
+                Domain->>Store: Persist FAILED and no-effect evidence
+                Note over Domain,Ops: Only a later separately guarded retry may use the stable original logical key
             else Still unknown or lookup unavailable
-                break Stop automatic dispatch and retain manual recovery context
-                    Domain->>Store: Preserve unresolved attempt and audit reason, escalate only without accepted rejection/manual outcome
+                break Stop automatic dispatch
+                    Domain->>Store: Preserve uncertainty and audit, escalate only without accepted rejection or manual outcome
                 end
             end
-        else New or explicitly retry-safe unfinished command
-            Ops->>Guard: Revalidate trusted actor, current state/versions, exact scope, expiry and allowlist
+        else New or explicitly retry-safe unfinished command without confirmed effect
+            Ops->>Guard: G-DISPATCH current state, passing Risk, trusted authority, exact scope, expiry and allowlist
             Guard-->>Ops: Valid or blocked
-            Ops->>Provider: Check independent provider permission without creating an effect
+            Ops->>Provider: Check configured provider permission without an effect
             Provider-->>Ops: Authorised or denied
             break Any dispatch guard or provider permission fails
-                Ops->>Domain: Record blocked attempt with zero provider effect
-                Domain->>Store: Preserve facts and blocking reason, do not mark completed
+                Ops->>Domain: Record actual denial, no effect and no fabricated approval or attempt
             end
-            Ops->>Domain: Reserve the exact logical attempt against current versions
-            Domain->>Store: Atomically confirm scope and claim, then record ACTION_IN_PROGRESS
-            Domain-->>Ops: Reserved command or typed version/claim conflict
-            break Reservation fails or authority changed before invocation
-                Note over Domain,Ops: No provider effect, resolve current state before reconsidering work
+            Ops->>Domain: Request claim with expected bindings
+            Domain->>Store: Atomically recheck scope and dependencies, claim and persist EXECUTING intent plus audit
+            Domain-->>Ops: Claimed command or rejection
+            break Claim lost or intent commit unconfirmed
+                Note over Domain,Ops: No invocation, losing worker does not change winner
             end
-            alt Command is CREATE_RETURN
-                Ops->>Provider: Create simulated return for approved same-order items and one parcel
-            else Command is GENERATE_LABEL and return result is already saved
-                Ops->>Provider: Generate one non-chargeable label using saved return result and same parcel
+            Ops->>Guard: Final invocation guard with own uninvoked reservation
+            Guard-->>Ops: Allowed or blocked
+            break Final guard fails
+                Ops->>Domain: Persist actual BLOCKED fact without invocation
             end
-            Provider-->>Ops: Typed business success, explicit failure or ambiguous timeout
-            Ops->>Domain: Record provider ID, fingerprint, logical key and typed result
-            alt Validated business success
-                Domain->>Store: Append SUCCEEDED attempt and result before next command
-            else Explicit failure with known outcome
-                Domain->>Store: Append FAILED and classified recovery conditions
-                Note over Domain,Ops: Retry only if known safe, budget remains and current guards pass
-            else Ambiguous timeout or unverified outcome
-                Domain->>Store: Append UNKNOWN attempt, next eligible step is query, not dispatch
+            Ops->>Provider: Invoke one approved command with stable key, label uses saved return and same parcel
+            Provider-->>Ops: Raw effect observation, definite no-effect failure or uncertainty
+            Ops->>Domain: Submit original provider observation with operation and command bindings
+            alt Confirmed label effect
+                Domain->>Store: Atomically save original receipt, audit and artifact-only work, EXECUTING without result
+            else Complete confirmed return result
+                Domain->>Store: Atomically save full OperationResult, SUCCEEDED and audit
+            else Confirmed no-effect failure
+                Domain->>Store: Save FAILED and classified no-effect evidence
+            else Uncertain effect without a confirmed receipt
+                Domain->>Store: Save UNKNOWN if writable, original identity query required
+            end
+        end
+        Note over Domain,Store: Any unconfirmed commit requires rereading last durable receipt or intent before recovery, never another create
+        opt Durable confirmed-label receipt exists and full result is still missing
+            Ops->>Domain: Request G-ARTIFACT claim under current recovery identity and access
+            Domain->>Store: Validate original binding, provider read permission, retention and work generation
+            Domain-->>Ops: Original-artifact recovery allowed or denied
+            alt Allowed and claim held
+                opt Original content needed and retention permits retrieval
+                    Ops->>Provider: Query or retrieve original label only, no creation
+                    Provider-->>Ops: Original content or retrieval error
+                end
+                opt Valid original content available and current access allows storage
+                    Ops->>Artifacts: Validate and store original label PDF and hash
+                    Artifacts-->>Ops: Scoped evidence reference or actual storage failure
+                end
+                Ops->>Domain: Submit original binding, saved reference or recovery failure
+                alt Full label reference validated
+                    Domain->>Store: Atomically commit full OperationResult with label_evidence_id, SUCCEEDED and audit
+                    Note over Domain,Store: If commit unconfirmed, reread and reuse original receipt or saved artifact, no new invocation
+                else Artifact remains missing
+                    Domain->>Store: Retain EXECUTING, receipt and artifact-only work with actual error
+                end
+            else Current recovery authority or retention unavailable
+                Note over Domain,Store: Preserve known effect, no retrieve or store and never restore deliberately deleted content
             end
         end
     end
-    Domain->>Store: Read current accepted outcome, notification, command results and outstanding attempts
+    Domain->>Store: Read current accepted outcome, notification and saved full command results
     alt Accepted rejection or manual outcome exists
         Domain->>Store: Preserve its outcome, notification identity and pending or terminal case state
-        Note over Domain,Store: Historical success never changes this outcome to RETURN_CREATED or COMPLETED
-    else Execution still eligible and both valid results stored without contradictory uncertainty
-        Domain->>Store: Atomically recheck case and outcome version, persist or reuse RETURN_CREATED notification work and NOTIFICATION_PENDING
+        Note over Domain,Store: Historical effect or artifact recovery never substitutes RETURN_CREATED or COMPLETED
+    else Execution eligible and both full results committed without contradictory uncertainty
+        Domain->>Store: Atomically recheck case and outcome version, persist or reuse RETURN_CREATED notification work
     else No deliverable outcome
-        Note over Domain,Store: Preserve facts and unresolved work, no new completion or notification
+        Note over Domain,Store: Retain facts and pending work, budget exhaustion escalates only without accepted rejection or manual outcome
     end
 ```
 
@@ -326,6 +363,15 @@ a new effect, but authorised lookup may still establish what an earlier attempt
 actually did. Unresolved partial execution preserves successful steps and never
 restarts the whole plan. Recovery budget exhaustion stays visible and requires
 manual attention instead of pretending the case succeeded.
+
+Confirmed label effect with missing artifact uses the existing EXECUTING status
+with no result. Domain first commits a minimal original receipt, audit and
+artifact-only work. Recovery checks that receipt before considering UNKNOWN;
+G-ARTIFACT permits only original-label query/retrieval/storage under current
+recovery access and retention. Creation-approval expiry is independent of this
+read/store permission. File failure does not mean no effect or uncertain effect;
+SUCCEEDED requires a committed full result including label_evidence_id.
+The internal receipt/work is not a new wire DTO or state.
 
 An already accepted manual/rejection outcome remains authoritative during a
 late lookup, whether its notification is pending, failed or sent. Lookup may

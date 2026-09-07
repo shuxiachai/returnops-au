@@ -43,7 +43,7 @@ services:
     ports:
       - "127.0.0.1:${API_PORT:-8000}:8000"
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=5).close()"]
+      test: ["CMD", "python", "-c", "from urllib.request import ProxyHandler, build_opener; build_opener(ProxyHandler({})).open('http://127.0.0.1:8000/health/ready', timeout=5).close()"]
       interval: 5s
       timeout: 6s
       retries: 12

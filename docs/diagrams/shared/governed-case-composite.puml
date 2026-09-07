@@ -1,5 +1,5 @@
 @startuml
-title CS-01 / Governed Case Assessment\nComposite structure candidate CS-0.1
+title CS-01 / Governed Case Assessment\nComposite structure candidate CS-0.2
 skinparam componentStyle rectangle
 skinparam defaultFontName SansSerif
 skinparam defaultFontSize 14
@@ -58,7 +58,7 @@ DOM_AUDIT -- AUD_APPEND : A07
 
 legend bottom
   case: authenticated API only; D01 also serves the two rc.4 history GETs.
-  rc.4 OpenAPI: original 13 public operations retained, 15 operations in total.
+  rc.5 OpenAPI (shape unchanged from rc.4): original 13 public operations retained, 15 operations in total.
   images / labelStore: scoped internal A-managed artifact boundaries, not public AI tools.
   CaseRepository is the only business-state store interface; Domain is its only caller.
   Repository + business AuditPort share one transaction context and one authoritative DB.

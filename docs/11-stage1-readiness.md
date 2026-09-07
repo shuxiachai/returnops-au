@@ -1,11 +1,15 @@
 # Stage 1：当前阶段收口与提交核验
 
+> **rc.5 发布定位（2026-09-07）：**本版交付至 [PR #11](https://github.com/shuxiachai/returnops-au/pull/11)，由包含本说明的实际提交定位。PR 中记录准确 source SHA、CI run 与评审状态；C 复现使用该准确 SHA，不能使用旧 `57d86fe` 或浮动分支。下文“未发布/本地准备”、旧测试和旧哈希是发布前历史；当前提交以 Git 文件内容及 `docs/reviews/rc5-publication-artifacts-20260907.json` 为准。发布不等于 F.01/F.02 接受、B/C 本人审阅/复现或课程提交，Jira 未由此同步。
+
 > 2026-09-07；状态：**准备与核验清单，未完成 Stage 1 验收**。
 >
 > 沿用 [固定分工](07-frozen-work-allocation.md)与[89 项 WBS](08-delivery-work-packages.md)，不新增功能或重新分配个人贡献。
 > 报告整合与提交行动由 A 主持；视频由 A 后续自行录制、整合与提交，B/C 提供并确认自己的章节、模型及贡献说明和所需素材。R.04 证据核验仍为 C Owner、A Reviewer。
 
-F.01 `1.0.0-rc.4`、`MA-0.2` 与 `CS-0.1` 是当前评审候选；[KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32)追踪契约，KAN-13 追踪 A 的个人/共享模型。[PR #11](https://github.com/shuxiachai/returnops-au/pull/11)为本次评审入口，具体提交及 CI/review 以该 PR 为准；[PR #9](https://github.com/shuxiachai/returnops-au/pull/9)仅记录 rc.2 历史发布。候选仍须联合评审，发布记录不能代替本人贡献、B/C 同意、tutor 接受或课程提交记录。
+当前本地候选为 F.01 `1.0.0-rc.5`、`MA-0.3`、`CS-0.2`、AD-0.2 / PD-0.2，修正删除后回执重放、标签制品恢复、词汇、模型检查和环境复现。它们尚未发布。[PR #11](https://github.com/shuxiachai/returnops-au/pull/11) 已核验 head `57d86fe5bf80e2ed8cb445a6bec30c2ef7d8a577` 仍收录 rc.4 / MA-0.2 / CS-0.1；四项已有 CI 成功，B/C 尚无 review，旧 CI 不覆盖本轮。[KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32)追踪契约，KAN-13 追踪 A 的个人/共享模型；[PR #9](https://github.com/shuxiachai/returnops-au/pull/9)仅作 rc.2 历史。发布、CI 与人审/课程提交分别记录。
+
+本轮已只读查看 Jira：KAN-32 的标题/正文仍为 rc.2、GitHub Link 仍为 PR #9，与当前候选存在同步差距；KAN-13 映射 M-A.01–.06 与 M-S.01–.02。KAN-14 是 A1.01–.03 / F.05 umbrella，不能认作 F.02 主卡；F.02 实际 key 仍待直接核验。本轮没有修改 Jira，卡片旧排期不能证明实际 Canvas 截止。
 
 **按时课程提交与项目验收分别记录。** 以下 R.04 子检查可逐项用于 Stage 1 提交，不要求整张 R.04 Done、R.01 正式采纳或 F.01 接受后才允许提交。A 应按实际 Canvas 截止提交如实标注候选/未完成项的材料，C 核对文件、访问权限和回执，保留未解决事项。不得因项目内部验收尚未闭环而延误课程要求的提交。R.05/E.12 的 Stage 2 最终交付与正式评测不是 Stage 1 提交前置条件。
 
@@ -13,7 +17,16 @@ Stage 2 也须分别核对源码提交与演示：docs/08 的 R.05.a/.b 沿用�
 
 ## 1. 课程依据与待核验信息
 
-课程原件保留在课程目录，不复制 PDF 进 Git。以下页码为 PDF 页码；准确日期、时区、提交入口、文件格式和修改规则仍以最新 Canvas/tutor 通知为准，本轮未访问 Canvas。
+课程原件保留在课程目录，不复制 PDF 进 Git。以下页码为 PDF 页码。2026-09-07 已登录并只读核验 [Canvas 作业列表](https://canvas.sydney.edu.au/courses/74323/assignments)及两个 Stage One 详情页：
+
+| Canvas 实际入口 | 页面可见信息 | 仍未核验 |
+|---|---|---|
+| [Stage One 报告 / 695832](https://canvas.sydney.edu.au/courses/74323/assignments/695832) | Due: **Sun Oct 4, 2026 23:59**；**25 Possible Points**；locked until **Sep 20 at 0:00** | 锁定正文、上传格式、组提交设置及完整提交规则 |
+| [Stage One 视频 / 695833](https://canvas.sydney.edu.au/courses/74323/assignments/695833) | Due: **Sun Oct 4, 2026 23:59**；**5 Possible Points**；locked until **Sep 20 at 0:00** | 锁定正文、链接/文件方式、访问与修改规则 |
+
+页面没有明确显示时区，不能自行加上 AEST/AEDT/UTC；解锁时间也按页面原样记录。列表显示尚无提交，详情中的 Attempt 1 不代表已提交或获得回执。当前列表只显示这两项 Stage One 作业，不能由此判断 Stage 2 不存在或另推截止。
+
+Canvas **25+5** 分值口径与本地 Project Description 的 **15 分报告 + 15 分 presentation/interview** 不同，需向 tutor 确认最新构成；不据此取消个人 interview、修改工作比例或重新分工。时区、完整正文和具体提交规则待解锁后/通过 tutor 核对。
 
 | 原件 | 本清单采用的要求 |
 |---|---|
@@ -23,18 +36,19 @@ Stage 2 也须分别核对源码提交与演示：docs/08 的 R.05.a/.b 沿用�
 | `ELEC5620-Lab-Note-5.pdf`，第 1 页 | 设计模式与优缺点对 FR/NFR 的影响，类属性/方法及关联多重性核对；不由此推断新的提交日期或全部图的硬性要求 |
 | `lecture&tutorial/ELEC5620-TUT-01.pdf`，第 18 页 | Stage 2 的 Agile 过程包含 Jira software timeline evidence 与支持文档；需持续保留真实记录，不能以最后补一张看板代替过程 |
 
-brief 的 presentation slides 内容要求与 rubric 的 ≤8 分钟视频要求一并核对；是否另交 slides、具体格式和入口仍待 Canvas/tutor 确认。Package/Deployment、Architecture Analysis 在 rubric 标为 Optional，但 Lab 4/5 的架构分析与设计练习仍需对应说明，不把可选评分项误写成无需设计。
+brief 的 presentation slides 内容要求与 rubric 的 ≤8 分钟视频要求一并核对；已取得上面的两个实际入口，是否另交 slides、具体格式和当前 interview 安排仍待锁定正文/tutor 确认。Package/Deployment、Architecture Analysis 在 rubric 标为 Optional，但 Lab 4/5 的架构分析与设计练习仍需对应说明，不把可选评分项误写成无需设计。
 
 ## 2. 当前成果与未闭环项
 
-- 已有需求、六个详细用例和共享 Class/State/Sequence/Feature/Use-case 草稿；rc.4 沿用三种决定目标并进行本轮契约缺陷修订，仍需人审，不能用机器 Schema 代替 UML。具体修订、兼容性与静态验证范围以 docs/09 和实际文件版本为准。
-- A 的 [MA-0.2 个人链](12-member-a-model-chain.md)在规格核验、Activity、两个 Sequence 面板、OperationAttempt 七态图及静态走查上修订本轮发现的恢复/通知等路径问题；仍需 A 本人修订/解释、C 人审、设计未决项处置和 F.01 接受。修复候选不等于已运行系统或 C 的认可。
-- 共享 [CS-0.1 复合结构](13-shared-composite-structure.md)现有三幅内部结构视图、29 条连接及契约表、十二个静态走查；Class/Package/Deployment 的完整核验、B/C 共享贡献确认、原依赖与人审仍待完成。已有文件不等于模型已验收。
+- 已有需求、六个详细用例和共享 Class/State/Sequence/Feature/Use-case 草稿；rc.5 沿用三种决定目标并进行本轮契约缺陷修订，仍需人审，不能用机器 Schema 代替 UML。具体修订、兼容性与静态验证范围以 docs/09 和实际文件版本为准。
+- A 的 [MA-0.3 个人链](12-member-a-model-chain.md)在规格核验、Activity、两个 Sequence 面板、OperationAttempt 七态图及静态走查上修订本轮发现的恢复/通知等路径问题；仍需 A 本人修订/解释、C 人审、设计未决项处置和 F.01 接受。修复候选不等于已运行系统或 C 的认可。
+- 共享 [CS-0.2 复合结构](13-shared-composite-structure.md)现有三幅内部结构视图、29 条连接及契约表、十三个静态走查；本轮另有 [AD-0.2 设计决定包](14-member-a-design-decisions.md)和 [PD-0.2 Package/Deployment](15-package-deployment-models.md)本地候选，供 A 解释并按原 Reviewer 评审。Class/全模型一致性、B/C 共享贡献确认与原依赖仍待完成。具体方案和图已准备，不等于决定已接受或模型已验收。
 - B 的 PR #8 和 C 的既有材料须保留来源，并由本人核对、修订及提交；尚未取得本人确认的材料不能计为其完成。
-- B/C 个人链、共享模型的最终一致性、报告/视频成品、个人 interview 准备和真实提交回执均按下面清单补证据；本轮未完成 Stage 1 报告/视频成品或课程提交，不因已有文件名而勾选完成。
-- A3 的无收费 sandbox/test 资格与可行性证据仍待核验；记录提供方、测试权限、费用边界、查询/恢复能力和已知限制。无法取得时由 A 记录依赖并申请 tutor 处置，不把核心 mock 当作选定 optional 已完成。
+- [A 的 Stage 1 报告草稿与讲解提纲](reports/member-a-stage1-draft.md)已准备 AH10→UC-03/04 三场景、设计取舍、真实证据与 AI 辅助说明，尚需 A 本人修订、解释及确认。它不是全组报告，也没有代写 B/C 的个人贡献。B/C 个人链、共享模型最终一致性、报告/视频成品、interview 准备和真实提交回执仍按下面清单补证据；A 将后续自行录制视频，本轮未制作成片或提交课程。
+- F.02 的两个真实 CI run 已各通过 30 项环境测试，具体 source/checkout、运行与范围见 [docs10 §5.2](10-f02-environment-readiness.md#52-已发布版本的真实-github-ci)。[C 独立复现包](reviews/f02-independent-reproduction.md)已准备，尚未由 C 执行或接受；健康 API 和空业务迁移不计作十五个业务操作或课程原型完成。
+- 用户已明确团队目前**没有 Australia Post/StarTrack 合同或测试账号**；A3 的外部接入前提当前不满足，不能按已具备环境安排实现。后续可能取得的合规权限、无收费边界、查询/恢复能力与 tutor 处置分别按 [A3 可行性候选](17-logistics-sandbox-feasibility.md)核对，不把核心 mock 当作选定 optional 已完成，也不擅自更换选题/optional。
 
-**A3 官方资格调查（调查日期：2026-09-07）：** Australia Post 的 [Shipping & Tracking Getting started](https://developers.auspost.com.au/apis/shipping-and-tracking/) 与 [FAQ](https://developers.auspost.com.au/content/apis/shipping-and-tracking/info/api-resources/faq.html)说明，申请需要现有 Australia Post/eParcel 或 StarTrack parcel contract；testbed 使用 stubbed services、虚构样例公司和通用/水印标签，不创建生产发货或计费。团队合同、申请授权和测试凭据均未核验，普通学生账号不等于已有 testbed 权限。本次未注册、登录或调用 API，仅完成资格调查，不是 A3 实现或验收；不能通过生产调用或重复认领核心 mock 满足 A3。若无法合法访问，须记录依赖并向 tutor 确认可接受的处理，不能自动替换 selected optional。
+**A3 官方资格调查（调查日期：2026-09-07）：** Australia Post 的 [Shipping & Tracking Getting started](https://developers.auspost.com.au/apis/shipping-and-tracking/) 与 [FAQ](https://developers.auspost.com.au/content/apis/shipping-and-tracking/info/api-resources/faq.html)说明，申请需要现有 Australia Post/eParcel 或 StarTrack parcel contract；testbed 使用 stubbed services、虚构样例公司和通用/水印标签，不创建生产发货或计费。用户已明确团队当前没有这些合同或测试账号，普通学生账号不等于 testbed 权限；以后能否取得授权仍需实际证据。本次未注册、登录或调用该 API，只有资格调查及候选路径，不是 A3 实现或验收；不能通过生产调用或重复认领核心 mock 满足 A3。无法取得时由 A 记录依赖并向 tutor 确认可接受的处理，不能自动替换 selected optional。调查与用户确认的区别见 [docs17](17-logistics-sandbox-feasibility.md)。
 
 ## 3. R.04 的 Stage 1 子检查
 
@@ -42,8 +56,8 @@ brief 的 presentation slides 内容要求与 rubric 的 ≤8 分钟视频要求
 
 | 子检查 | 制作/行动责任与原 WBS | 具体输出及验收证据 | 确认人 |
 |---|---|---|---|
-| R.04.a 提交要求 | A 核对 Canvas/tutor，B/C 核对个人安排 | 当前截止日期/时区、入口、文件规则、视频方式、interview 时段及来源记录；未知项明确保留，不从旧 Jira 日期推定 | A 记录，C 核验来源，B/C 确认个人时段 |
-| R.04.b 契约与未决项 | A 制作 F.01；C 指定 review；B 确认消费边界 | rc.4 三目标、无提案只人工处理、订单阻断与来源冲突及本轮缺陷修订逐项有人审；版本、问题处置、测试与 KAN-32/后续实际 PR 可定位；未发布/未接受项在课程材料中明示 | A/B/C 分别确认核对范围；tutor 反馈单独记录 |
+| R.04.a 提交要求 | A 核对 Canvas/tutor，B/C 核对个人安排 | 记录已见两项入口及 Oct 4, 2026 23:59；确认页面未显示的时区、锁定文件规则、视频方式、25+5 与旧 15+15 分值差异及 interview 安排；不从旧 Jira 日期推定 | A 记录，C 核验来源，B/C 确认个人时段 |
+| R.04.b 契约与未决项 | A 制作 F.01；C 指定 review；B 确认消费边界 | rc.5 三目标、无提案只人工处理、订单阻断与来源冲突及本轮缺陷修订逐项有人审；版本、问题处置、测试与 KAN-32/PR #11 的具体提交可定位，Jira 旧 rc.2/PR #9 差距明示；本地新增及未接受项在课程材料中标注 | A/B/C 分别确认核对范围；tutor 反馈单独记录 |
 | R.04.c 三条个人链 | A/B/C 各自完成 M-A/M-B/M-C.01–.06 | 本人的 requirement→UC→Activity→Interaction→State→报告段落/答辩说明；正常及主要异常场景走通，具体提交、图版本和修正记录可查 | M-A：C；M-B/M-C：A；本人能独立解释 |
 | R.04.d 共享模型 | A：M-S.01/.02；B：M-S.03；C 提供分类/风险追踪核对 | Class/Package/Deployment 的适用范围与状态清楚；Composite Structure 有 ports/connectors；Feature/Use-case/全模型索引一致；每人共享贡献可定位 | M-S.01/.02：C；M-S.03：A；三人确认本人的贡献 |
 | R.04.e 报告 | A 整合；B 用户交互/个人章节；C 来源摘要/风险/评测；各自 M-*.06 | 可阅读的报告候选及逐条 rubric→章节/图/作者索引；来源/假设摘要约 1–2 页；目标、规划、实现和实测分开；未决项未隐藏 | 各作者确认自己章节，C 核对证据完整性，A 确认整合版本 |
@@ -65,13 +79,13 @@ R.04 的整体 Done 仍受 docs/08 原有完成依赖约束；子检查的提交
 
 ## 5. 下一项主工作与容量预约
 
-实际估时、每周可用时间、课程截止和评审时间尚未获成员/Canvas确认。以下空缺必须由当事人提供，不能按45/27/28倒推工时或编造日期。每人仍只领取一个主要 In Progress 项，其他准备保持小型可审查范围。
+实际估时、每周可用时间和评审时间尚未获成员确认；Canvas 已显示两项 Stage One 截止为 2026-10-04 23:59，但时区/完整规则与个人 interview 时段未核验。以下人员容量空缺必须由当事人提供，不能按45/27/28倒推工时或编造日期。每人仍只领取一个主要 In Progress 项，其他准备保持小型可审查范围。
 
 | 成员 | 下一项主工作 | 可并行的小准备 | 实际估时 | 每周可用时间 | 已预约 review 时间 | Canvas 截止/个人时段 |
 |---|---|---|---|---|---|---|
-| A | 审阅并亲自完善 MA-0.2 / CS-0.1，提交 C 走查；同步处置 F.01 rc.4 本地缺陷修订与评审 | F.02 原生 PG 与 Docker/PG17 构建、迁移、健康及断库恢复验证通过；C 复现和实际 CI 仍待。A3 资格调查、Package/Deployment 按原依赖推进 | 待 A 填写 | 待 A 提供 | 待与 C/B 预约 | 未核验 |
-| B | M-B.01 与 PR #8 来源/剩余个人链的对应核对 | 完成 F.01 前端消费确认；准备本人报告/视频内容提纲 | 待 B 填写 | 待 B 提供 | 待与 A 预约 | 未核验 |
-| C | F.01 指定评审并提供明确问题/确认 | M-C.01 自检、R.04证据索引；不提前公开Gold标签 | 待 C 填写 | 待 C 提供 | 待与 A/B 预约 | 未核验 |
+| A | 审阅并亲自完善 MA-0.3 / CS-0.2 与 AD-0.2 候选决定，按原分工提交 C/B 对应走查；处置 F.01 rc.5 评审项 | F.02 本机 PG/Compose 与两个真实 CI run 已有证据，C 复现仍待；PD-0.2、A 报告及视频提纲已准备，需本人解释/确认。A3 当前缺合同/账号，按 docs17 处置 | 待 A 填写 | 待 A 提供 | 待与 C/B 预约 | 报告/视频 Oct 4 23:59；时区和个人 interview 待核验 |
+| B | M-B.01 与 PR #8 来源/剩余个人链的对应核对 | 完成 F.01 前端消费确认；准备本人报告/视频内容提纲 | 待 B 填写 | 待 B 提供 | 待与 A 预约 | 同上；本人时段待核验 |
+| C | F.01 指定评审并提供明确问题/确认 | M-C.01 自检、R.04证据索引；不提前公开Gold标签 | 待 C 填写 | 待 C 提供 | 待与 A/B 预约 | 同上；本人时段待核验 |
 
 建议先预约一次 A/B/C 契约走查，再为三条个人链安排原 Reviewer 的检查时间；这只是待接受的预约顺序，不是已承诺日期。课程提交临近时，优先完成可提交材料及真实未决项说明，不等待运行 API、Docker、LLM 或正式 Gold 结果。
 

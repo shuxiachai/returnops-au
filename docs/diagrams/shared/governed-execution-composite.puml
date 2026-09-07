@@ -46,6 +46,7 @@ OP_RET -- RE_EFFECT : A22
 OP_NOTIFY -- NO_DELIVER : A23
 
 legend bottom
+  CS-0.2 candidate; F.01 rc.5 / MA-0.3 alignment; no runtime or human acceptance claimed.
   A22 new effect requires: current eligible case and PASS/PASS_WITH_WARNING review;
   exact trusted ApprovalRecord; G-DISPATCH + provider permission; durable claim/intent.
   D22 validates the decision before Domain creates approval; A21 rechecks every new effect.
@@ -61,7 +62,13 @@ legend bottom
   CS-D03: this view is the mock configuration; A3 is a later alternative behind the same port.
   Select exactly one configured adapter per logical operation; no mock + A3 double effect.
   A3 needs separately verified no-charge test authority; no such access is claimed here.
-  D24 is A-managed label artifact persistence (CS-Q02), not a customer upload or case-state write.
+  A22 returns raw effect observations, not a complete OperationResult with a local label_evidence_id.
+  Domain first saves the original confirmed-label receipt, audit and artifact-only work via D23/A05.
+  D24 stores only that original label under current G-ARTIFACT access/claim/retention (CS-Q02).
+  Artifact pending stays EXECUTING, no result; only a committed complete binding permits SUCCEEDED.
+  Receipt-first crash recovery never creates another label or turns file failure into UNKNOWN.
+  Creation expiry grants no new effect; independent original-artifact recovery may remain authorised.
+  No recovery restores deliberately deleted content or replaces an accepted manual/rejection outcome.
   MA-D/Q decisions, F.01 acceptance and human review remain pending; no runtime safety proof.
 endlegend
 @enduml

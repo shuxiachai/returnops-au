@@ -1,5 +1,5 @@
 @startuml
-title A / M-A.03b - Recover existing effects and isolate notification\nUC-04 extensions 5a, 6a/6b/6c/6d, 7a and 9a
+title A / M-A.03b - Recover existing effects and isolate notification\nUC-04 extensions 5a, 6a/6b/6c/6d, 7a/7b and 9a
 skinparam defaultFontName SansSerif
 skinparam defaultFontSize 14
 skinparam shadowing false
@@ -14,6 +14,7 @@ control "Operations Service" as Ops
 control "Domain Service" as Domain
 database "Case / work / audit store" as Store
 participant "Simulated return/label port" as Provider
+participant "Scoped label artifact store" as Artifacts
 participant "Simulated notification port" as Notify
 
 Ops -> Domain : Reload persisted command and attempt history
@@ -26,7 +27,9 @@ else Prior EXECUTING / RECONCILING with another live worker
   break Another worker still holds the invocation / lookup claim
     note over Ops, Domain : Yield without changing the winner's attempt.
   end
-else UNKNOWN, or orphaned EXECUTING / RECONCILING
+else Durable confirmed-label receipt; complete result not saved
+  note over Ops, Store : Keep EXECUTING as artifact-pending; do not infer UNKNOWN\nfrom a crashed worker or classify file failure as no effect.\nNo new attempt, provider key or create invocation.
+else UNKNOWN, or orphaned intent without a durable confirmed-effect receipt
   Ops -> Domain : Request authorised recovery claim
   Domain -> Store : Validate orphan recovery; reclaim lookup work atomically;\nrecord UNKNOWN then RECONCILING when writable (MA-D02)
   break No recovery authority, claim or storage
@@ -36,7 +39,11 @@ else UNKNOWN, or orphaned EXECUTING / RECONCILING
   Provider --> Ops : Confirmed success / confirmed no effect / inconclusive
   Ops -> Domain : Submit typed reconciliation observation
   alt Confirmed successful effect
-    Domain -> Store : Save original result + SUCCEEDED + audit
+    alt Complete CREATE_RETURN result validated
+      Domain -> Store : Save complete original result + SUCCEEDED + audit
+    else Label effect confirmed; artifact binding incomplete
+      Domain -> Store : Save original effect receipt + audit + artifact-only work;\nEXECUTING without result, never repeat label creation
+    end
   else Proven no effect
     Domain -> Store : Save FAILED + absence evidence + audit
     note over Ops, Domain : A later internal retry requires G-RETRY and G-DISPATCH.\nMA-D01 proposes a new operation_id, preserving old records\nand the same logical command/key/fingerprint under the same approval.\nThe reconcile endpoint itself never means "execute again".
@@ -51,6 +58,29 @@ else Prior FAILED / BLOCKED
   note over Ops, Domain : No unconditional repeat. FAILED needs proven retry safety.\nExpired/changed approval or scope needs explicit new authority;\ncross-approval provider-key mapping remains MA-Q02.
 end
 
+opt Durable label receipt exists and complete result is still absent
+  Ops -> Domain : Request current G-ARTIFACT access and artifact-only claim
+  Domain -> Store : Check original provider/command/parcel binding, current read/store\nauthority, retention eligibility and work generation; claim atomically
+  alt Artifact recovery authorised and claim commit confirmed
+    Domain --> Ops : Original identity and permitted artifact work only
+    Ops -> Provider : Read-only query / retrieve original label if content is needed
+    Provider --> Ops : Original content + identity / unavailable (no creation)
+    opt Valid original content is available and still permitted
+      Ops -> Artifacts : Validate PDF/hash/binding and store allowed original content
+      Artifacts --> Ops : Scoped evidence reference or actual storage error
+    end
+    Ops -> Domain : Submit complete artifact binding / failure observation
+    alt Complete original artifact binding validated
+      Domain -> Store : Atomically save same operation_id: full OperationResult + SUCCEEDED + audit
+      Store --> Domain : Commit confirmed or unknown; reread original receipt / result if unknown
+    else Content or storage remains incomplete
+      note over Domain, Store : Retain last durable confirmed receipt and EXECUTING work.\nNo result payload yet; local failure never permits create retry.
+    end
+  else No current artifact permission or claim
+    note over Ops, Store : Preserve known effect; no fetch/store or new invoke.\nPermitted deletion is not a reason to recreate an artifact.
+  end
+end
+
 group Accepted outcome takes priority over historical effect results
   Domain -> Store : Read current accepted outcome, notification and saved effects
   alt Accepted outcome is REJECTED or MANUAL_HANDLED
@@ -60,7 +90,7 @@ group Accepted outcome takes priority over historical effect results
     Domain -> Store : Atomically recheck case/outcome version;\npersist or reuse RETURN_CREATED work and NOTIFICATION_PENDING
   else No deliverable outcome
     break Return/label unfinished, unresolved or current state ineligible
-      note over Ops, Domain : Preserve all effects; no completion or new notification.\nA later eligible label needs current G-DISPATCH.
+      note over Ops, Domain : Preserve all effects; no completion or new notification.\nA later new label effect needs current G-DISPATCH.
     end
   end
   group Deliver only the current persisted outcome
@@ -95,8 +125,10 @@ group Accepted outcome takes priority over historical effect results
   end
 end
 legend bottom
-  MA-0.2 candidate walkthrough, not a performed provider test.
+  MA-0.3 candidate walkthrough, not a performed provider test.
   Expired approval may allow authorised historical lookup, never a new effect.
+  A saved confirmed effect selects artifact-only recovery; creation expiry does not grant or block that read/store authority.
+  Raw provider success is not an OperationResult; complete local binding is required before SUCCEEDED.
   A historical lookup never changes an accepted rejection/manual outcome.
 endlegend
 @enduml

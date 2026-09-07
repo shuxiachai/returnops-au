@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "ReturnOps AU — Planned Public API Contract",
-    "version": "1.0.0-rc.4",
+    "version": "1.0.0-rc.5",
     "description": "F.01 review candidate only. This document defines intended requests, responses and authority boundaries; it does not implement or claim a running server, identity service, database, agent, provider or runtime security control. Shared JSON Schemas are in ./schemas.json. Owner A; B consumes UI contracts and C consumes agreed read/evaluation contracts. Internal retrieval, Risk Review, Coordinator/Assessment and operations dispatch are not public API endpoints. Authentication and all authoritative writes remain server-side responsibilities. Requires B/C review before contract adoption."
   },
   "servers": [
@@ -82,7 +82,7 @@
       "post": {
         "operationId": "stageEvidence",
         "summary": "Stage an owner-bound evidence attachment",
-        "description": "The server binds the staged attachment to the authenticated CUSTOMER. No case binding is performed during upload. CreateCaseRequest or ClarificationRequest subsequently consumes eligible attachment references and atomically binds them to that customer's case. A foreign, expired or already-incompatibly-bound reference cannot be attached. Staged content remains private and subject to retention. The 10 MiB limit applies to file bytes; metadata and MIME declarations do not replace server-side content validation.",
+        "description": "The server binds the staged attachment to the authenticated CUSTOMER. No case binding is performed during upload. CreateCaseRequest or ClarificationRequest subsequently consumes eligible attachment references and atomically binds them to that customer's case. A foreign, expired or already-incompatibly-bound reference cannot be attached. Staged content remains private and subject to retention. The 10 MiB limit applies to file bytes; metadata and MIME declarations do not replace server-side content validation. All POST retries follow the shared IdempotencyKey retention/receipt rule; a 409 receipt-unavailable response does not undo prior acceptance or authorise resubmission.",
         "x-status": "Planned",
         "x-owner": "A",
         "x-consumers": [
@@ -283,7 +283,7 @@
       "post": {
         "operationId": "createCase",
         "summary": "Submit one customer case",
-        "description": "Preserves the original customer statement and requested outcome independently from any normalised facts or recommendation. One submission key creates at most one case. Eligible staged evidence references are owner-checked and bound atomically with case creation. Missing information is a valid intake result and cannot create an operational command. The returned CustomerCaseView is a narrow customer-facing acknowledgement, not the Founder read model.",
+        "description": "Preserves the original customer statement and requested outcome independently from any normalised facts or recommendation. One submission key creates at most one case. Eligible staged evidence references are owner-checked and bound atomically with case creation. Missing information is a valid intake result and cannot create an operational command. The returned CustomerCaseView is a narrow customer-facing acknowledgement, not the Founder read model. All POST retries follow the shared IdempotencyKey retention/receipt rule; a 409 receipt-unavailable response does not undo prior acceptance or authorise resubmission.",
         "x-status": "Planned",
         "x-owner": "A",
         "x-consumers": [
@@ -435,7 +435,7 @@
       "post": {
         "operationId": "submitClarification",
         "summary": "Submit clarification for an existing case",
-        "description": "Appends a new customer statement or answer without overwriting the original. The service checks body.expected_case_version and whether the clarification belongs to the current intake request. Eligible staged evidence is owner-checked and bound atomically to the case; new evidence invalidates dependent proposal/review/approval state under the Domain Service rules. Acceptance does not imply AI completion or operation execution.",
+        "description": "Appends a new customer statement or answer without overwriting the original. The service checks body.expected_case_version and whether the clarification belongs to the current intake request. Eligible staged evidence is owner-checked and bound atomically to the case; new evidence invalidates dependent proposal/review/approval state under the Domain Service rules. Acceptance does not imply AI completion or operation execution. All POST retries follow the shared IdempotencyKey retention/receipt rule; a 409 receipt-unavailable response does not undo prior acceptance or authorise resubmission.",
         "x-status": "Planned",
         "x-owner": "A",
         "x-consumers": [
@@ -651,7 +651,7 @@
       "post": {
         "operationId": "recordFounderDecision",
         "summary": "Record a proposal decision or a non-executable failure outcome",
-        "description": "Accepts APPROVE, REJECT, REQUEST_REVISION or MANUAL_HANDLING for the current proposal ID/version. Alternatively, only MANUAL_HANDLING may target the current processing_failure_id or order_lookup_block_id when the case is ESCALATED and has no current proposal. Exactly one of the three targets is allowed. The server derives the trusted Founder from authenticated context and atomically checks expected_case_version, current case/input/target identity and state. A stale, replaced, foreign or wrong-kind target grants no authority. Non-proposal manual handling accepts no proposal, preview, scope fingerprint or approval, records an audited customer-facing outcome, and queues notification only; never a return/label. Same-key/same-body replay returns the original accepted receipt after authentication, even after state advances; new intents require current guards. For proposal approval revalidate current passing review, preview and exact scope; ESCALATE cannot be approved. APPROVE persists trusted exact-scope authority and governed simulated execution work atomically. No second dispatch endpoint, new role or business decision is added. 202 means acceptance, not operation or notification success.",
+        "description": "Accepts APPROVE, REJECT, REQUEST_REVISION or MANUAL_HANDLING for the current proposal ID/version. Alternatively, only MANUAL_HANDLING may target the current processing_failure_id or order_lookup_block_id when the case is ESCALATED and has no current proposal. Exactly one of the three targets is allowed. The server derives the trusted Founder from authenticated context and atomically checks expected_case_version, current case/input/target identity and state. A stale, replaced, foreign or wrong-kind target grants no authority. Non-proposal manual handling accepts no proposal, preview, scope fingerprint or approval, records an audited customer-facing outcome, and queues notification only; never a return/label. Same-key/same-body replay follows the shared IdempotencyKey rule after authentication and authorisation, even after state advances: reuse acceptance, but return 409 INVALID_STATE if retention has made original receipt content unavailable; never dispatch again. New intents require current guards. For proposal approval revalidate current passing review, preview and exact scope; ESCALATE cannot be approved. APPROVE persists trusted exact-scope authority and governed simulated execution work atomically. No second dispatch endpoint, new role or business decision is added. 202 means acceptance, not operation or notification success. All POST retries follow the shared IdempotencyKey retention/receipt rule; a 409 receipt-unavailable response does not undo prior acceptance or authorise resubmission.",
         "x-status": "Planned",
         "x-owner": "A",
         "x-consumers": [
@@ -738,7 +738,7 @@
       "post": {
         "operationId": "reconcileOperation",
         "summary": "Request reconciliation of an uncertain operation",
-        "description": "Valid only for a recoverable UNKNOWN/RECONCILING operation in the current case version. The request starts or resumes provider-specific result lookup using the stored provider ID/fingerprint. It cannot change the approved command, parameters, provider or approval. An uncertain result is not an instruction to repeat the effect; any later safe retry remains subject to current exact approval, provider authority and idempotency guards. This endpoint is not a generic dispatch or unrestricted retry API.",
+        "description": "Valid only for a recoverable UNKNOWN/RECONCILING operation in the current case version. The request starts or resumes provider-specific result lookup using the stored provider ID/fingerprint. It cannot change the approved command, parameters, provider or approval. An uncertain result is not an instruction to repeat the effect; any later safe retry remains subject to current exact approval, provider authority and idempotency guards. This endpoint is not a generic dispatch or unrestricted retry API. All POST retries follow the shared IdempotencyKey retention/receipt rule; a 409 receipt-unavailable response does not undo prior acceptance or authorise resubmission.",
         "x-status": "Planned",
         "x-owner": "A",
         "x-consumers": [
@@ -822,7 +822,7 @@
       "post": {
         "operationId": "retryNotification",
         "summary": "Request notification-only retry",
-        "description": "Retries the existing pending/failed notification using its saved outcome and target, after checking body.expected_case_version and current state. It does not repeat CREATE_RETURN, GENERATE_LABEL, approval or any other operational effect, and cannot change the recipient or message through this request. The case reaches core completion only after the stored outcome has been successfully notified under the Domain Service rules.",
+        "description": "Retries the existing pending/failed notification using its saved outcome and target, after checking body.expected_case_version and current state. It does not repeat CREATE_RETURN, GENERATE_LABEL, approval or any other operational effect, and cannot change the recipient or message through this request. The case reaches core completion only after the stored outcome has been successfully notified under the Domain Service rules. All POST retries follow the shared IdempotencyKey retention/receipt rule; a 409 receipt-unavailable response does not undo prior acceptance or authorise resubmission.",
         "x-status": "Planned",
         "x-owner": "A",
         "x-consumers": [
@@ -1274,7 +1274,7 @@
         "name": "Idempotency-Key",
         "in": "header",
         "required": true,
-        "description": "Required for every POST. A safe opaque ASCII key scoped to the authenticated principal, operation and addressed resource. Reusing the same key with the same canonical request fingerprint returns the accepted result without a duplicate mutation; different content returns 409. For file upload the fingerprint includes inspected file bytes and allowed metadata. Authentication and authorisation still apply to retries. Durable idempotency and transactional queuing are implementation requirements, not claims made by this schema.",
+        "description": "Required for every POST. A safe opaque ASCII key scoped to the authenticated principal, operation and addressed resource. After authentication and resource authorisation, same-key/same-fingerprint replay reuses the original acceptance without a duplicate mutation or scheduling. Return the original receipt only while all its content remains available under the current retention policy. If allowed removal makes any receipt content unavailable, return 409 INVALID_STATE with retryable=false and a sanitised message that the request was previously accepted but its receipt is unavailable; read the current case/history. Never return removed content, substitute a current view as the original receipt, or retry under a new key automatically. Keep minimal scope/key/fingerprint/accepted-resource-and-work references and receipt availability; removing response content must not erase deduplication and permit another execution. Coordinate retention removal and replay reads so cached receipts cannot bypass deletion. Different content still returns 409 IDEMPOTENCY_CONFLICT. For file upload the fingerprint includes inspected file bytes and allowed metadata. Durable idempotency, retention and transactional queuing remain unimplemented requirements.",
         "schema": {
           "$ref": "./schemas.json#/$defs/IdempotencyKey"
         }

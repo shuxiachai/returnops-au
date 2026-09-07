@@ -1,14 +1,17 @@
 """Regression tests for failure detection in the checker, not product tests."""
 import base64
+import json
 import os
 from pathlib import Path
+import shutil
 import tempfile
 import unittest
+from unittest.mock import patch
 import zlib
 
-from check import (BASE64_ALPHABET, UML_ALPHABET, CheckError, allocation_rows,
-                   check_documents, check_svg_pair, composite_structure, markdown_destinations,
-                   scenario_ids, validate_wbs)
+from check import (BASE64_ALPHABET, UML_ALPHABET, ROOT, CheckError, allocation_rows,
+                   check_documents, check_operation_statuses, check_svg_pair, composite_structure, markdown_destinations,
+                   check_shared, scenario_ids, validate_wbs)
 
 
 def svg_for(source):
@@ -19,6 +22,75 @@ def svg_for(source):
 
 
 class CheckerTests(unittest.TestCase):
+    def test_operation_status_vocabulary_catches_stale_or_missing_definition(self):
+        schema = json.loads((ROOT / "contracts/v1/schemas.json").read_text(encoding="utf-8"))
+        expected = set(schema["$defs"]["OperationAttempt"]["properties"]["status"]["enum"])
+        row = "| `OperationStatus` | " + ", ".join(f"`{state}`" for state in sorted(expected)) + " |"
+        check_operation_statuses(row, expected)
+        with self.assertRaisesRegex(CheckError, "differs from schema"):
+            check_operation_statuses(row.replace("`EXECUTING`", "`RUNNING`"), expected)
+        with self.assertRaisesRegex(CheckError, "definition row"):
+            check_operation_statuses("", expected)
+
+    def test_indented_extra_connector_cannot_hide_from_registry_or_boundary(self):
+        source = ROOT / "docs/diagrams/shared/governed-case-composite.puml"
+        registry = ROOT / "docs/13-shared-composite-structure.md"
+        source_text = source.read_text(encoding="utf-8")
+        registry_text = registry.read_text(encoding="utf-8")
+        for connector in ("AN_DOMAIN -- REPO_CASE : A99", "    AN_DOMAIN -- REPO_CASE : A99",
+                          "\tAN_DOMAIN -- REPO_CASE : A99", "AN_DOMAIN--REPO_CASE:A99"):
+            for registered in (False, True):
+                with self.subTest(connector=connector, registered=registered):
+                    changed = source_text.replace("\nlegend bottom", f"\n{connector}\n\nlegend bottom")
+                    def changed_read(path):
+                        if path == source:
+                            return changed
+                        if path == registry and registered:
+                            return registry_text + "\n| A99 | test-only direct repository connection |\n"
+                        return path.read_text(encoding="utf-8-sig")
+                    with patch("check.read", side_effect=changed_read):
+                        message = "REPO_CASE neighbors" if registered else "Connector registry mismatch"
+                        with self.assertRaisesRegex(CheckError, message):
+                            check_shared(ROOT)
+
+    def test_suspected_unsupported_connectors_fail_instead_of_disappearing(self):
+        source = (ROOT / "docs/diagrams/shared/governed-case-composite.puml").read_text(encoding="utf-8")
+        for connector in ("    AN_DOMAIN -- REPO_CASE", "AN_DOMAIN -- REPO_CASE : wrong",
+                          "AN_DOMAIN --> REPO_CASE : A99", "AN_DOMAIN ..> REPO_CASE : A99",
+                          "AN_DOMAIN -[#red]-> REPO_CASE : A99", "AN_DOMAIN -right- REPO_CASE : A99",
+                          '"AN_DOMAIN" -- REPO_CASE : A99', "AN_DOMAIN -- MISSING : A99"):
+            with self.subTest(connector=connector):
+                changed = source.replace("\nlegend bottom", f"\n{connector}\n\nlegend bottom")
+                with self.assertRaisesRegex(CheckError, "unsupported connector|undeclared connector endpoint"):
+                    composite_structure(changed)
+
+    def test_connector_indentation_preserves_shape_and_legend_is_not_code(self):
+        source = (ROOT / "docs/diagrams/shared/governed-case-composite.puml").read_text(encoding="utf-8")
+        expected = composite_structure(source)
+        indented = "\n".join("\t" + line if " -- " in line else line for line in source.splitlines())
+        self.assertEqual(composite_structure(indented), expected)
+        prose = source.replace("\nlegend bottom", "\n' AN_DOMAIN --> REPO_CASE : comment\nlegend bottom\nAN_DOMAIN --> REPO_CASE : prose")
+        self.assertEqual(composite_structure(prose), expected)
+        with self.assertRaisesRegex(CheckError, "Unclosed composite legend"):
+            composite_structure(source.replace("endlegend", ""))
+
+    def test_other_shared_views_do_not_hide_or_inflate_composite_checks(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            shared = root / "docs/diagrams/shared"
+            shared.mkdir(parents=True)
+            for source in (ROOT / "docs/diagrams/shared").glob("*-composite.puml"):
+                shutil.copyfile(source, shared / source.name)
+            shutil.copyfile(ROOT / "docs/13-shared-composite-structure.md",
+                            root / "docs/13-shared-composite-structure.md")
+            (shared / "package-dependencies.puml").write_text(
+                '@startuml\npackage "Planned" {}\n@enduml\n', encoding="utf-8")
+            self.assertIn("3 CS views", check_shared(root))
+            # Other diagrams cannot substitute for a missing protected CS view.
+            (shared / "governed-case-composite.puml").unlink()
+            with self.assertRaises(CheckError):
+                check_shared(root)
+
     def test_mtime_and_line_endings_do_not_invalidate_matching_source(self):
         with tempfile.TemporaryDirectory() as folder:
             source = Path(folder) / "model.puml"

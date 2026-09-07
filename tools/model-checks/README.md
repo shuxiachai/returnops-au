@@ -50,9 +50,11 @@ are made; `safe.directory` is scoped to the single read-only Git command.
   embedded PlantUML source. Model counts are discovered dynamically.
 - [Member A](../../docs/12-member-a-model-chain.md): scenario IDs are unique and
   sequential, referenced activity IDs exist, and the named OperationAttempt
-  states match the current contract enum. Adding MA-T16 or further scenarios
+  states and the project definition's `OperationStatus` row match the current
+  contract enum. Adding MA-T16 or further scenarios
   does not require changing an expected count in this tool.
 - [Composite structure](../../docs/13-shared-composite-structure.md): the
+  `*-composite.puml` views only (Package/Deployment use the common SVG check);
   supported component/port/connector notation has declared endpoints, the
   documented D/A scope and P/R pairing, complete unique connector registry,
   sequential scenarios, and the five existing Domain/store, Domain/audit,
@@ -62,8 +64,17 @@ are made; `safe.directory` is scoped to the single read-only Git command.
 
 The CS reader supports the project's explicit `component "..." as Alias { }`,
 `port`/`portin`/`portout`, local `(P)/(R)` annotations, and `-- : Dxx/Axx`
-conventions. It is not a general PlantUML or UML metamodel parser. It checks
+conventions. Spaces/tabs before a connector and optional spaces around `--`
+or `:` do not change its checks. Suspected connectors with unsupported arrows,
+decorations, missing registry IDs or quoted endpoints fail explicitly instead
+of being ignored. Whole-line apostrophe comments and `legend`/`endlegend` prose
+are excluded from connection parsing. It is not a general PlantUML or UML
+metamodel parser. It checks
 local connection shape, not full interface compatibility, behavior or security.
+
+These connection regressions support FR-009/010/011 and NFR-002/006/007 through
+the existing CS-01 Domain/store boundary and MA OperationAttempt state model;
+they do not prove that runtime authorization or effect guards are implemented.
 
 ## SVG/source correspondence without mtime
 
@@ -121,3 +132,7 @@ The checker regression tests use temporary synthetic inputs to verify that a
 changed SVG source, invalid connector, WBS cycle and missing reference fail,
 while timestamps, normal line endings and added scenario rows do not create
 false failures. They are tests of this tool, not product safety tests.
+An indented extra CS connection must fail both when it is absent from the
+registry and when it is registered but violates the named Domain/store boundary.
+The vocabulary regression also rejects the stale `RUNNING` status in place of
+the contract's `EXECUTING`.

@@ -1,12 +1,14 @@
 # System Design
 
+> **rc.5 发布定位（2026-09-07）：**本版交付至 [PR #11](https://github.com/shuxiachai/returnops-au/pull/11)，由包含本说明的实际提交定位。PR 中记录准确 source SHA、CI run 与评审状态；C 复现使用该准确 SHA，不能使用旧 `57d86fe` 或浮动分支。下文“未发布/本地准备”、旧测试和旧哈希是发布前历史；当前提交以 Git 文件内容及 `docs/reviews/rc5-publication-artifacts-20260907.json` 为准。发布不等于 F.01/F.02 接受、B/C 本人审阅/复现或课程提交，Jira 未由此同步。
+
 > **Historical v1 alignment publication — 2026-09-07:** [PR #9](https://github.com/shuxiachai/returnops-au/pull/9); its merge record is separate from pending acceptance.
 > This design follows the lead's
 > published working baseline, [fixed ownership](07-frozen-work-allocation.md)
 > and [work packages](08-delivery-work-packages.md). B/C shared-model review
 > and tutor feedback are still required. Diagrams describe intended behaviour,
 > not an implemented or accepted API.
-> The `1.0.0-rc.4` contract and `MA-0.2` aligned models are review candidates;
+> The local `1.0.0-rc.5` contract and `MA-0.3` aligned models are unpublished review candidates;
 > the review entrance is [PR #11](https://github.com/shuxiachai/returnops-au/pull/11).
 > Use its exact head and review records for current status. The rc.3 commit
 > `9093156` is the historical starting point; F.01 remains tracked by
@@ -106,7 +108,7 @@ components cannot write case state directly. Audit Port accepts correlated
 evidence but grants no workflow authority. Rejection/manual-outcome notifications
 follow recorded Founder decisions; they cannot invoke the return/label commands.
 
-The [CS-0.1 Composite Structure candidate](13-shared-composite-structure.md)
+The [CS-0.2 Composite Structure candidate](13-shared-composite-structure.md)
 refines these conceptual arrows into part properties, ports and connectors.
 Its Audit path clarifies the arrows above: material observations pass through
 deterministic services and Domain validation before becoming trusted business
@@ -270,6 +272,10 @@ sequenceDiagram
     Ops->>Domain: Record notification success
     Domain->>Domain: Complete successful return path and append audit
 ```
+
+### Local rc.5 replay and artifact correction
+
+Allowed content removal also invalidates POST receipt content. Same-key/same-body replay preserves original acceptance but returns 409 INVALID_STATE if its receipt is no longer available; it never executes again or restores deleted text. See docs/09 section 7. A confirmed label effect whose artifact is unsaved stays EXECUTING with an internal durable receipt and artifact-only recovery task; only the original label may be retrieved/stored. Complete Domain persistence precedes SUCCEEDED. MA-0.3 / CS-0.2 describe these local corrections; rc.4/57d86fe remains the published historical evidence.
 
 ### rc.4 candidate historical reads and recovery boundary
 
@@ -508,7 +514,7 @@ in parallel.
 | +1 scenarios | Show the views agree for normal, missing-information, risk and ambiguous-timeout cases | [Use cases](diagrams/05-use-case-diagram.md) and [Lab 3 material](05-lab-3-requirement-modelling.md) are inputs; run consistency walkthroughs and record tutor findings, rather than counting historical Lab 3 work as current acceptance. |
 
 The required runtime complex-structure model remains a separate M-S.02
-deliverable. [CS-0.1](13-shared-composite-structure.md) now supplies candidate
+deliverable. [CS-0.2](13-shared-composite-structure.md) now supplies candidate
 part/port/connector views, pending human review and the original dependencies.
 This architecture flowchart or a static class diagram does not substitute for
 its acceptance. [Feature modelling](diagrams/04-feature-diagram.md)

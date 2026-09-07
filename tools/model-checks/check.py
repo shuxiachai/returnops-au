@@ -232,6 +232,15 @@ def scenario_ids(content: str, prefix: str) -> list[str]:
     return ids
 
 
+def check_operation_statuses(baseline: str, expected: set[str]) -> None:
+    rows = re.findall(r"^\|\s*`OperationStatus`\s*\|([^|]+)\|", baseline, re.M)
+    require(len(rows) == 1, "docs/00 must have one OperationStatus definition row")
+    statuses = re.findall(r"`([A-Z][A-Z_]*)`", rows[0])
+    unique(statuses, "docs/00 OperationStatus")
+    require(set(statuses) == expected,
+            f"docs/00 OperationStatus differs from schema: {sorted(statuses)} vs {sorted(expected)}")
+
+
 def check_member_a(root: Path) -> str:
     folder = root / "docs/diagrams/member-a"
     model = read(root / "docs/12-member-a-model-chain.md")
@@ -244,6 +253,7 @@ def check_member_a(root: Path) -> str:
     require(references <= set(actions), f"MA document references absent activity actions: {sorted(references-set(actions))}")
     schema = json.loads(read(root / "contracts/v1/schemas.json"))
     expected = set(schema["$defs"]["OperationAttempt"]["properties"]["status"]["enum"])
+    check_operation_statuses(read(root / "docs/00-project-definition-v1.md"), expected)
     state_source = read(folder / "operation-attempt-state.puml")
     states = re.findall(r"^state\s+([A-Z][A-Z_]*)\s*$", state_source, re.M)
     unique(states, "OperationAttempt states")
@@ -251,12 +261,23 @@ def check_member_a(root: Path) -> str:
     endpoints = re.findall(r"^(\[\*\]|[A-Z_]+)\s*-->\s*(\[\*\]|[A-Z_]+)", state_source, re.M)
     used_states = {name for pair in endpoints for name in pair if name != "[*]"}
     require(used_states <= expected, f"Undeclared transition states: {sorted(used_states-expected)}")
-    return f"{len(scenarios)} MA scenarios; {len(actions)} unique action IDs; {len(states)} schema-matching states"
+    return f"{len(scenarios)} MA scenarios; {len(actions)} unique action IDs; {len(states)} states match schema and docs/00"
 
 
 def composite_structure(content: str):
     stack, parents, ports, edges = [], {}, {}, []
-    for number, line in enumerate(content.splitlines(), 1):
+    in_legend = False
+    for number, raw_line in enumerate(content.splitlines(), 1):
+        line = raw_line.strip()
+        if in_legend:
+            if line == "endlegend":
+                in_legend = False
+            continue
+        if re.fullmatch(r"legend(?:\s+\w+)*", line):
+            in_legend = True
+            continue
+        if not line or line.startswith("'"):
+            continue
         part = re.match(r'\s*component\s+"(?:\\.|[^"\\])*"\s+as\s+(\w+)\s*\{', line)
         if part:
             alias = part.group(1)
@@ -274,10 +295,11 @@ def composite_structure(content: str):
             require(direction is not None, f"line {number}: port requires explicit local P/R annotation")
             require(alias not in ports, f"line {number}: duplicate port {alias}")
             ports[alias] = (stack[-1], direction.group(1))
-        elif re.match(r"\w+\s+--\s+\w+", line):
-            edge = re.fullmatch(r"(\w+)\s+--\s+(\w+)\s*:\s*([DA]\d+)\s*", line)
-            require(edge is not None, f"line {number}: connector needs a D/A registry ID")
+        elif edge := re.fullmatch(r"(\w+)\s*--\s*(\w+)\s*:\s*([DA]\d+)", line):
             edges.append(edge.groups())
+        elif re.match(r'(?:"(?:\\.|[^"\\])*"|[\w.$]+)\s*(?:"[^"\n]*"\s*)?[<>|o*#{}]*[-.]', line):
+            raise CheckError(f"line {number}: unsupported connector; use LEFT -- RIGHT : Dxx/Axx with declared port aliases")
+    require(not in_legend, "Unclosed composite legend")
     require(not stack, f"Unclosed part boxes: {stack}")
     require(sum(parent is None for parent in parents.values()) == 1, "Expected one outer structured classifier per CS view")
     used = set()
@@ -297,7 +319,8 @@ def composite_structure(content: str):
 
 
 def check_shared(root: Path) -> str:
-    sources = sorted((root / "docs/diagrams/shared").glob("*.puml"))
+    # Package/deployment views share this folder but do not use CS ports.
+    sources = sorted((root / "docs/diagrams/shared").glob("*-composite.puml"))
     require(bool(sources), "No shared composite sources")
     structures = {source.name: composite_structure(read(source)) for source in sources}
     edges = [edge for _, diagram_edges in structures.values() for edge in diagram_edges]

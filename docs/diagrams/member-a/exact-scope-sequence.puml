@@ -18,6 +18,7 @@ control "Approval Guard" as Guard
 database "Case / work / audit store" as Store
 control "Operations Service" as Ops
 participant "Simulated provider port" as Provider
+participant "Scoped label artifact store" as Artifacts
 
 Founder -> UI : Confirm current exact scope and reason
 UI -> API : POST decisions(request, HTTP key)
@@ -28,9 +29,14 @@ end
 API -> Domain : record_founder_decision(request, trusted context)
 Domain -> Store : Read accepted request in principal/route/resource/key scope
 alt Same key and canonical body already accepted
-  Store --> Domain : Original receipt
-  Domain --> API : Return receipt without new work
-  API --> UI : Receipt; GET current view separately
+  Store --> Domain : Existing acceptance fact and current receipt readability
+  alt Receipt body still retained and readable
+    Domain --> API : Original receipt; no new work
+    API --> UI : Receipt; GET current view separately
+  else Receipt body permissibly deleted
+    Domain --> API : 409 INVALID_STATE; retryable=false
+    API --> UI : No new write, dispatch or automatic new key; GET current / history
+  end
 else Key used for another body
   Domain --> API : 409 IDEMPOTENCY_CONFLICT
 else Fresh request
@@ -53,8 +59,8 @@ else Fresh request
     Domain -> Store : Read approval/work, command results and attempts
     Store --> Domain : Current snapshot + durable identities
     Domain --> Ops : Read-only execution context
-    alt Saved success or unresolved prior attempt
-      ref over Domain, Provider : M-A.03b: reuse success / authorised query / yield
+    alt Saved success, confirmed-effect receipt or unresolved prior attempt
+      ref over Domain, Artifacts : M-A.03b: reuse success / artifact-only recovery / query / yield
     else Unfinished command eligible for dispatch evaluation
       Ops -> Guard : Validate allowed case state, current passing Risk,\nexact scope, expiry and allowlist
       Guard --> Ops : Valid or blocked
@@ -76,10 +82,27 @@ else Fresh request
         Ops -> Domain : Save BLOCKED and evidence; no effect invoked
       end
       Ops -> Provider : Invoke approved CommandSpec using stable provider key
-      Provider --> Ops : Typed success / definite failure / uncertain outcome
-      Ops -> Domain : record_operation_result(id, observation, work context)
-      Domain -> Store : Validate and persist SUCCEEDED / FAILED / UNKNOWN + audit
-      note over Domain, Store : A failed local save leaves prior EXECUTING intent for recovery.\nDo not report an uncommitted status as durable.
+      Provider --> Ops : Raw effect observation / definite no-effect failure / uncertainty
+      alt Label effect confirmed
+        Ops -> Domain : Submit original provider/command/parcel receipt
+        Domain -> Store : Atomically save confirmed-effect fact + audit + artifact-only work;\nkeep EXECUTING without result
+        break Receipt commit not confirmed
+          note over Domain, Provider : No create retry. Recover prior durable intent / receipt\nand query only the original provider identity if still uncertain.
+        end
+        Ops -> Artifacts : G-ARTIFACT: validate and store original label only
+        Artifacts --> Ops : Scoped evidence reference or storage failure
+        Ops -> Domain : Submit artifact binding or actual storage error
+        alt Full label reference validated
+          Domain -> Store : Atomically save complete OperationResult + SUCCEEDED + audit
+          Store --> Domain : Commit confirmed or unknown; recover saved receipt if unknown
+        else Artifact incomplete
+          note over Domain, Store : Retain confirmed receipt and artifact-only work; EXECUTING.\nNo incomplete success, UNKNOWN reclassification or new invoke.
+        end
+      else Complete return success / no-effect failure / uncertainty
+        Ops -> Domain : record_operation_result(id, observation, work context)
+        Domain -> Store : Validate complete result for SUCCEEDED, or save FAILED / UNKNOWN + audit
+      end
+      note over Domain, Store : A failed local save retains prior durable facts.\nCrash recovery checks known-effect receipts before uncertain-effect lookup.
     end
   else REQUEST_REVISION on current proposal
     Domain -> Store : Atomically recheck target; save revision + audit\n+ request key/body/receipt; invalidate continuing authority
@@ -99,7 +122,7 @@ else Fresh request
   end
 end
 legend bottom
-  Candidate interaction; messages are conceptual calls except the documented HTTP operation.
+  MA-0.3 candidate; messages are conceptual calls except the documented HTTP operation.
   Guard checks before invocation must be enforced by the runtime concurrency design (MA-Q03).
 endlegend
 @enduml

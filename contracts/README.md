@@ -1,15 +1,19 @@
 # F.01 contract artifacts
 
+> **rc.5 publication reference (2026-09-07):** this revision is delivered through [PR #11](https://github.com/shuxiachai/returnops-au/pull/11), identified by the actual commit containing this notice. The PR records the exact source SHA, CI runs and review state; C must reproduce that SHA, not old `57d86fe` or a floating branch. Local-only/unpublished wording, test runs and raw-file hashes below are pre-publication history. Current Git content is recorded in `docs/reviews/rc5-publication-artifacts-20260907.json`. Publication does not establish acceptance, B/C review, C reproduction or a Jira update.
+
 Start with [the Chinese hand-off guide](../docs/09-interface-contract-v1.md).
-Version `1.0.0-rc.4` is a review candidate for
+Version `1.0.0-rc.5` is an unpublished local review candidate for
 [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32), not accepted F.01.
 The earlier rc.2 was merged in
 [PR #9](https://github.com/shuxiachai/returnops-au/pull/9); that publication does
 not include this revision or establish B/C acceptance. Joint review must name
 the exact revision being reviewed. The review entrance is
 [PR #11](https://github.com/shuxiachai/returnops-au/pull/11); use its exact head
-commit and review records for current status. The rc.3 commit `9093156` is the
-historical starting point. Publication does not establish a running business
+commit and review records for publication status. The verified PR head
+`57d86fe` contains rc.4, not this local rc.5 correction; its existing CI does
+not cover the new revision. The rc.3 commit `9093156` is the historical
+starting point. Publication does not establish a running business
 API or B/C acceptance.
 
 ## Contents
@@ -21,6 +25,7 @@ API or B/C acceptance.
 - `../tests/contracts/test_contract_v1_rc2.py`: five-gap regressions and test-only cross-object/cohort checks, not runtime guards.
 - `../tests/contracts/test_contract_v1_rc3.py`: three-target exclusivity, order-block provenance fixtures and the shared HTTP idempotency rule.
 - `../tests/contracts/test_contract_v1_rc4.py`: role-isolated history, retention, cursor boundaries and cross-record snapshot/material fixture oracles; no running store or cursor service.
+- `../tests/contracts/test_contract_v1_rc5.py`: deleted-receipt replay fixture and complete/incomplete label-result boundaries; no running replay or artifact recovery service.
 - `../tools/model-checks/README.md`: reproducible offline model/document checks, independent of contract validators.
 - `requirements.txt`: contract-validator dependencies only, not an application dependency lockfile.
 
@@ -89,7 +94,39 @@ trace. Original statement, source hash, multi-item/single-parcel and approval
 fingerprints are cross-checked where linked; production foreign-key,
 concurrency, authorization and state invariants remain future work.
 
-## rc.3 to rc.4 candidate migration
+## rc.4 to rc.5 local semantic correction
+
+The fifteen public operations, wire shapes, seven OperationAttempt states and
+error codes are unchanged. Every POST re-authenticates and re-authorises replay.
+Same-key/same-fingerprint reuses prior acceptance, but returns the original
+receipt only while all of its content remains available. Allowed removal wins:
+return the existing 409 INVALID_STATE with retryable=false and a sanitised
+receipt-unavailable message; do not expose removed content or execute again.
+Keep minimal acceptance/key/fingerprint/resource/work references independently
+of removable response content. B reads the current case/history and must not
+automatically resubmit with a new key. F.07 must coordinate cleanup and replay
+reads, including caches, without erasing deduplication when deleting content.
+
+The additional runtime_guard includes fixture_context for an accepted
+clarification response followed by removal and replay. Its cross-record oracle
+detects deleted text even in a schema-valid ErrorEnvelope. This validates test
+data, not runtime zero-effects or deletion. There are now 21 unexecuted runtime
+scenarios; historical rc.4 counts below remain historical.
+
+MA-0.3 / CS-0.2 separate raw provider success from the public OperationResult.
+A known label effect with an unsaved local artifact stays EXECUTING, with an
+internal durable receipt and artifact-only recovery work. Query/retrieve/store
+the original label; never invoke it again. Only a complete result persisted by
+Domain, including label_evidence_id, permits SUCCEEDED. No new wire field or
+status is introduced, and the proposed 1-based attempt counter is not adopted.
+See docs/09 section 13.4 and docs/12–14 for model mappings and pending review.
+
+Local rc.5 validation: 56 contract unittest methods passed on 2026-09-07.
+Full offline/model-render/environment-subset evidence and current raw file
+hashes are in [A-FIX-0.1](../docs/reviews/a-defect-closure-20260907.md).
+No remote CI, business runtime or C's independent reproduction is claimed.
+
+## Historical rc.3 to rc.4 candidate migration
 
 Two read-only history GETs bring the public operation count to 15. Founder and
 Customer use separate finite kind enums and strict typed content. Historical

@@ -1,6 +1,6 @@
 @startuml
 !pragma layout smetana
-title Member A - OperationAttempt lifecycle\nMA-0.2 local candidate for C review
+title Member A - OperationAttempt lifecycle\nMA-0.3 local candidate for C review
 hide empty description
 skinparam shadowing false
 skinparam defaultFontName SansSerif
@@ -19,7 +19,7 @@ state RECONCILING
 state BLOCKED
 
 PENDING : Bound work; invocation not started
-EXECUTING : Invocation reserved or in progress
+EXECUTING : Reserved / invoked, or known effect awaiting artifact
 SUCCEEDED : Confirmed business result saved
 FAILED : Confirmed no-effect failure saved
 UNKNOWN : Effect unresolved; no query active
@@ -30,12 +30,15 @@ BLOCKED : Invocation prevented
 PENDING --> EXECUTING : dispatch [G_DISPATCH and claim won]\n/ Domain.reserveAndMarkExecuting()
 PENDING --> BLOCKED : dispatchDenied [not invoked]\n/ Domain.saveBlockAndAudit()
 EXECUTING --> BLOCKED : preInvokeCheck [guard denied; not invoked]\n/ Domain.saveBlockAndAudit()
-EXECUTING --> SUCCEEDED : providerReply [confirmed business success]\n/ Domain.saveResultAndAudit()
-EXECUTING --> FAILED : providerReply [confirmed failure; no effect]\n/ Domain.saveFailureAndAudit()
-EXECUTING --> UNKNOWN : outcomeUncertain [effect not established]\n/ Domain.saveUnknownAndAudit()
+EXECUTING --> SUCCEEDED : completeResult [confirmed effect and full result bound]\n/ Domain.saveResultAndAudit()
+EXECUTING --> EXECUTING : labelConfirmed [artifact not yet bound]\n/ Domain.saveEffectReceiptAndArtifactWork()
+EXECUTING --> EXECUTING : recoverArtifact [G_ARTIFACT and durable receipt]\n/ retrieve or store original label only
+EXECUTING --> FAILED : providerReply [confirmed no effect; no confirmed receipt]\n/ Domain.saveFailureAndAudit()
+EXECUTING --> UNKNOWN : outcomeUncertain [no durable confirmed-effect receipt]\n/ Domain.saveUnknownAndAudit()
 
 UNKNOWN --> RECONCILING : reconcile [G_LOOKUP and query claim won]\n/ Domain.markReconcilingAndAudit()
-RECONCILING --> SUCCEEDED : lookupReply [original effect confirmed]\n/ Domain.saveResultAndAudit()
+RECONCILING --> SUCCEEDED : lookupReply [original effect and complete result bound]\n/ Domain.saveResultAndAudit()
+RECONCILING --> EXECUTING : lookupReply [label effect confirmed; artifact pending]\n/ Domain.saveEffectReceiptAndArtifactWork()
 RECONCILING --> FAILED : lookupReply [confirmed no effect]\n/ Domain.saveFailureAndAudit()
 RECONCILING --> UNKNOWN : lookupEnds [inconclusive, unavailable or query orphaned]\n/ Domain.saveUnresolvedAndAudit()
 UNKNOWN --> UNKNOWN : recoveryStopped [budget exhausted or lookup unavailable]\n/ Domain.recordManualRecoveryNeed()
@@ -63,6 +66,8 @@ note right of EXECUTING
   no other unresolved attempt is allowed.
   Invoke only after durable reservation
   and the final pre-invocation check.
+  Any saved confirmed-effect receipt
+  forbids invoking this effect again.
 end note
 
 note right of RECONCILING
@@ -74,6 +79,17 @@ note right of RECONCILING
   not authorised discovery of old facts.
   Historical facts do not replace an accepted
   rejection/manual outcome or its case state.
+end note
+
+note bottom of EXECUTING
+  Artifact-pending is an internal phase, not a new wire state.
+  Persist original provider/command/parcel identity and receipt;
+  expose provider_operation_id, but no incomplete result.
+  Crash recovery checks the receipt before UNKNOWN lookup.
+  G_ARTIFACT: current recovery access, original binding, claim;
+  query/retrieve/store only. Creation expiry is not new authority.
+  Storage failure keeps EXECUTING and the receipt; never FAILED.
+  Full label_evidence_id binding is required before SUCCEEDED.
 end note
 
 note left of FAILED
@@ -92,13 +108,14 @@ legend bottom
   MA-D02: UNKNOWN has no active query; an inconclusive lookup returns to UNKNOWN.
   MA-Q01: attempt_count meaning remains open; this diagram assigns no increment rule.
   MA-Q02: cross-approval recovery remains open; no automatic new effect or fingerprint reuse.
-  State labels retain rc.3 OperationAttempt.status in local rc.4; only SUCCEEDED has an OperationResult payload.
+  rc.5 keeps the seven wire states; only SUCCEEDED has a complete OperationResult payload.
   Domain alone persists local state/results/audit; method labels are internal effects, not new APIs.
-  A failed save leaves the last durable state; recovery queries the same attempt before any retry.
+  A failed save leaves the last durable state; a saved receipt selects artifact-only recovery.
+  Without a durable receipt, recover/query the original uncertain effect before any retry.
   Unknown effects never become terminal merely because recovery stops or the case is handled manually.
   recordManualRecoveryNeed does not reopen or escalate an already accepted rejection/manual outcome.
   Notification events do not change this lifecycle; successful effects are never replayed.
-  All attempt records and audit history are retained; a final node does not delete them.
+  A final node deletes no record; personal content follows retention, minimal non-personal integrity survives.
   Trace: AH-10 / UC-04; FR-010/011; NFR-002/004/006/007; BR-003/004.
 endlegend
 @enduml

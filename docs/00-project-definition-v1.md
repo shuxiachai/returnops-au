@@ -359,7 +359,7 @@ The Operations Service is not a free-deciding AI agent. It only:
 | `RecommendedAction` | The system's conditional next step, stored separately from the customer request |
 | `RiskDecision` | `PASS`, `PASS_WITH_WARNING`, `REVISE`, `NEEDS_INFORMATION`, or `ESCALATE` |
 | `ApprovalDecision` | `APPROVE`, `REJECT`, `REQUEST_REVISION`, or `MANUAL_HANDLING` |
-| `OperationStatus` | `PENDING`, `RUNNING`, `SUCCEEDED`, `FAILED`, `UNKNOWN`, `RECONCILING`, or `BLOCKED`; the status of an `OperationAttempt` |
+| `OperationStatus` | `PENDING`, `EXECUTING`, `SUCCEEDED`, `FAILED`, `UNKNOWN`, `RECONCILING`, or `BLOCKED`; the status of an `OperationAttempt` |
 | `OperationResult` | Typed confirmed-success payload for `CREATE_RETURN` or `GENERATE_LABEL`; failure/uncertainty remains on `OperationAttempt`, not a success-shaped result |
 | `DecisionPacket` | A non-executable package of facts, evidence, citations, conditional recommendations, alternatives, risks, and open questions |
 

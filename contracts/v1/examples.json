@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.0.0-rc.4",
+  "contract_version": "1.0.0-rc.5",
   "description": "Synthetic fixtures only, not a live run or Gold evaluation. Positive validates shape; runtime_guards are unexecuted acceptance scenarios, not guard implementations.",
   "positive": [
     {
@@ -5710,6 +5710,105 @@
         }
       },
       "expected_provider_effects": 0
+    },
+    {
+      "name": "clarification-replay-after-receipt-retention",
+      "request_schema": "ClarificationRequest",
+      "request": {
+        "expected_case_version": 2,
+        "question_set_id": "question-set-demo-001",
+        "answers": [
+          {
+            "question_id": "question-proof-001",
+            "text": "My reference is ORD-DEMO-001."
+          }
+        ],
+        "evidence_ids": []
+      },
+      "precondition": "Same authenticated CUSTOMER still owns the case. The case was AWAITING_INFORMATION at version 2; this complete clarification resumed UNDER_INVESTIGATION. This exact key and request were accepted with HTTP 202 at case_version 3. Case state has since advanced to version 4 and allowed retention removed the ORIGINAL statement included in the stored receipt; identity and ownership remain valid. The minimal acceptance/key/fingerprint record remains, so this is replay, not a stale new intent.",
+      "http_status": 409,
+      "error": {
+        "error": {
+          "code": "INVALID_STATE",
+          "message": "Previously accepted request; its original receipt is no longer available. Read the current case or history. Do not resubmit this intent.",
+          "correlation_id": "correlation-receipt-001",
+          "retryable": false,
+          "details": []
+        }
+      },
+      "expected_provider_effects": 0,
+      "fixture_context": {
+        "route": "/v1/cases/{case_id}/clarifications",
+        "case_id": "case-demo-001",
+        "idempotency_key": "clarification-replay-001",
+        "accepted_http_status": 202,
+        "accepted_response": {
+          "case_id": "case-demo-001",
+          "case_version": 3,
+          "input_version": 2,
+          "status": "UNDER_INVESTIGATION",
+          "created_at": "2026-09-07T02:00:00Z",
+          "updated_at": "2026-09-07T02:05:00Z",
+          "statements": [
+            {
+              "statement_id": "stmt-original-001",
+              "kind": "ORIGINAL",
+              "raw_text": "Two mugs arrived chipped. I would like to return both. The order is ORD-DEMO-001.",
+              "requested_outcome": "RETURN",
+              "submitted_at": "2026-09-07T02:00:00Z"
+            },
+            {
+              "statement_id": "stmt-clarification-001",
+              "kind": "CLARIFICATION",
+              "raw_text": "My reference is ORD-DEMO-001.",
+              "question_id": "question-proof-001",
+              "submitted_at": "2026-09-07T02:05:00Z"
+            }
+          ],
+          "evidence": [
+            {
+              "evidence_id": "evidence-photo-001",
+              "filename": "synthetic-chipped-mugs.jpg",
+              "media_type": "image/jpeg",
+              "size_bytes": 24000,
+              "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "created_at": "2026-09-07T02:00:00Z",
+              "status": "BOUND",
+              "case_id": "case-demo-001",
+              "content_path": "/v1/evidence/evidence-photo-001/content"
+            }
+          ],
+          "collection_windows": {
+            "statements": {
+              "kind": "STATEMENT",
+              "snapshot_id": "snapshot-accepted-3",
+              "snapshot_case_version": 3,
+              "total_records": 2,
+              "preview_count": 2,
+              "unavailable_count": 0,
+              "truncated": false,
+              "start_cursor": "demo_start_statement"
+            },
+            "evidence": {
+              "kind": "EVIDENCE",
+              "snapshot_id": "snapshot-accepted-3",
+              "snapshot_case_version": 3,
+              "total_records": 1,
+              "preview_count": 1,
+              "unavailable_count": 0,
+              "truncated": false,
+              "start_cursor": "demo_start_evidence"
+            }
+          }
+        },
+        "current_case_version": 4,
+        "removed_statement_ids": [
+          "stmt-original-001"
+        ],
+        "receipt_available": false,
+        "expected_additional_mutations": 0,
+        "expected_additional_scheduling": 0
+      }
     }
   ]
 }

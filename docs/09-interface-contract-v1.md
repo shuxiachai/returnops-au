@@ -1,13 +1,17 @@
 # F.01：公共接口与数据契约 v1
 
-> 版本：`1.0.0-rc.4`；2026-09-07。状态：**评审候选，尚待 A/B/C 联合验收**。[PR #9](https://github.com/shuxiachai/returnops-au/pull/9) 是已合并的 rc.2 历史发布，不表示本修订已获同意。
+> **rc.5 发布定位（2026-09-07）：**本版交付至 [PR #11](https://github.com/shuxiachai/returnops-au/pull/11)，由包含本说明的实际提交定位。PR 中记录准确 source SHA、CI run 与评审状态；C 复现使用该准确 SHA，不能使用旧 `57d86fe` 或浮动分支。下文“未发布/本地准备”、旧测试和旧哈希是发布前历史；当前提交以 Git 文件内容及 `docs/reviews/rc5-publication-artifacts-20260907.json` 为准。发布不等于 F.01/F.02 接受、B/C 本人审阅/复现或课程提交，Jira 未由此同步。
+
+> 版本：`1.0.0-rc.5`；2026-09-07。状态：**本地修正候选，未发布，尚待 A/B/C 联合验收**。[PR #9](https://github.com/shuxiachai/returnops-au/pull/9) 是已合并的 rc.2 历史发布，不表示本修订已获同意。
 > Owner：A；指定 Reviewer：C；B 必须确认前端消费边界。交付条目：[KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32)；链接已核验，不代表 Jira 状态已改变或 F.01 已验收。
-> 评审入口：[PR #11](https://github.com/shuxiachai/returnops-au/pull/11)；具体 head、收录文件和评审状态以 PR 为准。rc.3 提交 `90931562f7e8d038b994d8d3ff3b2f289e462643` 是本次修订的历史起点；本说明不表示 rc.4 已接受或 CI 已通过。
-> 当前技术评审入口：[Issue #10 — F.01 rc.3 contract and aligned models](https://github.com/shuxiachai/returnops-au/issues/10)。后续 PR 在该 Issue 留下关联；Issue #5 / KAN-12 保留基线采纳范围。
+> 已发布评审入口：[PR #11](https://github.com/shuxiachai/returnops-au/pull/11)，已核验 head `57d86fe` 收录 rc.4；本地 rc.5 尚未收录，旧 CI 不覆盖本轮修订。rc.3 提交 `90931562f7e8d038b994d8d3ff3b2f289e462643` 保留为历史起点。
+> 当前技术评审入口：[Issue #10 — F.01 contract and aligned models](https://github.com/shuxiachai/returnops-au/issues/10)。后续 PR 在该 Issue 留下关联；Issue #5 / KAN-12 保留基线采纳范围。
 > 本文落实 [固定分工](07-frozen-work-allocation.md) 与 [F.01](08-delivery-work-packages.md)，不重开业务范围，不代替 tutor 确认。
 > 这是“数据如何交接”的约定，不是已经运行的业务服务；没有实现业务鉴权、业务实体持久化、状态守卫、LLM 或 provider。F.02 的数据库连通与环境迁移另见 docs/10。rc.4 在 rc.3 上补历史读取、容量与通知恢复约束，不等于相应运行行为已实现。
 
 ## 1. 三人各自看什么
+
+[AD-0.2 设计决定包](14-member-a-design-decisions.md)将恢复边界具体化；[F.03 身份设计](16-demo-identity-authorization.md)给出操作/资源权限矩阵。rc.5 修正幂等回执移除优先级，并与标签制品恢复模型同步；不新增字段、状态、错误码或公共操作。1-based 尝试序号仍待另行采纳，不混入本次修正。
 
 | 使用者 | 重点 | 后续工作 |
 |---|---|---|
@@ -20,7 +24,7 @@
 - [机器可读 JSON Schema](../contracts/v1/schemas.json)：`$defs` 是命名数据结构注册表；必须选中具体定义验证，不能只验证根对象。
 - [OpenAPI](../contracts/v1/openapi.json)：15 个计划公共操作（新增两个角色隔离的历史 GET），引用同一份 Schema；不是额外维护一套字段。
 - [JSON 样例](../contracts/v1/examples.json)：`positive`、`negative` 和 `runtime_guards` 三组。
-- [基础契约检查](../tests/contracts/test_contract_v1.py)、[rc.2 回归检查](../tests/contracts/test_contract_v1_rc2.py)、[rc.3 回归检查](../tests/contracts/test_contract_v1_rc3.py)、[rc.4 回归检查](../tests/contracts/test_contract_v1_rc4.py) 与 [运行说明](../contracts/README.md)。
+- [基础契约检查](../tests/contracts/test_contract_v1.py)、[rc.2 回归检查](../tests/contracts/test_contract_v1_rc2.py)、[rc.3 回归检查](../tests/contracts/test_contract_v1_rc3.py)、[rc.4 回归检查](../tests/contracts/test_contract_v1_rc4.py)、[rc.5 回归检查](../tests/contracts/test_contract_v1_rc5.py) 与 [运行说明](../contracts/README.md)。
 
 ## 2. 不改变的边界
 
@@ -30,13 +34,13 @@
 - 只有服务端验证的 Founder 能创建可信 `ApprovalRecord`。客户端不能提交可信角色、审批记录、任意命令或 provider 凭据。
 - 一个案件关联一个订单的多个商品项；一次退运只有一个 parcel、一个 label。不支持拆包、多单合并、实际退款、收费物流或生产数据修改。
 - A3 的 `SANDBOX` 只是已选扩展的类型边界，必须另获明确的无收费测试权限；字段存在不代表 provider 已接入。课程核心使用 `SIMULATED`。
-- 契约修订不改旧 `packages/domain/models.py` 或 B/C 的 PR，不实现 F.03/A1/A2。F.02 环境准备单独记录。旧正文与共享图的 rc.2 对齐稿保留 PR #9 历史；本地 rc.4 仍需联合确认，不声称图已获验收。
+- 契约修订不改旧 `packages/domain/models.py` 或 B/C 的 PR，不实现 F.03/A1/A2。F.02 环境准备单独记录。旧正文与共享图的 rc.2 对齐稿保留 PR #9 历史；本地 rc.5 仍需联合确认，不声称图已获验收。
 
 ## 3. 公共格式和缺省规则
 
 | 项目 | 约定 |
 |---|---|
-| 路径与版本 | URL 主版本 `/v1`；契约文档版本 `1.0.0-rc.4`；与案件/提案计数版本不同 |
+| 路径与版本 | URL 主版本 `/v1`；契约文档版本 `1.0.0-rc.5`；与案件/提案计数版本不同 |
 | ID | 3–80 位不透明 ASCII 标识符，首位为字母/数字，其余为字母/数字/`_`/`-`；拒绝尾随换行及控制字符，不能推导权限。客户端仅引用服务端返回的 ID |
 | 时间 | RFC 3339 UTC，统一以 `Z` 结束；不得用客户端时间判断审批是否过期 |
 | 金额 | 整数 AUD cents，例如 `2000` 表示 AUD 20.00；不能用浮点金额做审批指纹。当前执行额度恒为 `0` |
@@ -179,13 +183,15 @@ JSON Schema 只能检查这些材料各自的形状和容量；跨对象关联�
 每个 POST 都有 `Idempotency-Key`，8–128 位，允许 `A–Z a–z 0–9 . _ : -`。OpenAPI header 引用共享 `IdempotencyKey` 定义，拒绝尾随换行/控制字符，不能保留另一份宽松正则。作用域是可信 principal + HTTP method/route + 目标资源 + key。
 
 1. 先鉴权并验证请求格式，再找同作用域的已接受记录。
-2. 同 key、同规范化请求返回原受理回执，不重复写入/调度；原回执不是“当前状态”，B 随后 GET 最新案件。
+2. 同 key、同规范化请求复用原受理事实，不重复写入/调度。原回执内容仍全部可读时返回原回执；它不是“当前状态”，B 随后 GET 最新案件。若允许的保留/删除操作已使原回执任一正文不可返回，改为 **409 `INVALID_STATE`、`retryable=false`**，仅告知“此前已受理，原回执已不可用，请读取当前案件/历史”；不返回原文、不伪造不完整成功 DTO，也不以当前视图冒充原回执。B 不得因此自动换 key 或重新提交原意图。
 3. 同 key、不同内容返回 409 `IDEMPOTENCY_CONFLICT`。不得把旧请求改个 key 后盲目重试。
 4. 新意图才检查当前版本、状态和适用目标：提案路径检查 proposal/review/preview 及审批范围；无提案路径核验当前 case/input 及精确 failure/block ID，且只能人工处理。随后原子持久化决定及适用待办；两个无提案目标只能产生通知待办，不能产生 return/label 待办。
 5. 受理结果不确定时用原 key 和原请求恢复；若明确收到版本冲突，先重新加载并由用户确认新的意图。
 6. 并发同 key 至多一个执行者；其他请求等待已有结果或返回可安全恢复的忙/未决错误，不能先做两遍再去重。
 
 请求规范化保留原始消息字节语义，仅补约定缺省值并稳定对象键；数组不重排。上传指纹包含实际文件 bytes hash 及允许的 filename/media_type/description，不依赖 multipart boundary。这些规则是后续持久化/并发测试要求，本轮没有实现它们。
+
+删除优先级适用于全部 POST 回执，包括含完整 CustomerCaseView 的 create/clarification、附件元数据与决定/操作/通知回执。Domain 保留最小受理记录：可信作用域、key、规范请求指纹、原受理资源/工作 ID、受理事实及回执可用性；不为去重长期保留原请求或回执正文。清理正文须同步标记回执不可用，重放读取与清理按同一保留边界协调，不能从旧缓存越过删除。禁止删除去重记录后将原 key 当作新请求重新执行；安全生命周期由 F.07 明确，不在此假定保存期限。每次重放仍先鉴权，内容不同仍为 `IDEMPOTENCY_CONFLICT`，这些拒绝不得暴露原受理详情给无权主体。
 
 ## 8. 风险和结果如何路由
 
@@ -223,11 +229,13 @@ JSON Schema 只能检查这些材料各自的形状和容量；跨对象关联�
 
 运行守卫情境沿用现有错误枚举：旧 `expected_case_version` 返回 409 `STALE_CASE_VERSION`；跨案、已替换或当前状态不再允许的目标返回 409 `INVALID_STATE`；无权决定的已认证角色返回 403 `FORBIDDEN`。这些是后续运行行为约定，样例合法性检查并未执行鉴权或状态服务。
 
-人工处理记录与通知遵守同一幂等、审计和独立通知规则：原子保存结果、审计和通知待办后发送客户消息，失败可仅重试通知，成功后才为 `MANUAL_HANDLED`。本决定没有执行模拟退运，也不记为 `COMPLETED`；保留历史未知效果，不能把人工闭环解释为已确认未执行。相同已接受请求可按原 key 重放回执，不能重复通知待办；更换 key 不使已处理目标再次有效。这是既有人工恢复分支的数据交接补齐，不增加业务角色、决定枚举、HTTP 路由或新功能；运行守卫仍属 A1/A2 后续实现。
+人工处理记录与通知遵守同一幂等、审计和独立通知规则：原子保存结果、审计和通知待办后发送客户消息，失败可仅重试通知，成功后才为 `MANUAL_HANDLED`。本决定没有执行模拟退运，也不记为 `COMPLETED`；保留历史未知效果，不能把人工闭环解释为已确认未执行。相同已接受请求按第 7 节复用受理事实及可用回执，正文已移除时返回明确不可用错误，不能重复通知待办；更换 key 不使已处理目标再次有效。这是既有人工恢复分支的数据交接补齐，不增加业务角色、决定枚举、HTTP 路由或新功能；运行守卫仍属 A1/A2 后续实现。
 
 ### 8.2 操作与通知恢复
 
 provider 明确失败与模糊超时不同：后者为 `UNKNOWN → RECONCILING`，先查询核实，不能直接重派。`reconcile` 只触发核实；确定未产生效果后若确需安全重试，仍走当前审批、provider 权限与幂等守卫。
+
+若 provider 的标签效果已确认而本地文件/引用未保存，Domain 保留可信原效果 receipt 与制品恢复待办，公开 OperationAttempt 保持 `EXECUTING` 且没有 `result`；此时 `EXECUTING` 不代表可以再调用 provider 创建效果。内部待办只获准查询/取回/校验/保存原 label，保持原 attempt/command/parcel/provider 身份；不新增公开重派端点。只有完整 `label_evidence_id`/OperationResult 与所需审计保存后才 `SUCCEEDED`。存储失败不是 provider 无效果，不能写 FAILED/BLOCKED 或伪造 UNKNOWN；无可信成功记录的未知效果才继续原查询路径。持久化/并发/恢复授权的细节见 MA-0.3 与 AD-0.2，仍须运行验证。
 
 先以**已持久化的决定/NotificationRecord.outcome**选择通知路径：MANUAL_HANDLED / REJECTED 必须保持原 outcome；旧 return/label 的迟到查询只更新效果事实和审计，不覆盖结果、不重开终态、不创建新的执行结果通知。人工通知仍 PENDING 或 FAILED 时也遵守此规则。只有当前有效执行分支、两效果确认成功且不存在矛盾未决效果，才允许 RETURN_CREATED。
 
@@ -316,9 +324,11 @@ p50/p95 只对成功测量子集计算，不把它当全系统成功率；`sampl
 - 使用不可变 revisions 的 as-of 读取或物化快照；仅冻结时间上界而读取最新可变 OperationAttempt/Notification 行并不满足约定。翻页期间新插入/状态更新不能混入原快照。跨身份/案件/类型、改筛选、篡改 token 在鉴权后返回 409 INVALID_STATE；无权案件仍先按既有 403/404 规则拒绝。快照过期明确返回 409 并要求用户重新从首请求开始，不能静默换快照。最终页省略 next_cursor。
 - 允许的内容移除优先于旧快照正文可读性，但不改变记录成员/排序，返回 tombstone。清理须覆盖旧 bundle、当前派生读模型、缓存及附件下载；禁止从旧 cursor 恢复已删正文。若 bundle 的必要个人材料已移除，整体 tombstone，不伪造空文本。视图的 statements 可在明确窗口/移除记录下为空；普通新建案件仍必须保存原始 statement。数据不完整时不得保留可执行的 preview/授权判断。具体保留期限与可删除时机由 F.07 约定，不在此编造期限。
 
-后续运行验收必须覆盖：101+ 记录无重复/遗漏；翻页间追加和状态更新保持原修订；跨 case/kind/principal/role cursor、改 filter/limit、篡改/过期；旧来源版本还原；删除后翻页只见 tombstone；客户无法取得内部正文。当前静态样例和测试 oracle 仅验证结构及构造轨迹一致性，未实现 cursor、历史存储、保留服务或身份守卫。
+后续运行验收必须覆盖：101+ 记录无重复/遗漏；翻页间追加和状态更新保持原修订；跨 case/kind/principal/role cursor、改 filter/limit、篡改/过期；旧来源版本还原；删除后翻页只见 tombstone；删除后重放已接受 POST 返回第 7 节的不可用错误、零新写入/调度，原始请求文本不得从回执或诊断恢复；客户无法取得内部正文。当前静态样例和测试 oracle 仅验证结构及构造轨迹一致性，未实现 cursor、历史存储、保留服务或身份守卫。
 
 ## 11. 验证证据与不能得出的结论
+
+**rc.5 本地修订（2026-09-07）：**56 项契约检查通过；86 正例、46 负例、21 未执行运行情境。新增三项检查覆盖删除后已受理澄清回执、结构合法错误中的已删正文，以及标签制品未完成/完整成功的边界。完整离线、模型渲染、环境子集和精确字节证据见 [A-FIX-0.1](reviews/a-defect-closure-20260907.md)。本轮没有业务服务、远端 CI、C 本人复现或人审验收；下面 rc.4 数字保留为历史。
 
 **rc.4 本地验证（2026-09-07）：** 基于 HEAD `90931562f7e8d038b994d8d3ff3b2f289e462643` 加当前未提交修订，隔离 Python 3.12 契约环境运行 **53 项 unittest，全部通过**；当前样例 **86 个合法 DTO、46 个非法结构、20 个未执行运行守卫情境**。新增检查覆盖严格 history/角色隔离/移除/actor/cursor 形状，旧 material 引用及 101 条构造分页轨迹；后两者是测试数据 oracle，不是服务实现。仓库内模型工具的 **6/6 检查组、7 项工具回归、15 个 Mermaid 语法块**通过：23 份文档/189 个本地目标，7 对 SVG 内嵌源码对应，19 个 MA 情境/37 个动作/七态，3 个 CS 视图/29 条连接/12 个情境；89 个 WBS 的 ID/Owner/Reviewer/S/F 与 HEAD 一致且无环。改动的 3 份个人 UML 已本地重渲染并检查图像。完整命令见 contracts/README 和 tools/model-checks/README。git diff --check 通过；这些证据不等于运行安全、CI、人审或课程验收。
 
@@ -381,12 +391,20 @@ rc.3 当时使用 64 个合法 DTO、36 个非法结构、16 个未执行运行�
 
 PR #11 记录本候选的具体 head 和 review；rc.4 需要按精确版本审阅后才能采纳，不覆盖 rc.3 历史 review，也不代表 Jira 已同步或正式验收完成。
 
+### 13.4 rc.4 → rc.5 本地语义修正
+
+15 个公共操作、请求/响应形状、七个 OperationAttempt 状态与已有错误码保持不变。第 7 节明确允许的删除优先于原 POST 回执重放：原内容已不可读时保留受理/去重事实并返回既有 409 INVALID_STATE，不重新执行；B 需区分该错误和可重试的新意图。新反例仅是离线规格检查，运行实现仍属 F.03/F.07/A1/A2。
+
+MA-0.3 / CS-0.2 / AD-0.2 将 provider 原始成功观测与公开 OperationResult 分开。标签已存在而制品待保存时，原 OperationAttempt 保持 EXECUTING，内部持久化成功 receipt 及仅取回/存储原标签的待办；不得因失败、重启或批准过期重新 invoke。完整标签引用和结果由 Domain 保存后才 SUCCEEDED；UNKNOWN 仍表示效果事实未知。该内部子阶段不新增 wire 状态，详细守卫和恢复见 docs12/13/14。产品词汇表同步使用 EXECUTING。
+
+本修订尚未发布；PR #11 的 rc.4/57d86fe 及已有 CI 是历史评审证据。后续发表和人审须指明 rc.5 的准确提交，不能回填旧 review。尝试序号最小值与 MA-Q03 的运行并发证明仍未在本轮采纳或实现。
+
 ## 14. 三人确认后才验收 F.01
 
 - [ ] A：确认唯一状态源、版本/幂等、scope 指纹、商品与 parcel 关联，以及当前 failure/block 与已接受 lookup 绑定、引用全覆盖和统计对账的运行守卫责任。
 - [ ] B：确认提交/澄清、引用原文、四种决定、无提案人工分支、202/409/未知结果、统计筛选/分母，以及历史分页/预览/移除提示足以支撑页面；确认附件技术限制。
 - [ ] C：确认来源无版本/合成来源、完整 retrieval_result 与 conflicts、引用核验容量、独立 Risk 输入、五种结果、计时口径和 C3 交接；完成指定 Reviewer 审查。
-- [ ] 三人联合确认 rc.4 规格/模型与三目标、检索交接、公共 ID 边界、历史分页/保留、容量失败和通知 outcome 对应；PR #9 仅作 rc.2 历史，区分结构检查、运行验证和课程个人模型验收。
+- [ ] 三人联合确认 rc.5 规格/模型与三目标、检索交接、公共 ID 边界、历史分页/保留、删除后回执重放、标签制品恢复、容量失败和通知 outcome 对应；PR #9 仅作 rc.2 历史，区分结构检查、运行验证和课程个人模型验收。
 - [ ] 三人确认后记录契约采纳版本及当前 PR review 证据，并关联 [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32)；链接存在不等于同意或进度，本轮不修改 Jira。
 
 下一步是 **B/C 确认这份交接约定**。期间 A 可继续无开始依赖的 F.02 准备；A1.01 的正式对齐应等 F.01 验收。不是重新讨论九功能分工，也不是立刻把 LLM 接进执行路径。
