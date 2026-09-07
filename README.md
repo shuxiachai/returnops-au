@@ -1,7 +1,10 @@
 # ReturnOps AU
 
 > Topic status: the project lead approved the Baseline v1.0 candidate on
-> 2026-08-31; team and tutor review remain required before canonical adoption.
+> 2026-08-31 and published it with the frozen allocation to main on 2026-09-06.
+> The document alignment and F.01 rc.2 are published for review in
+> [PR #9](https://github.com/shuxiachai/returnops-au/pull/9); consult its merge record for main publication.
+> Current team/tutor adoption reviews remain pending; publication is not acceptance.
 
 ReturnOps AU is a human-governed multi-agent returns operations system for a
 single Australian online store operated by one Human Founder. It helps the Founder
@@ -50,11 +53,16 @@ money, modify a production order, or autonomously approve a remedy.
 - Zero unauthorised operations, duplicate operational effects, or illegal state
   transitions in the parameterised safety and workflow suites.
 
+These are prototype targets, not achieved results. Proposal latency runs from
+accepted complete input to the stored review-ready packet, includes machine
+revision/risk loops and excludes human/physical waiting only.
+
 ## Project documents
 
 - [Baseline v1.0 candidate — lead approved, pending team/tutor review](docs/00-project-definition-v1.md)
 - [Frozen work allocation v1.0 — owners, nine features and change rules](docs/07-frozen-work-allocation.md)
 - [Detailed delivery work packages — dependencies and acceptance checklists](docs/08-delivery-work-packages.md)
+- [F.01 API/data contract — review candidate, not an implemented API](docs/09-interface-contract-v1.md)
 - [Project charter](docs/01-project-charter.md)
 - [System design](docs/02-system-design.md)
 - [Team, Jira and GitHub workflow](docs/03-team-and-github-workflow.md)
@@ -64,11 +72,15 @@ money, modify a production order, or autonomously approve a remedy.
 - [FODA feature model](docs/diagrams/04-feature-diagram.md)
 - [Use-case and actor-boundary model](docs/diagrams/05-use-case-diagram.md)
 
-Documents `01`–`05` still contain parts of the earlier v0.2 baseline. The
-scope-reduction and Jira/GitHub workflow decisions have been synchronised, while
-the remaining requirement and UML changes await v1.0 team/tutor adoption. The
-frozen evidence appendix remains the source for accepted change proposals and
-supporting material; it is not a continuing research-expansion task.
+Documents `01`–`05` and the five existing shared diagrams have a v1.0
+alignment draft published in [PR #9](https://github.com/shuxiachai/returnops-au/pull/9)
+on 2026-09-07. Requirements come from `docs/00`, ownership
+from `docs/07`, and delivery dependencies from `docs/08`; the older documents
+are derived views, not competing plans. Original Lab 3 history and B/C source
+contributions are retained. This alignment still needs current team/tutor review;
+it does not complete the individual behaviour models or complex runtime model.
+The frozen research appendix remains supporting evidence, not an ongoing
+research-expansion task.
 
 ## Delivery systems
 
@@ -81,6 +93,21 @@ supporting material; it is not a continuing research-expansion task.
 
 ## Current phase
 
+F.01 has a published rc.2 review candidate with shared JSON Schemas, planned OpenAPI
+operations, synthetic examples and offline contract checks. See
+[contract validation instructions](contracts/README.md). B/C review remains
+required; this does not complete F.01 acceptance, Gate 1 or runtime safety work.
+The five identified shape/hand-off gaps now have rc.2 changes and offline
+regressions: no-proposal manual handling, complete retrieval conflicts,
+compatible citation capacities, analytics filters/denominators and strict ID
+boundaries. Their runtime guards and B/C acceptance remain future work.
+
+To inspect the alignment diff on GitHub, open **PR #9 → Files changed**.
+The PR merge record identifies the version published to main; after merge,
+browse `docs/` directly on main. B and C should record their confirmation
+against that version, not an older review. The lead directed main publication
+on 2026-09-07; publication does not substitute for their confirmation.
+
 On 2026-09-06, the lead approved and froze the detailed A/B/C work allocation.
 Use `docs/07` for function ownership and `docs/08` for executable work packages;
 these are planning commitments, not completed work or live Jira status. Each
@@ -90,7 +117,9 @@ The project is at Gate 0, Definition Freeze. The project lead has approved the
 Baseline v1.0 candidate, frozen the research appendix, reduced the course
 evaluation to 30 double-reviewed Gold cases plus the required `B1` versus `B4`
 comparison, and selected Jira for Agile timeline evidence. Member B, Member C,
-and the tutor must now review the scope, individual model chains, verification
-targets, and Jira/GitHub split. After adoption, the team will synchronise the
-remaining older v0.2 documents and build the deterministic safety spine before
-connecting an LLM or adding portfolio extensions.
+and the tutor must now review the current scope, aligned shared models,
+individual model chains, verification targets and Jira/GitHub split. Next,
+review and accept the revised interface contract and complete the missing Stage 1
+models/evidence. Build and verify the deterministic safety spine before
+connecting AI outputs to executable operations. Offline AI work and UI mocks
+may proceed against reviewed boundaries; portfolio extensions come later.

@@ -1,0 +1,3054 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://returnops.example/contracts/v1/schemas.json",
+  "title": "ReturnOps AU F.01 wire contract 1.0.0-rc.2",
+  "description": "Review-ready contract, not an implemented API or a replacement for runtime authorization and state guards. Validate a named $defs schema, never this permissive registry root.",
+  "$defs": {
+    "Id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{2,79}(?![\\s\\S])"
+    },
+    "Version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "Timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z(?![\\s\\S])"
+    },
+    "Hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}(?![\\s\\S])"
+    },
+    "MoneyMinor": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "RequestedOutcome": {
+      "type": "string",
+      "enum": [
+        "REFUND",
+        "REPLACEMENT",
+        "REPAIR",
+        "RETURN",
+        "INFORMATION",
+        "UNSPECIFIED",
+        "OTHER"
+      ]
+    },
+    "IssueCategory": {
+      "type": "string",
+      "enum": [
+        "FAULTY_OR_QUALITY_ISSUE",
+        "WRONG_ITEM",
+        "CHANGE_OF_MIND",
+        "UNCLEAR",
+        "OUT_OF_SCOPE"
+      ]
+    },
+    "PossibleBasis": {
+      "type": "string",
+      "enum": [
+        "STORE_POLICY",
+        "CONSUMER_GUIDANCE",
+        "BOTH",
+        "UNDETERMINED"
+      ]
+    },
+    "AssessmentStatus": {
+      "type": "string",
+      "enum": [
+        "SUPPORTED",
+        "MISSING_INFORMATION",
+        "CONFLICTING",
+        "UNCERTAIN",
+        "OUT_OF_SCOPE"
+      ]
+    },
+    "CaseStatus": {
+      "type": "string",
+      "enum": [
+        "SUBMITTED",
+        "AWAITING_INFORMATION",
+        "UNDER_INVESTIGATION",
+        "POLICY_ASSESSMENT",
+        "RISK_REVIEW",
+        "AWAITING_APPROVAL",
+        "APPROVED",
+        "ACTION_IN_PROGRESS",
+        "ACTION_FAILED",
+        "RECONCILING",
+        "ESCALATED",
+        "NOTIFICATION_PENDING",
+        "NOTIFICATION_FAILED",
+        "COMPLETED",
+        "REJECTED",
+        "MANUAL_HANDLED"
+      ]
+    },
+    "RiskOutcome": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "PASS_WITH_WARNING",
+        "REVISE",
+        "NEEDS_INFORMATION",
+        "ESCALATE"
+      ]
+    },
+    "FounderDecision": {
+      "type": "string",
+      "enum": [
+        "APPROVE",
+        "REJECT",
+        "REQUEST_REVISION",
+        "MANUAL_HANDLING"
+      ]
+    },
+    "VersionPrecondition": {
+      "type": "object",
+      "properties": {
+        "expected_case_version": {
+          "$ref": "#/$defs/Version"
+        }
+      },
+      "required": [
+        "expected_case_version"
+      ],
+      "additionalProperties": false
+    },
+    "Principal": {
+      "type": "object",
+      "properties": {
+        "principal_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "CUSTOMER",
+            "FOUNDER"
+          ]
+        }
+      },
+      "required": [
+        "principal_id",
+        "role"
+      ],
+      "additionalProperties": false
+    },
+    "LineSelection": {
+      "type": "object",
+      "properties": {
+        "line_item_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "quantity": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 999
+        }
+      },
+      "required": [
+        "line_item_id",
+        "quantity"
+      ],
+      "additionalProperties": false
+    },
+    "LineItem": {
+      "type": "object",
+      "properties": {
+        "line_item_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "sku": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "quantity": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 999
+        },
+        "unit_price_minor": {
+          "$ref": "#/$defs/MoneyMinor"
+        }
+      },
+      "required": [
+        "line_item_id",
+        "sku",
+        "description",
+        "quantity",
+        "unit_price_minor"
+      ],
+      "additionalProperties": false
+    },
+    "OrderSnapshot": {
+      "type": "object",
+      "properties": {
+        "snapshot_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "order_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "provider_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "snapshot_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "purchased_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "currency": {
+          "const": "AUD"
+        },
+        "line_items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LineItem"
+          },
+          "minItems": 1,
+          "maxItems": 100
+        },
+        "retrieved_at": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "snapshot_id",
+        "order_id",
+        "provider_id",
+        "snapshot_version",
+        "purchased_at",
+        "currency",
+        "line_items",
+        "retrieved_at"
+      ],
+      "additionalProperties": false
+    },
+    "OrderLookupRequest": {
+      "type": "object",
+      "properties": {
+        "case_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "input_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "order_reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        }
+      },
+      "required": [
+        "case_id",
+        "input_version"
+      ],
+      "additionalProperties": false
+    },
+    "OrderLookupResult": {
+      "type": "object",
+      "properties": {
+        "case_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "input_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "MATCHED",
+            "NOT_FOUND",
+            "CONFLICT",
+            "AUTHORITY_DENIED",
+            "PROVIDER_FAILURE"
+          ]
+        },
+        "snapshot": {
+          "$ref": "#/$defs/OrderSnapshot"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        }
+      },
+      "required": [
+        "case_id",
+        "input_version",
+        "status",
+        "message"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "MATCHED"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "required": [
+              "snapshot"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "snapshot"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "EvidenceAttachment": {
+      "type": "object",
+      "properties": {
+        "evidence_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "filename": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "media_type": {
+          "type": "string",
+          "enum": [
+            "image/jpeg",
+            "image/png",
+            "application/pdf"
+          ]
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10485760
+        },
+        "sha256": {
+          "$ref": "#/$defs/Hash"
+        },
+        "created_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "STAGED",
+            "BOUND"
+          ]
+        },
+        "case_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "content_path": {
+          "type": "string",
+          "pattern": "^/v1/evidence/[A-Za-z0-9_-]+/content(?![\\s\\S])"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 2000
+        }
+      },
+      "required": [
+        "evidence_id",
+        "filename",
+        "media_type",
+        "size_bytes",
+        "sha256",
+        "created_at",
+        "status",
+        "content_path"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "BOUND"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "required": [
+              "case_id"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "case_id"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "CustomerStatement": {
+      "type": "object",
+      "properties": {
+        "statement_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "ORIGINAL",
+            "CLARIFICATION"
+          ]
+        },
+        "raw_text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 12000
+        },
+        "requested_outcome": {
+          "$ref": "#/$defs/RequestedOutcome"
+        },
+        "submitted_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "question_id": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "required": [
+        "statement_id",
+        "kind",
+        "raw_text",
+        "submitted_at"
+      ],
+      "additionalProperties": false
+    },
+    "CreateCaseRequest": {
+      "type": "object",
+      "properties": {
+        "original_message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 12000
+        },
+        "order_reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "requested_outcome": {
+          "$ref": "#/$defs/RequestedOutcome"
+        },
+        "evidence_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          },
+          "minItems": 0,
+          "maxItems": 10,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "original_message"
+      ],
+      "additionalProperties": false
+    },
+    "ClarificationQuestion": {
+      "type": "object",
+      "properties": {
+        "question_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        }
+      },
+      "required": [
+        "question_id",
+        "text",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "ClarificationSet": {
+      "type": "object",
+      "properties": {
+        "question_set_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "input_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "questions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ClarificationQuestion"
+          },
+          "minItems": 1,
+          "maxItems": 20
+        }
+      },
+      "required": [
+        "question_set_id",
+        "input_version",
+        "questions"
+      ],
+      "additionalProperties": false
+    },
+    "ClarificationAnswer": {
+      "type": "object",
+      "properties": {
+        "question_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 12000
+        }
+      },
+      "required": [
+        "question_id",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "ClarificationRequest": {
+      "type": "object",
+      "properties": {
+        "expected_case_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "question_set_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "answers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ClarificationAnswer"
+          },
+          "minItems": 0,
+          "maxItems": 20
+        },
+        "evidence_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          },
+          "minItems": 0,
+          "maxItems": 10,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "expected_case_version",
+        "question_set_id",
+        "answers",
+        "evidence_ids"
+      ],
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "properties": {
+            "answers": {
+              "minItems": 1
+            }
+          }
+        },
+        {
+          "properties": {
+            "evidence_ids": {
+              "minItems": 1
+            }
+          }
+        }
+      ]
+    },
+    "ExtractedFacts": {
+      "type": "object",
+      "properties": {
+        "issue_category": {
+          "$ref": "#/$defs/IssueCategory"
+        },
+        "customer_requested_outcome": {
+          "$ref": "#/$defs/RequestedOutcome"
+        },
+        "possible_basis": {
+          "$ref": "#/$defs/PossibleBasis"
+        },
+        "assessment_status": {
+          "$ref": "#/$defs/AssessmentStatus"
+        },
+        "line_items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LineSelection"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        }
+      },
+      "required": [
+        "issue_category",
+        "customer_requested_outcome",
+        "possible_basis",
+        "assessment_status",
+        "line_items",
+        "summary"
+      ],
+      "additionalProperties": false
+    },
+    "EvidenceCriterion": {
+      "type": "object",
+      "properties": {
+        "criterion_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "PRESENT",
+            "MISSING",
+            "CONFLICTING",
+            "NOT_APPLICABLE"
+          ]
+        },
+        "statement_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "evidence_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        }
+      },
+      "required": [
+        "criterion_id",
+        "status",
+        "statement_ids",
+        "evidence_ids",
+        "rationale"
+      ],
+      "additionalProperties": false
+    },
+    "Citation": {
+      "type": "object",
+      "properties": {
+        "citation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "passage_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "document_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "source_version": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "corpus_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "content_sha256": {
+          "$ref": "#/$defs/Hash"
+        },
+        "location": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "citation_id",
+        "passage_id",
+        "document_id",
+        "source_version",
+        "corpus_version",
+        "content_sha256",
+        "location"
+      ],
+      "additionalProperties": false
+    },
+    "PolicyPassage": {
+      "type": "object",
+      "properties": {
+        "passage_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "document_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "source_type": {
+          "type": "string",
+          "enum": [
+            "STORE_POLICY",
+            "REVIEWED_CONSUMER_GUIDANCE"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "source_uri": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^(https://|urn:returnops:)"
+        },
+        "accessed_on": {
+          "type": "string",
+          "format": "date"
+        },
+        "source_version": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "corpus_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "location": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "content": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 12000
+        },
+        "content_sha256": {
+          "$ref": "#/$defs/Hash"
+        },
+        "retrieved_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "is_synthetic": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "passage_id",
+        "document_id",
+        "source_type",
+        "title",
+        "source_uri",
+        "accessed_on",
+        "source_version",
+        "corpus_version",
+        "location",
+        "content",
+        "content_sha256",
+        "retrieved_at",
+        "is_synthetic"
+      ],
+      "additionalProperties": false
+    },
+    "RetrievalRequest": {
+      "type": "object",
+      "properties": {
+        "case_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "input_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "query": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "issue_category": {
+          "$ref": "#/$defs/IssueCategory"
+        },
+        "corpus_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        }
+      },
+      "required": [
+        "case_id",
+        "input_version",
+        "query",
+        "issue_category",
+        "corpus_version"
+      ],
+      "additionalProperties": false
+    },
+    "RetrievalResult": {
+      "type": "object",
+      "description": "C1-owned complete retrieval result for this case/input/corpus. The orchestrator preserves passages and conflict signals unchanged when handing it to C2; 100 is a technical capacity, not a retrieval target or evaluation-case quota.",
+      "properties": {
+        "case_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "input_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "corpus_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "MATCHED",
+            "NO_MATCH"
+          ]
+        },
+        "passages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PolicyPassage"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "conflicts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "retrieved_at": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "case_id",
+        "input_version",
+        "corpus_version",
+        "status",
+        "passages",
+        "conflicts",
+        "retrieved_at"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "MATCHED"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "passages": {
+                "minItems": 1
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "passages": {
+                "maxItems": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    "CitationVerificationRequest": {
+      "type": "object",
+      "properties": {
+        "case_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "input_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "proposal_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "proposal_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "corpus_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "citations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Citation"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "case_id",
+        "input_version",
+        "proposal_id",
+        "proposal_version",
+        "corpus_version",
+        "citations"
+      ],
+      "additionalProperties": false
+    },
+    "CitationCheck": {
+      "type": "object",
+      "properties": {
+        "citation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "result": {
+          "type": "string",
+          "enum": [
+            "VALID",
+            "NOT_FOUND",
+            "VERSION_MISMATCH",
+            "HASH_MISMATCH",
+            "LOCATION_MISMATCH"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        }
+      },
+      "required": [
+        "citation_id",
+        "result",
+        "message"
+      ],
+      "additionalProperties": false
+    },
+    "CitationVerificationResult": {
+      "type": "object",
+      "properties": {
+        "case_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "input_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "proposal_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "proposal_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "corpus_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CitationCheck"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "checked_at": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "case_id",
+        "input_version",
+        "proposal_id",
+        "proposal_version",
+        "corpus_version",
+        "checks",
+        "checked_at"
+      ],
+      "additionalProperties": false
+    },
+    "ModelRun": {
+      "type": "object",
+      "properties": {
+        "run_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "COORDINATOR",
+            "ASSESSMENT",
+            "RISK_REVIEWER"
+          ]
+        },
+        "provider_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "model_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "prompt_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "started_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "finished_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "input_tokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "output_tokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "run_id",
+        "role",
+        "provider_id",
+        "model_id",
+        "prompt_version",
+        "started_at",
+        "finished_at",
+        "input_tokens",
+        "output_tokens"
+      ],
+      "additionalProperties": false
+    },
+    "CoordinatorResult": {
+      "type": "object",
+      "properties": {
+        "case_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "input_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "original_statement_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "facts": {
+          "$ref": "#/$defs/ExtractedFacts"
+        },
+        "evidence_matrix": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceCriterion"
+          },
+          "minItems": 1,
+          "maxItems": 50
+        },
+        "questions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ClarificationQuestion"
+          },
+          "minItems": 0,
+          "maxItems": 20
+        },
+        "model_run": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ModelRun"
+            },
+            {
+              "properties": {
+                "role": {
+                  "const": "COORDINATOR"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "case_id",
+        "input_version",
+        "original_statement_id",
+        "facts",
+        "evidence_matrix",
+        "questions",
+        "model_run"
+      ],
+      "additionalProperties": false
+    },
+    "Recommendation": {
+      "type": "string",
+      "enum": [
+        "PROPOSE_RETURN",
+        "PROPOSE_REFUND",
+        "PROPOSE_REPLACEMENT",
+        "PROPOSE_REPAIR",
+        "REQUEST_INFORMATION",
+        "REFER_FOR_MANUAL_HANDLING",
+        "PROPOSE_REJECTION"
+      ]
+    },
+    "DecisionPacket": {
+      "type": "object",
+      "properties": {
+        "case_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "proposal_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "proposal_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "input_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "original_statement_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "created_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "facts": {
+          "$ref": "#/$defs/ExtractedFacts"
+        },
+        "evidence_matrix": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceCriterion"
+          },
+          "minItems": 1,
+          "maxItems": 50
+        },
+        "recommended_action": {
+          "$ref": "#/$defs/Recommendation"
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "alternatives": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "conditions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "cost_responsibility_note": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "citations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Citation"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "corpus_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "unresolved_questions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "model_run": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ModelRun"
+            },
+            {
+              "properties": {
+                "role": {
+                  "const": "ASSESSMENT"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "case_id",
+        "proposal_id",
+        "proposal_version",
+        "input_version",
+        "original_statement_id",
+        "created_at",
+        "facts",
+        "evidence_matrix",
+        "recommended_action",
+        "rationale",
+        "alternatives",
+        "conditions",
+        "cost_responsibility_note",
+        "citations",
+        "corpus_version",
+        "confidence",
+        "unresolved_questions",
+        "model_run"
+      ],
+      "additionalProperties": false
+    },
+    "RiskFinding": {
+      "type": "object",
+      "properties": {
+        "finding_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "CITATION",
+            "SUPPORT",
+            "CONFLICT",
+            "MISSING_INFORMATION",
+            "SCOPE",
+            "LOW_CONFIDENCE",
+            "INJECTION",
+            "AUTHORITY"
+          ]
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "INFO",
+            "WARNING",
+            "BLOCK"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "citation_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "evidence_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "finding_id",
+        "category",
+        "severity",
+        "message",
+        "citation_ids",
+        "evidence_ids"
+      ],
+      "additionalProperties": false
+    },
+    "RiskReviewRequest": {
+      "type": "object",
+      "description": "Independent review input assembled by deterministic orchestration, not by trusting Assessment to reconstruct sources. retrieval_result must be the original accepted C1 result including conflicts; case/input/corpus bindings and citation-check coverage must match packet before invocation. Runtime hand-off checks are required beyond JSON Schema.",
+      "properties": {
+        "packet": {
+          "$ref": "#/$defs/DecisionPacket"
+        },
+        "statements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CustomerStatement"
+          },
+          "minItems": 1,
+          "maxItems": 100
+        },
+        "evidence_matrix": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceCriterion"
+          },
+          "minItems": 1,
+          "maxItems": 50
+        },
+        "retrieval_result": {
+          "$ref": "#/$defs/RetrievalResult"
+        },
+        "citation_verification": {
+          "$ref": "#/$defs/CitationVerificationResult"
+        },
+        "order_lookup": {
+          "$ref": "#/$defs/OrderLookupResult"
+        },
+        "attachments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceAttachment"
+          },
+          "maxItems": 100
+        },
+        "image_observations": {
+          "$ref": "#/$defs/ImageObservationResult"
+        }
+      },
+      "required": [
+        "packet",
+        "statements",
+        "evidence_matrix",
+        "retrieval_result",
+        "citation_verification",
+        "order_lookup",
+        "attachments"
+      ],
+      "additionalProperties": false
+    },
+    "RiskReview": {
+      "type": "object",
+      "properties": {
+        "review_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "case_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "proposal_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "proposal_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "input_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "corpus_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "outcome": {
+          "$ref": "#/$defs/RiskOutcome"
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RiskFinding"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "revision_requests": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "questions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ClarificationQuestion"
+          },
+          "minItems": 0,
+          "maxItems": 20
+        },
+        "reviewed_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "model_run": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ModelRun"
+            },
+            {
+              "properties": {
+                "role": {
+                  "const": "RISK_REVIEWER"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "review_id",
+        "case_id",
+        "proposal_id",
+        "proposal_version",
+        "input_version",
+        "corpus_version",
+        "outcome",
+        "findings",
+        "revision_requests",
+        "questions",
+        "reviewed_at",
+        "model_run"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "outcome": {
+                "enum": [
+                  "PASS",
+                  "PASS_WITH_WARNING"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "findings": {
+                "items": {
+                  "properties": {
+                    "severity": {
+                      "enum": [
+                        "INFO",
+                        "WARNING"
+                      ]
+                    }
+                  }
+                }
+              },
+              "revision_requests": {
+                "maxItems": 0
+              },
+              "questions": {
+                "maxItems": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "outcome": {
+                "const": "PASS"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "findings": {
+                "items": {
+                  "properties": {
+                    "severity": {
+                      "const": "INFO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "outcome": {
+                "const": "PASS_WITH_WARNING"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "findings": {
+                "contains": {
+                  "properties": {
+                    "severity": {
+                      "const": "WARNING"
+                    }
+                  },
+                  "required": [
+                    "severity"
+                  ]
+                },
+                "minContains": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "outcome": {
+                "const": "REVISE"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "revision_requests": {
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "outcome": {
+                "const": "NEEDS_INFORMATION"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "questions": {
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "outcome": {
+                "const": "ESCALATE"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "findings": {
+                "contains": {
+                  "properties": {
+                    "severity": {
+                      "const": "BLOCK"
+                    }
+                  },
+                  "required": [
+                    "severity"
+                  ]
+                },
+                "minContains": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "ImageObservationRequest": {
+      "type": "object",
+      "properties": {
+        "case_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "input_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "evidence_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          },
+          "minItems": 1,
+          "maxItems": 10,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "case_id",
+        "input_version",
+        "evidence_ids"
+      ],
+      "additionalProperties": false
+    },
+    "ImageObservationResult": {
+      "type": "object",
+      "properties": {
+        "case_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "input_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "observations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "evidence_id": {
+                "$ref": "#/$defs/Id"
+              },
+              "visible_observations": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000
+                },
+                "minItems": 0,
+                "maxItems": 100
+              },
+              "limitations": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000
+                },
+                "minItems": 0,
+                "maxItems": 100
+              },
+              "confidence": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            },
+            "required": [
+              "evidence_id",
+              "visible_observations",
+              "limitations",
+              "confidence"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 10
+        },
+        "component_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        }
+      },
+      "required": [
+        "case_id",
+        "input_version",
+        "observations",
+        "component_version"
+      ],
+      "additionalProperties": false
+    },
+    "CreateReturnCommand": {
+      "type": "object",
+      "properties": {
+        "command_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "type": {
+          "const": "CREATE_RETURN"
+        },
+        "provider_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "order_id": {
+              "$ref": "#/$defs/Id"
+            },
+            "line_items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/LineSelection"
+              },
+              "minItems": 1,
+              "maxItems": 100
+            },
+            "parcel_id": {
+              "$ref": "#/$defs/Id"
+            }
+          },
+          "required": [
+            "order_id",
+            "line_items",
+            "parcel_id"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "command_id",
+        "type",
+        "provider_id",
+        "parameters"
+      ],
+      "additionalProperties": false
+    },
+    "GenerateLabelCommand": {
+      "type": "object",
+      "properties": {
+        "command_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "type": {
+          "const": "GENERATE_LABEL"
+        },
+        "provider_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "parcel_id": {
+              "$ref": "#/$defs/Id"
+            },
+            "return_command_id": {
+              "$ref": "#/$defs/Id"
+            },
+            "label_format": {
+              "const": "PDF"
+            },
+            "chargeable": {
+              "const": false
+            }
+          },
+          "required": [
+            "parcel_id",
+            "return_command_id",
+            "label_format",
+            "chargeable"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "command_id",
+        "type",
+        "provider_id",
+        "parameters"
+      ],
+      "additionalProperties": false
+    },
+    "CommandSpec": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/CreateReturnCommand"
+        },
+        {
+          "$ref": "#/$defs/GenerateLabelCommand"
+        }
+      ]
+    },
+    "ApprovalScope": {
+      "type": "object",
+      "properties": {
+        "case_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "input_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "proposal_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "proposal_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "review_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "parcel_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "commands": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "$ref": "#/$defs/CreateReturnCommand"
+            },
+            {
+              "$ref": "#/$defs/GenerateLabelCommand"
+            }
+          ],
+          "items": false,
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "currency": {
+          "const": "AUD"
+        },
+        "amount_ceiling_minor": {
+          "const": 0
+        },
+        "expires_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "allowlist_version": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]{1,80}(?![\\s\\S])"
+        },
+        "environment": {
+          "type": "string",
+          "enum": [
+            "SIMULATED",
+            "SANDBOX"
+          ]
+        }
+      },
+      "required": [
+        "case_id",
+        "input_version",
+        "proposal_id",
+        "proposal_version",
+        "review_id",
+        "parcel_id",
+        "commands",
+        "currency",
+        "amount_ceiling_minor",
+        "expires_at",
+        "allowlist_version",
+        "environment"
+      ],
+      "additionalProperties": false
+    },
+    "ActionPreview": {
+      "type": "object",
+      "properties": {
+        "preview_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "scope": {
+          "$ref": "#/$defs/ApprovalScope"
+        },
+        "scope_fingerprint": {
+          "$ref": "#/$defs/Hash"
+        }
+      },
+      "required": [
+        "preview_id",
+        "scope",
+        "scope_fingerprint"
+      ],
+      "additionalProperties": false
+    },
+    "FounderDecisionRequest": {
+      "type": "object",
+      "description": "Exactly one target: a current proposal pair, or a server-recorded processing_failure_id for MANUAL_HANDLING only when no current proposal exists. The latter never permits approval or dispatch and requires current case/input/failure/state checks at runtime.",
+      "properties": {
+        "expected_case_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "proposal_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "proposal_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "processing_failure_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "decision": {
+          "$ref": "#/$defs/FounderDecision"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "preview_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "scope_fingerprint": {
+          "$ref": "#/$defs/Hash"
+        }
+      },
+      "required": [
+        "expected_case_version",
+        "decision",
+        "reason"
+      ],
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "required": ["proposal_id", "proposal_version"],
+          "not": {"required": ["processing_failure_id"]}
+        },
+        {
+          "required": ["processing_failure_id"],
+          "properties": {"decision": {"const": "MANUAL_HANDLING"}},
+          "not": {
+            "anyOf": [
+              {"required": ["proposal_id"]},
+              {"required": ["proposal_version"]},
+              {"required": ["preview_id"]},
+              {"required": ["scope_fingerprint"]}
+            ]
+          }
+        }
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "decision": {
+                "const": "APPROVE"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "preview_id",
+              "scope_fingerprint"
+            ]
+          },
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "preview_id"
+                  ]
+                },
+                {
+                  "required": [
+                    "scope_fingerprint"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "FounderDecisionRecord": {
+      "type": "object",
+      "description": "Server-created record. A proposal-target decision retains its ID/version; a no-proposal manual outcome instead references the exact persisted processing failure. principal_id always comes from the verified server context, never the request body.",
+      "properties": {
+        "decision_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "case_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "proposal_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "proposal_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "processing_failure_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "decision": {
+          "$ref": "#/$defs/FounderDecision"
+        },
+        "principal_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "decided_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "approval_id": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "required": [
+        "decision_id",
+        "case_id",
+        "decision",
+        "principal_id",
+        "reason",
+        "decided_at"
+      ],
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "required": ["proposal_id", "proposal_version"],
+          "not": {"required": ["processing_failure_id"]}
+        },
+        {
+          "required": ["processing_failure_id"],
+          "properties": {"decision": {"const": "MANUAL_HANDLING"}},
+          "not": {
+            "anyOf": [
+              {"required": ["proposal_id"]},
+              {"required": ["proposal_version"]},
+              {"required": ["approval_id"]}
+            ]
+          }
+        }
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "decision": {
+                "const": "APPROVE"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "approval_id"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "approval_id"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "ApprovalRecord": {
+      "type": "object",
+      "properties": {
+        "approval_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "decision_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "principal_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "issued_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "preview_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "scope": {
+          "$ref": "#/$defs/ApprovalScope"
+        },
+        "scope_fingerprint": {
+          "$ref": "#/$defs/Hash"
+        }
+      },
+      "required": [
+        "approval_id",
+        "decision_id",
+        "principal_id",
+        "issued_at",
+        "preview_id",
+        "scope",
+        "scope_fingerprint"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionReceipt": {
+      "type": "object",
+      "properties": {
+        "case_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "case_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "decision_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "decision": {
+          "$ref": "#/$defs/FounderDecision"
+        },
+        "accepted_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "processing_status": {
+          "const": "ACCEPTED"
+        },
+        "approval_id": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "required": [
+        "case_id",
+        "case_version",
+        "decision_id",
+        "decision",
+        "accepted_at",
+        "processing_status"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "decision": {
+                "const": "APPROVE"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "approval_id"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "approval_id"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "ErrorCode": {
+      "type": "string",
+      "enum": [
+        "UNAUTHENTICATED",
+        "FORBIDDEN",
+        "NOT_FOUND",
+        "VALIDATION_ERROR",
+        "STALE_CASE_VERSION",
+        "STALE_PROPOSAL",
+        "INVALID_APPROVAL_SCOPE",
+        "APPROVAL_EXPIRED",
+        "IDEMPOTENCY_CONFLICT",
+        "RISK_NOT_PASSED",
+        "INVALID_STATE",
+        "PROVIDER_UNAVAILABLE",
+        "AUTHORITY_DENIED",
+        "REQUEST_TOO_LARGE",
+        "UNSUPPORTED_MEDIA_TYPE",
+        "INTERNAL_ERROR"
+      ]
+    },
+    "ErrorEnvelope": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "$ref": "#/$defs/ErrorCode"
+            },
+            "message": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000
+            },
+            "correlation_id": {
+              "$ref": "#/$defs/Id"
+            },
+            "retryable": {
+              "type": "boolean"
+            },
+            "details": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "field": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "field",
+                  "reason"
+                ],
+                "additionalProperties": false
+              },
+              "minItems": 0,
+              "maxItems": 20
+            }
+          },
+          "required": [
+            "code",
+            "message",
+            "correlation_id",
+            "retryable",
+            "details"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "OperationResult": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "CREATE_RETURN"
+            },
+            "provider_return_id": {
+              "$ref": "#/$defs/Id"
+            },
+            "parcel_id": {
+              "$ref": "#/$defs/Id"
+            }
+          },
+          "required": [
+            "type",
+            "provider_return_id",
+            "parcel_id"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "GENERATE_LABEL"
+            },
+            "provider_label_id": {
+              "$ref": "#/$defs/Id"
+            },
+            "parcel_id": {
+              "$ref": "#/$defs/Id"
+            },
+            "label_evidence_id": {
+              "$ref": "#/$defs/Id"
+            }
+          },
+          "required": [
+            "type",
+            "provider_label_id",
+            "parcel_id",
+            "label_evidence_id"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "OperationAttempt": {
+      "type": "object",
+      "properties": {
+        "operation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "case_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "case_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "command_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "approval_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "proposal_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "proposal_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "input_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "provider_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "operation_fingerprint": {
+          "$ref": "#/$defs/Hash"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "PENDING",
+            "EXECUTING",
+            "SUCCEEDED",
+            "FAILED",
+            "UNKNOWN",
+            "RECONCILING",
+            "BLOCKED"
+          ]
+        },
+        "attempt_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "updated_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "provider_operation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "result": {
+          "$ref": "#/$defs/OperationResult"
+        },
+        "error": {
+          "$ref": "#/$defs/ErrorEnvelope"
+        },
+        "idempotency_key": {
+          "$ref": "#/$defs/IdempotencyKey"
+        }
+      },
+      "required": [
+        "operation_id",
+        "case_id",
+        "case_version",
+        "command_id",
+        "approval_id",
+        "proposal_id",
+        "proposal_version",
+        "input_version",
+        "provider_id",
+        "operation_fingerprint",
+        "status",
+        "attempt_count",
+        "updated_at",
+        "idempotency_key"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "SUCCEEDED"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "result"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "result"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "NotificationRecord": {
+      "type": "object",
+      "properties": {
+        "notification_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "case_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "case_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "PENDING",
+            "SENT",
+            "FAILED"
+          ]
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "RETURN_CREATED",
+            "REJECTED",
+            "MANUAL_HANDLED"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 6000
+        },
+        "next_steps": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "attempt_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "updated_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "sent_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "error": {
+          "$ref": "#/$defs/ErrorEnvelope"
+        }
+      },
+      "required": [
+        "notification_id",
+        "case_id",
+        "case_version",
+        "status",
+        "outcome",
+        "message",
+        "next_steps",
+        "attempt_count",
+        "updated_at"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "SENT"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "sent_at"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "sent_at"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "CustomerCaseView": {
+      "type": "object",
+      "properties": {
+        "case_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "case_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "input_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "status": {
+          "$ref": "#/$defs/CaseStatus"
+        },
+        "created_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "updated_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "statements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CustomerStatement"
+          },
+          "minItems": 1,
+          "maxItems": 100
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceAttachment"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "clarification": {
+          "$ref": "#/$defs/ClarificationSet"
+        },
+        "outcome_message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 6000
+        }
+      },
+      "required": [
+        "case_id",
+        "case_version",
+        "input_version",
+        "status",
+        "created_at",
+        "updated_at",
+        "statements",
+        "evidence"
+      ],
+      "additionalProperties": false
+    },
+    "CaseSummary": {
+      "type": "object",
+      "properties": {
+        "case_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "case_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "input_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "status": {
+          "$ref": "#/$defs/CaseStatus"
+        },
+        "created_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "updated_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "issue_category": {
+          "$ref": "#/$defs/IssueCategory"
+        },
+        "current_risk_outcome": {
+          "$ref": "#/$defs/RiskOutcome"
+        }
+      },
+      "required": [
+        "case_id",
+        "case_version",
+        "input_version",
+        "status",
+        "created_at",
+        "updated_at",
+        "issue_category"
+      ],
+      "additionalProperties": false
+    },
+    "CaseList": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CaseSummary"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "next_cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "additionalProperties": false
+    },
+    "ProcessingFailure": {
+      "type": "object",
+      "description": "Sanitised server-recorded processing failure visible only in the authorised Founder read model. It is not a RiskOutcome or permission. Failure ID, case and input version must match the current persisted failure before no-proposal manual handling is accepted.",
+      "properties": {
+        "failure_id": {"$ref": "#/$defs/Id"},
+        "case_id": {"$ref": "#/$defs/Id"},
+        "input_version": {"$ref": "#/$defs/Version"},
+        "stage": {
+          "type": "string",
+          "enum": ["COORDINATOR", "ORDER_LOOKUP", "RETRIEVAL", "ASSESSMENT", "RISK_REVIEW"]
+        },
+        "error": {"$ref": "#/$defs/ErrorEnvelope"},
+        "occurred_at": {"$ref": "#/$defs/Timestamp"}
+      },
+      "required": ["failure_id", "case_id", "input_version", "stage", "error", "occurred_at"],
+      "additionalProperties": false
+    },
+    "CaseView": {
+      "type": "object",
+      "properties": {
+        "case_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "case_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "input_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "status": {
+          "$ref": "#/$defs/CaseStatus"
+        },
+        "created_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "updated_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "statements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CustomerStatement"
+          },
+          "minItems": 1,
+          "maxItems": 100
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceAttachment"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "facts": {
+          "$ref": "#/$defs/ExtractedFacts"
+        },
+        "order_snapshot": {
+          "$ref": "#/$defs/OrderSnapshot"
+        },
+        "clarification": {
+          "$ref": "#/$defs/ClarificationSet"
+        },
+        "current_proposal": {
+          "$ref": "#/$defs/DecisionPacket"
+        },
+        "processing_failure": {
+          "$ref": "#/$defs/ProcessingFailure"
+        },
+        "current_review": {
+          "$ref": "#/$defs/RiskReview"
+        },
+        "action_preview": {
+          "$ref": "#/$defs/ActionPreview"
+        },
+        "decisions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FounderDecisionRecord"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "approvals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ApprovalRecord"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "operations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OperationAttempt"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "notifications": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NotificationRecord"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "cited_passages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PolicyPassage"
+          },
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "case_id",
+        "case_version",
+        "input_version",
+        "status",
+        "created_at",
+        "updated_at",
+        "statements",
+        "evidence",
+        "decisions",
+        "approvals",
+        "operations",
+        "notifications",
+        "cited_passages"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {"not": {"required": ["current_proposal"]}},
+          "then": {
+            "not": {
+              "anyOf": [
+                {"required": ["current_review"]},
+                {"required": ["action_preview"]}
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["status"],
+            "properties": {"status": {"const": "ESCALATED"}},
+            "not": {"required": ["current_proposal"]}
+          },
+          "then": {"required": ["processing_failure"]}
+        }
+      ]
+    },
+    "AuditEvent": {
+      "type": "object",
+      "properties": {
+        "event_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "case_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "case_version": {
+          "$ref": "#/$defs/Version"
+        },
+        "correlation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "actor_type": {
+          "type": "string",
+          "enum": [
+            "CUSTOMER",
+            "FOUNDER",
+            "DOMAIN_SERVICE",
+            "COORDINATOR",
+            "ASSESSMENT",
+            "RISK_REVIEWER",
+            "OPERATIONS_SERVICE"
+          ]
+        },
+        "event_type": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]{2,79}(?![\\s\\S])"
+        },
+        "occurred_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "object_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "component_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "payload_hash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "previous_event_hash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "event_hash": {
+          "$ref": "#/$defs/Hash"
+        }
+      },
+      "required": [
+        "event_id",
+        "case_id",
+        "case_version",
+        "correlation_id",
+        "actor_type",
+        "event_type",
+        "occurred_at",
+        "object_ids",
+        "component_version",
+        "payload_hash",
+        "event_hash"
+      ],
+      "additionalProperties": false
+    },
+    "AuditPage": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AuditEvent"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "next_cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "additionalProperties": false
+    },
+    "AnalyticsQuery": {
+      "type": "object",
+      "description": "Optional case.created_at cohort bounds [created_from, created_before) and one current status at as_of. Omitted bounds are unbounded subject to snapshot time; omitted status includes all statuses. Both bounds, if present, must satisfy created_from < created_before; runtime comparison is required. Extra query names are rejected.",
+      "properties": {
+        "created_from": {"$ref": "#/$defs/Timestamp"},
+        "created_before": {"$ref": "#/$defs/Timestamp"},
+        "status": {"$ref": "#/$defs/CaseStatus"}
+      },
+      "additionalProperties": false
+    },
+    "AnalyticsSnapshot": {
+      "type": "object",
+      "description": "One authorised, as_of-consistent case cohort for every count and latency bucket. Echo the applied filters. Count each case once; latest applicable review of the current proposal only. Each case's current-input latest assessment episode occupies exactly one of measured, failed or unmeasured. Technical failure is distinct from a business ESCALATE result. Cross-field counts, timestamp ordering and percentile relationships need deterministic runtime validation.",
+      "properties": {
+        "as_of": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "filters": {
+          "$ref": "#/$defs/AnalyticsQuery"
+        },
+        "case_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "cases_by_status": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "$ref": "#/$defs/CaseStatus"
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "status",
+              "count"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "current_risk_counts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "outcome": {
+                "$ref": "#/$defs/RiskOutcome"
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "outcome",
+              "count"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0,
+          "maxItems": 5
+        },
+        "cases_without_current_review": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "proposal_latency": {
+          "type": "object",
+          "properties": {
+            "metric_version": {
+              "const": "proposal-latency-v1"
+            },
+            "sample_count": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "failed_count": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "unmeasured_count": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
+              "description": "Cases without a completed valid or failed measurement for the current input's latest assessment episode, including not-started, in-progress and missing telemetry. Never substitute zero latency."
+            },
+            "p50_ms": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "p95_ms": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "metric_version",
+            "sample_count",
+            "failed_count",
+            "unmeasured_count"
+          ],
+          "additionalProperties": false,
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "sample_count": {
+                    "const": 0
+                  }
+                }
+              },
+              "then": {
+                "not": {
+                  "anyOf": [
+                    {
+                      "required": [
+                        "p50_ms"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "p95_ms"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "else": {
+                "required": [
+                  "p50_ms",
+                  "p95_ms"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "as_of",
+        "filters",
+        "case_count",
+        "cases_by_status",
+        "current_risk_counts",
+        "cases_without_current_review",
+        "proposal_latency"
+      ],
+      "additionalProperties": false
+    },
+    "IdempotencyKey": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._:-]{8,128}(?![\\s\\S])"
+    }
+  }
+}
