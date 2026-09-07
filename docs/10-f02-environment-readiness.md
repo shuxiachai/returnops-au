@@ -1,76 +1,116 @@
-# F.02：环境、依赖与最小 CI 准备
+# F.02：环境、依赖与最小 CI
 
-> 2026-09-07；状态：**准备稿，未完成 F.02 验收**。Owner：A；Reviewer：C。
+> 2026-09-07；**环境评审候选，F.02 未验收**。Owner A、Reviewer C；S 无、F 依赖 F.01。F.02 实际 Jira key 尚未核验，不复用 KAN-32，也不虚构新卡。评审入口为 [PR #11](https://github.com/shuxiachai/returnops-au/pull/11)，提交及真实 CI 以该 PR 的具体 revision/run 为证。
 >
-> WBS：F.02；开始依赖 S：无；完成依赖 F：[F.01](09-interface-contract-v1.md)。
-> F.02 的实际 Jira key 待核对映射；不能直接复用 F.01 的 KAN-32。
+> 组长已要求环境准备和候选发布。健康 API、PostgreSQL/Compose、空业务迁移、完整依赖锁和 CI 文件是本次环境产物；本地验证及后续 CI 都不代表 F.01 接受或 A1.02 实现。
 
-本稿按 [项目定义第 11 节](00-project-definition-v1.md)、[固定分工](07-frozen-work-allocation.md)和[工作包 F.02](08-delivery-work-packages.md)准备可复现环境与检查入口。F.01 接受前可以准备环境和 CI 草案；F.02 完成仍须等待 F.01 接受，并取得干净环境启动、迁移、测试和真实 PR 检查证据。本文件没有安装依赖、启动 Docker、实现 API 或部署工作流。
+## 1. 本轮产出与范围
 
-## 1. 已核验的环境与缺口
+沿用[产品定义 §11](00-project-definition-v1.md#11-engineering-strategy)的 FastAPI/Pydantic、SQLAlchemy/Alembic、PostgreSQL 和 Docker Compose。
 
-以下为 2026-09-07 14:36 AEST 前的本机/远端快照，不是持续监控结果。
-
-| 项目 | 实测结果 | 限制 |
+| 产出 | 文件 / 运行行为 | 验收边界 |
 |---|---|---|
-| Python | 本机 Python 3.12.9 可执行 | 后续干净环境需记录实际版本，不能依赖个人全局包 |
-| `tmp/f01-clean-venv` | `include-system-site-packages=false`；jsonschema 4.23.0、referencing 0.35.1、openapi-spec-validator 0.7.2 | 可运行离线契约 unittest；没有 pytest、Pydantic 或 API/数据库依赖 |
-| `tmp/f01-venv` | `include-system-site-packages=true`；pytest 8.3.5、Pydantic 2.12.5；jsonschema 4.26.0、referencing 0.37.0 | 继承全局环境，验证器版本与声明不同；只能作本地参考，不能作为干净复现证据 |
-| 依赖声明 | [contracts/requirements.txt](../contracts/requirements.txt)固定三个顶层验证依赖版本 | 不是完整传递依赖锁，也不是应用依赖锁；尚无根目录应用依赖配置 |
-| Docker | CLI 29.6.2、Compose 5.3.1 可执行 | `docker version` 返回 `Server=null`；默认 `docker_engine` pipe 不存在，并有用户 Docker config 读取权限警告。本轮无法连接 daemon，未验证 PostgreSQL |
-| 仓库实现 | 已有旧领域模型、合成 fixtures 和离线契约测试 | 尚无 `apps/api`、Compose、SQLAlchemy/Alembic 迁移或已验证的 PostgreSQL 服务 |
-| GitHub | main 为 `9eb7b0b46b1b28cfec300a59b03bba6a1d60c3bf`；Actions workflow 数量为 0 | 尚无真实 PR CI 证据；没有核验或设置 required checks / branch protection |
+| 应用包 | [pyproject.toml](../pyproject.toml)、[API](../apps/api/returnops_api/main.py) | 只有 /health/live 和 /health/ready；十五个 /v1 契约操作、身份/案件/审批仍未实现 |
+| 就绪检查 | [database.py](../apps/api/returnops_api/database.py) | SELECT 1 和版本查询成功且恰好一个预期 revision 才 200；其他为 503；不隐式迁移/stamp |
+| 配置 | [settings.py](../apps/api/returnops_api/settings.py)、[.env.example](../.env.example) | 缺失/错误配置明确失败，错误不回显 DSN，凭据通过环境注入 |
+| 空业务迁移 | [alembic.ini](../alembic.ini)、[env.py](../alembic/env.py)、[0001_environment](../alembic/versions/0001_environment.py) | 只有版本表和 revision，无案件/提案/审批/审计实体 |
+| 安装锁 | [运行锁](../requirements.lock)、[开发/测试锁](../requirements-dev.lock) | Python 3.12 传递依赖、版本与 hashes；开发锁约束到运行锁 |
+| 容器 | [Dockerfile](../Dockerfile)、[Compose](../compose.yaml)、[.dockerignore](../.dockerignore) | PG healthy → migration 成功 → API；应用非 root，构建上下文仅运行文件 |
+| 验证 | [环境测试](../tests/environment/test_environment.py)、[统一入口](../tools/checks/README.md)、[原生独立簇复现](../tools/environment/native_check.py)、[CI](../.github/workflows/ci.yml) | 本地失败退出可核验；未发布时不存在真实 GitHub run |
 
-[.gitignore](../.gitignore)已排除 `.venv/`、`.venv-contracts/`、`tmp/`、Python 缓存、`.env` 与 `.env.*`，并允许 `.env.example`。后续示例只放非秘密占位值；临时环境与真实配置不入 Git。
+追踪：NFR-001/003/006/007/008/009，支持后续 FR-001/009/011/012 的基础设施。模型依据为[系统设计的模块化单体、API/PostgreSQL 边界](02-system-design.md)与共享类/接口；**尚无已验收的 Package/Deployment 图**，Compose 或 Composite 不能替代课程 UML。健康检查直读基础设施，不表示已实现 Domain/CaseRepository。
 
-## 2. 当前可以运行的离线检查
+## 2. 首次安装与配置
 
-在仓库根目录运行以下 PowerShell 命令。第一组使用已核验的隔离环境，不需要 pytest、数据库、API、模型密钥或 provider；安装依赖之后，检查本身可离线运行。
-
-```powershell
-.\tmp\f01-clean-venv\Scripts\python.exe -B -m unittest discover -s tests/contracts -p "test_*.py" -v
-```
-
-旧领域测试另需 pytest 与 Pydantic，可在现有继承全局包的环境中作参考检查：
+在唯一项目仓库根目录使用 CPython 3.12。下面不安装全局 Python 包；.venv、.env、缓存均被 Git 忽略。
 
 ```powershell
-.\tmp\f01-venv\Scripts\python.exe -B -m pytest -p no:cacheprovider tests/unit -q
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --require-hashes -r requirements-dev.lock
+.\.venv\Scripts\python.exe -m pip install --no-deps --no-build-isolation -e .
+.\.venv\Scripts\python.exe -m pip check
+.\.venv\Scripts\python.exe -B tools/environment/local.py init
+npm ci --prefix tools/model-checks --ignore-scripts --no-audit --no-fund
 ```
 
-以上命令由环境/入口检查确认可用，本稿未执行新一轮测试。F.01 工作副本修订后，以实际运行结果为准，不沿用历史 35/39 通过数。契约 unittest 检查文档结构及样例；旧领域测试也不能证明已实现审批、状态、幂等或 provider 守卫。
+macOS/Linux 将解释器替换为 .venv/bin/python。首次安装需访问 PyPI/npm；安装后契约/模型检查本身不联网。Docker 只装运行锁，通过 /app/apps/api 加载源包，不包含开发依赖或个人全局包。
 
-后续复现契约检查的独立环境可按以下命令创建；这会创建本地环境并安装依赖，**尚未由本稿执行**：
+[local.py](../tools/environment/local.py) 只在 .env 不存在时生成随机本地密码，不覆盖现有配置，不显示密码。不要复用账户密码；手工配置 Compose 的密码应使用 URL-safe 字符，原生 DATABASE_URL 的特殊字符须编码。local.py 可向子进程注入编码后的 URL，避免密码进入命令历史。不要打印完整 docker compose config 或 .env；校验用 `docker compose config --quiet`。
+
+示例配置默认仅发布到本机：API 127.0.0.1:8000、PG 127.0.0.1:5433。**本机 Docker 恢复后，原有 academic_agent 容器自动启动占用 8000，因此本机被忽略的 .env 已只将 API_PORT 改为 8001**；本项目当前 API 为 127.0.0.1:8001。容器内 API 监听 0.0.0.0:8000 是映射所需，不等于对外发布。本机 5432 已由原有 PostgreSQL 18 使用，本项目不停止/复用它。端口冲突时调整自己的 .env，不关闭其他服务。
+
+## 3. 启动、迁移与检查
+
+先启动 Docker daemon，再检查已有项目/卷。默认项目名 returnops-au-f02，卷按项目隔离；如果已有同名且不属于本项目的资源，应选新的 `-p` 名，不覆盖或清空。
 
 ```powershell
-python -m venv .venv-contracts
-.\.venv-contracts\Scripts\python.exe -m pip install -r contracts/requirements.txt
-.\.venv-contracts\Scripts\python.exe -m unittest discover -s tests/contracts -p "test_*.py" -v
+docker version
+docker compose ls
+docker volume ls
+docker compose config --quiet
+docker compose up --build -d --wait --wait-timeout 180
+docker compose ps -a
+$apiPort = 8001 # 本机 .env 当前值；其他机器以自己的 API_PORT 为准
+Invoke-RestMethod "http://127.0.0.1:$apiPort/health/live"
+Invoke-RestMethod "http://127.0.0.1:$apiPort/health/ready"
 ```
 
-Linux CI 可执行等价的 `python -m pip install -r contracts/requirements.txt` 与 `python -m unittest discover -s tests/contracts -p 'test_*.py' -v`。使用 Python 3.12 的全新 runner 即可，不必为最小契约检查加入 pytest。若后来纳入旧领域测试，应单独声明 pytest/Pydantic 依赖与测试步骤。
+Windows 若 context 不对，在命令中显式加 `--context desktop-linux`，不必改变全局设置。up 失败时查看本项目 `docker compose logs migrate api`；失败不能略过。连接、池等待、查询均有短超时。停止本项目用 `docker compose stop` 保留数据；不默认删卷/prune/reset/全局 WSL shutdown。
 
-## 3. 本轮可准备的最小交付物
+数据库已启动后，使用 .env 的 loopback PG 配置执行验证：
 
-| 产出 | 可审查条件 |
-|---|---|
-| 环境与依赖说明 | 区分契约检查、旧领域测试及未来 API 依赖；说明 Python 版本、安装入口和失败排查，不把全局包当项目依赖 |
-| 最小契约 CI 草案 | PR 上安装已声明验证器并运行 unittest；缺包、结构错误或测试失败均以非零退出码结束；不使用 `continue-on-error` 掩盖失败 |
-| 应用环境设计草案 | 沿用 FastAPI/Pydantic、PostgreSQL/SQLAlchemy/Alembic、Docker Compose；说明配置注入、启动顺序、数据库就绪、迁移和测试入口 |
-| 验收证据清单 | 关联 F.02 的真实 Jira key、具体需求/模型、提交、非作者评审与真实 CI URL；状态和时间按实际发生记录 |
+```powershell
+.\.venv\Scripts\python.exe -B tools/environment/local.py run python tools/checks/run.py environment
+.\.venv\Scripts\python.exe -B tools/checks/run.py offline --baseline-ref main
+```
 
-最小 CI 目前只是上述步骤约定，尚未写入或部署 `.github/workflows`。它通过以后，只能证明离线契约检查通过，不能代替 F.02 的 API/PostgreSQL 验收或 required checks 配置核验。
+environment 依次执行 Alembic upgrade/current 和完整 pytest。直接 Alembic 入口也保护专用库：只允许 returnops_f02 或小写字母/数字/下划线后缀，名字至多 63 字符；拒绝 URL query/fragment，防止 ?dbname=... 覆盖实际连接目标。这是 F.02 测试防误用边界，不代替数据库权限。健康 API 不执行迁移；后续增业务迁移须同步预期 revision 与相应测试，不能对新旧 schema 一概报 ready。
 
-准备工作不迁移 A1.01 的业务领域模型、不提前实现依赖 F.01 的授权/附件/状态/审批服务，也不接入 LLM 或可产生操作效果的 provider。API 健康检查和空库迁移入口的后续基础设施实现必须与 A1.02 的业务实体/版本持久化区分，避免重复认领。
+没有 DB 时只可明确运行非数据库子集：
 
-## 4. F.02 后续验收顺序
+```powershell
+.\.venv\Scripts\python.exe -B -m pytest tests/environment -m "not database" -q
+```
 
-以下均待完成，不是已经存在的运行命令或结果。
+这不等于完整环境通过。完整命令缺配置/数据库时会失败而非 skip。真实 PG 检查包含连接、HTTP 就绪、重复升级不变、TEMP 表事务回滚；不改公共版本表制造失败，不删业务表。缺版本/旧版本/多头/连接失败等逻辑另用隔离 doubles 验证。
 
-1. **确认契约与环境。** 记录 F.01 接受版本和 A/B/C 确认；确定 Python、应用/开发依赖与可复现安装策略，提交非秘密配置示例和启动说明。
-2. **准备 API/PostgreSQL。** 提交最小 API 启动入口、Compose 服务及就绪检查。使用干净 checkout 和新的测试数据库按说明启动；记录 API 响应、数据库连通结果、实际版本和启动耗时。本机 Docker daemon 的可用性须重新实测。
-3. **验证迁移入口。** 空测试库按已提交命令迁移到 head，再次执行不产生额外变更；记录迁移版本与结果。F.02 不以空库迁移冒充 A1.02 的业务持久化验收。
-4. **统一测试入口。** 从声明的依赖安装后运行契约及适用的应用基础测试；数据库未就绪、缺配置或缺包须明确失败。后续业务测试分别追溯到其 Owner 与 WBS。
-5. **取得真实 PR CI。** 在实际 PR 上自动运行相同入口，保留可访问的成功日志与一次可审查的失败退出证据；不要在 main 留下故意失败的测试。检查失败必须使对应 job/run 失败。合并是否受 required checks 强制限制需另行读取配置核验，不能由绿勾推断。
-6. **非作者复现与记录。** C 从干净环境复现，确认密钥通过环境注入且不出现在日志/仓库。完成 F.01 依赖并附提交、review、运行和 CI 链接后，才申请 F.02 Done。
+若 Docker 暂不可用，但已有 PostgreSQL 二进制，可运行独立原生复现。`--bin` 必须指向本人机器上现有的 PostgreSQL bin；下例是本轮实际路径，不要求其他成员安装到同处：
 
-本准备稿对应 `NFR-006 Testability` 的测试入口、`NFR-007 Maintainability` 的依赖边界、`NFR-003 Privacy` 的秘密配置隔离和 `NFR-001 Traceability` 的证据关联，具体定义见 [docs/00 的需求表](00-project-definition-v1.md)；模型入口为共享 Package/Deployment 设计与 [系统设计](02-system-design.md)。准备稿不宣称尚未提交的部署图、运行环境或未来业务功能已验收。
+```powershell
+.\.venv\Scripts\python.exe -B tools/environment/native_check.py --bin 'D:/Program Files/PostgreSQL/18/bin' --db-port 5434 --api-port 8002
+```
+
+脚本先检查端口与二进制，每次在仓库 tmp 下新建簇及随机测试密码，不读取 .env、不连接原有库。依次运行完整 environment 检查、真实 Uvicorn TCP 就绪/存活检查及数据库停止后的 503/200 检查；最后只停止自己创建的进程。默认端口 5433/8000，可用 `--db-port` / `--api-port` 指定其他空闲端口；上例避开已运行的两个 Docker 项目。保留该次数据与日志、删除初始化密码文件；不会安装软件、注册服务或修改 Docker。原生结果不能代替指定 PostgreSQL 17 / Compose 平台验收。
+
+## 4. 依赖与 CI
+
+本轮用 uv 0.11.24 解析 PyPI 并生成 hashes；安装和运行不依赖 uv。依赖更新由 A 单独修订并审查两个锁，不在每次启动时重解析：
+
+```powershell
+uv pip compile pyproject.toml --python-version 3.12 --universal --generate-hashes --output-file requirements.lock
+uv pip compile pyproject.toml --extra dev --constraint requirements.lock --python-version 3.12 --universal --generate-hashes --output-file requirements-dev.lock
+```
+
+运行锁用于 Docker；开发锁含 pytest/httpx、构建工具及契约验证器。原 [contracts/requirements.txt](../contracts/requirements.txt) 仍是独立契约入口，不是应用完整锁。Node 模型工具另有锁。Python/PostgreSQL 镜像采用 2026-09-07 实查的官方多架构 digest；CI 的 PG 与 Compose 相同。更新需重验。
+
+CI 有离线契约/模型、临时 PG 迁移/环境两个 job。官方 actions 固定已核验 SHA，token 仅 contents:read，不使用 pull_request_target 或 continue-on-error。PR 比较 base SHA 的 WBS；普通 push 明确跳过独立基线比较。固定引用和完整说明见 [tools/checks](../tools/checks/README.md)。本地有文件不等于 Actions 已运行或 required checks 已配置。
+
+F.01 未接受时可以保存或发布环境候选供评审；**commit/PR 不等于采纳或验收**，B/C 未审阅不是禁止提交的技术理由。
+
+## 5. 本轮证据与待完成项
+
+以下记录发布前本机实测；旧 Docker Server=null、仅全局环境的快照不作为当前结论。发布后的 CI 和真人评审证据另在 PR #11 记录，不能由这些本地结果推定。
+
+- 新 .venv：CPython 3.12.9，include-system-site-packages=false；哈希锁与 editable 包安装成功，pip check 无冲突。
+- 新环境统一离线入口通过：53 契约、6 组模型/文档、7 模型工具测试、5 统一入口测试、15 Mermaid 块；仍是静态/工具验证。
+- Windows 原生 PostgreSQL **18.2** 的全新独立测试簇：迁移到 `0001_environment`，完整 **30 项环境测试通过**（26 项配置/隔离逻辑，4 项实际数据库测试）。可复现 native_check.py 再运行成功；实际 TCP `/health/live` 与 `/health/ready` 均为 200，停止自己的数据库后分别为 200 / 503。测试进程已停止，原有主机 PG18 / 5432 服务保留；这不是 Docker PostgreSQL 17 的证据。
+- 原生复现日志与数据保存在被 Git 忽略的 `tmp/f02-native-qnf359mz/`；早期单步验证保存在 `tmp/f02-native-tr8s88sy/`。它们是发布前工作树的本机结果，不是远端运行证据。测试输出有 Starlette/httpx 与 AnyIO 的弃用提示，未影响通过；没有因此改用未验证的测试依赖。
+- Compose 配置静态检查通过，Python/PG 官方多架构镜像 digest 已实查。早期 Docker Desktop 4.85.0 因旧 `dockerInference` AF_UNIX 节点退出，逐节点安全读取/改名报 Win32 1920。**2026-09-07 用户授权修复后，Desktop 4.85.0 / Engine 29.6.2 已恢复**；原有 3 个容器、2 个卷可读取。首次重启又发现 Secrets Engine 旧 socket；普通停止等待 20 秒未完成，确认当时引擎均已停止且无 VM 后，官方 `docker desktop stop --force` 成功，再备份对应目录并重启恢复。
+- 本机可逆恢复只对已盘点为仅含零字节 socket 的普通目录改名，保留三个备份：`C:/Users/shuxia/AppData/Local/Docker/run.repair-backup-20260907`（原始 run）、`C:/Users/shuxia/AppData/Local/docker-secrets-engine.repair-backup-20260907`（Secrets Engine）和 `C:/Users/shuxia/AppData/Local/Docker/run.repair-attempt1-20260907`（第一次失败重启残留）。配置 `EnableDockerAI=true` 保持不变；未 reset、修改 ACL、删除 VHDX、执行全局 WSL shutdown 或停止原有主机 PG18。备份保留原故障状态，不应覆盖/合并进运行中的新目录；如需回滚，应先停止 Docker，并把新目录另行保留。此为本机实测恢复，不承诺系统重启或异常断电后永不复发；[Docker 同类问题记录](https://github.com/docker/desktop-feedback/issues/531)提供调查线索。
+- **项目容器已实际验证**：固定镜像构建成功；独立 Compose 项目 `returnops-au-f02` 新建网络和 `returnops-au-f02_postgres-data` 卷，PostgreSQL **17.11** healthy → migration **Exited (0)** → API healthy。容器 Python **3.12.14**、API UID **10001**；API / DB 仅映射本机 **8001 / 5433**。迁移版本 `0001_environment`，Windows .venv 连接该 PG17 容器的完整 **30 项环境测试通过**；这不是 Linux pytest/远端 CI 结果。
+- 实际容器 API TCP 检查为 live=200、ready=200；只停止本项目 db 时 ready=503、live=200，重新启动同一 db 后 ready 恢复 200，卷保留。本项目 api/db 最终保持运行；原有 academic_agent / 8000 和主机 PG18 / 5432 保留。日志在被忽略的 `tmp/f02-docker-environment-20260907.log` 与 `tmp/f02-docker-http-20260907.log`。发布前这些结果不包含 GitHub Actions；后续真实 CI 按 PR #11 的具体 run 记录，环境恢复不等于 F.02 联合验收。
+- F.01 rc.4 仍待接受；F.02 Jira key、C 干净环境复现、required checks、正式模型/契约认可仍待完成。实际 PR CI 按具体 run 单独记录，成功运行也不替代这些事项。
+
+申请 F.02 Done 前需同时具备：F.01 接受版本、干净 checkout/新测试库启动与迁移证据、真实成功/失败 PR 检查日志、C 非作者复现、具体提交/review/Jira 关联。环境骨架不计为 Gate 1、A1.02 业务持久化或生产就绪。
+
+实现参考：[FastAPI 官方容器部署](https://fastapi.tiangolo.com/deployment/docker/)、[Compose 启动依赖](https://docs.docker.com/compose/how-tos/startup-order/)、[Alembic 迁移环境](https://alembic.sqlalchemy.org/en/latest/tutorial.html)。权限、分工和完成条件来自 docs/00、07、08。

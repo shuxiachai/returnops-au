@@ -4,8 +4,9 @@
 > 2026-08-31 and published it with the frozen allocation to main on 2026-09-06.
 > The document alignment and F.01 rc.2 were merged in
 > [PR #9](https://github.com/shuxiachai/returnops-au/pull/9).
-> This revision contains an rc.3 review candidate for KAN-32; it is not part
-> of that earlier merge or an accepted contract.
+> F.01 rc.4 (KAN-32), aligned MA-0.2 / CS-0.1 models (KAN-13), and the F.02
+> environment form the current review candidate. [PR #11](https://github.com/shuxiachai/returnops-au/pull/11)
+> records its exact commits, CI runs and pending reviews; rc.3 is the earlier revision.
 > Current team/tutor adoption reviews remain pending; publication is not acceptance.
 
 ReturnOps AU is a human-governed multi-agent returns operations system for a
@@ -65,8 +66,10 @@ revision/risk loops and excludes human/physical waiting only.
 - [Frozen work allocation v1.0 — owners, nine features and change rules](docs/07-frozen-work-allocation.md)
 - [Detailed delivery work packages — dependencies and acceptance checklists](docs/08-delivery-work-packages.md)
 - [F.01 API/data contract — review candidate, not an implemented API](docs/09-interface-contract-v1.md)
-- [F.02 environment and CI readiness — preparation, pending implementation](docs/10-f02-environment-readiness.md)
+- [F.02 environment and CI readiness — local checks, pending acceptance](docs/10-f02-environment-readiness.md)
 - [Stage 1 readiness — model review, report, video and submission evidence](docs/11-stage1-readiness.md)
+- [Member A model chain — AH-10 / UC-04, UML sources, diagrams and walkthrough](docs/12-member-a-model-chain.md)
+- [Shared Composite Structure — parts, ports, connectors and review scenarios](docs/13-shared-composite-structure.md)
 - [Project charter](docs/01-project-charter.md)
 - [System design](docs/02-system-design.md)
 - [Team, Jira and GitHub workflow](docs/03-team-and-github-workflow.md)
@@ -97,6 +100,14 @@ research-expansion task.
 
 ## Current phase
 
+Member A's Activity, Interaction (two Sequence panels) and OperationAttempt
+state machine now have a `MA-0.2` review candidate with 19 static walkthrough
+scenarios. A's own revision/explanation, C's review and F.01 acceptance remain
+pending. The model candidate is included in the current PR #11 review scope;
+it does not complete B/C's personal models. The shared Composite Structure now
+has a separate `CS-0.1` candidate with three views, 29 connectors and 12
+static review scenarios; human review and original M-S dependencies remain open.
+
 The lead's current priority is to close the documentation, model-review and
 Stage 1 preparation gaps before taking on a new implementation package.
 The readiness checklist records concrete outputs and reviewers; missing member
@@ -105,18 +116,30 @@ integrates/submits course materials; C verifies R.04 evidence; each member
 authors and explains their own contribution. These are working arrangements,
 not completed reviews or a submission receipt.
 
-F.01 rc.3 aligns the no-proposal manual exception across the requirement,
+F.01 rc.4 retains the rc.3 no-proposal manual exception across the requirement,
 shared models and contract. It distinguishes technical processing failures from
 pre-proposal order conflict/authority denial. Either target permits only an
 audited manual outcome and notification, never execution approval. The HTTP
 idempotency parameter uses the shared identifier rule. See the
-[migration and validation instructions](contracts/README.md).
+[migration and validation instructions](contracts/README.md). The rc.4 candidate adds
+role-isolated historical reads, explicit preview/pagination/retention rules and
+notification-outcome precedence. Gold initial labels must be sealed before C
+reads timed answers; source submission and the final demo have separate checks.
+Use [the tracked model checks](tools/model-checks/README.md) for reproducible
+source/SVG, link, traceability and frozen-allocation checks.
 
 [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32) tracks F.01 review;
 PR #9 remains the historical rc.2 publication. B/C must confirm the actual
 revised contract/model version before acceptance. Offline checks do not
 complete F.01, Gate 1, runtime guards or individual models. F.02 preparation
-is documented separately; API/PostgreSQL/migration/real CI remain outstanding.
+now has an [environment candidate](docs/10-f02-environment-readiness.md):
+health-only API, locked dependencies, migration entry point, Compose and CI
+files. Docker Desktop has recovered from stale runtime sockets; the project
+Compose stack builds and starts with PostgreSQL 17.11. All 30 environment tests
+pass against that database, and actual container HTTP outage/recovery checks pass.
+The local API uses port 8001 to preserve an existing service on 8000. PR #11
+records actual CI runs separately from the still-pending joint F.02 acceptance. Business API,
+case persistence, authorization and provider behavior are still unimplemented.
 
 On 2026-09-06, the lead approved and froze the detailed A/B/C work allocation.
 Use `docs/07` for function ownership and `docs/08` for executable work packages;

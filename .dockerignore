@@ -1,0 +1,14 @@
+*
+!Dockerfile
+!pyproject.toml
+!requirements.lock
+!apps/
+!apps/api/
+!apps/api/returnops_api/
+!apps/api/returnops_api/*.py
+!alembic.ini
+!alembic/
+!alembic/*.py
+!alembic/*.mako
+!alembic/versions/
+!alembic/versions/*.py

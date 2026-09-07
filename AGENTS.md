@@ -39,6 +39,81 @@ orchestrator; C implements Risk Reviewer, retrieval and image analysis. Consult
 
 ## F.01 contract hand-off — 2026-09-07
 
+**Current review package — 2026-09-07:** the lead explicitly authorised
+committing the contract, model and environment changes, updating the existing
+[PR #11](https://github.com/shuxiachai/returnops-au/pull/11) review entrance,
+running real CI and requesting B/C review with C clean-environment reproduction.
+The candidate versions are F.01 rc.4 / MA-0.2 / CS-0.1, plus health-only F.02.
+Use that PR's exact commits, check runs and reviews for publication evidence;
+earlier statements below about uncommitted work or PR #11 containing only rc.3
+are preparation history. KAN-32 maps F.01, KAN-13 maps the A/shared model work;
+F.02's actual Jira key is still unverified. Main and B/C PRs #7/#8 are preserved.
+No merge, F.01/F.02 acceptance, member authorship or Jira change is implied.
+
+**Local F.02 environment preparation — 2026-09-07:** the lead requested
+environment preparation and asked why the preceding work was not committed.
+The previous local-review boundary, not failing checks or B/C review, was the
+reason; candidate commits/publication and acceptance are distinct. The current
+working tree now includes health-only FastAPI, full hash dependency locks,
+Alembic 0001_environment (no business tables), Compose and local CI files.
+Read docs/10 before running anything. Native PostgreSQL 18.2 on a newly created
+project-tmp cluster was used for environment/HTTP checks and stopped afterward;
+the existing host PostgreSQL service on 5432 was not reused or stopped.
+Subsequent lead-authorised Docker repair preserved the stale run and Secrets
+Engine socket directories by same-parent rename; Desktop 4.85.0 / Engine 29.6.2
+now runs without settings/ACL changes or data reset. Exact backups are in docs/10.
+Compose build/start with PG17.11 passes; 30 Windows-venv tests against that
+container and actual container HTTP success/outage/recovery checks pass.
+The project's ignored .env now uses API_PORT=8001 to preserve academic_agent on
+8000; project api/db remain running on loopback 8001/5433. Host PG18 is unchanged.
+Real PR CI, C reproduction and joint F.02 acceptance remain pending.
+No business API, F.01/F.02 acceptance, commit, push, Jira write or member review
+is implied. The earlier rc.4/MA/CS work remains preserved in the dirty tree.
+
+**Local defect-closure revision — 2026-09-07:** after the course/AI-application
+career-fit audit the lead requested the next step. The current dirty branch
+`docs/kan-13-a-model-chain` now holds rc.4 and MA-0.2 candidates, not a new
+publication. PR #11 remains rc.3 at `90931562f7e8d038b994d8d3ff3b2f289e462643`.
+Read docs/09 for two role-isolated history GETs (15 total), typed historical
+material/provenance, bounded previews and snapshot/retention rules. Manual or
+reject outcomes survive late operation confirmations; staged uploads do not
+create a post-review customer append path. Internal input-capacity excess must
+not silently truncate facts. Read docs/07–08 for sealed initial Gold labels
+before timed-answer access, minimal review packets and separate R.05 source/
+demo checks. IDs, owners, reviewers and S/F of the 89 WBS rows stay fixed.
+KAN-13 was observed to cover M-A.01–06 and A-owned M-S.01/.02; docs/13 corrects
+its earlier unmapped note. tools/model-checks provides tracked reproducible
+static checks. No runtime service, F.01/model human acceptance, commit, upload,
+PR/Jira write or member confirmation is performed by this local revision.
+Older candidate descriptions below are chronological history, not current DTOs.
+
+**Shared Composite candidate — 2026-09-07:** the lead then requested the next
+step. [CS-0.1](docs/13-shared-composite-structure.md) adds three PlantUML/SVG
+internal-structure views, 29 connectors with interface mappings and 12 static
+walkthroughs. Domain remains the only CaseRepository caller and creates trusted
+business AuditEvents; raw source receipts are observations until Domain accepts
+their bindings. CS-D01/02/03 cover receipt forwarding, audit submission and mock
+versus A3 configuration; CS-Q01/02 retain part-type and artifact-port details.
+This remains local uncommitted work on `docs/kan-13-a-model-chain`, not part of
+the earlier PR #11 publication. M-S.02 A/C ownership, S=M-S.01, F.01 acceptance,
+actual B/C shared contribution and human review remain unchanged/pending.
+Package/Deployment and final model-index work remain separate. No remote/Jira
+action, runtime implementation or personal B/C completion is implied.
+
+**Member A model candidate — 2026-09-07:** the lead asked to advance the model
+chain. Read [MA-0.1](docs/12-member-a-model-chain.md): AH-10 / UC-04 with UC-03
+admission, Activity, two Sequence panels and an OperationAttempt seven-state
+model, plus 15 static walkthrough scenarios. Editable PlantUML and rendered
+SVGs are under `docs/diagrams/member-a/`. This local work starts from rc.3
+commit `90931562f7e8d038b994d8d3ff3b2f289e462643` on
+`docs/kan-13-a-model-chain`; it was not part of PR #11's earlier publication.
+It is AI-assisted preparation, not A's independent completion, C's review or
+F.01 acceptance. MA-D01/02 propose attempt identity and query phases; MA-Q01/02/03
+retain count/ID mapping, cross-approval recovery and runtime concurrency questions.
+No new wire fields or runtime behavior are implemented. B/C models, shared
+Composite Structure and original WBS ownership/dependencies remain unchanged.
+Verify actual working-tree/publication state before any later remote action.
+
 **Current-stage closure — 2026-09-07:** the lead asked to finish current
 preparation before taking on the next task. Read
 [Stage 1 readiness](docs/11-stage1-readiness.md): R.04.a–h cover requirements,
