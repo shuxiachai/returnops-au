@@ -1,0 +1,105 @@
+@startuml
+title A / M-A.03a - Accept exact approval and dispatch one command\nAH-10 -> UC-04; UC-03 admission boundary
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 14
+skinparam shadowing false
+skinparam sequenceMessageAlign left
+skinparam sequenceParticipantBackgroundColor #EEF4F8
+skinparam sequenceParticipantBorderColor #27465B
+skinparam ArrowColor #27465B
+skinparam noteBackgroundColor #FFF5D9
+hide footbox
+autonumber
+actor Founder
+boundary UI
+control API
+control "Domain Service" as Domain
+control "Approval Guard" as Guard
+database "Case / work / audit store" as Store
+control "Operations Service" as Ops
+participant "Simulated provider port" as Provider
+
+Founder -> UI : Confirm current exact scope and reason
+UI -> API : POST decisions(request, HTTP key)
+API -> API : Authenticate + authorise addressed case; validate shape
+break Access or shape invalid
+  API --> UI : ErrorEnvelope; no domain work
+end
+API -> Domain : record_founder_decision(request, trusted context)
+Domain -> Store : Read accepted request in principal/route/resource/key scope
+alt Same key and canonical body already accepted
+  Store --> Domain : Original receipt
+  Domain --> API : Return receipt without new work
+  API --> UI : Receipt; GET current view separately
+else Key used for another body
+  Domain --> API : 409 IDEMPOTENCY_CONFLICT
+else Fresh request
+  Domain -> Store : Load current target and versions
+  Domain -> Guard : G-REQUEST: actor, current target/state;\nRisk, preview/scope and expiry when APPROVE
+  Guard --> Domain : Valid or reason for rejection
+  break New intent invalid
+    Domain --> API : Existing 409/403 ErrorEnvelope
+  end
+  alt APPROVE on eligible current proposal
+    Domain -> Store : Atomic version check + decision + ApprovalRecord\n+ ordered work + audit + request receipt
+    break Commit outcome not confirmed
+      Domain --> API : Correlated error; same-key recovery, no dispatch
+    end
+    Domain --> API : DecisionReceipt
+    API --> UI : 202 accepted, not execution complete
+    ... asynchronous internal work, no public execute endpoint ...
+    Domain ->> Ops : Committed-work signal (durable work is authoritative)
+    Ops -> Domain : Load next persisted command and recorded history
+    Domain -> Store : Read approval/work, command results and attempts
+    Store --> Domain : Current snapshot + durable identities
+    Domain --> Ops : Read-only execution context
+    alt Saved success or unresolved prior attempt
+      ref over Domain, Provider : M-A.03b: reuse success / authorised query / yield
+    else Unfinished command eligible for dispatch evaluation
+      Ops -> Guard : Validate allowed case state, current passing Risk,\nexact scope, expiry and allowlist
+      Guard --> Ops : Valid or blocked
+      Ops -> Provider : Check configured provider permission (no effect)
+      Provider --> Ops : Allowed or denied
+      break Dispatch checks fail
+        Ops -> Domain : Submit actual block; no provider effect
+      end
+      Ops -> Domain : Request atomic command claim with expected bindings
+      Domain -> Store : Atomically claim command; register PENDING if needed;\nrecheck versions, dependency and retry safety;\nsave EXECUTING intent + audit before invocation
+      Store --> Domain : Claim granted or conflict
+      Domain --> Ops : Claimed command or rejection
+      break Claim lost, save failed or authority changed
+        note over Domain, Ops : No dispatch; losing worker does not change winner.
+      end
+      Ops -> Guard : Final pre-invocation validity check (G-DISPATCH);\nallow own claimed, not-yet-invoked reservation only
+      Guard --> Ops : Allowed or blocked
+      break Guard denied before invocation
+        Ops -> Domain : Save BLOCKED and evidence; no effect invoked
+      end
+      Ops -> Provider : Invoke approved CommandSpec using stable provider key
+      Provider --> Ops : Typed success / definite failure / uncertain outcome
+      Ops -> Domain : record_operation_result(id, observation, work context)
+      Domain -> Store : Validate and persist SUCCEEDED / FAILED / UNKNOWN + audit
+      note over Domain, Store : A failed local save leaves prior EXECUTING intent for recovery.\nDo not report an uncommitted status as durable.
+    end
+  else REQUEST_REVISION on current proposal
+    Domain -> Store : Atomically recheck target; save revision + audit\n+ request key/body/receipt; invalidate continuing authority
+    break Commit outcome not confirmed
+      Domain --> API : Correlated error; same-key recovery
+    end
+    Domain --> API : DecisionReceipt
+    API --> UI : 202; new proposal and independent review required
+  else Permitted REJECT / MANUAL_HANDLING
+    Domain -> Store : Atomically recheck target; save outcome + audit\n+ notification-only work + request key/body/receipt
+    break Commit outcome not confirmed
+      Domain --> API : Correlated error; same-key recovery; no notification dispatch
+    end
+    Domain --> API : DecisionReceipt
+    API --> UI : 202; saved outcome awaits notification
+    note over Domain, Store : No-proposal failure/block permits only MANUAL_HANDLING.\nNo ApprovalRecord or operational command is created.
+  end
+end
+legend bottom
+  Candidate interaction; messages are conceptual calls except the documented HTTP operation.
+  Guard checks before invocation must be enforced by the runtime concurrency design (MA-Q03).
+endlegend
+@enduml

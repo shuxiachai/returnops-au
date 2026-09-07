@@ -1,0 +1,172 @@
+@startuml
+title A / M-A.02 - Governed approval and execution\nAH-10 -> UC-04, with UC-03 admission
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 14
+skinparam shadowing false
+skinparam activityBackgroundColor #EEF4F8
+skinparam activityBorderColor #27465B
+skinparam ArrowColor #27465B
+skinparam noteBackgroundColor #FFF5D9
+skinparam swimlaneBorderColor #9BABB7
+
+|Founder / UI|
+start
+:A01 Submit current decision, reason,\nexpected case version and HTTP request key;
+|API / Domain Service|
+:A02 Authenticate, authorise and validate shape;
+if (Access and request shape valid?) then (no)
+  :A02b Reject; security audit where appropriate;\nno decision or operational work;
+  stop
+else (yes)
+endif
+:A02c Read accepted-request record in trusted\nprincipal / method / route / resource / key scope;
+if (Exact accepted request replay?) then (yes)
+  :A03 Return original receipt;\nno new decision or work;
+  stop
+else (no)
+endif
+if (Same scoped key used for another body?) then (yes)
+  :A03b Return 409 IDEMPOTENCY_CONFLICT;\nno new work;
+  stop
+else (no)
+endif
+if (Fresh intent valid for current target?) then (no)
+  :A04 Reject; retain current state and evidence;\nno invented approval or attempt;
+  stop
+else (yes)
+endif
+if (Decision is APPROVE?) then (no)
+  if (Decision is REQUEST_REVISION?) then (yes)
+  :A05 Atomically recheck target; save revision,\naudit and request receipt; new proposal/review\nrequired after confirmed commit;
+  if (Revision commit confirmed?) then (no)
+    :A05b Recover request with the original HTTP key;\nno new revision work;
+  else (yes)
+  endif
+    stop
+  else (REJECT / MANUAL_HANDLING)
+    :A06 Atomically recheck target; save outcome, audit,\nnotification-only work and request receipt;
+    note right
+      No-proposal failure/block permits
+      only MANUAL_HANDLING.
+      No operational work is created.
+    end note
+    if (Outcome commit confirmed?) then (no)
+      :A06b No notification dispatch; recover request\nwith the original HTTP key;
+      stop
+    else (yes)
+    endif
+    :A07 Notify saved outcome independently;\nsaved delivery -> REJECTED / MANUAL_HANDLED;\notherwise retain notification recovery work;
+    stop
+  endif
+else (yes)
+endif
+:A08 Recheck current passing Risk, exact scope\nand expiry; commit decision, approval,\naudit and ordered work atomically;
+if (Durable approval commit confirmed?) then (no)
+  :A09 No dispatch; recover the original request\nwith the same HTTP key;
+  stop
+else (yes)
+endif
+|Operations / provider ports|
+while (Approved commands remain unfinished?) is (yes)
+  |API / Domain Service|
+  :A10 Reload saved results and attempts\nfor the stable logical command;
+  if (Prior successful result exists?) then (yes)
+    :A11 Reuse saved effect; advance cursor only;
+  else (no)
+    if (Prior EXECUTING / UNKNOWN / RECONCILING?) then (yes)
+      |Operations / provider ports|
+      :A12 If invocation or query worker is live, yield;\notherwise ask Domain to claim orphan recovery\nand save UNKNOWN then RECONCILING;\nonly after confirmation, query original identity;
+      |API / Domain Service|
+      :A13 Persist validated observation when possible;\nno conclusion or unavailable storage means\nno new dispatch in this work cycle;
+      note right
+        Query success is reused later.
+        Confirmed no effect may allow a
+        separately guarded retry later.
+        Unknown is never safe-to-retry.
+        Preserve any accepted rejection/manual
+        outcome, notification and case state.
+      end note
+      stop
+    else (no unresolved attempt)
+      |Operations / provider ports|
+      :A14 Check allowed case state, current approval/\nscope and passing Risk, provider permission,\ncommand dependency and retry safety / budget;
+      |API / Domain Service|
+      if (Dispatch checks pass?) then (no)
+        :A14b Record actual denial; escalate only if\nno accepted rejection/manual outcome;\nno invocation or EXECUTING transition;
+        stop
+      else (yes)
+      endif
+      :A15 Atomically claim and recheck all bindings;\nonly if admitted, register PENDING if needed\nand save EXECUTING intent before invocation;
+      if (Fresh dispatch admitted and claim held?) then (no)
+        :A16 Record actual block when appropriate;\nclaim losers leave winner unchanged;
+        stop
+      else (yes)
+      endif
+      |Operations / provider ports|
+      if (Final invocation guard still valid?) then (no)
+        |API / Domain Service|
+        :A16b Save BLOCKED with no invocation;\nretain actual binding and denial evidence;
+        stop
+      else (yes)
+      endif
+      |Operations / provider ports|
+      :A17 Invoke one approved simulated command\nwith the stable provider key;
+      note right
+        CREATE_RETURN precedes GENERATE_LABEL.
+        Label uses the saved return result
+        and the same single parcel.
+      end note
+      |API / Domain Service|
+      :A18 Validate business observation and\nsave status/result/error plus audit;
+      if (Confirmed success saved?) then (yes)
+        :A19 Mark this attempt SUCCEEDED;\npreserve the result before advancing;
+      else (failure / uncertainty)
+        :A20 Confirmed no-effect failure -> FAILED;\nuncertain effect -> UNKNOWN when writable;\nfailed save -> retain durable intent for recovery;
+        stop
+      endif
+    endif
+  endif
+  |Operations / provider ports|
+endwhile (no)
+|API / Domain Service|
+:A21 Reload current accepted outcome,\nnotification and saved command results;
+if (Accepted REJECTED / MANUAL_HANDLED outcome?) then (yes)
+  :A21e Retain that outcome and notification work;\nhistorical success cannot replace them;
+else (no)
+  if (Execution eligible and both results saved\nwithout contradictory uncertainty?) then (yes)
+    :A21f Atomically recheck current case/outcome version;\npersist or reuse RETURN_CREATED work and NOTIFICATION_PENDING;
+  else (no)
+    :A21g Retain current facts and state;\nno completion or new notification;
+    stop
+  endif
+endif
+if (Notification SENT already saved?) then (yes)
+  :A21b Return saved terminal outcome;\nno new notification;
+  stop
+else (no)
+endif
+:A21c Atomically recheck current outcome/work identity;\nclaim its unsent notification under the stable key;
+if (Current work committed and claim held?) then (no)
+  :A21d No send; retain durable outcome\nand recover the existing work later;
+  stop
+else (yes)
+endif
+|Operations / provider ports|
+:A22 Send saved outcome using notification key;
+|API / Domain Service|
+if (Delivery matches current outcome/work\nand is confirmed and saved?) then (yes)
+  :A23 Record SENT and audit; terminal follows saved outcome:\nRETURN_CREATED + valid results -> COMPLETED;\nREJECTED -> REJECTED; MANUAL_HANDLED -> MANUAL_HANDLED;
+else (no)
+  :A24 Wrong binding -> preserve current state;\notherwise retain pending/failed notification\nor last durable state; retry only this notification;
+endif
+stop
+
+legend bottom
+  MA-0.2 candidate for A to validate and C to review; not runtime evidence.
+  Final nodes end this activity invocation, not necessarily the case.
+  Only Domain Service commits case/attempt/notification state.
+  Every decision saves a receipt atomically; failed/unconfirmed writes
+  preserve prior durable facts and require the same HTTP key for recovery.
+  G-DISPATCH, recovery rules and open decisions are defined in docs/12.
+endlegend
+@enduml

@@ -1,0 +1,85 @@
+@startuml
+title CS-02 / GovernedAnalysis internal parts\nRefines CS-01 analysis : GovernedAnalysis [1]
+skinparam componentStyle rectangle
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 14
+skinparam shadowing false
+skinparam componentBackgroundColor #EEF4F8
+skinparam componentBorderColor #27465B
+skinparam ArrowColor #27465B
+skinparam noteBackgroundColor #FFF5D9
+skinparam nodesep 90
+skinparam ranksep 60
+
+component "GovernedAnalysis\n{structured classifier; no new AI role}" as Analysis {
+  portin "work (P)" as AN_WORK
+  portout "domain (R)" as AN_DOMAIN
+  portout "images (R)" as AN_IMAGES
+
+  component "orchestrator : WorkflowOrchestrator [1]\n{deterministic bounded control}" as Orch {
+    portin "analysisWork (P)" as OR_WORK
+    portout "domain\n(R)" as OR_DOMAIN
+    portout "coordinator (R)" as OR_COORD
+    portout "assess\n(R)" as OR_ASSESS
+    portout "risk (R)" as OR_RISK
+    portout "cite\n(R)" as OR_CITE
+    portout "imageObservation (R)" as OR_IMAGE
+    portin "sourceReceipts (P)" as OR_RECEIPTS
+  }
+  component "coordinator :\nCustomerCaseCoordinatorAgent [1]\n{A; role-specific invocation wrapper}" as Coordinator {
+    portin "coordinate (P)" as CO_CALL
+  }
+  component "assessment :\nReturnsAssessmentAgent [1]\n{A; non-executable proposal}" as Assessment {
+    portin "assess (P)" as AS_CALL
+    portout "orders (R)" as AS_ORDER
+    portout "retrieval (R)" as AS_RETR
+  }
+  component "reviewer :\nComplianceRiskReviewerAgent [1]\n{C2; separate invocation / prompt}" as Risk {
+    portin "review (P)" as RI_CALL
+  }
+  component "orders : MockOrderAdapter [1]\n{A; read-only}" as Order {
+    portin "lookup (P)" as OD_LOOKUP
+    portout "receipt (R)" as OD_RECEIPT
+  }
+  component "sources : VersionedCorpusAdapter [1]\n{C1; retrieval + citation verification}" as Sources {
+    portin "retrieval (P)" as SO_RETR
+    portin "citations (P)" as SO_CITE
+    portout "receipt (R)" as SO_RECEIPT
+  }
+  component "images : ImageObservationCapability [0..1]\n{C3 selected optional; not a fourth role}" as ImageObs {
+    portin "observe (P)" as IM_CALL
+    portout "evidenceRead (R)" as IM_READ
+  }
+}
+
+AN_WORK -- OR_WORK : D11
+OR_DOMAIN -- AN_DOMAIN : D12
+IM_READ -- AN_IMAGES : D13
+OR_COORD -- CO_CALL : A11
+OR_ASSESS -- AS_CALL : A12
+OR_RISK -- RI_CALL : A13
+AS_ORDER -- OD_LOOKUP : A14
+AS_RETR -- SO_RETR : A15
+OR_CITE -- SO_CITE : A16
+OR_IMAGE -- IM_CALL : A17
+OD_RECEIPT -- OR_RECEIPTS : A18
+SO_RECEIPT -- OR_RECEIPTS : A19
+
+legend bottom
+  No Assessment-to-Reviewer connector; Orchestrator constructs RiskReviewRequest.
+  Risk receives packet, original statements, order_lookup, attachments, evidence_matrix,
+  full retrieval_result (including conflicts), citation_verification, optional image_observations.
+  Returned RiskReview is PASS / PASS_WITH_WARNING / REVISE / NEEDS_INFORMATION / ESCALATE.
+  Raw source receipts reach control independently of generator prose (CS-D01).
+  Domain must validate source/case/input bindings before receipts become accepted Risk inputs.
+  Role/tool observations and run metadata reach Domain through D12 -> CS-01 A02 -> AuditPort.
+  No part here owns a case-write port, ApprovalRecord capability or operations provider port.
+  Internal evidenceRead is scoped by A; no arbitrary URL/path/token reaches C3 (CS-Q02).
+
+  P/R = provided/required contract; Dxx delegation, Axx assembly; request/reply uses same line.
+  Agent parts include deterministic invocation wrappers; LLM text cannot choose connection authority.
+  [0..1] means capability may be disabled in a run; C3 remains required selected course work.
+  CS-D01 receipt forwarding and CS-Q02 artifact-port details require A/C review, not new wire DTOs.
+  Existing class/method/DTO mapping and original authorship: docs/13. Candidate, not running software.
+endlegend
+@enduml

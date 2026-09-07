@@ -1,0 +1,67 @@
+@startuml
+title CS-03 / GovernedExecution internal parts\nRefines CS-01 execution : GovernedExecution [1]
+skinparam componentStyle rectangle
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 14
+skinparam shadowing false
+skinparam componentBackgroundColor #EEF4F8
+skinparam componentBorderColor #27465B
+skinparam ArrowColor #27465B
+skinparam noteBackgroundColor #FFF5D9
+skinparam nodesep 90
+skinparam ranksep 60
+
+component "GovernedExecution\n{structured classifier; deterministic}" as Execution {
+  portin "work (P)" as EX_WORK
+  portin "decisionCheck (P)" as EX_DECISION
+  portout "domain (R)" as EX_DOMAIN
+  portout "labelStore (R)" as EX_LABELS
+
+  component "operations : OperationsService [1]\n{A2; only operational invoker}" as Ops {
+    portin "work (P)" as OP_WORK
+    portout "domain (R)" as OP_DOMAIN
+    portout "dispatchCheck (R)" as OP_CHECK
+    portout "returnsLogistics (R)" as OP_RET
+    portout "notification (R)" as OP_NOTIFY
+    portout "labelStore (R)" as OP_LABELS
+  }
+  component "guard : ApprovalGuard [1]\n{A2; verdict is not approval}" as Guard {
+    portin "decision (P)" as GU_DECISION
+    portin "dispatch (P)" as GU_DISPATCH
+  }
+  component "returnsLogistics :\nMockReturnsLogisticsAdapter [1]\n{configured provider role; CS-D03}" as ReturnAdapter {
+    portin "returnsLogistics (P)" as RE_EFFECT
+  }
+  component "notification :\nMockNotificationAdapter [1]\n{saved-message delivery only}" as NotifyAdapter {
+    portin "notification (P)" as NO_DELIVER
+  }
+}
+
+EX_WORK -- OP_WORK : D21
+EX_DECISION -- GU_DECISION : D22
+OP_DOMAIN -- EX_DOMAIN : D23
+OP_LABELS -- EX_LABELS : D24
+OP_CHECK -- GU_DISPATCH : A21
+OP_RET -- RE_EFFECT : A22
+OP_NOTIFY -- NO_DELIVER : A23
+
+legend bottom
+  A22 new effect requires: current eligible case and PASS/PASS_WITH_WARNING review;
+  exact trusted ApprovalRecord; G-DISPATCH + provider permission; durable claim/intent.
+  D22 validates the decision before Domain creates approval; A21 rechecks every new effect.
+  Operations supplies Domain-loaded records to Guard; Guard has no repository-write port.
+  A22 also supports authorised historical lookup; lookup never grants fresh execution authority.
+  UNKNOWN is reconciled with original identity before any guarded retry; see MA-0.1.
+  A23 needs a saved outcome, not an execution approval: REJECT/manual may notify with zero effects.
+  Notification failure cannot replay A22; D23 submits outcomes for Domain to persist and audit.
+  Guard/provider observations return through their callers and D23 / D22 to Domain AuditPort.
+
+  P/R = provided/required contract; Dxx delegation; Axx assembly; lines are not message order.
+  A22 is a required/provided binding, not permission to bypass A21; preconditions above are mandatory.
+  CS-D03: this view is the mock configuration; A3 is a later alternative behind the same port.
+  Select exactly one configured adapter per logical operation; no mock + A3 double effect.
+  A3 needs separately verified no-charge test authority; no such access is claimed here.
+  D24 is A-managed label artifact persistence (CS-Q02), not a customer upload or case-state write.
+  MA-D/Q decisions, F.01 acceptance and human review remain pending; no runtime safety proof.
+endlegend
+@enduml

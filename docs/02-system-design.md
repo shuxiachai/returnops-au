@@ -1,14 +1,19 @@
 # System Design
 
-> **Published v1 alignment draft — 2026-09-07:** [PR #9](https://github.com/shuxiachai/returnops-au/pull/9); its merge record is separate from pending acceptance.
+> **Historical v1 alignment publication — 2026-09-07:** [PR #9](https://github.com/shuxiachai/returnops-au/pull/9); its merge record is separate from pending acceptance.
 > This design follows the lead's
 > published working baseline, [fixed ownership](07-frozen-work-allocation.md)
 > and [work packages](08-delivery-work-packages.md). B/C shared-model review
 > and tutor feedback are still required. Diagrams describe intended behaviour,
 > not an implemented or accepted API.
-> The `1.0.0-rc.3` three-target clarification is tracked by
-> [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32), remains a review
-> candidate, and does not change PR #9's historical rc.2 publication.
+> The `1.0.0-rc.4` contract and `MA-0.2` aligned models are review candidates;
+> the review entrance is [PR #11](https://github.com/shuxiachai/returnops-au/pull/11).
+> Use its exact head and review records for current status. The rc.3 commit
+> `9093156` is the historical starting point; F.01 remains tracked by
+> [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32).
+> [F.02](10-f02-environment-readiness.md) provides the health API,
+> PostgreSQL/Alembic foundation and local Compose evidence. These do not
+> implement the fifteen business API operations or establish CI/F.02 acceptance.
 >
 > **Contribution provenance:** the three-agent architecture, separate read-only
 > order provider and deterministic Operations Service reuse Member B
@@ -100,6 +105,13 @@ reports observed effects through that service; agents, API handlers and UI
 components cannot write case state directly. Audit Port accepts correlated
 evidence but grants no workflow authority. Rejection/manual-outcome notifications
 follow recorded Founder decisions; they cannot invoke the return/label commands.
+
+The [CS-0.1 Composite Structure candidate](13-shared-composite-structure.md)
+refines these conceptual arrows into part properties, ports and connectors.
+Its Audit path clarifies the arrows above: material observations pass through
+deterministic services and Domain validation before becoming trusted business
+events; the business change, work and required audit share a transaction context.
+Direct conceptual Agent-to-Audit arrows do not grant an LLM append authority.
 
 ## 3. Proposed technology stack
 
@@ -258,6 +270,30 @@ sequenceDiagram
     Ops->>Domain: Record notification success
     Domain->>Domain: Complete successful return path and append audit
 ```
+
+### rc.4 candidate historical reads and recovery boundary
+
+The [contract candidate](09-interface-contract-v1.md) adds two authorised
+history GETs with separate Founder/Customer schemas. Domain reads immutable
+typed revisions at a stable case snapshot; old proposal material includes the
+accepted statements/order/retrieval/citation input, and Risk records reference
+that exact historical record. Audit references include trusted actor provenance.
+Current view arrays are bounded previews with explicit full-history cursors,
+never the source for approval or unresolved-effect guards. Deletion yields
+tombstones and suppresses dependent copies; it cannot reveal an older revision
+by fallback. Input capacity failure must not silently omit accepted evidence. Complete
+material/capacity preflight precedes accepting the current proposal; store its
+bundle atomically and preserve older revisions when the candidate cannot be
+accepted.
+
+The saved outcome governs notification recovery. Late historical return/label
+confirmation cannot overwrite a manual/reject outcome or reopen a terminal case.
+Creation/current clarification are the only customer evidence-binding paths;
+other input-version changes use controlled internal updates with state and
+in-flight-effect guards. No new public append/execute API is implied. These
+rc.4 / MA-0.2 refinements remain candidates pending B/C review through
+[PR #11](https://github.com/shuxiachai/returnops-au/pull/11); publication does not
+establish their acceptance or runtime implementation.
 
 ## 7. Human gates
 
@@ -471,9 +507,11 @@ in parallel.
 | Physical | Browser, application process, authoritative database and simulated/test provider boundaries | Proposed stack and Docker plan only; deployment-model review and actual run evidence remain required. No live deployment is claimed. |
 | +1 scenarios | Show the views agree for normal, missing-information, risk and ambiguous-timeout cases | [Use cases](diagrams/05-use-case-diagram.md) and [Lab 3 material](05-lab-3-requirement-modelling.md) are inputs; run consistency walkthroughs and record tutor findings, rather than counting historical Lab 3 work as current acceptance. |
 
-The required runtime complex-structure model with instances, ports and
-connectors remains a separate M-S.02 deliverable. This architecture flowchart or
-a static class diagram does not substitute for it. [Feature modelling](diagrams/04-feature-diagram.md)
+The required runtime complex-structure model remains a separate M-S.02
+deliverable. [CS-0.1](13-shared-composite-structure.md) now supplies candidate
+part/port/connector views, pending human review and the original dependencies.
+This architecture flowchart or a static class diagram does not substitute for
+its acceptance. [Feature modelling](diagrams/04-feature-diagram.md)
 must also agree with the nine features, 45/27/28 planned effort and selected
 course optionals. Three-person contributions, missing models and review status
 are recorded in the linked work packages and actual Jira/GitHub evidence.
