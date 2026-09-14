@@ -1,6 +1,6 @@
 """rc.4 artifact and fixture oracles, NOT a history service or state guard.
 
-FR-001/010/011/012, NFR-001/003/006/008; docs/09, shared class/state/
+FR-001/006/008/010/011/012, NFR-001/003/006/008; docs/09, shared class/state/
 sequence and MA recovery models. No HTTP/auth/database/provider is executed.
 """
 from copy import deepcopy
@@ -15,7 +15,12 @@ def value(name):
 
 
 def assert_proposal_bundle(record):
-    """Test-only cross-object oracle for the retained material fixture."""
+    """Test-only exact-material oracle for a retained proposal fixture.
+
+    It binds citation verification to the historical packet and requires one
+    verification entry per cited ID. Check outcomes deliberately remain
+    unrestricted: failed citations are evidence for later Risk rejection.
+    """
     validator('FounderHistoryRecord').validate(record)
     bundle = record['content']
     packet = bundle['packet']
@@ -29,7 +34,15 @@ def assert_proposal_bundle(record):
             assert source[key] == packet[key], (name, key)
     for name in ('retrieval_result', 'citation_verification'):
         assert bundle[name]['corpus_version'] == packet['corpus_version']
+    verification = bundle['citation_verification']
+    for key in ('proposal_id', 'proposal_version'):
+        assert verification[key] == packet[key], ('citation_verification', key)
     assert any(s['statement_id'] == packet['original_statement_id'] for s in bundle['statements'])
+    citation_ids = [citation['citation_id'] for citation in packet['citations']]
+    check_ids = [check['citation_id'] for check in verification['checks']]
+    assert len(citation_ids) == len(set(citation_ids)), 'duplicate packet citation IDs'
+    assert len(check_ids) == len(set(check_ids)), 'duplicate verification citation IDs'
+    assert set(check_ids) == set(citation_ids), 'verification must cover exactly the cited IDs'
     for citation in packet['citations']:
         matching = [p for p in bundle['retrieval_result']['passages'] if p['passage_id'] == citation['passage_id']]
         assert len(matching) == 1
@@ -100,6 +113,7 @@ class ContractV1Rc4Tests(unittest.TestCase):
         newer['record_id'] = 'history-proposal-002'
         newer['object_version'] += 1
         newer['content']['packet']['proposal_version'] += 1
+        newer['content']['citation_verification']['proposal_version'] += 1
         assert_proposal_bundle(newer)
         review = value('history-risk-review')['content']
         self.assertEqual(review['proposal_record_id'], old['record_id'])
@@ -112,6 +126,14 @@ class ContractV1Rc4Tests(unittest.TestCase):
             lambda r: r.update(case_id='case-other'),
             lambda r: r.update(object_version=99),
             lambda r: r['content']['retrieval_result'].update(input_version=99),
+            lambda r: r['content']['citation_verification'].update(proposal_id='proposal-other'),
+            lambda r: r['content']['citation_verification'].update(proposal_version=99),
+            lambda r: r['content']['citation_verification'].update(checks=[]),
+            lambda r: r['content']['citation_verification']['checks'][0].update(citation_id='citation-other'),
+            lambda r: r['content']['citation_verification']['checks'].append({
+                **r['content']['citation_verification']['checks'][0],
+                'citation_id': 'citation-extra',
+            }),
             lambda r: r['content']['retrieval_result']['passages'][0].update(content='Replacement current source text.'),
             lambda r: r['content']['retrieval_result']['passages'][0].update(source_version='replacement-version'),
         ]
@@ -121,6 +143,34 @@ class ContractV1Rc4Tests(unittest.TestCase):
             validator('FounderHistoryRecord').validate(record)
             with self.assertRaises(AssertionError):
                 assert_proposal_bundle(record)
+
+    def test_history_fixture_oracle_rejects_duplicate_citation_ids(self):
+        for target in ('packet', 'verification'):
+            with self.subTest(target=target):
+                record = value('history-proposal')
+                if target == 'packet':
+                    duplicate = deepcopy(record['content']['packet']['citations'][0])
+                    duplicate['passage_id'] = 'passage-other'
+                    record['content']['packet']['citations'].append(duplicate)
+                else:
+                    duplicate = deepcopy(record['content']['citation_verification']['checks'][0])
+                    record['content']['citation_verification']['checks'].append(duplicate)
+                validator('FounderHistoryRecord').validate(record)
+                with self.assertRaisesRegex(AssertionError, f'duplicate {target} citation IDs'):
+                    assert_proposal_bundle(record)
+
+    def test_history_fixture_oracle_allows_failed_and_zero_citation_evidence(self):
+        failed = value('history-proposal')
+        failed['content']['citation_verification']['checks'][0].update(
+            result='HASH_MISMATCH',
+            message='Historical verifier reported a content hash mismatch.',
+        )
+        assert_proposal_bundle(failed)
+        uncited = value('history-proposal')
+        uncited['content']['packet']['citations'] = []
+        uncited['content']['citation_verification']['checks'] = []
+        validator('FounderHistoryRecord').validate(uncited)
+        assert_proposal_bundle(uncited)
 
     def test_101_revisions_fit_two_pages_but_not_one(self):
         template = value('history-statement')
