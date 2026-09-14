@@ -1,0 +1,66 @@
+@startuml
+!pragma layout smetana
+title Member B - IntakeSession Lifecycle State Machine\nMB-STM-0.1 candidate, 2026-09-14
+hide empty description
+skinparam shadowing false
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 14
+skinparam stateBackgroundColor #EEF4F8
+skinparam stateBorderColor #27465B
+skinparam ArrowColor #27465B
+skinparam noteBackgroundColor #FFF5D9
+
+state DRAFT : Client-side composition\nUncommitted input & staged evidence
+state SUBMITTED : Case ID assigned; Statement v1 locked\nAwaiting initial AI fact extraction
+state EVALUATING : Extracting structured facts\nEvaluating mandatory field completeness
+state AWAITING_CLARIFICATION : Missing/ambiguous facts identified\nTargeted questions visible; 7-day timer active
+state CLARIFICATION_RECEIVED : Statement vN appended; new evidence bound\nQueued for Coordinator re-extraction
+state COMPLETE : Intake qualified; all required facts verified\nHanded off to Investigation
+state ESCALATED_MAX_ROUNDS : Exceeded maximum clarification rounds (3)\nTransferred to Founder manual triage
+state ESCALATED_FAILURE : Unrecoverable AI extraction/processing error\nTransferred to Founder manual triage
+state TIMED_OUT : Customer inactive > 7 days\nSession frozen; Case retained safely
+state CANCELLED : Customer withdrew return request\nIntake terminated before investigation
+
+[*] --> DRAFT : user opens customer portal\n/ initialise_local_form()
+
+DRAFT --> SUBMITTED : submit_case [client validation passed]\n/ POST /v1/cases, persist_statement(v1)
+
+DRAFT --> DRAFT : validation_error [missing required text / invalid file]\n/ show_client_error()
+
+SUBMITTED --> EVALUATING : start_intake_eval [fresh case registered]\n/ invoke_coordinator_agent()
+
+EVALUATING --> COMPLETE : eval_pass [all mandatory facts present & clear]\n/ advance_case(UNDER_INVESTIGATION)
+
+EVALUATING --> AWAITING_CLARIFICATION : eval_incomplete [missing facts, round < 3]\n/ generate_targeted_questions(), increment_round(), advance_case(AWAITING_INFORMATION)
+
+EVALUATING --> ESCALATED_MAX_ROUNDS : eval_incomplete [missing facts, round >= 3]\n/ advance_case(ESCALATED), notify_founder()
+
+EVALUATING --> ESCALATED_FAILURE : eval_error [unrecoverable extraction failure or timeout]\n/ create_processing_failure(), advance_case(ESCALATED)
+
+AWAITING_CLARIFICATION --> AWAITING_CLARIFICATION : validation_error [invalid clarification input / bad file]\n/ show_clarification_error()
+
+AWAITING_CLARIFICATION --> CLARIFICATION_RECEIVED : submit_clarification [valid response received]\n/ POST /v1/cases/{id}/clarifications, append_statement(vN)
+
+CLARIFICATION_RECEIVED --> EVALUATING : resume_eval\n/ invoke_coordinator_agent()
+
+AWAITING_CLARIFICATION --> TIMED_OUT : timer_expired [no activity for 7 days]\n/ freeze_session(), notify_customer_timeout()
+
+AWAITING_CLARIFICATION --> CANCELLED : customer_withdraws [explicit cancellation]\n/ cancel_case(), close_session()
+
+COMPLETE --> [*]
+ESCALATED_MAX_ROUNDS --> [*]
+ESCALATED_FAILURE --> [*]
+TIMED_OUT --> [*]
+CANCELLED --> [*]
+
+legend bottom
+  MB-STM-0.1 candidate for Member B (Chengsi Li, @ChengsiLi).
+  Subject: IntakeSession entity (WBS M-B.03, Criterion C10).
+  Traceability: AH-01 -> UC-01 / UC-01E -> State Machine Diagram (Criterion C10).
+  Key Invariants:
+  1. IntakeSession represents the customer intake & clarification lifecycle.
+  2. Transitions between states require explicit domain events and guards.
+  3. Awaiting clarification includes self-transition for invalid input, cancellation, and timeout.
+  4. Escalation and Timeout paths ensure cases are never silently lost or dropped.
+endlegend
+@enduml

@@ -1,0 +1,178 @@
+@startuml
+title Member B - Customer Portal Submission & Clarification Sequence\nMB-SEQ-0.1 candidate, 2026-09-14
+skinparam shadowing false
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 14
+skinparam sequenceMessageAlign center
+skinparam ParticipantBackgroundColor #EEF4F8
+skinparam ParticipantBorderColor #27465B
+skinparam ArrowColor #27465B
+skinparam noteBackgroundColor #FFF5D9
+autonumber
+
+actor "End Customer\n(Actor)" as C
+boundary "Customer Portal UI\n(Next.js / Member B)" as UI
+control "Domain Service & API\n(FastAPI / Authoritative)" as DS
+entity "Authoritative Store\n(PostgreSQL)" as DB
+control "Coordinator Agent\n(AI Intake Role)" as CA
+boundary "Notification Port\n(Mock Provider)" as NP
+
+== Phase 1: Pre-Submission & Evidence Staging ==
+
+C -> UI : Select product photos / proof of purchase
+activate UI
+UI -> DS : POST /v1/evidence (multipart payload)
+activate DS
+DS -> DB : Save EvidenceAttachment (status=STAGED, hash=sha256)
+activate DB
+DB --> DS : Return staged record (evidence_id="evi_01")
+deactivate DB
+DS --> UI : 201 Created (EvidenceAttachment metadata)
+deactivate DS
+UI --> C : Display staged thumbnail & readiness
+deactivate UI
+
+== Phase 2: Request Submission & Intake Qualification (UC-01) ==
+
+C -> UI : Enter dispute statement, requested outcome\nand click "Submit Return Request"
+activate UI
+UI -> DS : POST /v1/cases\n(Idempotency-Key="k_981", message="Broken hinge", evidence_ids=["evi_01"])
+activate DS
+
+alt #FFF8E7 Idempotency Hit (Replay Scenario)
+  DS -> DB : Check existing Idempotency-Key
+  activate DB
+  DB --> DS : Cached CustomerCaseView (prior response)
+  deactivate DB
+  DS --> UI : 200 OK (Cached CustomerCaseView, no new case)
+  UI --> C : Display existing case tracking details
+
+else #F4F8FA Fresh Submission
+  DS -> DB : Begin atomic transaction
+  activate DB
+  DS -> DB : INSERT ReturnCase (status=SUBMITTED, case_id="case_101")
+  DS -> DB : INSERT CustomerStatement (version=1, text="Broken hinge", immutable)
+  DS -> DB : INSERT IntakeSession (round=0, status=SUBMITTED, timeout=7d)
+  DS -> DB : Commit transaction
+  deactivate DB
+
+  DS -> CA : extract_intake_facts(case_id, statement_v1, evidence_ids)
+  activate CA
+  CA --> DS : Return ExtractedFacts (order_ref="ORD-554", reason="DAMAGED_ITEM", complete=false)
+  deactivate CA
+
+  alt #EEFFF0 Path A: Mandatory Facts Complete (UC-01 Main Flow)
+    DS -> DB : UPDATE ReturnCase (status=UNDER_INVESTIGATION)
+    activate DB
+    DS -> DB : UPDATE IntakeSession (status=COMPLETE)
+    deactivate DB
+    DS --> UI : 201 Created (CustomerCaseView, status=UNDER_INVESTIGATION)
+    UI --> C : Display Case Lodged confirmation & timeline
+
+  else #FFF3E0 Path B: Missing Facts / Ambiguity (UC-01E Extension Flow)
+    DS -> DB : UPDATE ReturnCase (status=AWAITING_INFORMATION)
+    activate DB
+    DS -> DB : UPDATE IntakeSession (status=AWAITING_CLARIFICATION, round=1)
+    DS -> DB : INSERT ClarificationQuestion (q_id="q_1", text="Please upload serial number photo")
+    deactivate DB
+    DS -> NP : dispatch_notice(customer_id, "Additional details requested for return")
+    activate NP
+    NP --> DS : Notification enqueued
+    deactivate NP
+    DS --> UI : 202 Accepted (CustomerCaseView, status=AWAITING_INFORMATION,\nquestions=["Please upload serial number photo"])
+    UI --> C : Display targeted clarification prompt & upload interface
+  end
+end
+deactivate DS
+deactivate UI
+
+== Phase 3: Targeted Clarification Loop (UC-01E) ==
+
+loop Clarification Round 1..3 while facts incomplete
+  alt #EEFFF0 Customer Responds within 7-day Window
+    C -> UI : Provide clarification statement & serial photo
+    activate UI
+    UI -> DS : POST /v1/cases/case_101/clarifications\n(message="Serial SN-998877", new_evidence=["evi_02"])
+    activate DS
+
+    alt Clarification Round <= Max Limit (3)
+      DS -> DB : INSERT CustomerStatement (version=N, immutable)
+      activate DB
+      note right of DB
+        Statement v1 is retained unaltered.
+        Statement vN is appended with incremented version.
+      end note
+      DS -> DB : UPDATE IntakeSession (status=CLARIFICATION_RECEIVED)
+      deactivate DB
+
+      DS -> CA : re_extract_facts(case_id, statements=[v1..vN], evidence=[evi_01..evi_N])
+      activate CA
+      CA --> DS : Return updated ExtractedFacts
+      deactivate CA
+
+      alt Facts Complete
+        DS -> DB : UPDATE ReturnCase (status=UNDER_INVESTIGATION)
+        activate DB
+        DS -> DB : UPDATE IntakeSession (status=COMPLETE)
+        deactivate DB
+        DS --> UI : 202 Accepted (CustomerCaseView, status=UNDER_INVESTIGATION)
+        UI --> C : Show "Clarification Accepted - Case Resumed"
+      else Facts Still Incomplete (Round < 3)
+        DS -> DB : UPDATE IntakeSession (round=round+1, status=AWAITING_CLARIFICATION)
+        activate DB
+        DS -> DB : INSERT ClarificationQuestion (remaining targeted gaps)
+        deactivate DB
+        DS -> NP : dispatch_notice(customer_id, "Further details required")
+        activate NP
+        NP --> DS : Notification enqueued
+        deactivate NP
+        DS --> UI : 202 Accepted (CustomerCaseView, status=AWAITING_INFORMATION,\nquestions=[...])
+        UI --> C : Display updated targeted questions
+      else Facts Incomplete (Round >= 3 Exhausted)
+        DS -> DB : UPDATE IntakeSession (status=ESCALATED_MAX_ROUNDS)
+        activate DB
+        DS -> DB : UPDATE ReturnCase (status=ESCALATED)
+        deactivate DB
+        DS --> UI : 202 Accepted (CustomerCaseView, status=ESCALATED)
+        UI --> C : Show "Transferred to Founder Manual Review"
+      end
+
+    else Clarification Submitted when Round > Max Limit (3)
+      DS -> DB : UPDATE IntakeSession (status=ESCALATED_MAX_ROUNDS)
+      activate DB
+      DS -> DB : UPDATE ReturnCase (status=ESCALATED)
+      deactivate DB
+      DS --> UI : 202 Accepted (CustomerCaseView, status=ESCALATED)
+      UI --> C : Show "Transferred to Founder Manual Review"
+    end
+    deactivate DS
+    deactivate UI
+
+  else #FFF3E0 Inactivity Timeout (> 7 days)
+    DS -> DS : 7-day inactivity timer expired
+    activate DS
+    DS -> DB : UPDATE IntakeSession (status=TIMED_OUT)
+    activate DB
+    deactivate DB
+    DS -> NP : notify_customer("Session timed out - case retained safely")
+    activate NP
+    NP --> DS : Notification enqueued
+    deactivate NP
+    deactivate DS
+    note over C, UI
+      Customer re-opening portal sees
+      "Session Timed Out - Case Preserved".
+    end note
+  end
+end
+
+legend bottom
+  MB-SEQ-0.1 candidate for Member B (Chengsi Li, @ChengsiLi).
+  Traceability: AH-01 -> UC-01 / UC-01E -> Sequence Diagram (Criterion C9).
+  Key Invariants:
+  1. Customer Portal communicates solely through authenticated REST endpoints.
+  2. Idempotency guarantees safe retries without duplicate Case generation.
+  3. Statements and evidence are append-only; clarification never overwrites prior customer input.
+  4. Clarification is modelled as an iterative loop with multi-round branching, timeout and escalation.
+endlegend
+@enduml
