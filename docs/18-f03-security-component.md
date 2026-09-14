@@ -1,6 +1,8 @@
 # F.03 独立身份与权限组件候选
 
-> **F03-C0.1 · 2026-09-14 · 独立评审包，尚未提交/发布。** 在准确 A 基线 `3dd1ff637693a826990eee5712cfb239a3c3da7b` 上整理既有独立组件与合成测试；分支为 `feat/f03-security-component`。A 实现，C 为指定 Reviewer，B 后续验证浏览器消费。S=F.01、F=F.02 保持不变；没有接入业务 HTTP 路由、数据库或完整工作流，也没有完成 F.03 人审验收。
+> **最新发布定位覆盖 · F03-C0.1 · 2026-09-15。** 本组件通过 [PR #15](https://github.com/shuxiachai/returnops-au/pull/15) 交付；F.03 主卡为 [KAN-34](https://lucastaooo.atlassian.net/browse/KAN-34)，状态 **In Review**。准确的当前源码 SHA 和对应 CI 结果以 PR 正文及其 [GitHub Actions 记录](https://github.com/shuxiachai/returnops-au/actions)为准；本段覆盖旧的“本地／尚未发布／Jira key 未核实”快照。旧准备收据及首次发布的 CI 记录仍只证明各自对应版本，不随后续文档提交改写或自动延伸。
+>
+> 准确 F.01 基线仍为 A `3dd1ff637693a826990eee5712cfb239a3c3da7b`，分支为 `feat/f03-security-component`。A 实现，C 为指定 Reviewer，B 后续验证浏览器消费。S=F.01、F=F.02 保持不变；没有接入业务 HTTP 路由、数据库或完整工作流。发布及 In Review 不代表 C 本人复核或 F.01/F.02/F.03 已接受。
 
 ## 1. 已实现的边界
 
@@ -57,15 +59,15 @@ python -B tools/checks/run.py offline --baseline-ref 9eb7b0b46b1b28cfec300a59b03
 
 以上安全测试不需要网络、真实密钥、数据库或运行中的 API。首次安装需要包源访问；完整 offline 检查还需要按 [检查入口](../tools/checks/README.md)安装锁定 Mermaid 工具。不要把安装命令中的 `python` 指向全局环境。
 
-本轮隔离包的实际计数、命令、文件范围和 SHA-256 清单见 [F03-C0.1 独立评审包核验记录](reviews/f03-component-review-20260914.json)。本地 CI 配置已增加安全组件步骤；既有 GitHub 绿色检查不覆盖本候选，当前没有本包的远端 CI 或 C 本人接受。2026-09-09 的原始本地记录保留在原工作区，未收入这个包。
+隔离准备阶段的实际计数、命令、文件范围和 SHA-256 清单保留在 [F03-C0.1 独立评审包核验记录](reviews/f03-component-review-20260914.json)，这是准备时的历史收据，其内容和哈希不随发布状态文字更新。组件现已通过 PR #15 交付；首次发布版本 `5ed71127b4e8add0fa6a8f3e1f553cc146dd35d5` 的 CI 记录只适用于其对应源码，后续准确源码和检查结果仍查 PR 正文及 Actions，本文不预先声明新提交的 CI 通过。C 本人接受仍待完成。2026-09-09 的原始本地记录保留在原工作区，未收入这个包。
 
 2026-09-09 的完整原工作区检查曾修正 report 分段源链接解析；这是独立的历史报告工具工作。该检查器修复、其新增回归及报告文件均排除在本 F.03 包外，本包保留 `3dd1ff6` 的模型检查器。不能把含报告修复的原工作区测试计数当作本包结果；本轮不修改原工作区报告或 Google Doc。
 
 ## 5. 后续边界与评审
 
-历史观察（2026-09-09，当时状态，不代表当前评审）：只读实查 [PR #11](https://github.com/shuxiachai/returnops-au/pull/11)：OPEN，source head `64582a3007fea0fa3d1b1c3c212168b96af6b607`，reviews 为空，B/C 请求保留。当时组件是其后本地改动；当前隔离包基线已更新为上述 `3dd1ff6`。本包不代替当前 PR11 审查，也不改变 B 已有的五项消费边界批准或 C 待审状态。Jira 未重查或修改，F.03 实际 key 未核实，不猜测/复用 KAN-32 充当 F.03 主卡。
+历史观察（2026-09-09，当时状态，不代表当前评审）：只读实查 [PR #11](https://github.com/shuxiachai/returnops-au/pull/11)：OPEN，source head `64582a3007fea0fa3d1b1c3c212168b96af6b607`，reviews 为空，B/C 请求保留。当时组件是其后本地改动；当前隔离包基线已更新为上述 `3dd1ff6`。本包不代替当前 PR11 审查，也不改变 B 已有的五项消费边界批准或 C 待审状态。F.03 现由 [KAN-34](https://lucastaooo.atlassian.net/browse/KAN-34) 跟踪，状态 In Review，并关联 PR #15；此前“key 未核实”仅为旧准备快照，KAN-32 仍是 F.01，不作为 F.03 主卡。
 
-接下来由 A 整理这个候选、C 对具体版本复核；B 在正式联调时确认使用方式。F.01 接受后才按原开始依赖接真实路由；F.03 最终验收还需 F.02 和原验收条件。后续按 A1.01 → A1.02/03 → A1.05 推进无 LLM 案件链，不把当前授权组件当作案件业务已完成。
+接下来由 C 对 PR #15 的准确具体版本复核，A 处理评审反馈；B 在正式联调时确认使用方式。F.01 接受后才按原开始依赖接真实路由；F.03 最终验收还需 F.02 和原验收条件。后续按 A1.01 → A1.02/03 → A1.05 推进无 LLM 案件链，不把当前授权组件当作案件业务已完成。
 
 **并发边界：** 当前授权结果只是该次读取的观察。生产/集成的 Domain 必须在写入或派发事务中重新核验当前身份权限、资源关系和版本；只读端口或 frozen dataclass 无法消除检查后撤权竞态。任何 Founder grant 都不等于 ApprovalRecord，不能跳过精确提案、命令、有效期和 provider 守卫。
 
