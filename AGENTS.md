@@ -1,5 +1,7 @@
 # Agent Context & Persistent Memory
 
+> **Course requirements update (2026-09-14):** [docs/19](docs/19-course-assessment-requirements.md) is the dated Canvas/rubric evidence map; [docs/11](docs/11-stage1-readiness.md) is the submission checklist. Preserve the nine features and 89 WBS fixed fields. Each member has a personal AH/UC/Activity/Interaction/State chain and participates in all shared tasks; Lab 6 requires a named-instance Object Diagram distinct from Composite roles/ports. AI is allowed with acknowledgement, not fabricated personal completion. Older dated project-state snapshots below are history, not new acceptance evidence.
+
 > **rc.5 publication reference (2026-09-07):** this revision is delivered through [PR #11](https://github.com/shuxiachai/returnops-au/pull/11), identified by the actual commit containing this notice. The PR records the exact source SHA, CI runs and review state; C must reproduce that SHA, not old `57d86fe` or a floating branch. Local-only/unpublished wording, test runs and raw-file hashes below are pre-publication history. Current Git content is recorded in `docs/reviews/rc5-publication-artifacts-20260907.json`. Publication does not establish acceptance, B/C review, C reproduction or a Jira update.
 
 ## Latest local defect correction — 2026-09-07
@@ -300,9 +302,11 @@ returnops-au/
 
 ## 6. Key Assessment Milestones
 
-* **Stage 1 (30 Marks; use the current official assessment schedule)**:
-  * 15 Marks: Formal Report (Requirements classification, Feature Diagram, Use Cases, Package/Class/Activity/State/Sequence diagrams, Traceability).
-  * 15 Marks: Presentation & Interview (Design rationale, discarded choices, model overview, acceptance criteria).
+* **Stage 1 (30 Marks; current source map in docs/19)**:
+  * 15 Marks: Report: full requirements, individual AH/UC/Activity/Interaction/State and shared Feature/overall UC/Class/Complex Structure, with actual contributions.
+  * 5 Marks: Video within 8 minutes; 10 Marks: individual interview in Week 11/12 practicals under the current rubric.
+  * Ad hoc diagram, Architecture Analysis, Package and Deployment are optional rubric rows; useful existing models and Lab design explanations remain. Lab 6 separately requires an Object Diagram.
+  * Canvas report/video display Oct 4, 2026 23:59, locked until Sep 20 0:00; timezone/locked rules and 25/5 task-point grouping remain to verify. Do not remove interview or infer submission success.
 * **Stage 2 (20 Marks; use the current official assessment schedule)**:
   * Working Agile Prototype Demonstration to tutors.
   * Code submission on Canvas.
