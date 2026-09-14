@@ -1,5 +1,5 @@
 @startuml
-title Member B - Customer Request Submission & Clarification Activity\nMB-ACT-0.1 candidate, 2026-09-14
+title Member B - Customer Request Submission & Clarification Activity\nMB-ACT-0.2 compatibility candidate, 2026-09-14
 skinparam shadowing false
 skinparam defaultFontName SansSerif
 skinparam defaultFontSize 14
@@ -10,123 +10,99 @@ skinparam noteBackgroundColor #FFF5D9
 
 |End Customer|
 start
-:B01 Access Customer Portal;
-:B02 Enter issue description, optional order reference,\nrequested outcome and select return reason;
-:B03 Optionally attach product photo, receipt or invoice;
-
+:B01 Open portal; compose original message,\noptional order reference and requested outcome;
+:B02 Optionally select evidence;\nno mandatory return-category choice;
 |Customer Portal (Next.js)|
-:B04 Perform client-side validation\n(non-empty message, file size <= 10MB, allowed MIME types);
+:B03 Validate basic input and selected files locally;\nJPEG/PNG/PDF, <= 10 MiB each, <= 10 references;
 if (Client validation passes?) then (no)
-  :B04b Display immediate validation feedback;\nno network dispatch;
+  :B04 Display safe field errors; allow local correction;
   stop
 else (yes)
 endif
-:B05 Upload selected attachments to POST /v1/evidence;\nreceive staged evidence references;
-:B06 Dispatch POST /v1/cases with\nIdempotency-Key, message, and evidence IDs;
-
+:B05 Stage each selected file via POST /v1/evidence\nwith Bearer and its own Idempotency-Key;\nuse only successfully returned evidence IDs;
+note right
+  Every POST: server verifies identity, role/access, schema
+  and trusted idempotency scope before lookup or mutation.
+  Upload validates actual format/size, owner and availability.
+  STAGED evidence alone does not change case input.
+end note
+:B06 POST /v1/cases with Bearer, Idempotency-Key\nand CreateCaseRequest; preserve request for uncertain retry;
 |API & Domain Service|
-if (Valid Bearer session and Customer role?) then (no)
-  :B07a Return 401 Unauthorized / 403 Forbidden;
-  stop
-else (yes)
-endif
-if (Replay with same Idempotency-Key?) then (yes)
-  if (Payload matches original request body?) then (yes)
-    :B07b Return cached CustomerCaseView;\nno duplicate case created;
-    stop
-  else (body mismatch)
-    :B07c Return 409 IDEMPOTENCY_CONFLICT;\nno state change;
-    stop
-  endif
-else (fresh key)
-endif
-:B08 Atomically create ReturnCase in SUBMITTED status\nand append immutable CustomerStatement (version 1);
-:B09 Initialise IntakeSession\n(status=SUBMITTED, round=0, timeout=7d);
-:B10 Queue intake fact extraction with Coordinator Agent;
-
-|Coordinator Agent (AI Intake Role)|
-:B11 Extract structured facts from CustomerStatement v1:\norder lookup key, return category, requested outcome;\nverify evidence against required checklist;
-if (Fact extraction and syntax analysis succeeded?) then (no)
-  |API & Domain Service|
-  :B11b Persist ProcessingFailure;\nmark IntakeSession ESCALATED_FAILURE;\ntransition ReturnCase to ESCALATED (MANUAL_HANDLING);\nno fabricated proposal;
-  stop
-else (yes)
-endif
-
-|API & Domain Service|
-if (Mandatory information complete and unambiguous?) then (yes)
-  :B12 Transition ReturnCase to UNDER_INVESTIGATION;\nmark IntakeSession COMPLETE;
-  :B13 Return 201 Created with CustomerCaseView\n(case_id, tracking cursor, next steps);
+:B07 Authenticate and validate; resolve accepted replay\nbefore checking admission of a fresh intent;
+if (Rejected or previously accepted request?) then (yes)
+  :B07a Return safe ErrorEnvelope or original readable receipt;\nremoved receipt -> 409 INVALID_STATE, retryable=false;\nchanged payload -> 409 IDEMPOTENCY_CONFLICT;\nno duplicate work, no automatic replacement key;
   |Customer Portal (Next.js)|
-  :B14 Render submission confirmation screen\nwith Case ID and live tracking status;
+  :B07b Recover same-key uncertain request or\nGET current authorised case as applicable;
   stop
-else (no: missing mandatory facts or ambiguity)
+else (fresh valid intent)
   |API & Domain Service|
-  note right
-    Triggers UC-01E extension.
-    Targeted questions ask strictly
-    for missing or conflicting facts.
-  end note
-  repeat
-    :B15 Transition ReturnCase to AWAITING_INFORMATION;\nupdate IntakeSession (status=AWAITING_CLARIFICATION,\nincrement clarification_round, timer_reset=7d);
-    fork
-      :B16a Save structured clarification questions to DB;
-    fork again
-      :B16b Dispatch notification to Customer via NotificationPort;
-    end fork
-    :B17 Return response with CustomerCaseView\n(201 Created on intake / 202 Accepted on clarification;\nquestions=[...], status=AWAITING_INFORMATION);
+endif
+:B08 Atomically bind available owned STAGED evidence,\ncreate ReturnCase SUBMITTED and original CustomerStatement,\ncreate case-owned IntakeSession (lifecycle_state=SUBMITTED,\nclarification_round=0), save receipt and intake work;
+:B09 Return 201 CustomerCaseView after accepted commit;\nUI displays accepted submission and GETs current view;
+repeat
+  |API & Domain Service|
+  :B10 Start accepted intake work for current case/input;\nIntakeSession.lifecycle_state=EVALUATING;
+  |Coordinator Agent (A's AI Intake Role)|
+  :B11 Return non-authoritative CoordinatorResult\n(facts, evidence_matrix, questions and exact input references);\npreserve missing/conflicting/not-applicable distinctions;
+  |API & Domain Service|
+  :B12 Validate schema, original_statement_id, case/input\nand selected work binding before accepting result;\ndiscard obsolete results; bounded recovery only for real errors;
+  if (Result obsolete or recovery still pending?) then (yes)
+    :B12a Discard obsolete result or await authorised recovery;
+    stop
+  else (current result or exhausted actual error)
+  endif
+  if (Current processing failed and recovery exhausted?) then (yes)
+    :B13 Persist actual ProcessingFailure with exact case/input\n(stage=COORDINATOR); set ReturnCase ESCALATED\nand IntakeSession ESCALATED_FAILURE only under current-target guards;
+    note right
+      Initial or accepted clarification failure is a real failure.
+      No proposal: exactly one current failure/block target.
+      Existing proposal: preserve it; proposal-target rules apply.
+      Only a later trusted Founder decision records MANUAL_HANDLING.
+      Missing facts, UI inactivity and request rejection are not failures.
+    end note
+    stop
+  else (valid accepted result)
+  endif
+  if (Mandatory facts sufficient for investigation?) then (yes)
+    :B14 Persist facts; transition ReturnCase to UNDER_INVESTIGATION\nand IntakeSession to COMPLETE; hand off to UC-02;
     |Customer Portal (Next.js)|
-    :B18 Render targeted clarification prompt\nand evidence upload interface;
+    :B15 GET CustomerCaseView; show server-confirmed progress;
+    stop
+  else (missing or ambiguous facts)
+    |API & Domain Service|
+    :B16 Atomically persist accepted facts and current ClarificationSet;\nReturnCase=AWAITING_INFORMATION; IntakeSession=AWAITING_CLARIFICATION;\nincrement internal clarification_round when a new question set is issued;
+    :B17 Only after commit, notify Customer via NotificationPort;\nnotification failure does not undo accepted facts or replay intake;
+    |Customer Portal (Next.js)|
+    :B18 GET own current case; display clarification.questions;\npreserve question_set_id and current case_version;
     |End Customer|
-    if (Customer decision while in Awaiting Information?) then (Withdraw return request)
-      |API & Domain Service|
-      :B19 Mark IntakeSession CANCELLED;\ntransition ReturnCase to REJECTED (reason=CUSTOMER_WITHDRAWN);\nclose intake;
-      stop
-    else if (Inactivity timeout > 7 days?) then (yes)
-      |API & Domain Service|
-      :B20 Mark IntakeSession TIMED_OUT;\ncase retained safely in AWAITING_INFORMATION;\nno automated rejection;
-      stop
-    else (Customer submits clarification)
-      |End Customer|
-      :B21 Provide clarification text and/or missing evidence;
+    if (Customer leaves page or supplies no response?) then (yes)
       |Customer Portal (Next.js)|
-      :B22 Perform client validation and\ndispatch POST /v1/cases/{id}/clarifications;
+      :B19 Close/pause only local IntakeViewSession;\nno cancellation request or server state transition;\nreopening reloads the authorised current case;
+      stop
+    else (Customer responds to current questions)
+      |End Customer|
+      :B20 Provide relevant answers and/or evidence;\nreasonable proof-of-purchase alternatives remain possible;
+      |Customer Portal (Next.js)|
+      :B21 Validate input; stage any new files using B05 guards;\nPOST /v1/cases/{id}/clarifications with Bearer, new intent key,\nexpected_case_version, question_set_id, answers, evidence_ids;
       |API & Domain Service|
-      if (Clarification round > max_rounds (3)?) then (yes)
-        :B23 Mark IntakeSession ESCALATED_MAX_ROUNDS;\ntransition ReturnCase to ESCALATED;\nreturn 202 Accepted (status=ESCALATED);\nrefer to Founder manual resolution;
+      :B22 Authenticate/authorise and validate request;\napply the same accepted-replay/retention rules as B07;
+      if (Accepted replay or admission rejected?) then (yes)
+        :B23 Return original readable receipt or safe error;\nno new input or analysis; stale version/question/state -> reload;\nnever manufacture an escalation target;
         stop
-      else (no: round <= 3)
-        :B24 Append immutable CustomerStatement (version N);\nupdate evidence attachments;
-        :B25 Re-invoke Coordinator Agent with\ncumulative statements [v1..vN];
-        |Coordinator Agent (AI Intake Role)|
-        :B26 Re-extract and merge facts into\nupdated ExtractedFacts matrix;
-        |API & Domain Service|
-        :B27 Evaluate updated fact completeness;
+      else (fresh request)
+        :B24 Atomically recheck owner, AWAITING_INFORMATION,\ncurrent question set/version and requested answers;\nbind available owned STAGED references; append CLARIFICATION statements;\nadvance case/input versions, invalidate stale derived authority,\nset IntakeSession CLARIFICATION_RECEIVED and save intake work/receipt;
+        :B25 Return 202 CustomerCaseView for accepted input;\nUI GETs current view; original statement is not overwritten;
       endif
     endif
-  repeat while (Mandatory facts still incomplete and round < 3?) is (yes)
-  if (Mandatory facts complete?) then (yes)
-    |API & Domain Service|
-    :B28 Transition ReturnCase to UNDER_INVESTIGATION;\nmark IntakeSession COMPLETE;\nreturn 202 Accepted (status=UNDER_INVESTIGATION);
-    |Customer Portal (Next.js)|
-    :B29 Render case resumed tracking screen;
-    stop
-  else (no: final round reached but incomplete)
-    |API & Domain Service|
-    :B30 Mark IntakeSession ESCALATED_MAX_ROUNDS;\ntransition ReturnCase to ESCALATED;\nreturn 202 Accepted (status=ESCALATED);
-    |Customer Portal (Next.js)|
-    :B31 Render manual escalation notice;
-    stop
   endif
-endif
+repeat while (Accepted clarification needs evaluation?) is (yes)
+stop
 
 legend bottom
-  MB-ACT-0.1 candidate for Member B (Chengsi Li, @ChengsiLi).
-  Traceability: AH-01 -> UC-01 / UC-01E -> Activity Diagram (Criterion C8).
-  Key Invariants:
-  1. Original customer statements and evidence are strictly append-only and immutable.
-  2. The UI never creates business state; Domain Service authoritatively governs case lifecycle.
-  3. UC-01E handles targeted clarification without silent discarding or automated rejection.
-  4. Clarification loop properly feeds back into evaluation until complete, timed out, cancelled, or escalated.
+  B original delivery: 92cd717; A/AI-assisted compatibility correction, pending B acceptance.
+  AH-01 -> UC-01 / UC-01E -> M-B.02 (Criterion C8); implementation remains planned.
+  Missing information stays AWAITING_INFORMATION; UC-01E can repeat beyond three rounds.
+  No seven-day business expiry, customer rejection/withdrawal API, or automatic manual decision.
+  Stored content is append-only while available; F.07 retention/tombstones still apply.
 endlegend
 @enduml

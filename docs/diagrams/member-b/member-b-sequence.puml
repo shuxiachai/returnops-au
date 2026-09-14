@@ -1,5 +1,7 @@
 @startuml
-title Member B - Customer Portal Submission & Clarification Sequence\nMB-SEQ-0.1 candidate, 2026-09-14
+title sd CustomerIntake - Customer Portal Submission & Clarification\nMB-SEQ-0.2 compatibility candidate, 2026-09-14
+mainframe sd - independent interaction named in page title
+footer Independent interaction definitions; no cross-frame trace continuation
 skinparam shadowing false
 skinparam defaultFontName SansSerif
 skinparam defaultFontSize 14
@@ -9,170 +11,119 @@ skinparam ParticipantBorderColor #27465B
 skinparam ArrowColor #27465B
 skinparam noteBackgroundColor #FFF5D9
 autonumber
-
-actor "End Customer\n(Actor)" as C
-boundary "Customer Portal UI\n(Next.js / Member B)" as UI
-control "Domain Service & API\n(FastAPI / Authoritative)" as DS
-entity "Authoritative Store\n(PostgreSQL)" as DB
-control "Coordinator Agent\n(AI Intake Role)" as CA
+actor "End Customer" as C
+boundary "Customer Portal UI\n(Next.js / B)" as UI
+control "Domain Service & API\n(Authoritative / A)" as DS
+entity "Authoritative Store" as DB
+control "Coordinator Agent\n(A's AI Intake Role)" as CA
 boundary "Notification Port\n(Mock Provider)" as NP
 
-== Phase 1: Pre-Submission & Evidence Staging ==
-
-C -> UI : Select product photos / proof of purchase
-activate UI
-UI -> DS : POST /v1/evidence (multipart payload)
-activate DS
-DS -> DB : Save EvidenceAttachment (status=STAGED, hash=sha256)
-activate DB
-DB --> DS : Return staged record (evidence_id="evi_01")
-deactivate DB
-DS --> UI : 201 Created (EvidenceAttachment metadata)
-deactivate DS
-UI --> C : Display staged thumbnail & readiness
-deactivate UI
-
-== Phase 2: Request Submission & Intake Qualification (UC-01) ==
-
-C -> UI : Enter dispute statement, requested outcome\nand click "Submit Return Request"
-activate UI
-UI -> DS : POST /v1/cases\n(Idempotency-Key="idem_k_981", original_message="Broken hinge", evidence_ids=["evi_01"])
-activate DS
-
-alt #FFF8E7 Idempotency Hit (Replay Scenario)
-  DS -> DB : Check existing Idempotency-Key
-  activate DB
-  DB --> DS : Cached CustomerCaseView (prior response)
-  deactivate DB
-  DS --> UI : 201 Created (Cached CustomerCaseView replay, no new case)
-  UI --> C : Display existing case tracking details
-
-else #F4F8FA Fresh Submission
-  DS -> DB : Begin atomic transaction
-  activate DB
-  DS -> DB : INSERT ReturnCase (status=SUBMITTED, case_id="case_101")
-  DS -> DB : INSERT CustomerStatement (version=1, text="Broken hinge", immutable)
-  DS -> DB : INSERT IntakeSession (round=0, status=SUBMITTED, timeout=7d)
-  DS -> DB : Commit transaction
-  deactivate DB
-
-  DS -> CA : extract_intake_facts(case_id, statement_v1, evidence_ids)
-  activate CA
-  CA --> DS : Return ExtractedFacts (order_ref="ORD-554", reason="DAMAGED_ITEM", complete=false)
-  deactivate CA
-
-  alt #EEFFF0 Path A: Mandatory Facts Complete (UC-01 Main Flow)
-    DS -> DB : UPDATE ReturnCase (status=UNDER_INVESTIGATION)
-    activate DB
-    DS -> DB : UPDATE IntakeSession (status=COMPLETE)
-    deactivate DB
-    DS --> UI : 201 Created (CustomerCaseView, status=UNDER_INVESTIGATION)
-    UI --> C : Display Case Lodged confirmation & timeline
-
-  else #FFF3E0 Path B: Missing Facts / Ambiguity (UC-01E Extension Flow)
-    DS -> DB : UPDATE ReturnCase (status=AWAITING_INFORMATION)
-    activate DB
-    DS -> DB : UPDATE IntakeSession (status=AWAITING_CLARIFICATION, round=1)
-    DS -> DB : INSERT ClarificationQuestion (q_id="q_1", text="Please upload serial number photo")
-    deactivate DB
-    DS -> NP : dispatch_notice(customer_id, "Additional details requested for return")
-    activate NP
-    NP --> DS : Notification enqueued
-    deactivate NP
-    DS --> UI : 201 Created (CustomerCaseView, status=AWAITING_INFORMATION,\nquestions=["Please upload serial number photo"])
-    UI --> C : Display targeted clarification prompt & upload interface
-  end
+note over UI, DB
+  All HTTP calls require a verified Bearer session and role/resource access.
+  Every POST uses a scoped Idempotency-Key and validated payload.
+  Domain alone commits business state; diagrams specify planned behavior.
+  This CustomerIntake interaction invokes definition 2 only through the fresh-branch refs.
+  Definition 2 is separate; its lifelines/messages do not continue this trace.
+end note
+== 1. Optional Evidence Staging ==
+C -> UI : Select optional evidence; pass local format checks
+UI -> DS : POST /v1/evidence\n(Bearer, Idempotency-Key, multipart file/description)
+DS -> DS : Authenticate CUSTOMER; validate actual format/size\nand scoped upload replay before any new write
+DS -> DB : Fresh accepted upload: persist owner-private\nSTAGED EvidenceAttachment and receipt
+DS --> UI : 201 EvidenceAttachment (server evidence_id)
+note over UI, DB
+  JPEG/PNG/PDF <= 10 MiB each; <= 10 references per create/clarification.
+  Only successfully staged IDs may be submitted; staging grants no case mutation.
+  Upload replay uses the same receipt/retention rules below.
+end note
+== 2. UC-01 Case Creation ==
+C -> UI : Submit original statement and optional fields
+UI -> DS : POST /v1/cases (Bearer, Idempotency-Key)\nCreateCaseRequest(original_message, optional order_reference,\nrequested_outcome and evidence_ids)
+DS -> DS : Authenticate/validate; find accepted record in\nprincipal + method/route + target + key scope
+DS -> DB : Read acceptance fingerprint and receipt availability
+alt Accepted key, different canonical request
+  DS --> UI : 409 IDEMPOTENCY_CONFLICT; no new work
+else Accepted key, identical request, receipt wholly readable
+  DS --> UI : Original 201 CustomerCaseView receipt; no new work
+  UI -> DS : GET /v1/cases/{case_id} (Bearer)
+  DS --> UI : Authorised current CustomerCaseView
+else Accepted key, identical request, receipt content removed
+  DS --> UI : 409 INVALID_STATE, retryable=false\nPreviously accepted; original receipt unavailable
+  UI -> UI : Do not change key or resubmit intent;\nread authorised current case/history when accessible
+else Fresh valid submission
+  DS -> DB : Atomic admission: bind available owned STAGED IDs;\ncreate ReturnCase SUBMITTED, ORIGINAL CustomerStatement,\ncase-owned IntakeSession SUBMITTED, intake work and receipt
+  DS --> UI : 201 CustomerCaseView (accepted commit)
+  UI --> C : Show accepted submission; load current progress
+  ref over DS, NP : ProcessAcceptedIntake (definition 2; newly accepted initial work)
 end
-deactivate DS
-deactivate UI
-
-== Phase 3: Targeted Clarification Loop (UC-01E) ==
-
-loop Clarification Round 1..3 while facts incomplete
-  alt #EEFFF0 Customer Responds within 7-day Window
-    C -> UI : Provide clarification statement & serial photo
-    activate UI
-    UI -> DS : POST /v1/cases/case_101/clarifications\n(expected_case_version=1, question_set_id="qset_01",\nanswers=[{question_id="q_1", text="Serial SN-998877"}], evidence_ids=["evi_02"])
-    activate DS
-
-    alt Clarification Round <= Max Limit (3)
-      DS -> DB : INSERT CustomerStatement (version=N, immutable)
-      activate DB
-      note right of DB
-        Statement v1 is retained unaltered.
-        Statement vN is appended with incremented version.
-      end note
-      DS -> DB : UPDATE IntakeSession (status=CLARIFICATION_RECEIVED)
-      deactivate DB
-
-      DS -> CA : re_extract_facts(case_id, statements=[v1..vN], evidence=[evi_01..evi_N])
-      activate CA
-      CA --> DS : Return updated ExtractedFacts
-      deactivate CA
-
-      alt Facts Complete
-        DS -> DB : UPDATE ReturnCase (status=UNDER_INVESTIGATION)
-        activate DB
-        DS -> DB : UPDATE IntakeSession (status=COMPLETE)
-        deactivate DB
-        DS --> UI : 202 Accepted (CustomerCaseView, status=UNDER_INVESTIGATION)
-        UI --> C : Show "Clarification Accepted - Case Resumed"
-      else Facts Still Incomplete (Round < 3)
-        DS -> DB : UPDATE IntakeSession (round=round+1, status=AWAITING_CLARIFICATION)
-        activate DB
-        DS -> DB : INSERT ClarificationQuestion (remaining targeted gaps)
-        deactivate DB
-        DS -> NP : dispatch_notice(customer_id, "Further details required")
-        activate NP
-        NP --> DS : Notification enqueued
-        deactivate NP
-        DS --> UI : 202 Accepted (CustomerCaseView, status=AWAITING_INFORMATION,\nquestions=[...])
-        UI --> C : Display updated targeted questions
-      else Facts Incomplete (Round >= 3 Exhausted)
-        DS -> DB : UPDATE IntakeSession (status=ESCALATED_MAX_ROUNDS)
-        activate DB
-        DS -> DB : UPDATE ReturnCase (status=ESCALATED)
-        deactivate DB
-        DS --> UI : 202 Accepted (CustomerCaseView, status=ESCALATED)
-        UI --> C : Show "Transferred to Founder Manual Review"
-      end
-
-    else Clarification Submitted when Round > Max Limit (3)
-      DS -> DB : UPDATE IntakeSession (status=ESCALATED_MAX_ROUNDS)
-      activate DB
-      DS -> DB : UPDATE ReturnCase (status=ESCALATED)
-      deactivate DB
-      DS --> UI : 202 Accepted (CustomerCaseView, status=ESCALATED)
-      UI --> C : Show "Transferred to Founder Manual Review"
-    end
-    deactivate DS
-    deactivate UI
-
-  else #FFF3E0 Inactivity Timeout (> 7 days)
-    DS -> DS : 7-day inactivity timer expired
-    activate DS
-    DS -> DB : UPDATE IntakeSession (status=TIMED_OUT)
-    activate DB
-    deactivate DB
-    DS -> NP : notify_customer("Session timed out - case retained safely")
-    activate NP
-    NP --> DS : Notification enqueued
-    deactivate NP
-    deactivate DS
-    note over C, UI
-      Customer re-opening portal sees
-      "Session Timed Out - Case Preserved".
-    end note
+note over UI, DS
+  Unknown response: recover with the same key and original request.
+  Replayed receipt is historical, never asserted to be the current view.
+  Auth/schema/admission failures return a safe correlated ErrorEnvelope.
+end note
+UI -> DS : GET /v1/cases/{case_id} (Bearer; own case)
+DS --> UI : Current CustomerCaseView with case_version,\nclarification when present and collection_windows
+UI --> C : Render server-confirmed status and safe customer fields
+== 4. UC-01E Repeatable Clarification ==
+loop While current case is AWAITING_INFORMATION and customer chooses to answer
+  C -> UI : Answer current targeted questions and/or provide evidence
+  opt New evidence selected
+    ref over UI, DB : Stage new files with flow 1; use returned evidence IDs
   end
+  UI -> DS : POST /v1/cases/{case_id}/clarifications (Bearer, Idempotency-Key)\nClarificationRequest(expected_case_version=current.case_version,\nquestion_set_id=current.clarification.question_set_id, answers, evidence_ids)
+  DS -> DS : Authenticate owner and validate; resolve accepted\nreplay before checking a new intent against current state
+  alt Accepted replay or request rejected
+    DS --> UI : Original readable 202 receipt or safe ErrorEnvelope\n(removed receipt -> 409 INVALID_STATE; payload mismatch -> 409 IDEMPOTENCY_CONFLICT)
+    UI -> UI : No new input/analysis; recover as flow 2;\non stale/conflicting admission reload before confirming a new intent
+  else Fresh request with current owner/state/question set/version
+    DS -> DB : Atomically recheck AWAITING_INFORMATION, expected_case_version,\nquestion_set_id and answer references; bind owned available STAGED IDs;\nappend CLARIFICATION statements; advance case/input versions;\ninvalidate stale derived authority; IntakeSession CLARIFICATION_RECEIVED;\npersist intake work and receipt
+    DS --> UI : 202 CustomerCaseView (accepted input; not completed case)
+    ref over DS, NP : ProcessAcceptedIntake (definition 2; newly accepted clarification work)
+  end
+  UI -> DS : GET /v1/cases/{case_id} (Bearer; own case)
+  DS --> UI : Current CustomerCaseView; remaining clarification if still incomplete
+  UI --> C : Show remaining relevant questions or confirmed progress
+end
+opt Customer leaves the page or does not respond
+  C -> UI : Close/pause local IntakeViewSession
+  note over C, DB
+    No cancellation/withdrawal HTTP request or server transition occurs.
+    No three-round escalation or seven-day archive policy is approved here.
+    Reopening reads the current authorised case; F.07 retention still applies.
+  end note
 end
 
+newpage sd ProcessAcceptedIntake - Independent Interaction Definition\nMB-SEQ-0.2; invoked only by fresh-work refs in sd CustomerIntake
+autonumber 1
+note over DS, NP
+  Independent interaction definition; fresh lifelines, not continuation of definition 1.
+  Precondition: a fresh input/work/receipt commit was accepted in sd CustomerIntake.
+  Replayed or rejected requests have no invocation and no path to these messages.
+end note
+== 3. Common Accepted Intake Processing (Initial or Clarification Input) ==
+DS -> DB : Load selected work/current input; IntakeSession EVALUATING
+DS -> CA : Accepted Coordinator input with exact case/input,\noriginal statement ID and authorised available source references
+CA --> DS : CoordinatorResult or actual technical error
+DS -> DS : Validate schema and current case/input/work bindings;\ndiscard obsolete result; bounded recovery for actual errors
+alt Valid current result: mandatory facts sufficient
+  DS -> DB : Persist facts; ReturnCase UNDER_INVESTIGATION;\nIntakeSession COMPLETE; hand off to UC-02
+else Valid current result: missing/ambiguous facts
+  DS -> DB : Atomically persist facts and current ClarificationSet;\nReturnCase AWAITING_INFORMATION; IntakeSession AWAITING_CLARIFICATION;\nadvance internal clarification_round on newly issued question set
+  DS -> NP : After commit, notify customer of targeted questions
+  NP --> DS : Record observed delivery outcome separately
+else Current processing failed; bounded recovery exhausted
+  DS -> DB : Persist actual ProcessingFailure (COORDINATOR, exact input);\nReturnCase ESCALATED under existing target guards;\nIntakeSession ESCALATED_FAILURE
+  note over DS, DB
+    No current proposal: exactly one current ProcessingFailure or OrderLookupBlock.
+    This branch uses a real failure, never a missing-facts/round-limit substitute.
+    Preserve any existing proposal/history; Founder uses the applicable exact target.
+    No automatic MANUAL_HANDLING, approval or operation is created.
+  end note
+end
 legend bottom
-  MB-SEQ-0.1 candidate for Member B (Chengsi Li, @ChengsiLi).
-  Traceability: AH-01 -> UC-01 / UC-01E -> Sequence Diagram (Criterion C9).
-  Key Invariants:
-  1. Customer Portal communicates solely through authenticated REST endpoints.
-  2. Idempotency guarantees safe retries without duplicate Case generation.
-  3. Statements and evidence are append-only; clarification never overwrites prior customer input.
-  4. Clarification is modelled as an iterative loop with multi-round branching, timeout and escalation.
+  Original B delivery 92cd717; A/AI-assisted compatibility revision; B acceptance pending.
+  AH-01 -> UC-01 / UC-01E -> M-B.03 (Criterion C9); no implemented API/DB claim.
+  CustomerStatement uses statement_id/kind/raw_text, not an invented version field.
+  CustomerCaseView.clarification and collection_windows follow F.01; no internal review leakage.
 endlegend
 @enduml

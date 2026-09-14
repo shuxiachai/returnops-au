@@ -1,6 +1,6 @@
 @startuml
 !pragma layout smetana
-title Member B - IntakeSession Lifecycle State Machine\nMB-STM-0.1 candidate, 2026-09-14
+title Member B - Case-Owned IntakeSession State Machine\nMB-STM-0.2 compatibility candidate, 2026-09-14
 hide empty description
 skinparam shadowing false
 skinparam defaultFontName SansSerif
@@ -10,57 +10,62 @@ skinparam stateBorderColor #27465B
 skinparam ArrowColor #27465B
 skinparam noteBackgroundColor #FFF5D9
 
-state DRAFT : Client-side composition\nUncommitted input & staged evidence
-state SUBMITTED : Case ID assigned; Statement v1 locked\nAwaiting initial AI fact extraction
-state EVALUATING : Extracting structured facts\nEvaluating mandatory field completeness
-state AWAITING_CLARIFICATION : Missing/ambiguous facts identified\nTargeted questions visible; 7-day timer active
-state CLARIFICATION_RECEIVED : Statement vN appended; new evidence bound\nQueued for Coordinator re-extraction
-state COMPLETE : Intake qualified; all required facts verified\nHanded off to Investigation
-state ESCALATED_MAX_ROUNDS : Exceeded maximum clarification rounds (3)\nTransferred to Founder manual triage
-state ESCALATED_FAILURE : Unrecoverable AI extraction/processing error\nTransferred to Founder manual triage
-state TIMED_OUT : Customer inactive > 7 days\nSession frozen; Case retained safely
-state CANCELLED : Customer withdrew return request\nIntake terminated before investigation
+state SUBMITTED : Created with ReturnCase and original statement\nAccepted intake work queued
+state EVALUATING : Selected current case/input work\nCoordinator supplies non-authoritative result
+state AWAITING_CLARIFICATION : ReturnCase AWAITING_INFORMATION\nCurrent targeted ClarificationSet persisted
+state CLARIFICATION_RECEIVED : Accepted statements/evidence appended\nNew input version queued for evaluation
+state COMPLETE : Quiescent after handoff to UC-02\nCase continues outside intake; session remains durable
+state ESCALATED_FAILURE : Quiescent after actual current technical failure\nReturnCase follows exact-target handling; session remains durable
 
-[*] --> DRAFT : user opens customer portal\n/ initialise_local_form()
+[*] --> SUBMITTED : create_committed [fresh authorised valid request]\n/ Domain atomically creates case/session/input/work/receipt
+SUBMITTED --> EVALUATING : accepted_work_started [selected current input]\n/ invoke Coordinator
+EVALUATING : recoverable_processing_error [recovery budget remains]\n/ retry selected work; no duplicate customer input
+EVALUATING : obsolete_result [case/input/work no longer current]\n/ discard result; do not overwrite current facts
+EVALUATING --> COMPLETE : result_accepted [current binding; sufficient mandatory facts]\n/ Domain persists facts and investigation handoff
+EVALUATING --> AWAITING_CLARIFICATION : result_accepted [current binding; facts incomplete/ambiguous]\n/ Domain persists remaining questions; increments internal clarification_round
+EVALUATING --> ESCALATED_FAILURE : actual_processing_error [current work; recovery exhausted; legal target]\n/ Domain persists ProcessingFailure and escalation; no automatic Founder decision
+AWAITING_CLARIFICATION : no_response_or_ui_closed\n/ no authoritative mutation or round-limit escalation
+AWAITING_CLARIFICATION : clarification_rejected [auth/input/question/state/version invalid]\n/ safe error; no input accepted and no analysis started
+AWAITING_CLARIFICATION --> CLARIFICATION_RECEIVED : clarification_committed [fresh owner request; current question set/version]\n/ atomic append and evidence binding; advance case/input; invalidate stale authority
+CLARIFICATION_RECEIVED --> EVALUATING : accepted_work_started [selected current input]\n/ invoke Coordinator for updated authorised input
+COMPLETE --> AWAITING_CLARIFICATION : domain_clarification_committed [G-REENTRY]\n/ adopt current questions in the same durable session
+ESCALATED_FAILURE --> AWAITING_CLARIFICATION : domain_clarification_committed [G-REENTRY and lawful proposal-bound recovery]\n/ adopt current questions; never restart a no-proposal failure
+COMPLETE --> [*] : case_terminal [G-TERMINAL]\n/ end session behavior; retain permitted records
+ESCALATED_FAILURE --> [*] : case_terminal [G-TERMINAL]\n/ end session behavior; retain permitted records
 
-DRAFT --> SUBMITTED : submit_case [client validation passed]\n/ POST /v1/cases, persist_statement(v1)
-
-DRAFT --> DRAFT : validation_error [missing required text / invalid file]\n/ show_client_error()
-
-SUBMITTED --> EVALUATING : start_intake_eval [fresh case registered]\n/ invoke_coordinator_agent()
-
-EVALUATING --> COMPLETE : eval_pass [all mandatory facts present & clear]\n/ advance_case(UNDER_INVESTIGATION)
-
-EVALUATING --> AWAITING_CLARIFICATION : eval_incomplete [missing facts, round < 3]\n/ generate_targeted_questions(), increment_round(), advance_case(AWAITING_INFORMATION)
-
-EVALUATING --> ESCALATED_MAX_ROUNDS : eval_incomplete [missing facts, round >= 3]\n/ advance_case(ESCALATED), notify_founder()
-
-EVALUATING --> ESCALATED_FAILURE : eval_error [unrecoverable extraction failure or timeout]\n/ create_processing_failure(), advance_case(ESCALATED)
-
-AWAITING_CLARIFICATION --> AWAITING_CLARIFICATION : validation_error [invalid clarification input / bad file]\n/ show_clarification_error()
-
-AWAITING_CLARIFICATION --> CLARIFICATION_RECEIVED : submit_clarification [valid response received]\n/ POST /v1/cases/{id}/clarifications, append_statement(vN)
-
-CLARIFICATION_RECEIVED --> EVALUATING : resume_eval\n/ invoke_coordinator_agent()
-
-AWAITING_CLARIFICATION --> TIMED_OUT : timer_expired [no activity for 7 days]\n/ freeze_session(), notify_customer_timeout()
-
-AWAITING_CLARIFICATION --> CANCELLED : customer_withdraws [explicit cancellation]\n/ cancel_case(), close_session()
-
-COMPLETE --> [*]
-ESCALATED_MAX_ROUNDS --> [*]
-ESCALATED_FAILURE --> [*]
-TIMED_OUT --> [*]
-CANCELLED --> [*]
-
+note top of SUBMITTED
+  Subject: durable case-owned IntakeSession (M-B.04 / C10).
+  lifecycle_state labels and clarification_round are internal design values,
+  not new wire fields, CaseStatus values or a shared IntakeStatus enum.
+  G-REENTRY: Domain already committed a legal shared-case transition to
+  AWAITING_INFORMATION and a current case/input-bound ClarificationSet;
+  existing source/state/effect/authority guards passed. No UI-created transition.
+  G-TERMINAL: authoritative ReturnCase is COMPLETED, REJECTED or MANUAL_HANDLED.
+  Intake handoff or escalation alone never terminates this durable machine.
+end note
+note left of AWAITING_CLARIFICATION
+  IntakeViewSession is a separate UI-only view/controller.
+  Local DRAFT, pending/error display and closing a page do not
+  create, reject, cancel, delete or expire a durable ReturnCase.
+  Reopening/recovery GETs authorised current state.
+  Accepted POST replay in any state creates no transition/work;
+  authentication and receipt-retention rules still apply.
+end note
+note right of ESCALATED_FAILURE
+  Ordinary missing facts are not ProcessingFailure.
+  No proposal: exactly one real current failure/block target.
+  This branch persists an actual COORDINATOR failure.
+  Existing proposal/history remain governed by F.01.
+  Founder alone can record MANUAL_HANDLING on the exact target.
+  No-proposal failure has no revision/restart/re-entry path.
+  With a current proposal, only lawful Founder REQUEST_REVISION
+  followed by an existing assessment-gap transition may satisfy G-REENTRY.
+end note
 legend bottom
-  MB-STM-0.1 candidate for Member B (Chengsi Li, @ChengsiLi).
-  Subject: IntakeSession entity (WBS M-B.03, Criterion C10).
-  Traceability: AH-01 -> UC-01 / UC-01E -> State Machine Diagram (Criterion C10).
-  Key Invariants:
-  1. IntakeSession represents the customer intake & clarification lifecycle.
-  2. Transitions between states require explicit domain events and guards.
-  3. Awaiting clarification includes self-transition for invalid input, cancellation, and timeout.
-  4. Escalation and Timeout paths ensure cases are never silently lost or dropped.
+  Original B 92cd717; A/AI-assisted compatibility candidate; personal acceptance pending.
+  AH-01 -> UC-01 / UC-01E -> M-B.04; Domain (A) remains sole business-state writer.
+  No three-round business cap, seven-day archive, or customer withdrawal transition.
+  COMPLETE/ESCALATED_FAILURE are durable quiescent states; only G-TERMINAL reaches final.
+  This conceptual internal refinement does not alter shared class/wire contracts or implement runtime behavior.
 endlegend
 @enduml
