@@ -74,13 +74,13 @@ else (no: missing mandatory facts or ambiguity)
     fork again
       :B16b Dispatch notification to Customer via NotificationPort;
     end fork
-    :B17 Return 202 Accepted with CustomerCaseView\n(questions=[...], status=AWAITING_INFORMATION);
+    :B17 Return response with CustomerCaseView\n(201 Created on intake / 202 Accepted on clarification;\nquestions=[...], status=AWAITING_INFORMATION);
     |Customer Portal (Next.js)|
     :B18 Render targeted clarification prompt\nand evidence upload interface;
     |End Customer|
     if (Customer decision while in Awaiting Information?) then (Withdraw return request)
       |API & Domain Service|
-      :B19 Mark IntakeSession CANCELLED;\ntransition ReturnCase to CANCELLED;\nclose intake;
+      :B19 Mark IntakeSession CANCELLED;\ntransition ReturnCase to REJECTED (reason=CUSTOMER_WITHDRAWN);\nclose intake;
       stop
     else if (Inactivity timeout > 7 days?) then (yes)
       |API & Domain Service|

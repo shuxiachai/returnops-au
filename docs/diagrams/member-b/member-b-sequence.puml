@@ -36,7 +36,7 @@ deactivate UI
 
 C -> UI : Enter dispute statement, requested outcome\nand click "Submit Return Request"
 activate UI
-UI -> DS : POST /v1/cases\n(Idempotency-Key="k_981", message="Broken hinge", evidence_ids=["evi_01"])
+UI -> DS : POST /v1/cases\n(Idempotency-Key="idem_k_981", original_message="Broken hinge", evidence_ids=["evi_01"])
 activate DS
 
 alt #FFF8E7 Idempotency Hit (Replay Scenario)
@@ -44,7 +44,7 @@ alt #FFF8E7 Idempotency Hit (Replay Scenario)
   activate DB
   DB --> DS : Cached CustomerCaseView (prior response)
   deactivate DB
-  DS --> UI : 200 OK (Cached CustomerCaseView, no new case)
+  DS --> UI : 201 Created (Cached CustomerCaseView replay, no new case)
   UI --> C : Display existing case tracking details
 
 else #F4F8FA Fresh Submission
@@ -79,7 +79,7 @@ else #F4F8FA Fresh Submission
     activate NP
     NP --> DS : Notification enqueued
     deactivate NP
-    DS --> UI : 202 Accepted (CustomerCaseView, status=AWAITING_INFORMATION,\nquestions=["Please upload serial number photo"])
+    DS --> UI : 201 Created (CustomerCaseView, status=AWAITING_INFORMATION,\nquestions=["Please upload serial number photo"])
     UI --> C : Display targeted clarification prompt & upload interface
   end
 end
@@ -92,7 +92,7 @@ loop Clarification Round 1..3 while facts incomplete
   alt #EEFFF0 Customer Responds within 7-day Window
     C -> UI : Provide clarification statement & serial photo
     activate UI
-    UI -> DS : POST /v1/cases/case_101/clarifications\n(message="Serial SN-998877", new_evidence=["evi_02"])
+    UI -> DS : POST /v1/cases/case_101/clarifications\n(expected_case_version=1, question_set_id="qset_01",\nanswers=[{question_id="q_1", text="Serial SN-998877"}], evidence_ids=["evi_02"])
     activate DS
 
     alt Clarification Round <= Max Limit (3)

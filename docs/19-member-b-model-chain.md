@@ -54,12 +54,12 @@ The Activity Model traces the intake process across four distinct swimlanes:
 
 ### 3.2 Walkthrough of Execution Paths
 - **Normal Flow (Steps B01–B14):** The customer submits a complete statement and evidence. The API confirms idempotency, persists `ReturnCase` (status `SUBMITTED`), logs `CustomerStatement` v1, and requests fact extraction. The Coordinator Agent verifies all mandatory facts. The Domain Service transitions the case to `UNDER_INVESTIGATION` and `IntakeSession` to `COMPLETE`, returning HTTP 201 Created with tracking details.
-- **Clarification Extension Flow (Steps B15–B29, UC-01E):** If facts are missing or ambiguous, the case transitions to `AWAITING_INFORMATION` and `IntakeSession` to `AWAITING_CLARIFICATION`. A concurrency fork executes saving targeted questions while dispatching customer notifications via `NotificationPort`. The portal receives HTTP 202 Accepted and displays targeted inputs. When the customer replies, a new immutable statement (vN) is appended, the Coordinator Agent re-extracts facts, and the flow cleanly loops back for completeness re-evaluation.
+- **Clarification Extension Flow (Steps B15–B29, UC-01E):** If facts are missing or ambiguous, the case transitions to `AWAITING_INFORMATION` and `IntakeSession` to `AWAITING_CLARIFICATION`. A concurrency fork executes saving targeted questions while dispatching customer notifications via `NotificationPort`. The portal receives HTTP 201 Created on initial intake (or HTTP 202 Accepted on subsequent clarification submissions) and displays targeted inputs. When the customer replies, a new immutable statement (vN) is appended, the Coordinator Agent re-extracts facts, and the flow cleanly loops back for completeness re-evaluation.
 - **Exception & Boundary Paths:**
   - *Client Validation Failure (B04b):* Caught immediately in UI; no invalid network requests sent.
   - *Idempotency Conflict (B07c):* Replay with modified body returns 409 without mutating state.
   - *Fact Extraction Failure (B11b):* Generates a `ProcessingFailure`; routes directly to manual triage (`MANUAL_HANDLING`).
-  - *Customer Withdrawal (B19):* Customer can explicitly cancel; `IntakeSession` and `ReturnCase` transition to `CANCELLED`.
+  - *Customer Withdrawal (B19):* Customer can explicitly cancel; `IntakeSession` transitions to `CANCELLED` and `ReturnCase` transitions to `REJECTED` (reason=`CUSTOMER_WITHDRAWN`), preserving the shared `CaseStatus` enum vocabulary.
   - *Timeout Expiry (B20):* If 7 days elapse without customer reply, `IntakeSession` enters `TIMED_OUT`. Case remains safely frozen in `AWAITING_INFORMATION` without automated rejection.
   - *Exceeded Clarification Rounds (B23, B30):* If clarification attempts exceed 3 rounds, `IntakeSession` enters `ESCALATED_MAX_ROUNDS` and transfers to Founder triage via HTTP 202 Accepted (`status=ESCALATED`).
 
