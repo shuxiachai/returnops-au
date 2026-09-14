@@ -1,6 +1,8 @@
 # C personal model chain — grounding and independent risk review
 
-> **MC-0.1.1 documentation follow-up, 2026-09-14.** The current technical review target is F.01 rc.5 at [`3dd1ff637693a826990eee5712cfb239a3c3da7b`](https://github.com/shuxiachai/returnops-au/commit/3dd1ff637693a826990eee5712cfb239a3c3da7b). A corrected C-F01's historical citation-verification test oracle; no wire contract, shared model or runtime changed. MC-ACT/SEQ/SM remain **0.1**, with unchanged source/SVG pairs. The original Sep 12 provenance and validation below are historical, not fresh tests. See the [dated C follow-up](reviews/member-c-followup-20260914.md) for retest scope and unresolved acceptance.
+> **MC-0.1.2 course-alignment candidate, 2026-09-14.** This revision records [A's technical disposition](https://github.com/shuxiachai/returnops-au/pull/12#pullrequestreview-5196102404) of C commit `32c704f6bf4b86139b0bcbe53419fe23530fdd97`, against F.01 rc.5 / A commit `3dd1ff637693a826990eee5712cfb239a3c3da7b`. MC-D01–03 now have lead-authorised technical choices (§6/§10); they are not still awaiting an initial choice. This is not A's personal explanation, C's personal acceptance, a review of this new revision, or joint F.01/F.02 acceptance. Original MC-ACT/SEQ/SM-0.1 remain unchanged; report views and a synthetic object slice are additional candidates (§11). See the [course requirements register](https://github.com/shuxiachai/returnops-au/blob/docs/canvas-requirements-20260914/docs/19-course-assessment-requirements.md) and [C's contribution/interview record](reports/member-c-contribution-and-interview.md).
+
+> **Historical MC-0.1.1 documentation follow-up, 2026-09-14.** The technical review target advanced to F.01 rc.5 at [`3dd1ff637693a826990eee5712cfb239a3c3da7b`](https://github.com/shuxiachai/returnops-au/commit/3dd1ff637693a826990eee5712cfb239a3c3da7b). A corrected C-F01's historical citation-verification test oracle; no wire contract, shared model or runtime changed. The original Sep 12 provenance and validation below are historical, not fresh tests. See the [dated C follow-up](reviews/member-c-followup-20260914.md) for retest scope and unresolved acceptance.
 
 > **MC-0.1 repository candidate, 2026-09-12.** Owner C (`lulucas-tao`), non-author reviewer A. WBS M-C.01–.06; Jira [KAN-22](https://lucastaooo.atlassian.net/browse/KAN-22) is the previously identified C modelling card, not a claim of its present status. Technical reference: F.01 rc.5 at [`64582a3007fea0fa3d1b1c3c212168b96af6b607`](https://github.com/shuxiachai/returnops-au/tree/64582a3007fea0fa3d1b1c3c212168b96af6b607), [PR #11](https://github.com/shuxiachai/returnops-au/pull/11). This candidate does not modify the shared contract or A/B's models.
 >
@@ -8,7 +10,7 @@
 
 ### 中文阅读入口
 
-这次不是重新分工：在现有共享报告 C 章节基础上，补成可入库、可编辑、可核验的个人模型包。先读第 2 节 UC-02/05，再对照三张图，最后亲自走通 MC-T01（通过）、T02（冲突升级）、T03（补信息）和 T09（旧轮次事件）。重点是：引用能解析不等于支持主张；五种 Risk 结果不是七个内部生命周期阶段；失败/过期不得放行；所有权威写入都在 A 的 Domain。第 8 节交给 B 合并全模型索引，报告稿交 A 整合。这里完成的是 AI 辅助候选与静态验证，C 本人讲解、A 评审、F.01 接受和运行实现仍需真实证据。
+这次不是重新分工：在现有共享报告 C 章节基础上，补成可入库、可编辑、可核验的个人模型包。先读第 2 节 UC-02/05，再对照原始完整图与第 11 节报告视图，最后亲自走通 MC-T01（通过）、T02（冲突升级）、T03（补信息）和 T09（旧轮次事件）。重点是：引用能解析不等于支持主张；五种 Risk 结果不是七个内部生命周期阶段；失败/过期不得放行；所有权威写入都在 A 的 Domain。A 已对旧 C 精确版本记录技术选择；C 本人讲解、新版本非作者复核、F.01/F.02 接受和运行实现仍需真实证据。第 8 节交 B 整合索引，第 11 节对象切片交 A 主持共享结构审核；不得把模板当作三人的实际贡献。
 
 ## 1. Scope and unchanged dependencies
 
@@ -19,7 +21,7 @@ Authority: [project definition](00-project-definition-v1.md), [frozen allocation
 | M-C.01 | — / — | AH-08 and UC-02/05 specifications, §2 | C explains requirement and A reviews flows |
 | M-C.02 | M-C.01 / F.01 | MC-ACT-0.1, §4 | F.01 accepted; guards and abnormal termination reviewed |
 | M-C.03 | M-C.02 / — | MC-SEQ-0.1, §5 | Independent invocation, versions and revision loop reviewed |
-| M-C.04 | M-C.03 / — | MC-SM-0.1, §6 | A/C decide MC-D01–03; conceptual vs wire mapping confirmed |
+| M-C.04 | M-C.03 / — | MC-SM-0.1, §6 | A's technical choices recorded; C explains and confirms them, A reviews this revision; implementation proof remains separate |
 | M-C.05 | M-C.04 / — | Twelve static walkthroughs, §7 | A walks exact artifact version and records disposition |
 | M-C.06 | M-C.05 / — | [C report contribution draft](reports/member-c-stage1-draft.md) | C's actual contribution, explanation and non-author review |
 
@@ -69,10 +71,10 @@ Extensions preserve the original UC-02 intent and rc.5 boundaries:
 | 4 / C-X07 | Required material exceeds any DTO bound | Do not truncate or invoke partial review; no new current proposal. Non-retryable REQUEST_TOO_LARGE at the actual stage; retained input/history survives; applicable no-proposal ProcessingFailure path |
 | 4 / C-X08 | Necessary source content was legitimately removed | Do not reconstruct or certify it; fail closed with explicit unavailable material; preserve permitted tombstone/integrity evidence |
 | 6 / C-X09 | Valid shape but stale case/input/proposal/corpus or superseded invocation | Reject for current use; late reply/timeout/retry/exhaustion cannot retire or alter the newer round |
-| 7 / C-X10 | REVISE with specific revision_requests | Domain routes to Assessment; bounded machine revision produces a new proposal_version and a new independent review. Old approvals do not transfer |
+| 7 / C-X10 | REVISE with specific revision_requests and available episode budget | Domain may admit one automatic follow-up under MC-D03; a new proposal_version and independent review follow. Old approvals do not transfer |
 | 7 / C-X11 | NEEDS_INFORMATION with questions | Coordinator → UC-01E. Only accepted current question-set clarification changes input_version; regenerated proposal needs fresh review |
 | 7 / C-X12 | ESCALATE with BLOCK finding | Founder may use valid proposal-bound REQUEST_REVISION or MANUAL_HANDLING; escalated proposal cannot be approved. No-proposal targets permit only MANUAL_HANDLING |
-| 7 / C-X13 | Machine revision budget exhausted | Preserve selected round's evidence and route explicit escalation; do not overwrite the recorded review outcome or synthesize PASS/ESCALATE as a model reply |
+| 7 / C-X13 | Machine revision budget exhausted | Preserve the accepted REVISE and current proposal, stop the automatic loop and record case escalation reason; permit valid proposal-bound Founder revision/manual handling, not APPROVE. Do not fabricate ESCALATE or ProcessingFailure |
 
 Technical failure does not automatically imply absence of a current proposal. Domain chooses the manual decision target from actual current records: proposal, or (only when no proposal exists) exactly one current `ProcessingFailure`/`OrderLookupBlock`. Review failures cannot manufacture a second target or erase past operation facts.
 
@@ -108,7 +110,7 @@ The [shared class](diagrams/01-domain-class-diagram.md) uses conceptual labels; 
 | Finding | `RiskFinding.finding_id/category/severity/message/citation_ids/evidence_ids` | conceptual reason/ref/block maps to these existing typed fields; do not emit `blocks_execution` or generic `supporting_refs` |
 | Historic proposal/review | `HistoricalProposalBundle` is exactly the `RiskReviewRequest` shape, with no wrapper field; `HistoricalRiskReview.review/proposal_record_id` | retain the accepted bundle and exact proposal history reference, not reconstructed current sources |
 
-Capacities are per DTO, not lifetime limits: review statements 1–100, evidence_matrix 1–50, attachments ≤100; retrieval passages/conflicts ≤100; packet citations, citation request/results and findings ≤100; review questions ≤20. String and nested limits still apply. A model context/token budget can be smaller than schema capacity and must fail explicitly rather than dropping facts. The numeric retry/revision budget is configuration to be reviewed, not an invented wire field or a new fixed course quota.
+Capacities are per DTO, not lifetime limits: review statements 1–100, evidence_matrix 1–50, attachments ≤100; retrieval passages/conflicts ≤100; packet citations, citation request/results and findings ≤100; review questions ≤20. String and nested limits still apply. A model context/token budget can be smaller than schema capacity and must fail explicitly rather than dropping facts. MC-D03 below records the newly selected prototype configuration defaults, not wire fields, course quotas or measured optimal values.
 
 | Risk outcome | Shape requirements retained from schema | Business continuation |
 |---|---|---|
@@ -144,14 +146,23 @@ Orchestrator, not Assessment, invokes C2; accepted source material is returned b
 
 **Model subject:** one conceptual review-work lifecycle bound to a specific proposal/input/corpus. QUEUED, INVOKING, VALIDATING, RECOVERY_WAIT, ACCEPTED, HISTORICAL and CLOSED_WITHOUT_RESULT are internal modelling phases, not the five RiskOutcome values, ReturnCase states or added wire fields. Accepted RiskReview records are immutable. Retirement changes which record is current, not the old record's outcome. A new proposal gets a new review-work lifecycle; a permitted retry of the same proposal selects a new invocation/round within that lifecycle.
 
-All effectful event transitions are Domain actions with atomic guards. G_START matches the selected queued work/round with no invocation yet selected. G_EVENT means the event matches the selected work/round and active invocation; on retry/exhaustion from RECOVERY_WAIT it instead matches the selected failed/retired invocation. Current proposal/input/corpus and permission must be rechecked when accepting or starting work. Retirement must compare-and-set the identity being retired; it cannot retire a replacement. Stale events are no-ops for current business state, business audit outcome and newer invocation; safe diagnostic logging is not an accepted RiskReview. Numeric budgets, persistence implementation and concurrent proof are not delivered by this model.
+All effectful event transitions are Domain actions with atomic guards. G_START matches the selected queued work/round with no invocation yet selected. G_EVENT means the event matches the selected work/round and active invocation; on retry/exhaustion from RECOVERY_WAIT it instead matches the selected failed/retired invocation. Current proposal/input/corpus and permission must be rechecked when accepting or starting work. Retirement must compare-and-set the identity being retired; it cannot retire a replacement. Stale events are no-ops for current business state, business audit outcome and newer invocation; safe diagnostic logging is not an accepted RiskReview. Persistence implementation and concurrent proof are not delivered by this model.
 
-| Decision / question | Candidate carried forward or refined | Confirmation required |
+| Decision / question | Recorded technical choice | Remaining acceptance / proof |
 |---|---|---|
-| MC-D01 — phase/result separation | Conceptual ProposalReview work has phases; actual result is unchanged RiskReview DTO. One accepted result is retained; newer context uses new review work | A/C agree mapping to shared class and eventual persistence; no extra public status enum |
-| MC-D02 — selected invocation | Atomic identity guard for **all** state-changing events, including timeout, invalid result, retry, exhaustion and retirement; same-version recovery cannot accept an obsolete invocation | Carries forward shared report Figure 23 proposal; A/C decide implementation and test concurrent races; not adopted merely by this document |
-| MC-D03 — fail closed and bound | Configured technical recovery and machine revision bounds; failure is typed technical evidence, not a sixth outcome; escalation preserves actual target and prior facts | A/C select configuration and precise error handling without changing F.01; no auto-approval or fabricated model output |
+| MC-D01 — phase/result separation | Seven internal work phases; at most one immutable accepted RiskReview per work; newer context uses new work. Five business outcomes and public DTO remain unchanged | C's own explanation/confirmation, A's review of this revision and eventual persistence tests; technical choice is not joint acceptance |
+| MC-D02 — selected invocation | Domain atomically checks selected work/round/invocation/phase and commits state, required audit and applicable durable scheduling in one PostgreSQL transaction; G_START/G_EVENT and exact retirement identity remain distinct | A implements the transactional boundary; C tests the consumer/late-event contract; crash/concurrent race proof remains required |
+| MC-D03 — fail closed and bound | Prototype defaults: at most **2 durable invocation reservations per logical analysis call** (initial + one technical retry), and **1 automatic REVISE follow-up per admitted analysis episode** (initial proposal + one machine revision) | Persisted config, durable accounting, finite adapter deadlines and recovery tests before implementation acceptance; no automatic approval, new wire budget field or measured-optimum claim |
 | MC-Q01 — removed/oversized necessary input | Stop incomplete review; preserve accepted history; choose actual-stage error and current target based on authoritative state | A's F.07/A1 and C's consumers must test removal during assembly/review and current-result invalidation |
+
+These choices come from [A's Sep 14 technical disposition of C `32c704f`](https://github.com/shuxiachai/returnops-au/pull/12#pullrequestreview-5196102404), not a new decision made by this document. MC-D03 accounting and error semantics are part of that choice:
+
+- Identify each logical analysis call by its admitted episode plus proposal-generation slot or review-work identity and fixed stage/port. Restart, redelivery, SDK retries or a different invocation ID cannot reset or bypass a budget. Reserve durably **before** dispatch; a committed reservation consumes a slot even if dispatch subsequently fails. This measures reservations, not actual network calls. Recover the original reservation after an unknown commit outcome rather than blindly reserving again.
+- Persist the config version and selected limits at episode admission. Later configuration applies only to new episodes. Analysis budgets do not change OperationAttempt counts or operation/notification recovery. A technical retry of the same proposal selects a new invocation/round but does not consume an automatic proposal-revision slot.
+- An accepted second REVISE after the one automatic follow-up retains its real review and current proposal, stops machine revision and records escalation. Do not relabel it ESCALATE or invent ProcessingFailure. If an admitted next revision already retired the former proposal and real generation/bundle assembly then fails with no current proposal, the actual no-proposal failure path applies instead.
+- NEEDS_INFORMATION leaves the machine episode. A valid current question-set answer or a valid Founder proposal-revision request can admit a new episode; replaying an old request ID is not new intent. Starting work and accepting results must recheck current permission and required material.
+- Use the existing typed errors at the actual RETRIEVAL / ASSESSMENT / RISK_REVIEW stage: transient provider unavailability uses PROVIDER_UNAVAILABLE, invalid output uses VALIDATION_ERROR, oversized required input uses non-retryable REQUEST_TOO_LARGE, and removed required material uses non-retryable INVALID_STATE. A typed error is not a sixth Risk outcome.
+- Each adapter needs a finite, documented deadline before implementation acceptance. No universal deadline or successful runtime measurement is invented here; the project p95 <120s target is not a per-call SLA.
 
 ## 7. M-C.05 — static consistency walkthroughs
 
@@ -192,7 +203,7 @@ Reuse evidence IDs and source claims from the [frozen register](06-requirements-
 
 ## 9. Validation and acceptance record
 
-The three `.puml` files are the editable source of truth; SVGs must be generated locally from the matching source, not hand-edited or submitted to an external renderer. English figure labels support report reuse. Render/inspect at readable size; do not shrink a long sequence to an unreadable report thumbnail.
+The original three `.puml` files remain the full editable models. The additional report/object `.puml` files in §11 have their own matching SVGs; no historical render/test count below covers those later additions. SVGs must be generated locally from matching source, not hand-edited or submitted to an external renderer. English figure labels support report reuse. Render/inspect at readable size; do not shrink a long sequence to an unreadable report thumbnail.
 
 Actual local renderer: official PlantUML **1.2026.8**, downloaded from its GitHub release to ignored `tmp/uml-tools/`; SHA-256 `5e1ecfa8ecd32c90b03bbf3b1eb6f020943f98ab0fcf4032be31a0002ee2c462`. Java **17.0.12**, macOS ARM64. No private model content was sent to an external renderer. Reproduction from repository root:
 
@@ -205,21 +216,54 @@ Recorded preparation checks on 2026-09-12: **3/3 C sources rendered to SVG and t
 
 An independent agent-assisted source review identified and corrected three candidate ambiguities before the final render: retrieval must follow existing CS A15/A19 rather than inventing an Orchestrator retrieval port; first invocation uses G_START rather than requiring a not-yet-created active invocation; the sequence loop repeats only for admitted REVISE within budget. Explicit retrieval/verification technical exits were also added. Final narrow static recheck found no remaining blocking mismatch in those call, guard, binding and outcome paths. This is **not A's non-author human review**, general UML semantic proof or runtime verification. Separate F.01 review findings remain in the delivery review packet and are not closed by this model task. These new diagrams are not retrospectively covered by PR #11's earlier CI.
 
-Before model acceptance: C must independently explain MC-T01/02/03 and stale-round MC-T09, record actual edits and AI assistance, A must review MC-D01–03 and exact files, F.01 and unchanged S/F conditions must be met, and the real PR/evidence must be linked to the existing Jira delivery card. C's report draft identifies what is prepared versus still planned; no member signature or Done claim is generated here.
+Before model acceptance: C must independently explain MC-T01/02/03 and stale-round MC-T09, record actual edits and AI assistance, and A must review the final exact files against the recorded MC-D01–03 choices. F.01 and unchanged S/F conditions must be met, and real PR/evidence must be linked to the existing Jira delivery card. Use the [personal record](reports/member-c-contribution-and-interview.md), whose unfilled fields remain pending. C's report draft identifies what is prepared versus still planned; no member signature or Done claim is generated here.
 
 ## 10. September 14 review disposition and precise next hand-off
 
-A's [publication notice](https://github.com/shuxiachai/returnops-au/blob/3dd1ff637693a826990eee5712cfb239a3c3da7b/docs/reviews/c-f01-publication-20260914.md) and [PR #12 technical review](https://github.com/shuxiachai/returnops-au/blob/3dd1ff637693a826990eee5712cfb239a3c3da7b/docs/reviews/pr12-followup-20260914.md) report no actionable P1/P2 finding in the seven C text artifacts reviewed at `68e5e4b`. That is an AI-assisted static review, not A's personal approval, C's explanation or a review of this later addendum. The snapshot's 18 model-tool tests include unpublished checker changes; do not substitute that count for the published tool suite.
+A's earlier [publication notice](https://github.com/shuxiachai/returnops-au/blob/3dd1ff637693a826990eee5712cfb239a3c3da7b/docs/reviews/c-f01-publication-20260914.md) and [PR #12 technical review](https://github.com/shuxiachai/returnops-au/blob/3dd1ff637693a826990eee5712cfb239a3c3da7b/docs/reviews/pr12-followup-20260914.md) covered seven C text artifacts at `68e5e4b`. The later [A-led technical disposition](https://github.com/shuxiachai/returnops-au/pull/12#pullrequestreview-5196102404) targets C `32c704f6bf4b86139b0bcbe53419fe23530fdd97` against A `3dd1ff637693a826990eee5712cfb239a3c3da7b`, reports no remaining actionable P1/P2 finding in that increment, and selects MC-D01–03. It is a **COMMENT / lead-authorised AI-assisted technical disposition**, not A's personal explanation, C's personal acceptance or joint F.01/F.02 approval. It does not review MC-0.1.2 or prove runtime behaviour. The older snapshot's 18 model-tool tests include unpublished checker changes; do not substitute that count for the published tool suite.
 
 C-F01 strengthens evidence for §2 C04 and UC-05 step 4: a retained verification must bind the historical proposal ID/version and cover exactly its citation IDs. Missing, extra or duplicate checks cannot masquerade as complete retained material. A legitimate historical `HASH_MISMATCH` remains evidence of a failed citation, not grounds for deleting history; correct reference coverage does not imply a supported claim or a passing Risk outcome. The fix is test-only and does not implement Domain acceptance or the history service.
 
-| Decision | Position retained for review | Still required from people |
+| Decision | Current disposition | Still required |
 |---|---|---|
-| MC-D01 | Keep internal work phase separate from the immutable five-outcome result; no public enum change | A/C confirm this exact mapping and eventual persistence design |
-| MC-D02 | Compare selected work/round/invocation atomically for every effectful event, including failures and retirement | A/C decide implementation; later race tests must prove it. Static review is not adoption |
-| MC-D03 | Bound recovery/revision, preserve actual evidence and current target, never fabricate a model outcome | A/C choose limits and error handling; no numerical budget is invented here |
+| MC-D01 | Seven internal phases / immutable five-outcome result technically selected; §6 | Personal explanation/confirmation and final-version review; eventual persistence proof |
+| MC-D02 | Domain PostgreSQL atomic state/audit/durable-scheduling boundary technically selected; §6 | Implement and test crash/concurrent races, including stale failures and retirement |
+| MC-D03 | Two durable invocation reservations per logical analysis call and one automatic REVISE follow-up per episode technically selected; §6 defines accounting/errors | Personal explanation, persisted configuration, adapter deadlines and actual bounded-recovery tests |
 | C-F01 | A published a fixture-oracle correction; C's dated follow-up separately records retest evidence | Do not equate the narrow correction with joint F.01 acceptance |
 
 The existing MC-T01/T02/T03 paths and MC-T09 stale-round example remain the required personal walkthrough. For each, C should record the input/proposal version before and after, selected invocation, exact `RiskReview.outcome`, Domain continuation, and prohibited effect. In T03, new accepted clarification changes the input and requires a new proposal/review; in T09, an old event cannot alter even a same-proposal replacement invocation. These are explanation prompts, not a completed interview or personal signature.
 
 B's [PR #8 alignment](https://github.com/shuxiachai/returnops-au/pull/8) now has head `21f390f07bb3ce7e6dbdeee9c8a341748044ccd3`, preserving earlier B commits and integrating the rc.5 baseline. This does not itself prove that B integrated C's §8 classification table or personally accepted the consumer contract. B remains M-S.03 Owner; C supplies this table and asks for an exact integration link. A remains the report integrator and C-model reviewer. No A/B files, WBS ownership/dependencies, Gold labels or historical evidence are changed by this follow-up.
+
+## 11. Current course alignment and report-sized model views
+
+The [2026-09-14 course requirements register](https://github.com/shuxiachai/returnops-au/blob/docs/canvas-requirements-20260914/docs/19-course-assessment-requirements.md) separates course constraints, project choices and pending upload rules. Its dedicated branch is a review location, not a claim that the register has merged into main. Stage 1 retains the individual AH/UC/Activity/Interaction/State chain, all-member participation in shared models, complete requirements, a video of at most eight minutes and individual interviews. AI assistance must be acknowledged; neither these diagrams nor a review comment supplies a student's independent contribution record.
+
+### Report presentation views
+
+| Additional view | Editable source / SVG | Relationship to the full model |
+|---|---|---|
+| Activity report view | [PUML](diagrams/member-c/member-c-activity-report.puml) / [SVG](diagrams/member-c/member-c-activity-report.svg) | Readable presentation of C01–C10 ownership and guarded branches; §4 retains the complete model |
+| Sequence report view | [PUML](diagrams/member-c/member-c-sequence-report.puml) / [SVG](diagrams/member-c/member-c-sequence-report.svg) | Presentation of accepted material, separate C2 invocation and bounded continuation; §5 remains the detailed interaction reference |
+| State report view | [PUML](diagrams/member-c/member-c-state-report.puml) / [SVG](diagrams/member-c/member-c-state-report.svg) | Work-phase overview; §6 and original source retain event/identity and recovery detail |
+
+Use these as overview panels with the matching full model and §6 decision detail alongside or in an accessible appendix. They are not reduced acceptance criteria. Do not infer that an omitted low-level message or guard has been removed from the design. A must check the assembled final PDF at ordinary reading size and the recorded video at normal playback size; a standalone render does not prove final-layout readability. B must preserve stable model/action IDs when integrating the full index.
+
+### Report placement measurements
+
+| View / version | Measured SVG dimensions (px) | Smallest source font (px) | Suggested placed width (mm) | Calculated smallest font (pt) |
+|---|---:|---:|---:|---:|
+| Activity / MC-ACT-RPT-0.1 | 865 × 1341 | 20 | 145 | 9.5 |
+| Sequence / MC-SEQ-RPT-0.1 | 822 × 1483 | 20 | 125 | 8.6 |
+| State / MC-SM-RPT-0.1 | 1232 × 1273 | 22 | 160 | 8.1 |
+| Object / MC-OBJ-0.1 | 1130 × 1389 | 20 | 160 | 8.0 |
+
+The SVG dimensions/font sizes were inspected from the new renders; placed font sizes are **calculations**, using `source_font_px × placed_width_mm / SVG_width_px × 72 / 25.4`, not measurements of the final report PDF. Place each figure on a separate suitable page with caption space rather than further shrinking it to fit unrelated prose. The final assembled PDF and normal-playback video readability checks remain pending. See the [dated course-alignment validation record](reviews/member-c-course-alignment-20260914.md) for this revision's actual checks; Sep 12/earlier Sep 14 test evidence does not cover these new views.
+
+### C's proposed Object Diagram contribution
+
+[MC-T02 synthetic object slice — source](diagrams/member-c/member-c-object-conflict.puml) · [SVG](diagrams/member-c/member-c-object-conflict.svg)
+
+This additional design snapshot responds to [Lab 6](https://canvas.sydney.edu.au/courses/74323/modules/items/3133256) and [Tutorial 6](https://canvas.sydney.edu.au/courses/74323/modules/items/3268054): named class instances, concrete attribute slots and instance links at one selected moment. It depicts a blocking-source-conflict review after acceptance but before a Founder decision. Synthetic identifiers are not runtime observations or Gold labels. It must distinguish conceptual `ProposalReview` work from the immutable `RiskReview` result, and must not imply an ApprovalRecord, operation or completed customer outcome.
+
+The existing shared Composite is a part/port/connector model and stays intact; this object snapshot does not replace it. **C provides the grounding/risk slice; A remains shared-structure Owner and must verify class consistency and integration; B integrates the model index.** All three still record their real contribution to every shared task. This proposed slice alone is not evidence that the full team's Complex Structure work is accepted or its rubric marks earned. Record disposition, final figure number and exact integration commit in the [contribution record](reports/member-c-contribution-and-interview.md).
