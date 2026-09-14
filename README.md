@@ -1,5 +1,7 @@
 # ReturnOps AU
 
+> **Isolated F.03 review candidate (2026-09-14, base `3dd1ff6`):** [F03-C0.1](docs/18-f03-security-component.md) implements isolated JWT/current-session verification and role/resource authorization with synthetic tests. It is not wired to the health-only API, database or business workflow. The existing component, locks and CI configuration are packaged on that exact baseline; see its fresh local review receipt. No new GitHub run or human acceptance is implied.
+
 > **rc.5 publication reference (2026-09-07):** this revision is delivered through [PR #11](https://github.com/shuxiachai/returnops-au/pull/11), identified by the actual commit containing this notice. The PR records the exact source SHA, CI runs and review state; C must reproduce that SHA, not old `57d86fe` or a floating branch. Local-only/unpublished wording, test runs and raw-file hashes below are pre-publication history. Current Git content is recorded in `docs/reviews/rc5-publication-artifacts-20260907.json`. Publication does not establish acceptance, B/C review, C reproduction or a Jira update.
 
 > Topic status: the project lead approved the Baseline v1.0 candidate on
@@ -77,6 +79,7 @@ revision/risk loops and excludes human/physical waiting only.
 - [A design decisions — attempt identity, recovery and pending review](docs/14-member-a-design-decisions.md)
 - [Package and Deployment candidates — module and runtime placement](docs/15-package-deployment-models.md)
 - [Demo identity and authorization design — preparation before F.03 integration](docs/16-demo-identity-authorization.md)
+- [Isolated F.03 security component — local candidate and reproducible tests](docs/18-f03-security-component.md)
 - [Logistics sandbox feasibility — eligibility, recovery evidence and open questions](docs/17-logistics-sandbox-feasibility.md)
 - [A preparation delivery record — exact artifacts, checks and remaining acceptance](docs/reviews/a-preimplementation-readiness-20260907.md)
 - [Project charter](docs/01-project-charter.md)

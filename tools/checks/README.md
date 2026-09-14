@@ -29,6 +29,7 @@ provider, database or package registry.
 python -B tools/checks/run.py offline
 python -B tools/checks/run.py offline --baseline-ref main
 python -B -m unittest discover -s tools/checks -p 'test_*.py' -v
+python -B -m pytest tests/security -q -p no:cacheprovider
 ```
 
 `offline` runs contract artifact unittest discovery, the static document/model
@@ -36,6 +37,8 @@ checker, both tools' regression tests, and the Mermaid grammar parser. It stops
 at the first failing step and exits nonzero; later steps have not passed by
 implication. Python subprocesses use the same interpreter as the runner. The
 runner derives the repository root from its own location.
+
+The separate `tests/security` command validates the isolated [F.03 component](../../docs/18-f03-security-component.md) with synthetic registries/resources and in-memory test keys. It does not start HTTP, a database or providers. The local workflow includes this command as a separate step; historical CI runs predate that addition.
 
 WBS ID/Owner/Reviewer/S/F are compared to `HEAD` by default or the existing local
 ref given by `--baseline-ref`. To check an archive or explicitly omit only that
