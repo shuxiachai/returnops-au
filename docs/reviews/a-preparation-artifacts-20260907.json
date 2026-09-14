@@ -1,0 +1,92 @@
+{
+  "version": "A-PREP-0.1",
+  "date": "2026-09-07",
+  "base_commit": "57d86fe5bf80e2ed8cb445a6bec30c2ef7d8a577",
+  "scope": "Raw local working-copy bytes; unpublished. Index and this manifest excluded to avoid self-reference. Recompute if publication normalizes line endings.",
+  "files": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "74e920a8ae57c235b40c440b6896449382b8f7d8ec348b8dd6d65a2757cfd7f9"
+    },
+    {
+      "path": "README.md",
+      "sha256": "97c47c1f8ee6a976133c60ba9247fff740948993530780f671cf7a601f5a7a0b"
+    },
+    {
+      "path": "docs/08-delivery-work-packages.md",
+      "sha256": "e2428798d8e5cf5b8bfe325c4b4e2a02169d3a5b5ec330eb02786a97130c427a"
+    },
+    {
+      "path": "docs/09-interface-contract-v1.md",
+      "sha256": "eae5b8dd944ecf183016bfcf781b9949c6c65cf2740469b861f81270495236e5"
+    },
+    {
+      "path": "docs/10-f02-environment-readiness.md",
+      "sha256": "7110ad95a75291bb5a3a8d68a0e3a1d29fc2b9a698ec67fb905a9dfa6f28b678"
+    },
+    {
+      "path": "docs/11-stage1-readiness.md",
+      "sha256": "a4556adcce7d950c2e5878e9feb59d01a5ebbae39bef52ed48e9c5aa11e9e497"
+    },
+    {
+      "path": "docs/12-member-a-model-chain.md",
+      "sha256": "7a82999aee222be93c63691ab79d27d4ef55aae0441c9df4a360d0fdcd675e12"
+    },
+    {
+      "path": "docs/13-shared-composite-structure.md",
+      "sha256": "0b8d55119ed68b2afc420531471b40806a73145950e73d95412ca156a90c5d0b"
+    },
+    {
+      "path": "docs/14-member-a-design-decisions.md",
+      "sha256": "bd8e87c5b1016ea4000f73b98b65f1e66a6a099b9ab2fcfed5c6817fc8e8d582"
+    },
+    {
+      "path": "docs/15-package-deployment-models.md",
+      "sha256": "5f885c85c6fe3790e8081dc4968e7609c69490c9660f44e8883c03a05a4b8828"
+    },
+    {
+      "path": "docs/16-demo-identity-authorization.md",
+      "sha256": "9e746861826f59ff471b7fdb14f21a39b3c57607632cbf4655d8d66857dfabd0"
+    },
+    {
+      "path": "docs/17-logistics-sandbox-feasibility.md",
+      "sha256": "44afbb0004a10df6422bcfe71d473d34efa6cb7d73d6c5dbeb71fa97864bdbda"
+    },
+    {
+      "path": "docs/diagrams/shared/package-dependencies.puml",
+      "sha256": "50d116e9471d56f94b7c67a8e14070b85380b9beb955f7d03d2c1f391ca9ae79"
+    },
+    {
+      "path": "docs/diagrams/shared/package-dependencies.svg",
+      "sha256": "4d79786f199ed5609ca70d03e00c47f9ce007d16b4b98f308bf072c18d0d0ae6"
+    },
+    {
+      "path": "docs/diagrams/shared/deployment-topology.puml",
+      "sha256": "137b21f6a76c5aab661a6536d2f724c39512a7f29eb94ef1b1e618fc53e5ae87"
+    },
+    {
+      "path": "docs/diagrams/shared/deployment-topology.svg",
+      "sha256": "8a8ca360c5079f0deb74d4d84bcbec30526fa5ae768d5fcddb844a709534b879"
+    },
+    {
+      "path": "docs/reports/member-a-stage1-draft.md",
+      "sha256": "e860b79ea607cfaaa849af66b80163e3d9f889aaf42705727539a3e02c3a45dd"
+    },
+    {
+      "path": "docs/reviews/f02-independent-reproduction.md",
+      "sha256": "e20b4b4ab8810f82a7c30df3df1269747cdd0a468684a88868b3a74aeb89352f"
+    },
+    {
+      "path": "tools/model-checks/README.md",
+      "sha256": "5591dcef869b2b677fab8369b06813ac9efa88a329e25dd28eefd78676830700"
+    },
+    {
+      "path": "tools/model-checks/check.py",
+      "sha256": "cba4ce581f21ee559a96f052d5e402d61ea81d7ab450fa08af9f7d6bdada03ea"
+    },
+    {
+      "path": "tools/model-checks/test_check.py",
+      "sha256": "f6ca496b4654306e3f2c208ef8e21dce79109394a931ea33417f338194e7f39e"
+    }
+  ]
+}

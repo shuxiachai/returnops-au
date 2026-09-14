@@ -1,0 +1,69 @@
+{
+  "id": "PR12-FOLLOWUP-0.1",
+  "verified_at_utc": "2026-09-14T01:50:38.524644+00:00",
+  "local_head": "64582a3007fea0fa3d1b1c3c212168b96af6b607",
+  "c_reviewed_head": "68e5e4b6569508c1988fa099eabbec8222ea5c0b",
+  "status": "local C-F01 test correction verified; unpublished; no human acceptance",
+  "traceability": [
+    "KAN-32",
+    "KAN-22",
+    "FR-001",
+    "FR-006",
+    "FR-008",
+    "FR-010",
+    "FR-011",
+    "FR-012",
+    "docs/09",
+    "MA recovery and shared class/state/sequence models"
+  ],
+  "checks": {
+    "contracts": 58,
+    "static_groups": "6/6",
+    "model_tool_tests": 18,
+    "runner_tests": 5,
+    "mermaid_blocks": 15,
+    "wbs_rows_unchanged_from_origin_main": 89,
+    "pre_existing_files_unchanged": 102,
+    "diff_whitespace_exit": 0
+  },
+  "independent_review": {
+    "c_artifacts": "no actionable P1/P2 findings; static text and retained evidence only",
+    "c_f01_fix": "no actionable P1/P2 findings on exact hash below; reviewer did not execute tests",
+    "personal_approval": false
+  },
+  "changed_artifact_hashes": {
+    "tests\\contracts\\test_contract_v1_rc4.py": "5cc69086f6f753c403f38de1960ba37173b1150c96e414b7b807ee7483a7a840",
+    "docs\\reviews\\pr12-followup-20260914.md": "705ed959072722555fef32dea6c88e00a1ded0105c319f5d4fa5bb465ef6cb25"
+  },
+  "local_evidence_hashes": {
+    "tmp\\review-followup-20260914\\pre-existing-worktree-sha256.json": "b6a753440752e7dbbda4c28a95ce74cabd196bedde59796bb739a2d0b1f8490a",
+    "tmp\\review-followup-20260914\\c-evidence-integrity.json": "4b1c84dd5f89c1695521857ad8ca9e948b0bdb971f00e9b290d8b79f090cba9e",
+    "tmp\\review-followup-20260914\\c-f01\\pre_fix_probe.log": "e5ca3d0cbcce793449f9956daa54d648a03c6bc40c1c3821e32ae85c50e9a90f",
+    "tmp\\review-followup-20260914\\c-f01\\validation-summary.txt": "17d8a1f529cbf41c32733b86a89ebb044543803f0220d8e9df60475e63169cb1",
+    "tmp\\review-followup-20260914\\c-f01\\all_contracts_expert_review.log": "1be87f4eb06615cec781c615534f7faeb93b910651b30683d8b660793f721705",
+    "tmp\\review-followup-20260914\\c-f01\\expert_validation.json": "e93d2058511c42900c1cdbb7e20b229cabc88964fed2789c8c9e77c5c053e6fd",
+    "tmp\\review-followup-20260914\\offline-final.log": "37d84b2b2717cb7bde60d2a15199e3a29eaf2dd11324835103b8d3c74e15d17d",
+    "tmp\\review-followup-20260914\\offline-result.json": "5f22473213a0f00a10de273d2d06b96e567b628ed689599aa010f92711f0e2a5"
+  },
+  "validation_attempts": {
+    "prior_failures": 2,
+    "failure_causes": [
+      "direct unittest entry point did not set sibling import path",
+      "new fixture used undeclared INVALID result enum"
+    ],
+    "subsequent_expert_runs": "three successful runs; latest full run includes final boundary additions",
+    "final_offline_exit": 0
+  },
+  "remaining": [
+    "C exact-new-revision follow-up after publication",
+    "B PR8 four-file semantic conflict alignment",
+    "clean-Git and PG17/Compose C reproduction",
+    "member explanation and joint F.01/F.02 acceptance"
+  ],
+  "not_performed": [
+    "commit/push/merge",
+    "remote PR review/comment",
+    "Jira or Google Docs update",
+    "F.03/HTTP/database runtime rerun"
+  ]
+}

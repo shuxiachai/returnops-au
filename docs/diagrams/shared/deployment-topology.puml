@@ -1,0 +1,67 @@
+@startuml
+title PD-02 / Local deployment and planned business allocation\nM-S.01 candidate PD-0.2 — deployed environment is health-only
+!pragma layout smetana
+top to bottom direction
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 14
+skinparam shadowing false
+skinparam componentStyle rectangle
+skinparam ArrowColor #27465B
+skinparam nodeBorderColor #27465B
+skinparam noteBackgroundColor #FFF5D9
+skinparam nodesep 55
+skinparam ranksep 55
+
+node "Developer workstation\nlocal demonstration boundary" as Host {
+  node "Browser / HTTP client" as Browser <<executionEnvironment>> #E4F2EB {
+    artifact "Customer / Founder UI\nP01 {planned; not served today}" as UI #FFF3D6
+  }
+  node "Local environment tools\nexplicit project configuration" as Tools <<executionEnvironment>> #E4F2EB
+  frame "Docker Compose: returnops-au-f02\nproject network (service-name DNS)" as Network {
+    node "api container\nPython 3.12 / Uvicorn\n0.0.0.0:8000; non-root UID 10001" as API <<executionEnvironment>> #E4F2EB {
+      artifact "F.02: P02 health implementation\n/health/live; /health/ready\nSQLAlchemy + psycopg" as Health #E4F2EB
+      artifact "Future monolith business modules\nP02 auth/API + P04 Domain\nP05-08 analysis + P09 execution\nP10-12 adapters / scoped artifacts\n{planned; not in current image}" as Business #FFF3D6
+    }
+    node "migrate container\nsame application image\none-shot; restart: no\nwaits for db healthy; api waits for exit 0" as Migrate <<executionEnvironment>> #E4F2EB {
+      artifact "alembic upgrade head\n0001_environment\nno business tables" as Migration #E4F2EB
+    }
+    node "db container\nPostgreSQL 17\nservice db:5432" as DB <<executionEnvironment>> #E4F2EB {
+      database "returnops_f02\nalembic_version {exists}\ncase / work / audit {planned}" as Database #E8EEF7
+    }
+  }
+  node "Docker managed named volume" as Volume <<storage>> #E4F2EB {
+    artifact "postgres-data\nmounted at /var/lib/postgresql/data" as PGData
+  }
+}
+
+node "Allowed external model endpoint\n{planned; provider/config not selected here}" as LLM <<external>> #FFF3D6
+node "A3 logistics sandbox/test endpoint\n{planned; eligibility not assumed}\nno production or chargeable shipping" as Sandbox <<external>> #FFF3D6
+
+Browser --> API : HTTP 127.0.0.1:API_PORT -> 8000\nhealth now; authenticated /v1 later
+Tools --> DB : optional diagnostic access\n127.0.0.1:DB_PORT -> 5432
+Health --> Database : db:5432 / SQL\nSELECT 1 + exact revision
+Migration --> Database : db:5432 / SQL\nenvironment migration only
+Business ..> Database : planned via Domain -> repository + audit\none business transaction context
+DB -- PGData : data volume mount
+Business ..> LLM : planned HTTPS / approved input fields\nthree separate role invocations; C3 when enabled
+Business ..> Sandbox : planned A3 adapter only\nexact approval + provider authority / query
+
+legend bottom
+  Green = existing F.02 artifact/configuration; yellow = planned business allocation; blue = mixed status.
+  Solid link = existing environment communication/mount; dashed link = planned communication.
+  API_PORT defaults to 8000; this workstation's documented override is 8001. DB_PORT defaults to 5433.
+  Host published bindings are 127.0.0.1 only. Container 0.0.0.0:8000 does not mean public Internet exposure.
+  Inside api/migrate, localhost means that container; use db:5432, never localhost:5433 for PostgreSQL.
+  Docker healthcheck localhost:8000 is inside api. The existing host PostgreSQL on 5432 is unrelated.
+  Browser demo must run on this host for loopback URLs; a remote client cannot use its own localhost.
+  Secrets are environment-injected; no token, password or arbitrary model-selected URL appears in this model.
+  HTTP is the local environment transport. Any remote hosting/TLS design needs separate review.
+  Startup: db healthy -> migration exits 0 -> api starts. Health never migrates or stamps.
+  Core order / return-label / notification providers are synthetic in-process adapters.
+  Reviewed corpus is local versioned material, not an open-web service.
+  Authenticated API -> Domain is the only business-state entry; no Agent/database write.
+  Agent observations -> Domain -> business AuditPort; external effects are outside the transaction.
+  No deployed business worker, broker, cloud service or UI server is claimed.
+  Diagram review is not deployment acceptance. F.01 / F.02 / M-S.01 human reviews remain required.
+endlegend
+@enduml

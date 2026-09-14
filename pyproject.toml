@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=77", "wheel>=0.45"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "returnops-au"
+version = "0.1.0"
+description = "ReturnOps AU F.02 local infrastructure candidate"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "fastapi>=0.115,<1",
+  "pydantic>=2.10,<3",
+  "SQLAlchemy>=2.0,<2.1",
+  "alembic>=1.14,<2",
+  "psycopg[binary]>=3.2,<4",
+  "uvicorn>=0.34,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3,<10",
+  "httpx>=0.28,<1",
+  "setuptools>=77",
+  "wheel>=0.45",
+  "jsonschema[format]==4.23.0",
+  "referencing==0.35.1",
+  "openapi-spec-validator==0.7.2",
+]
+
+[tool.setuptools.packages.find]
+where = ["apps/api"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/environment"]
+addopts = "--strict-markers"
+markers = ["database: requires an explicitly configured disposable PostgreSQL database"]

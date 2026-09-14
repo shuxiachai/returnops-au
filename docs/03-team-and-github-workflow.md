@@ -1,11 +1,18 @@
 # Team, Jira and GitHub Workflow
 
+> **Allocation update — 2026-09-06:** New work follows
+> [Frozen Work Allocation v1.0](07-frozen-work-allocation.md) and
+> [Detailed Work Packages](08-delivery-work-packages.md). Those are the single
+> source for nine-feature ownership, subtask acceptance and dependencies.
+> The packages below are workflow context, not a second backlog. This file
+> describes team rules, not verified live Jira or GitHub settings.
+
 ## 1. Team structure and planned workload
 
-The team has three students. The project lead intentionally owns the central
-product, architecture, implementation, and integration path. The other two
-members own small, bounded support packages that can be reviewed and integrated
-without creating parallel architectural centres.
+The team has three students. The lead owns backend, agent orchestration and
+integration. B and C each own two independently demonstrable core functions and
+one selected optional, with bounded interfaces and their own models, code,
+tests and evidence.
 
 The planning allocation across the three team members is approximately:
 
@@ -13,16 +20,22 @@ The planning allocation across the three team members is approximately:
 - Member B (`@ChengsiLi`), Frontend & User Experience Lead (Client & Operations Dashboard): ~27%;
 - Member C (`@lulucas-tao`), Grounding, Risk & AI Evaluation Lead: ~28%;
 
-This structure satisfies the ELEC5620 Lab 2 requirement that every member individually implements at least two core features and one optional feature.
+This allocation plans for the Lab 2 requirement of at least two core features
+and one optional implemented by each member. Actual compliance requires
+individual implementation and evidence, not a table. All three selected
+optionals remain course deliverables.
 
 ### Member A: Project Lead, System Architect & Backend/Agent Core Lead (~45%)
 
 Primary responsibilities:
 
-- product scope, requirement classification, and traceability matrix;
-- principal architecture and MBSE UML models (Package, Domain Class, State Machine, Sequence diagrams);
+- product scope and traceability integration; C produces requirement
+  classification and B integrates the shared Feature/Use-case/model index;
+- architecture integration and A's own MBSE chain; every member authors their
+  own behavioural models and participates in shared models;
 - domain model, Pydantic schemas, database schemas, and FastAPI service;
-- LangGraph multi-agent orchestrator (Intake, Order, Policy, Remedy, Risk nodes);
+- Coordinator and Assessment implementations and bounded orchestration;
+  C supplies independent Risk Reviewer and retrieval modules;
 - deterministic approval rules, audit event recording, and mock adapters;
 - system integration, CI/CD foundation, Docker containerization, report integration, and presentation narrative.
 
@@ -51,6 +64,7 @@ Primary responsibilities:
 Primary responsibilities:
 
 - acceptance criteria definition, quality metric thresholds, and requirements traceability;
+- requirement-classification contribution handed to B for M-S.03 integration;
 - curated store policy corpus and reviewed ACCC consumer-guarantee guidance;
 - 30 double-reviewed Gold return cases covering the supported categories,
   missing evidence, conflicts, and escalations;
@@ -63,8 +77,10 @@ Primary responsibilities:
 - *Core Feature 2*: Independent Risk Review & Escalation.
 - *Optional Feature*: Product-image Evidence Analysis.
 
-Member C also owns the 30-case Gold set, the `B1` versus `B4` evaluation report,
-and parameterised safety/workflow tests as cross-system QA responsibilities.
+Member C coordinates the Gold set, evaluation runner, `B1` versus `B4` report
+and cross-system QA. A owns backend/state/approval/provider tests; B owns UI
+tests; C owns grounding/risk/image tests. All three participate in independent
+label review under the timing/blinding protocol in `docs/07`.
 `B2`/`B3` ablations and any expansion towards 100 scenarios are portfolio work,
 not course-release conditions.
 
@@ -87,19 +103,23 @@ All members must still:
 | Requirements and traceability | A/R | C | C |
 | UML and architecture | A/R | C | C |
 | Domain API and database | A/R | C | C |
-| Agent workflow and guardrails | A/R | C | C |
+| Coordinator/Assessment, orchestration and execution guards | A/R | C | C |
+| Retrieval and independent Risk Reviewer | A | R | C |
 | Policy corpus | A | R | C |
 | Evaluation case labels | A | R | C |
 | Evaluation framework and analysis | A | R | C |
 | Customer and founder screens | A | C | R |
-| Synthetic order and shipment fixtures | A | C | R |
+| Synthetic order and shipment fixtures | A/R | C | C |
 | Provider adapters | A/R | C | C |
 | CI and deployment | A/R | C | C |
 | Report integration | A/R | C | C |
 | Demo walkthrough | A | R | R |
 | Presentation and interview | A/R | R | R |
 
-Legend: A = accountable, R = responsible/reviewer, C = consulted.
+Legend: A = accountable, R = responsible, C = consulted. These are role letters,
+not member names. Non-author reviewers are assigned in `docs/08`. Individual
+model ownership and shared contributions follow `docs/07`; the lead does not
+author every diagram.
 
 ## 4. Bounded work packages
 
@@ -112,7 +132,7 @@ Input from lead:
 
 - API contract;
 - intake schema and validation rules;
-- wireframes and component conventions.
+- shared interface constraints; B owns wireframes and component conventions.
 
 Output from Member B:
 
@@ -138,7 +158,7 @@ Input from lead:
 Output from Member B:
 
 - cited evidence, risks, uncertainty, recommendation, and alternative displays;
-- approve, reject, and request-revision controls;
+- approve, reject, request-revision, and manual-handling controls;
 - case timeline, pending-notification states, and repeatable demo fixtures.
 
 Acceptance:
@@ -169,22 +189,24 @@ Acceptance:
 - this runtime corpus is not an evidence-management product or a continuation of
   the frozen requirements-research appendix.
 
-### Package C-QA2: Risk review and course evaluation
+### Package C-QA2: Risk review and coordinated evaluation
 
 Input from lead:
 
 - risk-review contract and escalation rules;
-- Gold-case schema and labelling guide;
-- examples of valid and invalid labels;
-- evaluation runner interface supplied by the lead.
+- shared case/proposal, error and metric contracts;
+- B4 invocation and telemetry contract from A.
 
 Output from Member C:
 
-- independent `PASS`, `PASS_WITH_WARNING`, `REVISE`, and `ESCALATE` outcomes;
+- independent `PASS`, `PASS_WITH_WARNING`, `REVISE`, `NEEDS_INFORMATION`, and `ESCALATE` outcomes;
+- Gold-case schema, labelling guide and valid/invalid label examples authored
+  by C and reviewed by the team; A does not own or write all of this input;
 - 30 double-reviewed Gold cases;
+- evaluation runner owned by C;
 - required `B1` versus `B4` comparison report;
-- parameterised approval/security and workflow/provider tests with documented
-  failures.
+- aggregated safety/workflow results; each member implements the tests for
+  their own functionality.
 
 Acceptance:
 
@@ -260,7 +282,10 @@ governance decision based on the course tutorial identifying a Jira software
 timeline as evidence; it does not claim that the formal marking table mandates a
 particular vendor.
 
-Create one Jira project with these statuses:
+Use the existing Jira project. These are logical stages, not verified live
+column names. A leads operational maintenance and mapping; C verifies the
+traceability and evidence under R.04, and each member supplies their own actual
+progress. This does not recreate the project or rewrite history:
 
 ```text
 Backlog -> Ready -> In Progress -> In Review -> Done
@@ -399,12 +424,15 @@ Commit count and lines of code are not adequate measures of contribution.
 
 ## 14. Example allocation for the first two weeks
 
+This older illustrative sequence is superseded by the first-round selection
+and dependencies in `docs/08`; do not create duplicate tasks from it.
+
 ### Member A
 
 - lead the tutor checkpoint and confirm the desk-research-informed scope;
 - write the requirements baseline and UML drafts;
 - define domain schemas and API contracts;
-- build the case, mock-order, policy-retrieval, and proposal thin slice;
+- build the case, mock-order and proposal thin slice, consuming C's retrieval contract;
 - establish Jira/GitHub linking, CI, tests, and integration conventions.
 
 ### Member B
@@ -423,16 +451,58 @@ Commit count and lines of code are not adequate measures of contribution.
 
 ## 15. Provisional milestone plan
 
-| Period | Outcome |
-|---|---|
-| Weeks 2-3 | Evidence freeze, tutor feedback, scope decision, Jira backlog |
-| Weeks 3-4 | Baseline requirements, feature model, use cases, evaluation dataset design |
-| Weeks 4-5 | Architecture, domain model, state/activity/sequence models, technical spike |
-| Weeks 6-7 | Thin vertical slice and model-to-code validation |
-| Week 8 | Stage 1 report, presentation, interview, and baseline tag |
-| Weeks 9-10 | Core MVP workflow and founder approval |
-| Weeks 10-11 | Policy retrieval, risk review, mock operations, evaluation suite |
-| Week 12 | Hardening, deployment, documentation, and demo rehearsal |
-| Week 13 | Final demonstration and source submission |
+Use the dependency-based Gate 0–3 checks in `docs/00` and `docs/08`. The older
+illustrative calendar is not an authoritative assessment schedule. A coordinates
+dates and estimates in Jira after checking the current Canvas/tutor notice and
+member capacity; C verifies the evidence. Do not infer
+interview or submission dates from earlier planning text.
 
-Dates must be updated when Canvas confirms the assessment schedule.
+[Stage 1 readiness](11-stage1-readiness.md) separates timely course submission
+from project acceptance. A assembles/submits the report and video, B/C author
+their own material, and C checks the deliverables and receipt under R.04.
+An unresolved F.01/R.01 or unfinished R.04 must be disclosed, not used to delay
+the required Stage 1 submission. R.05/E.12 belong to the later final delivery.
+
+## 16. Existing branch hand-off for the 2026-09-07 alignment
+
+The lead-directed publication of PRs #2/#4/#6 to main on 2026-09-06 did not
+complete current B/C/tutor adoption or merge their follow-up work. The aligned
+old documents/shared diagrams and F.01 rc.2 were published on 2026-09-07 in
+[PR #9](https://github.com/shuxiachai/returnops-au/pull/9), with review requests
+to B and C. The lead subsequently directed main publication; use PR #9's
+actual merge record for the result. This explicit integration decision does
+not substitute for B/C/tutor review, alter the normal review policy, update
+B/C's branches, or change Jira history.
+
+- **B / [PR #8](https://github.com/shuxiachai/returnops-au/pull/8):** the charter,
+  architecture, class and sequence revisions reuse the three-role/service
+  separation and model ideas from B's existing work, with source attribution.
+  Compare B's branch against the aligned files before integration; preserve
+  authored commits and review the remaining scope/guard differences. Do not
+  discard the PR simply because related files were aligned here.
+- **C / [PR #7](https://github.com/shuxiachai/returnops-au/pull/7):** its
+  `docs/jira-delivery-guide/README.md` and `team-assignments.md` are still branch
+  artefacts, not current main files. Keep the 2026-09-02 Jira snapshot labelled
+  as historical, and make the following changes on C's branch before review:
+  1. Replace the instruction to merge `#2 → #4 → #6` with the publication fact
+     above; distinguish it from remaining adoption/model reviews.
+  2. Do not treat C's older candidate review as approval of later allocation or
+     this alignment. Preserve the original review and obtain current confirmation.
+  3. Replace `Portfolio / unscheduled` for A3/OF-004, B3/OF-006 and C3/OF-001
+     with selected course deliverables and the prerequisites in `docs/07/08`.
+     Verify actual dates in Jira; do not fabricate replacement dates.
+  4. Replace snapshot-specific WIP/blocked/Ready instructions with live Jira
+     checks. Map existing keys to stable work-package IDs; verify the delivery
+     item versus parent key for Issue #5 and PRs #7/#8 without guessing new keys.
+  5. Align default reviewers (A reviewed by C, B/C by A, plus relevant consumers),
+     C-owned label guide/runner and each member's own feature tests; retain the
+     blind human-timing and independent Gold-review rules in `docs/07`.
+
+The 2026-09-07 live reconciliation verified F.01 →
+[KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32) → PR #9 (rc.2 history),
+and baseline review R.01 → [KAN-12](https://lucastaooo.atlassian.net/browse/KAN-12)
+→ Issue #5; KAN-6 is parent/baseline context, not the F.01 delivery key.
+The rc.3 follow-up is a separate review candidate from PR #9. A leads operational
+maintenance, C verifies R.04 evidence, and B/C retain ownership of their branch
+updates. Recheck live records before changing status, dates or links; this
+document revision does not itself perform those changes or alter permissions.
