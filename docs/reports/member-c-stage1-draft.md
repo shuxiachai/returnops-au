@@ -1,12 +1,14 @@
 # Member C — Stage 1 report contribution draft
 
+> **MC-RPT-0.2, 2026-09-14.** Current technical reference: F.01 rc.5 / A commit [`3dd1ff637693a826990eee5712cfb239a3c3da7b`](https://github.com/shuxiachai/returnops-au/commit/3dd1ff637693a826990eee5712cfb239a3c3da7b). This documentation update follows A's C-F01 correction and published technical review. It retains MC-ACT/SEQ/SM-0.1 unchanged and adds the current evidence/hand-off distinction below; the Sep 12 notice records the original draft's provenance. No personal confirmation is supplied on C's behalf.
+
 > **MC-RPT-0.1, 2026-09-12; AI-assisted preparation, not an accepted contribution statement.** This refines Chapter 8/Figures 21–23 and relevant evaluation/provenance sections of the existing [Stage 1 Team Review Draft](https://docs.google.com/document/d/1xvGO8EA_yZwWj1It3UM7AKDFEoQjsj5eJJXbCz4bcnc/edit). It preserves that source's preparation history rather than claiming first authorship. Technical reference is F.01 rc.5 at [`64582a3007fea0fa3d1b1c3c212168b96af6b607`](https://github.com/shuxiachai/returnops-au/tree/64582a3007fea0fa3d1b1c3c212168b96af6b607), PR #11. The new C artifacts are a later candidate and have separate validation evidence.
 
 Integration owner A; personal owner C, reviewer A. B integrates the shared model index using C's classification/traceability contribution. C must personally review, revise and explain these materials before describing them as an individual assessed contribution. This document supplies no member signature, tutor acceptance, Gold result or completed runtime claim.
 
 ## 1. Project updates relevant to C
 
-The latest reviewed source is not the old main rc.2 contract. PR #11's rc.5 package contains fifteen planned public business operations, strict role-isolated history/material, bounded previews, retention-aware receipts, and a health-only environment. Its publication does not mean the business APIs, Risk Reviewer, retrieval or Founder execution workflow are implemented. Main publication, CI, contract acceptance and personal model acceptance remain different facts.
+The reviewed rc.5 source (Sep 12: `64582a3`; Sep 14 test-only follow-up: `3dd1ff6`) is not the old main rc.2 contract. PR #11's rc.5 package contains fifteen planned public business operations, strict role-isolated history/material, bounded previews, retention-aware receipts, and a health-only environment. Its publication does not mean the business APIs, Risk Reviewer, retrieval or Founder execution workflow are implemented. Main publication, CI, contract acceptance and personal model acceptance remain different facts.
 
 Two important rc.5 distinctions constrain C's design. First, a valid-shaped RiskReviewRequest must also preserve complete original retrieval conflicts, independent material and exact citation-check bindings. A page preview is not a full review input. Second, business escalation, technical failure and pre-proposal order-provider conflict/authority denial are different paths. Only an actual no-proposal ProcessingFailure or OrderLookupBlock creates a manual-only decision target. A proposal-level ESCALATE can still be revised through a valid Founder REQUEST_REVISION, but cannot be directly approved for execution.
 
@@ -99,8 +101,8 @@ Later C-owned implementation remains C1 retrieval/citation, C2 independent revie
 | This preparation | AI-assisted extraction/refinement into editable repository model/spec/report candidates, with stated validation scope |
 | C's personal decisions and revisions | Pending C: exact decision, reason, changed file/version and date |
 | C's own explanation / demonstration | Pending C: walk MC-T01/02/03/09 without agent answering on C's behalf |
-| A's non-author review | Pending A: exact artifact revision, findings and resolution |
-| B's index integration | Pending B: preserve C's classification/model contribution and existing B material |
+| A's non-author review | Sep 14 AI-assisted static review of C head `68e5e4b` is published in A commit `3dd1ff6`; no P1/P2 reported. A's personal review and disposition of this updated revision remain pending |
+| B's index integration | PR #8 now preserves B history and aligns with rc.5 at `21f390f`; integration of C's classification table and B's personal consumer confirmation still need exact evidence |
 | Final AI acknowledgement | C/A adapt to actual course instructions and actual assistance; do not claim unaided authorship |
 
 Suggested disclosure to adapt truthfully: “AI assistance was used to inspect reference material, draft/refine specifications and editable UML, check model consistency and organise evidence. The prior shared report discussion candidates are acknowledged. Each student's actual decisions, revisions, tests and explanations are separately identified; automated checks do not substitute for personal understanding, non-author review or runtime verification.”
@@ -121,3 +123,11 @@ Use readable zoomed SVGs instead of shrinking the full sequence into one frame. 
 - What can B1-vs-B4 show, and why can it not isolate the causal effect of multiple agents?
 
 The final answer to each question must reflect C's understanding and the exact reviewed version, not simply repeat this prepared draft.
+
+## 9. September 14 report integration note
+
+Use [C's dated follow-up](../reviews/member-c-followup-20260914.md) alongside this draft. A fixed C-F01 at `3dd1ff6`: the history-fixture oracle now checks verification proposal ID/version and exact, unique citation coverage, and the newer-proposal fixture advances the nested verification version. This strengthens the retained-evidence test; it changes neither the rc.5 public DTOs nor the three C diagrams. Legitimate failed citation checks must remain in history. They must not be described as `VALID`, as supported recommendations, or as passed Risk reviews merely because their historical binding is correct.
+
+The follow-up distinguishes a fresh local retest of a browser-verified test file from a clean Git/Compose reproduction. GitHub's authenticated file/commit pages were accessible, but ZIP download was blocked and command-line Git lacked authentication. The isolated test source is therefore reconstructed from the prior exact archive plus the visible published test change; it is not a fresh checkout. September 12 PostgreSQL 16.2/native recovery and its archived logs remain historical. Docker/PostgreSQL 17 Compose, clean Git reproduction, member explanations, joint F.01/F.02 acceptance and all C1/C2/C3 runtime claims remain unfulfilled by this report update.
+
+For the final report, A can reuse §§2–5 with readable C figures and this qualification. C still needs to personally explain the five Risk outcomes, exact proposal/input/corpus binding, MC-D01–03 proposals and the pass/conflict/clarification/stale-event cases. A should record a non-author disposition on the final C revision; B should return the C-to-M-S.03 integration link. These actions are not replaced by a green build or this prepared text. Course submission requirements and receipts must be checked separately; this task makes no new Canvas submission claim.
