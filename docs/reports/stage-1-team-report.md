@@ -307,50 +307,88 @@ The design-time elementary class diagram captures the core business domain of Re
 ## §6 Complex Structure Modelling: Runtime Models
 
 - **Discharges:** Criterion C7 (3 marks, Runtime models: Object Diagram, Collaboration Diagram, Composite Structure Diagram; Lab 6 named-instance requirements).
-- **Primary Owner:** Member C (Primary Author — OBJ-1 instance values, grounding & risk domain per `EXECUTION_PLAN.md` §1.1 & §5.T8); Member A (COL-1 & SC-1)  
-- **Secondary Reviewers:** Member B (Intake snapshot & port binding), Member A (Governance boundary)  
-- **Readiness Status:** `[READY - Composite Structure CS-0.2 & Lab 6 Object Snapshots aligned]`
+- **Primary Authors & Split (Hard Rules H5 & H11):**
+  - `OBJ-1` (Object Diagram): Member C: **40% (Primary Author)** · Member B: **35% (Secondary Reviewer)** · Member A: **25% (Secondary Reviewer)**.
+  - `COL-1` (Collaboration Diagram): Member A: **50% (Primary Author)** · Member B: **25% (Secondary Reviewer)** · Member C: **25% (Secondary Reviewer)**.
+  - `SC-1` (Composite Structure Diagram): Member A: **50% (Primary Author)** · Member B: **25% (Secondary Reviewer)** · Member C: **25% (Secondary Reviewer)**.
+- **Readiness Status:** `[READY - All 3 Runtime Models Authored, Compiled, and Verified]`
 
-### 6.1 Concrete Named-Instance Object Diagram (`OBJ-1` / Lab 6 C7)
-In accordance with Lab Note 6 and Criterion C7, the system models a concrete logical runtime snapshot capturing instance attribute value slots and runtime links during a pending decision boundary (prior to Founder review):
+### 6.1 Concrete Named-Instance Object Diagram (`OBJ-1` / Criterion C7a)
 
-```
-+-------------------------------------------------------------+
-| case_101 : ReturnCase                                       |
-|-------------------------------------------------------------|
-| case_id = "CASE-2026-0881"                                  |
-| case_version = 2                                            |
-| input_version = 1                                           |
-| status = AWAITING_APPROVAL                                  |
-+-------------------------------------------------------------+
-          |
-          +-----------------------------------+
-          |                                   |
-          v                                   v
-+-----------------------------------+   +------------------------------------+
-| session_101 : IntakeSession       |   | prop_201 : DecisionPacket          |
-|-----------------------------------|   |------------------------------------|
-| intake_session_id = "SESS-4412"   |   | proposal_id = "PROP-8812"          |
-| lifecycle_state = COMPLETE        |   | proposal_version = 2               |
-| clarification_round = 1           |   | recommended_action = REPLACE_ITEM  |
-+-----------------------------------+   +------------------------------------+
-          |                                   |
-          v                                   v
-+-----------------------------------+   +------------------------------------+
-| stmt_101 : CustomerStatement      |   | rev_301 : ProposalReview           |
-|-----------------------------------|   |------------------------------------|
-| statement_id = "STMT-001"         |   | review_id = "REV-9901"             |
-| original_text = "Screen cracked"  |   | decision = PASS_WITH_WARNING       |
-| requested_outcome = REPLACE       |   | reviewer_invocation_id = "INV-109" |
-+-----------------------------------+   +------------------------------------+
-```
-*(Complementary snapshot: Member C's policy conflict instance snapshot `member-c-object-conflict.puml` in PR #12).*
+In accordance with Lab Note 6 and Criterion C7, the system models a concrete logical runtime snapshot capturing instance attribute value slots, instance links, and governance invariants at a single critical decision gate moment (prior to Founder review):
 
-### 6.2 Collaboration / Communication Diagram (`COL-1`)
-Depicts the numbered message dispatch across runtime component instances during exact-scope approval and dispatch (`UC-04`), tracing the path from the Human Founder through Founder Dashboard, API, Approval Guard, Domain Service, Operations Service, and provider adapters with revalidation at dispatch.
-*(Source: `07_env/plantuml_samples/collaboration.puml`)*.
+[Detailed Specification & Source: docs/diagrams/06-object-diagram.md](../diagrams/06-object-diagram.md) · [PlantUML Source](../diagrams/shared/object-diagram.puml)
 
-### 6.3 Composite Structure Diagram (`SC-1` / `CS-0.2`)
+![OBJ-1 Concrete Named-Instance Object Diagram](../diagrams/shared/object-diagram.svg)
+
+#### 6.1.1 Decision Gate Runtime State Snapshot
+The snapshot captures 20 collaborating runtime instances (detailed across 19 classifier slots) representing concrete entities and value objects from the elementary domain class model (`CLS-1`) at the exact logical instant when the case transitions to `AWAITING_APPROVAL`:
+
+| Instance | Classifier (`CLS-1`) | Key Attribute Values | Structural & Governance Role |
+|---|---|---|---|
+| `case101` | `ReturnCase` | `case_id = "CASE-2026-0881"`, `case_version = 2`, `status = AWAITING_APPROVAL` | Aggregate root holding case lifecycle; paused awaiting human decision. |
+| `cust101` | `Customer` | `customer_id = "CUST-8812"`, `identity_content_ref = "blob://..."` | Registered customer entity; external to case aggregate root. |
+| `intake101` | `IntakeSession` | `intake_session_id = "SESS-4412"`, `clarification_round = 1`, `lifecycle_state = "COMPLETE"` | Intake micro-lifecycle; finished gathering statements after round 1. |
+| `stmt101` | `CustomerStatement` | `statement_id = "STMT-001"`, `original_text = "Screen cracked upon unboxing..."`, `requested_outcome = REPLACEMENT` | Original customer lodgement statement (preserved immutably). |
+| `stmt102` | `CustomerStatement` | `statement_id = "STMT-002"`, `original_text = "Outer shipping box undamaged..."`, `requested_outcome = REPLACEMENT` | Supplemental clarification reply submitted under round 1. |
+| `facts101` | `ExtractedFacts` | `input_version = 1`, `issue_category = FAULTY_OR_QUALITY_ISSUE`, `assessment_status = SUPPORTED` | Normalised factual summary synthesised across both statements. |
+| `snap101` | `OrderSnapshot` | `snapshot_id = "SNAP-9921"`, `order_id = "ORD-9921"`, `total_amount_cents = 89900`, `currency = "AUD"` | Authoritative order snapshot retrieved from read-only order provider. |
+| `li101` | `LineItem` | `line_item_id = "ITEM-01"`, `sku = "MON-4K-27-IPS"`, `ordered_quantity = 1` | Purchased monitor line item from accepted order snapshot. |
+| `cli101` | `CaseLineItem` | `line_item_id_ref = "ITEM-01"`, `requested_quantity = 1` | Bounded return claim referencing the verified order line item. |
+| `ev101` | `EvidenceItem` | `evidence_id = "EVD-301"`, `type = PHOTO`, `authorised_content_ref = "blob://..."` | Customer photographic proof of cracked display panel. |
+| `ea101` | `EvidenceAssessment` | `criterion_id = "PHYSICAL_DAMAGE"`, `status = SUPPORTED` | Assessment evaluation confirming photographic evidence matches claim. |
+| `doc1` | `PolicyDocument` | `source_id = "DOC-STORE-POL-01"`, `source_type = "STORE_POLICY"`, `corpus_version = "2026.1"` | Merchant's published returns policy document. |
+| `p1` | `PolicyPassage` | `passage_id = "PAS-STORE-14D"`, `content = "Claims must be lodged within 14 calendar days..."` | 14-day limit passage extracted from merchant store policy. |
+| `doc2` | `PolicyDocument` | `source_id = "DOC-ACL-GUIDE-02"`, `source_type = "CONSUMER_GUIDANCE"` | Australian Consumer Law statutory guidance document. |
+| `p2` | `PolicyPassage` | `passage_id = "PAS-ACL-MAJOR"`, `content = "Statutory consumer guarantees cannot be excluded..."` | ACL statutory consumer guarantee passage asserting non-excludable remedy. |
+| `prop101` | `DecisionPacket` | `proposal_id = "PROP-8812"`, `proposal_version = 2`, `recommended_action = REPLACE_ITEM`, `confidence = 0.88` | Revised proposal generated by Returns Assessment Agent citing citations. |
+| `cit1`, `cit2` | `Citation` | `claim_ref = "CLAIM-..."`, `passage_id_ref = "PAS-..."` | Grounded citations resolving proposal claims to retrieved policy passages. |
+| `rev101` | `ProposalReview` | `review_id = "REV-9901"`, `decision = PASS_WITH_WARNING`, `reviewer_invocation_id = "INV-771"` | Independent risk review decision validating proposal against policy corpus. |
+| `rf101` | `RiskFinding` | `finding_id = "RF-01"`, `category = POLICY_CONFLICT`, `blocks_execution = false` | Explicit finding detailing the store policy vs ACL statutory conflict. |
+
+#### 6.1.2 Architectural Rigour: The Empty Space Invariant
+A critical MBSE principle demonstrated in `OBJ-1` is the **Empty Space Argument**:
+- **Absence of `ApprovalRecord`:** Because human review has not occurred, no approval record exists in memory or persistence.
+- **Absence of `ToolCommand`:** Neither `CreateReturnCommand` nor `GenerateLabelCommand` is instantiated.
+- **Absence of `OperationAttempt`:** No execution or provider dispatch has occurred.
+- **Absence of `ReturnParcel` / `ParcelLabel`:** Shipping artefacts cannot be created prior to approval.
+
+This absence formally proves that autonomous LLM agents possess **zero authority** to commit merchant resources without explicit human authorisation.
+
+---
+
+### 6.2 Collaboration / Communication Diagram (`COL-1` / Criterion C7b)
+
+Depicts the structural connectivity and numbered message dispatch across collaborating component instances during exact-scope approval and dispatch (`UC-04`):
+
+[Detailed Specification & Source: docs/diagrams/07-collaboration-diagram.md](../diagrams/07-collaboration-diagram.md) · [PlantUML Source](../diagrams/shared/collaboration-diagram.puml)
+
+![COL-1 Collaboration Diagram](../diagrams/shared/collaboration-diagram.svg)
+
+#### 6.2.1 Hierarchical Message Dispatch Ledger
+The communication sequence enforces causal order and hierarchical call nesting using decimal message numbering:
+
+| Sequence No. | Sender | Receiver | Invocation Signature | Architectural Concern & Invariant |
+|---|---|---|---|---|
+| `1` | `founder` | `dashboard` | `review_and_approve(case_id, proposal_v2)` | Human Founder executes explicit approval decision on dashboard UI (`UC-03`). |
+| `1.1` | `dashboard` | `api` | `POST /v1/founder/cases/{case_id}/decisions (decision)` | Client submits authenticated approval payload containing proposal ID and scope. |
+| `1.1.1` | `api` | `guard` | `validate_approval_scope(packet_v2, decision)` | **Initial Guard Validation:** Verifies decision hash matches proposal v2; checks expiry. |
+| `1.1.1.1` | `guard` | `domain` | `persist_approval_and_transition(approval_rec)` | Domain Service writes immutable `ApprovalRecord` and transitions `ReturnCase` to `APPROVED`. |
+| `2` | `domain` | `ops` | `dispatch_operation(approval_id, tool_commands)` | Domain Service requests simulated operations dispatch for approved line items. |
+| `2.1` | `ops` | `guard` | `revalidate_at_dispatch(approval_id, fingerprint)` | **Dispatch Revalidation:** Verifies approval has not expired, case has not been superseded, and scope matches. |
+| `2.2` | `ops` | `returnsAdapter` | `create_return(case_ref, items, auth_token)` | Deterministic dispatch to Mock Returns Provider; generates return parcel reference. |
+| `2.3` | `ops` | `logisticsAdapter` | `generate_label(parcel_id, weight, dimensions)` | Deterministic dispatch to Mock Logistics Adapter; creates consignment tracking and printable label. |
+| `2.4` | `ops` | `notifyAdapter` | `send_confirmation(customer_ref, tracking_number)` | Simulated customer notification dispatched with label access link. |
+| `2.5` | `ops` | `auditPort` | `record_audit_event(event_id, provenance_record)` | Immutable audit record logged via `AuditPort` recording causal actor, hash, and timestamp. |
+
+#### 6.2.2 Key Architectural Mechanisms
+1. **Double Approval Guard Invariant:** `Approval Guard` appears twice in the communication sequence: first validating proposal scope upon Founder decision entry (`1.1.1`), and second revalidating non-expiration and scope matching immediately prior to provider dispatch (`2.1`).
+2. **Strict Execution Barrier:** No message arrow originates from an autonomous AI agent to an operations provider. Operations execution is strictly mediated by the deterministic `Operations Service`.
+
+---
+
+### 6.3 Composite Structure Diagram (`SC-1` / `CS-0.2` / Criterion C7c)
+
 Models the internal structural parts, ports, and connectors of the `Governed Case Assessment` subsystem, detailing the encapsulation of `Assessment Agent`, `Approval Guard`, and `Operations Service` alongside ports `pOrder`, `pOps`, and `pAudit`.
 *(Reference: [docs/13-shared-composite-structure.md](../13-shared-composite-structure.md))*.
 
