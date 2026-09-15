@@ -1,0 +1,134 @@
+@startuml
+title UCD-1 / ReturnOps AU System Use-Case Model\nCriterion C3 Candidate — System Boundary, Stakeholders, External Providers, and Dependency Semantics
+
+left to right direction
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 12
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam packageBorderColor #27465B
+skinparam ArrowColor #27465B
+skinparam actorBorderColor #27465B
+skinparam actorBackgroundColor #E8EEF7
+skinparam usecaseBorderColor #27465B
+skinparam usecaseBackgroundColor #FFF8E7
+skinparam noteBackgroundColor #FFF5D9
+skinparam nodesep 26
+skinparam ranksep 38
+
+' Primary Human Stakeholders
+actor "End Customer\n<<Stakeholder / Requester>>" as actCust
+actor "Human Founder\n<<Stakeholder / Operator>>" as actFnd
+
+' External Secondary Providers
+actor "Read-only Mock\nOrder Provider\n<<Secondary System>>" as actOrder
+actor "Mock Returns\nProvider\n<<Secondary System>>" as actReturns
+actor "Mock Logistics\nProvider\n<<Secondary System>>" as actLogistics
+actor "Simulated Notification\nProvider\n<<Secondary System>>" as actNotify
+
+rectangle "ReturnOps AU — Single-Store Returns Management System" as SystemBoundary {
+
+  rectangle "Customer Intake & Clarification (Member B)" as PkgIntake {
+    usecase "UC-01\nLodge Return/Remedy Request" as UC01 #E8EEF7
+    usecase "UC-01E\nProvide Clarification/Evidence" as UC01E #E8EEF7
+  }
+
+  rectangle "Autonomous Multi-Agent Assessment & Risk Review (Member C/A)" as PkgAssess {
+    usecase "UC-02\nAssess Case and Prepare Proposal" as UC02 #E8EEF7
+    usecase "Structure and Classify Case" as UC02_Classify
+    usecase "Verify Order" as UC02_Verify
+    usecase "Build Evidence Matrix" as UC02_Evidence
+    usecase "Retrieve Approved Grounding" as UC02_Ground
+    usecase "Draft Typed Proposal" as UC02_Draft
+    usecase "Perform Independent Risk Review" as UC02_Risk
+    usecase "Send Targeted Information Request" as UC02_ReqInfo
+    usecase "Revise Proposal" as UC02_Revise
+    usecase "Escalate to Manual Handling" as UC02_Escalate
+  }
+
+  rectangle "Human Governance & Override Gate (Member A/B)" as PkgReview {
+    usecase "UC-03\nReview Proposal or Record Manual Outcome" as UC03 #E8EEF7
+    usecase "View Case, Evidence, Citations, and Risks" as UC03_View
+    usecase "Approve Scoped Action" as UC03_Approve
+    usecase "Reject Proposal" as UC03_Reject
+    usecase "Request Revision" as UC03_ReqRev
+    usecase "Record Manual-Handling Outcome" as UC03_Manual
+    usecase "Send Founder-Approved Decision Outcome" as UC03_DecOutcome
+  }
+
+  rectangle "Governed Operations Execution (Member A)" as PkgExec {
+    usecase "UC-04\nExecute Approved Simulated Return and Label" as UC04 #E8EEF7
+    usecase "Validate Scoped Approval" as UC04_Val
+    usecase "Execute Idempotent Command" as UC04_Cmd
+    usecase "Send Approved Outcome" as UC04_Outcome
+    usecase "Retry Safely Recoverable Unfinished Command" as UC04_Retry
+    usecase "Look Up Unknown Operation Effect" as UC04_Reconcile
+    usecase "Retry Notification Independently" as UC04_NotifRetry
+    usecase "Escalate Execution Failure" as UC04_ExecEscalate
+  }
+
+  rectangle "Audit & Operational Transparency (Member C/B)" as PkgAudit {
+    usecase "UC-05\nInspect Case Status and Audit Trail" as UC05 #E8EEF7
+  }
+}
+
+' Human Actor Associations
+actCust --- UC01
+actCust --- UC01E
+
+actFnd --- UC02
+actFnd --- UC03
+actFnd --- UC04
+actFnd --- UC05
+
+' Provider Associations
+actOrder --- UC02_Verify
+actReturns --- UC04_Cmd
+actLogistics --- UC04_Cmd
+
+actNotify --- UC02_ReqInfo
+actNotify --- UC03_DecOutcome
+actNotify --- UC04_Outcome
+
+' UC-01 & UC-01E Relationships
+UC01E .> UC01 : <<extend>>\n[initial information missing]
+UC01E .> UC02 : <<extend>>\n[NEEDS_INFORMATION or evidence gap]
+
+' UC-02 Included & Extended Behaviours
+UC02 .> UC02_Classify : <<include>>
+UC02 .> UC02_Verify : <<include>>
+UC02 .> UC02_Evidence : <<include>>
+UC02 .> UC02_Ground : <<include>>
+UC02 .> UC02_Draft : <<include>>
+UC02 .> UC02_Risk : <<include>>
+
+UC02_ReqInfo .> UC02 : <<extend>>\n[missing facts/evidence]
+UC02_Revise .> UC02 : <<extend>>\n[REVISE]
+UC02_Escalate .> UC02 : <<extend>>\n[lookup block, ESCALATE or exhausted recovery]
+
+' UC-03 Included & Extended Behaviours
+UC03 .> UC03_View : <<include>>
+UC03_Approve .> UC03 : <<extend>>\n[APPROVE with current passing risk review]
+UC03_Reject .> UC03 : <<extend>>\n[REJECT current proposal]
+UC03_ReqRev .> UC03 : <<extend>>\n[REQUEST_REVISION current proposal]
+UC03_Manual .> UC03 : <<extend>>\n[MANUAL_HANDLING current target]
+UC03_DecOutcome .> UC03 : <<extend>>\n[reject/manual outcome]
+
+' UC-04 Included & Extended Behaviours
+UC04 .> UC04_Val : <<include>>
+UC04 .> UC04_Cmd : <<include>>
+UC04 .> UC04_Outcome : <<include>>
+
+UC04_Retry .> UC04 : <<extend>>\n[confirmed safe retry and valid approval]
+UC04_Reconcile .> UC04 : <<extend>>\n[UNKNOWN or RECONCILING attempt]
+UC04_NotifRetry .> UC04 : <<extend>>\n[notification failed]
+UC04_NotifRetry .> UC03 : <<extend>>\n[decision notification failed]
+UC04_ExecEscalate .> UC04 : <<extend>>\n[retry limit reached]
+
+note right of UC04
+  <b>Precondition:</b> Valid approval produced by UC-03.
+  (Precondition is not modelled as an <<include>>
+  to avoid misrepresenting temporal order as functional decomposition.)
+end note
+
+@enduml

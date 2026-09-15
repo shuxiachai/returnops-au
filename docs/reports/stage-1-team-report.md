@@ -223,21 +223,26 @@ In alignment with `D-09` and `docs/07-frozen-work-allocation.md`, the planned ef
 - **Readiness Status:** `[READY - 6 Full Specifications Defined]`
 
 ### 4.1 Overall Use Case Diagram (`UCD-1` / Criterion C3)
-The system boundary encompasses primary human actors (`Customer`, `Human Founder`), secondary external provider services (`Order System Provider`, `Logistics Carrier Provider`), and internal software agent roles (`Case Coordinator`, `Assessment Agent`, `Risk Reviewer`).
-*(PlantUML Source: `07_env/plantuml_samples/usecase.puml` / [docs/diagrams/05-use-case-diagram.md](../diagrams/05-use-case-diagram.md))*.
-> *Note on Task T5:* The use case model is authored in standard PlantUML UML notation with system boundary frames, actor glyphs, and `<<include>>`/`<<extend>>` stereotyping, fully superseding earlier informal flowchart representations.
+The system boundary encompasses primary human actors (`Customer`, `Human Founder`), secondary external provider services (`Mock Order Provider`, `Mock Returns Provider`, `Mock Logistics Provider`, `Simulated Notification Provider`), and the five top-level use cases alongside their included and extended sub-behaviours in standard UML 2.5 notation (`UCD-1`).
+
+**Contribution Split (Hard Rules H5 & H11):** Member B: **40% (Primary Author)** · Member A: **35% (Secondary Reviewer)** · Member C: **25% (Secondary Reviewer)**.
+
+![UCD-1 Overall Use Case Diagram](../diagrams/shared/use-case-diagram.svg)
+*(PlantUML Source: [docs/diagrams/shared/use-case-diagram.puml](../diagrams/shared/use-case-diagram.puml) / [docs/diagrams/05-use-case-diagram.md](../diagrams/05-use-case-diagram.md))*.
+
+> *Note on Task T5:* The use case model is authored in standard PlantUML UML 2.5 notation with system boundary frames, actor glyphs, and `<<include>>`/`<<extend>>` stereotyping, fully superseding earlier informal flowchart representations.
 
 ### 4.2 Group Use Case Specifications (Criterion C4)
 The team specifies exactly 6 comprehensive use cases (satisfying the 5–10 requirement of `H3`):
 
 | UC ID | Use Case Name | Primary Actor | Primary Owner | Discharges |
 |---|---|---|---|---|
-| **UC-01** | Lodge Return Request & Intake Qualification | Customer | Member B | FR-001, FR-002, AH-01 |
-| **UC-01E**| Submit Supplemental Clarification & Evidence | Customer | Member B | FR-002, FR-005 |
-| **UC-02** | Autonomous Multi-Agent Assessment & Risk Review | Coordinator Agent | Member C (Risk) / Member A (Assmt) | FR-006, FR-007, FR-008, AH-08 |
+| **UC-01** | Lodge Return Request & Intake Qualification | End Customer | Member B | FR-001, FR-002, AH-01 |
+| **UC-01E**| Submit Supplemental Clarification & Evidence | End Customer | Member B | FR-002, FR-005 |
+| **UC-02** | Autonomous Multi-Agent Assessment & Risk Review | Human Founder (triggered by Customer intake) | Member C (Risk) / Member A (Assmt) | FR-006, FR-007, FR-008, AH-08 |
 | **UC-03** | Founder Review, Decision Gate & Override | Human Founder | Member A (Core) / Member B (UI) | FR-009, BR-004 |
-| **UC-04** | Governed Simulated Operations Execution | Operations Service | Member A | FR-010, AH-10, NFR-002, NFR-004 |
-| **UC-05** | Case Status Tracking & Operational Analytics | Customer / Founder | Member B | FR-011, FR-012, OF-006 |
+| **UC-04** | Governed Simulated Operations Execution | Human Founder (supported by Mock Providers) | Member A | FR-010, AH-10, NFR-002, NFR-004 |
+| **UC-05** | Inspect Authoritative Case State & Audit Trail | Human Founder | Member C (Audit/Spec) / Member B (UI) | FR-011, FR-012, OF-006 |
 
 *(Detailed step-by-step specifications for UC-01 through UC-05 detailing preconditions, triggers, main success path, extension paths, and exception guards are integrated from [docs/05-lab-3-requirement-modelling.md](../05-lab-3-requirement-modelling.md)).*
 
