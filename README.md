@@ -1,5 +1,7 @@
 # ReturnOps AU
 
+> **Delivery handoff — 2026-09-16:** see [deliverables, next actions and cautions](#delivery-handoff--2026-09-16) below. This is a dated C-branch handoff, not a new status board or a main merge. Older local/publication notices are historical; use the exact PR commits and review evidence linked in the handoff for current work.
+
 > **rc.5 publication reference (2026-09-07):** this revision is delivered through [PR #11](https://github.com/shuxiachai/returnops-au/pull/11), identified by the actual commit containing this notice. The PR records the exact source SHA, CI runs and review state; C must reproduce that SHA, not old `57d86fe` or a floating branch. Local-only/unpublished wording, test runs and raw-file hashes below are pre-publication history. Current Git content is recorded in `docs/reviews/rc5-publication-artifacts-20260907.json`. Publication does not establish acceptance, B/C review, C reproduction or a Jira update.
 
 > Topic status: the project lead approved the Baseline v1.0 candidate on
@@ -63,6 +65,70 @@ money, modify a production order, or autonomously approve a remedy.
 These are prototype targets, not achieved results. Proposal latency runs from
 accepted complete input to the stored review-ready packet, includes machine
 revision/risk loops and excludes human/physical waiting only.
+
+## Delivery handoff — 2026-09-16
+
+**Published for review, not accepted:** C's delivery snapshot is
+[`048bf760`](https://github.com/shuxiachai/returnops-au/commit/048bf76099f9c2828ff2b46c8bda8677b01f8ba1)
+in [PR #12](https://github.com/shuxiachai/returnops-au/pull/12), tracked by
+[KAN-22](https://lucastaooo.atlassian.net/browse/KAN-22), based on A's
+`fix/10-kan-32-contract-review`, not main. The links below open this branch's
+files; the snapshot commit fixes the reviewed bytes. This README follow-up is
+separate from that five-file delivery. Jira remains the live workflow record.
+
+### Delivered material and reading order
+
+| Material | Entry point / intended use |
+|---|---|
+| Updated requirements for everyone | [Course/rubric evidence map](https://github.com/shuxiachai/returnops-au/blob/b3b3b5869d33704e9f1da5b777c8c9338de6b565/docs/19-course-assessment-requirements.md) and [shared reading guide](https://github.com/shuxiachai/returnops-au/blob/b3b3b5869d33704e9f1da5b777c8c9338de6b565/README.md), delivered separately in [PR #13](https://github.com/shuxiachai/returnops-au/pull/13); not yet integrated here |
+| C models and figures | [MC-0.1.3 model chain, including §12 handoff](docs/18-member-c-model-chain.md) and [editable PUML / SVG figures](docs/diagrams/member-c) |
+| C text for the team report | [MC-RPT-0.4, §10](docs/reports/member-c-stage1-draft.md): replacement text for team report §§7.3, 10, 13.4, 14, 16 and 17; A/B integration is still pending |
+| Personal contribution / interview record | [MC-PER-0.1.1 worksheet](docs/reports/member-c-contribution-and-interview.md): questions and evidence fields, still to be completed by C personally |
+| Report integration findings | [MC-INTEGRATION-0.1](docs/reviews/member-c-integration-followup-20260916.md): six corrections and exact source versions; [handoff to B's PR #14](https://github.com/shuxiachai/returnops-au/pull/14#issuecomment-5696352699) |
+| F.03 consumer review | [Dated C review](docs/reviews/member-c-f03-review-20260916.md) and [technical comment on A's PR #15](https://github.com/shuxiachai/returnops-au/pull/15#issuecomment-5696357090): bounded AI-assisted static review, not personal acceptance |
+
+### Still to deliver / confirm
+
+- **C:** explain MC-T01/T02/T03/T09 and MC-D01–03 in your own words; record
+  actual decisions, shared-task contributions, dates and AI use in the worksheet.
+  Do not fill personal answers or contribution percentages from an AI draft.
+- **A:** review C's final exact commit and Object/class consistency. B's earlier
+  approval of `c9f205d` does not cover this newer delivery or replace A's review.
+  **A/B:** integrate C report §10, resolve the six reported inconsistencies, and
+  return exact final report/model-index commit and section/figure links.
+- **C, with A:** complete the clean-Git / PostgreSQL 17 Compose reproduction for
+  A's PR #11 `3dd1ff637693a826990eee5712cfb239a3c3da7b`, record real results,
+  and complete the pending exact-version F.01/F.02 acceptance. Review F.03
+  personally; its seven listed Domain-integration checks and acceptance remain
+  separate work. Track these through [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32),
+  [KAN-33](https://lucastaooo.atlassian.net/browse/KAN-33) and
+  [KAN-34](https://lucastaooo.atlassian.net/browse/KAN-34), not README checkmarks.
+- **A integrates/submits; B/C supply and verify their own material; C audits
+  R.04 evidence:** deliver a readable final report PDF, video no longer than
+  8 minutes, individual interview preparation, actual contribution and AI
+  acknowledgement, final artifact links and a real submission receipt.
+  At the Sep 14 Canvas check, report/video showed **Oct 4, 2026, 23:59** and
+  unlock **Sep 20, 00:00**; recheck timezone, upload rules and the unresolved
+  task-point grouping after unlock. Do not infer those details from the display.
+
+### Important cautions
+
+- **Published ≠ personally explained ≠ reviewed ≠ accepted ≠ submitted.** CI
+  evidence belongs to its exact SHA; neither green CI nor the older native-PG
+  run replaces C's clean-Git/PG17 Compose reproduction. The F.03 static review
+  did not rerun the reported 244 security tests or prove business integration.
+- **Keep model names and behavior exact.** Full C figures remain
+  `MC-ACT/SEQ/SM-0.1`; report views are `MC-ACT/SEQ/SM-RPT-0.1`, and the Object
+  slice is `MC-OBJ-0.1`. Document version `MC-0.1.3` does not create 0.2 figures.
+  A real second `REVISE` remains `REVISE` when the machine budget ends; it is
+  not silently converted to `ESCALATE` or a no-proposal manual-only failure.
+- **No invented completion or scope changes.** C1/C2/C3 implementation, Gold
+  execution and runtime safety are not established by these documents.
+  The 30-case Gold set, 20-case subset and benchmark thresholds are project
+  plans/targets, not course-wide quotas or measured results. Preserve the
+  nine features and 89 frozen work packages in [docs/07](docs/07-frozen-work-allocation.md)
+  and [docs/08](docs/08-delivery-work-packages.md). Stage 1 submission must disclose
+  open items; it need not wait for all Stage 2 work to finish.
 
 ## Project documents
 
