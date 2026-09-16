@@ -1,5 +1,7 @@
 # C：真实贡献、模型讲解与提交前核对
 
+> **2026-09-16 资料入口更新（MC-PER-0.1.1）。** B 已对 C `c9f205d` 留下[消费者边界 approval](https://github.com/shuxiachai/returnops-au/pull/12#pullrequestreview-5199940157)；这不替代 A 的指定 review，也不替 C 填写本人回答。新的团队报告中未经确认的 C 贡献比例、模型编号和运行结果表述见 [9 月 16 日核对](../reviews/member-c-integration-followup-20260916.md)；在真实确认前不采用。以下所有个人答案、日期、决定和贡献栏仍保持待本人填写。
+
 > **MC-PER-0.1，2026-09-14；待本人填写的记录，不是已完成证明。**
 > 本模板由 AI 辅助整理；所有标记“待 C 本人”的内容必须来自实际发生的理解、修改、讲解和确认。不得用本模板推断 C 已独立完成、A/B 已认可、interview 已进行或 Jira 可标 Done。
 
@@ -9,8 +11,8 @@
 
 | 项目 | 已知资料 / 本人需完成的记录 |
 |---|---|
-| 个人模型文档 | [MC-0.1.2](../18-member-c-model-chain.md)；原三图 MC-ACT/SEQ/SM-0.1 保留 |
-| C 报告稿 | [MC-RPT-0.3](member-c-stage1-draft.md)；含报告视图和 Object 切片入口 |
+| 个人模型文档 | [MC-0.1.3](../18-member-c-model-chain.md)；原三图 MC-ACT/SEQ/SM-0.1 保留 |
+| C 报告稿 | [MC-RPT-0.4](member-c-stage1-draft.md)；含报告视图、Object 切片和新团队报告的 C 替换段落 |
 | A 契约技术参考 | F.01 rc.5，`3dd1ff637693a826990eee5712cfb239a3c3da7b`；[PR #11](https://github.com/shuxiachai/returnops-au/pull/11) |
 | 已发布 A 技术处置 | [COMMENT](https://github.com/shuxiachai/returnops-au/pull/12#pullrequestreview-5196102404)，针对 C `32c704f6bf4b86139b0bcbe53419fe23530fdd97`；不是本轮新文档的评审 |
 | 本人实际阅读/修改的最终 commit | **待 C 本人记录**：准确 SHA / 文件版本；不能只写浮动分支或旧评审 SHA |
