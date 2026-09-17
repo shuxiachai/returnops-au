@@ -5,15 +5,12 @@
 > **Laboratory 3 role**: Operational view of stakeholder goals, external
 > interactions, failure branches, authority, and human checkpoints
 >
-> **Status — 2026-09-15:** Task T5 completed: Migrated from informal Mermaid flowchart to standard PlantUML UML 2.5 use case model (`shared/use-case-diagram.puml` and `shared/use-case-diagram.svg`), securing Criterion C3 (1 mark) and Hard Rule H3.
+> **Status — 2026-09-17:** B-published shared-model candidate, with A/AI-assisted compatibility corrections. Rendering supports inspection, not awarded marks or team acceptance.
 >
-> **Contribution Split (Hard Rules H5 & H11):**
-> - Member B (`@ChengsiLi`): **40% (Primary Author)** — Customer intake boundary, clarification loops, PlantUML model migration and extension semantics.
-> - Member A (`@shuxiachai`): **35% (Secondary Reviewer)** — Operations execution authority, governance gate preconditions, and provider integration.
-> - Member C (`@lulucas-tao`): **25% (Secondary Reviewer)** — Multi-agent risk assessment review, grounding retrieval, and audit trail inspection.
+> **Contribution evidence:** B introduced this PlantUML view in PR #14; A/shared baseline sources are retained. Exact personal additions and all-member shared participation require their own records. No per-diagram authorship percentages are verified here.
 >
 > Earlier modelling contributions and their Git history are retained.
-> The `1.0.0-rc.3` clarification under
+> The `1.0.0-rc.5` clarification under
 > [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32) remains aligned with the lead-approved v1.0 baseline.
 >
 > **Alignment baseline:** [Lead-approved v1.0 candidate](../00-project-definition-v1.md)
@@ -46,8 +43,8 @@ skinparam actorBackgroundColor #E8EEF7
 skinparam usecaseBorderColor #27465B
 skinparam usecaseBackgroundColor #FFF8E7
 skinparam noteBackgroundColor #FFF5D9
-skinparam nodesep 26
-skinparam ranksep 38
+skinparam nodesep 45
+skinparam ranksep 65
 
 ' Primary Human Stakeholders
 actor "End Customer\n<<Stakeholder / Requester>>" as actCust
@@ -61,12 +58,12 @@ actor "Simulated Notification\nProvider\n<<Secondary System>>" as actNotify
 
 rectangle "ReturnOps AU — Single-Store Returns Management System" as SystemBoundary {
 
-  rectangle "Customer Intake & Clarification (Member B)" as PkgIntake {
+  rectangle "Customer Intake & Clarification (B UI / A Domain)" as PkgIntake {
     usecase "UC-01\nLodge Return/Remedy Request" as UC01 #E8EEF7
     usecase "UC-01E\nProvide Clarification/Evidence" as UC01E #E8EEF7
   }
 
-  rectangle "Autonomous Multi-Agent Assessment & Risk Review (Member C/A)" as PkgAssess {
+  rectangle "Governed Multi-Agent Assessment & Risk Review (A/C)" as PkgAssess {
     usecase "UC-02\nAssess Case and Prepare Proposal" as UC02 #E8EEF7
     usecase "Structure and Classify Case" as UC02_Classify
     usecase "Verify Order" as UC02_Verify
@@ -76,7 +73,7 @@ rectangle "ReturnOps AU — Single-Store Returns Management System" as SystemBou
     usecase "Perform Independent Risk Review" as UC02_Risk
     usecase "Send Targeted Information Request" as UC02_ReqInfo
     usecase "Revise Proposal" as UC02_Revise
-    usecase "Escalate to Manual Handling" as UC02_Escalate
+    usecase "Escalate for Founder Disposition" as UC02_Escalate
   }
 
   rectangle "Human Governance & Override Gate (Member A/B)" as PkgReview {
@@ -100,7 +97,7 @@ rectangle "ReturnOps AU — Single-Store Returns Management System" as SystemBou
     usecase "Escalate Execution Failure" as UC04_ExecEscalate
   }
 
-  rectangle "Audit & Operational Transparency (Member C/B)" as PkgAudit {
+  rectangle "Audit & Transparency (A service / B UI / C provenance)" as PkgAudit {
     usecase "UC-05\nInspect Case Status and Audit Trail" as UC05 #E8EEF7
   }
 }
@@ -128,40 +125,49 @@ UC01E .> UC01 : <<extend>>\n[initial information missing]
 UC01E .> UC02 : <<extend>>\n[NEEDS_INFORMATION or evidence gap]
 
 ' UC-02 Included & Extended Behaviours
-UC02 .> UC02_Classify : <<include>>
-UC02 .> UC02_Verify : <<include>>
-UC02 .> UC02_Evidence : <<include>>
-UC02 .> UC02_Ground : <<include>>
-UC02 .> UC02_Draft : <<include>>
-UC02 .> UC02_Risk : <<include>>
+UC02 .right.> UC02_Classify : <<include>>
+UC02 .right.> UC02_Verify : <<include>>
+UC02 .right.> UC02_Evidence : <<include>>
+UC02 .right.> UC02_Ground : <<include>>
+UC02 .right.> UC02_Draft : <<include>>
+UC02 .right.> UC02_Risk : <<include>>
 
-UC02_ReqInfo .> UC02 : <<extend>>\n[missing facts/evidence]
-UC02_Revise .> UC02 : <<extend>>\n[REVISE]
-UC02_Escalate .> UC02 : <<extend>>\n[lookup block, ESCALATE or exhausted recovery]
+UC02_ReqInfo .left.> UC02 : <<extend>>\n[missing facts/evidence]
+UC02_Revise .left.> UC02 : <<extend>>\n[REVISE]
+UC02_Escalate .left.> UC02 : <<extend>>\n[lookup block, ESCALATE or exhausted recovery]
 
 ' UC-03 Included & Extended Behaviours
-UC03 .> UC03_View : <<include>>
-UC03_Approve .> UC03 : <<extend>>\n[APPROVE with current passing risk review]
-UC03_Reject .> UC03 : <<extend>>\n[REJECT current proposal]
-UC03_ReqRev .> UC03 : <<extend>>\n[REQUEST_REVISION current proposal]
-UC03_Manual .> UC03 : <<extend>>\n[MANUAL_HANDLING current target]
-UC03_DecOutcome .> UC03 : <<extend>>\n[reject/manual outcome]
+UC03 .right.> UC03_View : <<include>>
+UC03_Approve .left.> UC03 : <<extend>>\n[APPROVE with current passing risk review]
+UC03_Reject .left.> UC03 : <<extend>>\n[REJECT current proposal]
+UC03_ReqRev .left.> UC03 : <<extend>>\n[REQUEST_REVISION current proposal]
+UC03_Manual .left.> UC03 : <<extend>>\n[MANUAL_HANDLING current target]
+UC03_DecOutcome .left.> UC03 : <<extend>>\n[reject/manual outcome]
 
 ' UC-04 Included & Extended Behaviours
-UC04 .> UC04_Val : <<include>>
-UC04 .> UC04_Cmd : <<include>>
-UC04 .> UC04_Outcome : <<include>>
+UC04 .right.> UC04_Val : <<include>>
+UC04 .right.> UC04_Cmd : <<include>>
+UC04 .right.> UC04_Outcome : <<include>>
 
-UC04_Retry .> UC04 : <<extend>>\n[confirmed safe retry and valid approval]
-UC04_Reconcile .> UC04 : <<extend>>\n[UNKNOWN or RECONCILING attempt]
-UC04_NotifRetry .> UC04 : <<extend>>\n[notification failed]
-UC04_NotifRetry .> UC03 : <<extend>>\n[decision notification failed]
-UC04_ExecEscalate .> UC04 : <<extend>>\n[retry limit reached]
+UC04_Retry .left.> UC04 : <<extend>>\n[confirmed safe retry and valid approval]
+UC04_Reconcile .left.> UC04 : <<extend>>\n[UNKNOWN or RECONCILING attempt]
+UC04_NotifRetry .left.> UC04 : <<extend>>\n[notification failed]
+UC04_NotifRetry .left.> UC03 : <<extend>>\n[decision notification failed]
+UC04_ExecEscalate .left.> UC04 : <<extend>>\n[retry limit reached]
 
 note right of UC04
   <b>Precondition:</b> Valid approval produced by UC-03.
   (Precondition is not modelled as an <<include>>
   to avoid misrepresenting temporal order as functional decomposition.)
+end note
+
+note bottom of UC02
+  Proposal-bound ESCALATE permits lawful revision/manual handling,
+  never direct approval. Only actual no-proposal failure/block
+  targets are manual-only. A second REVISE remains REVISE with
+  the current proposal when the automatic budget is exhausted.
+  Customer clarification follows current question-set/state guards;
+  it has no fixed three-round cap.
 end note
 
 @enduml
@@ -179,7 +185,7 @@ Relationship direction follows the course convention:
 
 | Actor or boundary | Permitted interaction | Explicitly prohibited |
 |---|---|---|
-| End Customer | Create a case and add statements or evidence to that case | Approve a remedy, change workflow policy, or invoke an operational tool |
+| End Customer | Create a case; answer only the current authorised question set in AWAITING_INFORMATION, under case/evidence/version guards | Approve a remedy, change workflow policy, or invoke an operational tool |
 | Human Founder | Read evidence and record four proposal-target decisions, or only MANUAL_HANDLING for the current no-proposal ProcessingFailure/OrderLookupBlock | Grant blanket authority, approve a stale/escalated proposal, bypass a failed risk review, or APPROVE/REJECT/REQUEST_REVISION a no-proposal target |
 | Read-only Mock Order Provider | Return an authorised order snapshot or typed lookup failure | Mutate orders, decide a remedy, or invent a successful match after a timeout |
 | Mock Returns Provider | Execute an approved, idempotent simulated return command | Move real money, refund, change inventory, decide a remedy, or accept an unapproved command |
@@ -208,7 +214,7 @@ never replayed to recover a later failure. Notification has an independent
 status/retry path. `COMPLETED` requires saved return and label success and a
 `SENT` outcome; `REJECTED` and `MANUAL_HANDLED` similarly require their saved
 decision and successful notification. The local
-[F.01 rc.3 candidate](../09-interface-contract-v1.md) distinguishes three
+[F.01 rc.5 candidate](../09-interface-contract-v1.md) distinguishes three
 mutually exclusive decision targets: the current proposal, a current technical
 `ProcessingFailure`, or an accepted pre-proposal `OrderLookupBlock` with status
 `CONFLICT/AUTHORITY_DENIED`. Without a proposal, an `ESCALATED` case exposes
@@ -219,7 +225,7 @@ independent notification, never a fabricated proposal, passing review,
 approval or return/label command. Source-policy conflicts stay in the
 conditional packet and independent Risk path and cannot be relabelled as an
 order block. Runtime guards and joint model/contract acceptance remain
-outstanding; PR #9 records rc.2 rather than this rc.3 revision.
+outstanding; PR #9 is historical rc.2, while PR #11 at `3dd1ff6` is the exact rc.5 source.
 
 ## 3. Use-case coverage summary
 
@@ -232,7 +238,7 @@ outstanding; PR #9 records rc.2 rather than this rc.3 revision.
 | UC-04 Execute Approved Simulated Return and Label | Founder approval from UC-03; Mock Returns/Logistics/Notification Providers support | FR-010, FR-011 | NFR-002, NFR-004, NFR-006, NFR-007, NFR-008, NFR-009 |
 | UC-05 Inspect Case Status and Audit Trail | Authorised Founder | FR-011, FR-012 | NFR-001, NFR-003, NFR-008, NFR-009 |
 
-`NFR-006 Testability` is demonstrated by automated main-success and principal
+`NFR-006 Testability` requires automated main-success and principal
 failure scenarios across use cases; it is not modelled as a separate business
 use case.
 
@@ -243,7 +249,7 @@ UC-05. Their modelling owners are B (UC-01/01E), A (UC-03/04), and C (UC-02/05).
 Internal included/extended behaviours are not additional top-level course use
 cases, and this model adds no customer status portal.
 
-Implementation follows A/B/C **45%/27%/28%**: A owns the authoritative lifecycle,
+Planned implementation effort follows A/B/C **45%/27%/28%**: A owns the authoritative lifecycle,
 Coordinator/Assessment orchestration, approval and deterministic execution; B
 owns customer and Founder UI; C owns retrieval/citation verification,
 independent Risk Reviewer, and evaluation coordination. Each owner self-tests

@@ -13,8 +13,8 @@ skinparam actorBackgroundColor #E8EEF7
 skinparam usecaseBorderColor #27465B
 skinparam usecaseBackgroundColor #FFF8E7
 skinparam noteBackgroundColor #FFF5D9
-skinparam nodesep 26
-skinparam ranksep 38
+skinparam nodesep 45
+skinparam ranksep 65
 
 ' Primary Human Stakeholders
 actor "End Customer\n<<Stakeholder / Requester>>" as actCust
@@ -28,12 +28,12 @@ actor "Simulated Notification\nProvider\n<<Secondary System>>" as actNotify
 
 rectangle "ReturnOps AU — Single-Store Returns Management System" as SystemBoundary {
 
-  rectangle "Customer Intake & Clarification (Member B)" as PkgIntake {
+  rectangle "Customer Intake & Clarification (B UI / A Domain)" as PkgIntake {
     usecase "UC-01\nLodge Return/Remedy Request" as UC01 #E8EEF7
     usecase "UC-01E\nProvide Clarification/Evidence" as UC01E #E8EEF7
   }
 
-  rectangle "Autonomous Multi-Agent Assessment & Risk Review (Member C/A)" as PkgAssess {
+  rectangle "Governed Multi-Agent Assessment & Risk Review (A/C)" as PkgAssess {
     usecase "UC-02\nAssess Case and Prepare Proposal" as UC02 #E8EEF7
     usecase "Structure and Classify Case" as UC02_Classify
     usecase "Verify Order" as UC02_Verify
@@ -43,7 +43,7 @@ rectangle "ReturnOps AU — Single-Store Returns Management System" as SystemBou
     usecase "Perform Independent Risk Review" as UC02_Risk
     usecase "Send Targeted Information Request" as UC02_ReqInfo
     usecase "Revise Proposal" as UC02_Revise
-    usecase "Escalate to Manual Handling" as UC02_Escalate
+    usecase "Escalate for Founder Disposition" as UC02_Escalate
   }
 
   rectangle "Human Governance & Override Gate (Member A/B)" as PkgReview {
@@ -67,7 +67,7 @@ rectangle "ReturnOps AU — Single-Store Returns Management System" as SystemBou
     usecase "Escalate Execution Failure" as UC04_ExecEscalate
   }
 
-  rectangle "Audit & Operational Transparency (Member C/B)" as PkgAudit {
+  rectangle "Audit & Transparency (A service / B UI / C provenance)" as PkgAudit {
     usecase "UC-05\nInspect Case Status and Audit Trail" as UC05 #E8EEF7
   }
 }
@@ -95,40 +95,49 @@ UC01E .> UC01 : <<extend>>\n[initial information missing]
 UC01E .> UC02 : <<extend>>\n[NEEDS_INFORMATION or evidence gap]
 
 ' UC-02 Included & Extended Behaviours
-UC02 .> UC02_Classify : <<include>>
-UC02 .> UC02_Verify : <<include>>
-UC02 .> UC02_Evidence : <<include>>
-UC02 .> UC02_Ground : <<include>>
-UC02 .> UC02_Draft : <<include>>
-UC02 .> UC02_Risk : <<include>>
+UC02 .right.> UC02_Classify : <<include>>
+UC02 .right.> UC02_Verify : <<include>>
+UC02 .right.> UC02_Evidence : <<include>>
+UC02 .right.> UC02_Ground : <<include>>
+UC02 .right.> UC02_Draft : <<include>>
+UC02 .right.> UC02_Risk : <<include>>
 
-UC02_ReqInfo .> UC02 : <<extend>>\n[missing facts/evidence]
-UC02_Revise .> UC02 : <<extend>>\n[REVISE]
-UC02_Escalate .> UC02 : <<extend>>\n[lookup block, ESCALATE or exhausted recovery]
+UC02_ReqInfo .left.> UC02 : <<extend>>\n[missing facts/evidence]
+UC02_Revise .left.> UC02 : <<extend>>\n[REVISE]
+UC02_Escalate .left.> UC02 : <<extend>>\n[lookup block, ESCALATE or exhausted recovery]
 
 ' UC-03 Included & Extended Behaviours
-UC03 .> UC03_View : <<include>>
-UC03_Approve .> UC03 : <<extend>>\n[APPROVE with current passing risk review]
-UC03_Reject .> UC03 : <<extend>>\n[REJECT current proposal]
-UC03_ReqRev .> UC03 : <<extend>>\n[REQUEST_REVISION current proposal]
-UC03_Manual .> UC03 : <<extend>>\n[MANUAL_HANDLING current target]
-UC03_DecOutcome .> UC03 : <<extend>>\n[reject/manual outcome]
+UC03 .right.> UC03_View : <<include>>
+UC03_Approve .left.> UC03 : <<extend>>\n[APPROVE with current passing risk review]
+UC03_Reject .left.> UC03 : <<extend>>\n[REJECT current proposal]
+UC03_ReqRev .left.> UC03 : <<extend>>\n[REQUEST_REVISION current proposal]
+UC03_Manual .left.> UC03 : <<extend>>\n[MANUAL_HANDLING current target]
+UC03_DecOutcome .left.> UC03 : <<extend>>\n[reject/manual outcome]
 
 ' UC-04 Included & Extended Behaviours
-UC04 .> UC04_Val : <<include>>
-UC04 .> UC04_Cmd : <<include>>
-UC04 .> UC04_Outcome : <<include>>
+UC04 .right.> UC04_Val : <<include>>
+UC04 .right.> UC04_Cmd : <<include>>
+UC04 .right.> UC04_Outcome : <<include>>
 
-UC04_Retry .> UC04 : <<extend>>\n[confirmed safe retry and valid approval]
-UC04_Reconcile .> UC04 : <<extend>>\n[UNKNOWN or RECONCILING attempt]
-UC04_NotifRetry .> UC04 : <<extend>>\n[notification failed]
-UC04_NotifRetry .> UC03 : <<extend>>\n[decision notification failed]
-UC04_ExecEscalate .> UC04 : <<extend>>\n[retry limit reached]
+UC04_Retry .left.> UC04 : <<extend>>\n[confirmed safe retry and valid approval]
+UC04_Reconcile .left.> UC04 : <<extend>>\n[UNKNOWN or RECONCILING attempt]
+UC04_NotifRetry .left.> UC04 : <<extend>>\n[notification failed]
+UC04_NotifRetry .left.> UC03 : <<extend>>\n[decision notification failed]
+UC04_ExecEscalate .left.> UC04 : <<extend>>\n[retry limit reached]
 
 note right of UC04
   <b>Precondition:</b> Valid approval produced by UC-03.
   (Precondition is not modelled as an <<include>>
   to avoid misrepresenting temporal order as functional decomposition.)
+end note
+
+note bottom of UC02
+  Proposal-bound ESCALATE permits lawful revision/manual handling,
+  never direct approval. Only actual no-proposal failure/block
+  targets are manual-only. A second REVISE remains REVISE with
+  the current proposal when the automatic budget is exhausted.
+  Customer clarification follows current question-set/state guards;
+  it has no fixed three-round cap.
 end note
 
 @enduml

@@ -1,35 +1,21 @@
-# Collaboration / Communication Diagram — Governed Approval & Dispatch
+# Collaboration / Communication Diagram — Governed Approval and Dispatch
 
-> **MBSE model type**: OMG UML 2.5 Communication / Collaboration Diagram (`COL-1`)
->
-> **Laboratory 5 / Criterion C7 role**: Runtime structural message model emphasising object relationships and numbered message sequences during operational dispatch.
->
-> **Status — 2026-09-15:** Task T9 completed: Authored standard OMG UML 2.5 collaboration diagram (`shared/collaboration-diagram.puml` and `shared/collaboration-diagram.svg`), securing Criterion C7b (1.5 marks).
->
-> **Contribution Split (Hard Rules H5 & H11):**
-> - Member A (`@shuxiachai`): **50% (Primary Author)** — UC-04 exact-scope approval and dispatch workflow, Operations Service orchestration, and provider integration.
-> - Member B (`@ChengsiLi`): **25% (Secondary Reviewer)** — Founder Dashboard interface, API endpoint integration, and customer notification path.
-> - Member C (`@lulucas-tao`): **25% (Secondary Reviewer)** — Approval Guard validation rules, decision fingerprinting, and audit event verification.
->
-> **Alignment baseline:** [Lead-approved v1.0 candidate](../00-project-definition-v1.md), [frozen allocation](../07-frozen-work-allocation.md), and [Composite Structure](../13-shared-composite-structure.md).
->
-> **Detailed specifications:**
-> [Stage 1 Team Report §6.2](../reports/stage-1-team-report.md) and [Use Case Specifications (UC-04)](../05-lab-3-requirement-modelling.md).
+> **COL-1; updated 2026-09-17.** B introduced this shared diagram in PR #14 at `6ddd8aa`; this follow-up is A/AI-assisted correction against [CS-0.2](../13-shared-composite-structure.md) and [AD-0.2](../14-member-a-design-decisions.md). It is a design candidate for Criterion C7b, not runtime proof, awarded marks or verified per-member percentages. Actual shared contributions and personal acceptance remain pending.
 
-## 1. Exact-Scope Approval and Dispatch Communication
+## 1. Communication model
 
-[Editable PlantUML source file](shared/collaboration-diagram.puml) · [Full SVG](shared/collaboration-diagram.svg)
+[PlantUML source](shared/collaboration-diagram.puml) · [SVG](shared/collaboration-diagram.svg) · [team report](../reports/stage-1-team-report.md)
 
 ![COL-1 Collaboration Diagram](shared/collaboration-diagram.svg)
 
-The diagram specifies the runtime communication and hierarchical message flows across subsystem components during the execution of `UC-04` (Governed Simulated Operations Execution). It traces the transition from the Human Founder's approval through the Founder Dashboard, API gateway, double Approval Guard validation, deterministic Operations Service, mock providers, notification dispatcher, and audit port.
+This condensed success-path view spans UC-03 decision admission and UC-04 execution. Numbers identify logical messages, including callbacks; multi-message edges compress repeated exchanges, not a new public API. It complements the [A sequence panels](../12-member-a-model-chain.md), which retain detailed rejection, partial-effect and recovery branches.
 
 ```plantuml
 @startuml
-title COL-1 / ReturnOps AU Collaboration & Communication Diagram\nCriterion C7b Candidate — Exact-Scope Approval and Dispatch Message Flow (UC-04)
-
+title COL-1 / ReturnOps AU Communication Diagram\nDesign candidate — exact approval, Domain acceptance and audit (UC-03/04)
+left to right direction
 skinparam defaultFontName SansSerif
-skinparam defaultFontSize 11
+skinparam defaultFontSize 12
 skinparam shadowing false
 skinparam roundCorner 8
 skinparam objectBorderColor #27465B
@@ -37,83 +23,82 @@ skinparam objectBackgroundColor #F8FAFC
 skinparam ArrowColor #27465B
 skinparam noteBackgroundColor #FFF8E7
 skinparam noteBorderColor #B27B10
-skinparam nodesep 40
-skinparam ranksep 45
+skinparam nodesep 55
+skinparam ranksep 75
 
-' --- Participating Instances ---
 object "founder : HumanFounder" as founder
 object "dashboard : FounderDashboard" as dashboard
 object "api : ApplicationAPI" as api
-object "guard : ApprovalGuard" as guard
 object "domain : DomainService" as domain
+object "guard : ApprovalGuard" as guard
 object "ops : OperationsService" as ops
-object "returnsAdapter : MockReturnsLogisticsAdapter" as returnsAdapter
-object "logisticsAdapter : MockReturnsLogisticsAdapter" as logisticsAdapter
-object "notifyAdapter : MockNotificationAdapter" as notifyAdapter
-object "auditPort : AuditPort" as auditPort
+object "provider : MockReturnsLogisticsAdapter" as provider
+object "notify : MockNotificationAdapter" as notify
+object "store : CaseRepository" as store
+object "audit : AuditPort" as audit
 
-' --- Message Sequences ---
-founder --> dashboard : 1: review_and_approve(case_id, proposal_v2)
-dashboard --> api : 1.1: POST /v1/founder/cases/{case_id}/decisions (decision)
-api --> guard : 1.1.1: validate_approval_scope(packet_v2, decision)
-guard --> domain : 1.1.1.1: persist_approval_and_transition(approval_rec)
+founder --> dashboard : 1: review exact current proposal
+dashboard --> api : 1.1: POST founder decision
+api --> domain : 1.2: decision + trusted context
+domain <--> guard : 1.3: current decision check\n1.4: verdict (not approval)
+domain --> ops : 2: dispatch saved work\n3: eligible notification work
+ops <--> domain : 2.1: current records / claim / intent (Tx B)\n2.4: operation observation -> saved result (Tx C)\n3.2: notification observation -> saved result (Tx D)
+ops <--> guard : 2.2: final dispatch scope check\nverdict for each new effect
+ops <--> provider : 2.3: authority check; guarded invoke\nraw effect observation (return, then label)
+ops <--> notify : 3.1: send persisted outcome\ndelivery observation
+domain --> store : 1.5 / 2.1 / 2.4 / 3.2:\nguarded business writes (Tx A/B/C/D)
+domain --> audit : same Tx A/B/C/D:\nrecord_non_personal_event(event, tx)
 
-domain --> ops : 2: dispatch_operation(approval_id, tool_commands)
-ops --> guard : 2.1: revalidate_at_dispatch(approval_id, fingerprint)
-ops --> returnsAdapter : 2.2: create_return(case_ref, items, auth_token)
-ops --> logisticsAdapter : 2.3: generate_label(parcel_id, weight, dimensions)
-ops --> notifyAdapter : 2.4: send_confirmation(customer_ref, tracking_number)
-ops --> auditPort : 2.5: record_audit_event(event_id, provenance_record)
-
-' --- Architectural Invariant Note ---
-note as N_BARRIER
-  <b>MBSE Architectural Invariant (Strict Authority Barrier):</b>
-  1. <b>Zero Agent Execution Authority:</b> No message connects an AI Agent to an Adapter/Provider.
-  2. <b>Double Approval Guard:</b> Guard validates approval at entry (1.1.1) and revalidates at dispatch (2.1).
-  3. <b>Deterministic Operations:</b> OperationsService executes only under non-expired, validated ApprovalRecord.
+note bottom of domain
+  <b>One authority and transaction boundary</b>
+  Tx A: accepted decision, exact approval and work.
+  Tx B: durable claim/intent before a new effect.
+  Tx C/D: accepted operation/notification facts and state.
+  Each change includes required audit and applicable work
+  in the same transaction context; failure is not success.
+  Domain alone calls CaseRepository and AuditPort.
 end note
 
-guard .. N_BARRIER
-ops .. N_BARRIER
+note bottom of ops
+  <b>Condensed success path; guards are still required</b>
+  Each effect requires current authority, scope, expiry,
+  provider permission, allowlist and durable idempotency.
+  Final checks coordinate with Domain at the call boundary.
+  Save return before label; complete label reference before
+  SUCCEEDED; save both effects before outcome notification.
+  Unknown effect: reconcile original attempt, never blind retry.
+  Known label: recover original artifact, never create again.
+  Notification retry does not repeat return or label.
+end note
 
+note top of audit
+  Provider calls are outside local database transactions.
+  Ops and Guard submit observations, not trusted audit events.
+  No AI-to-provider/DB path is authorised by this design.
+  This model is not runtime or concurrency proof.
+end note
 @enduml
 ```
 
-## 2. Message Dispatch Ledger & Hierarchical Numbering
+## 2. Message and transaction ledger
 
-The communication sequence enforces strict causal order and hierarchical call nesting using decimal message numbering:
+| Step | Sender → receiver | Required meaning |
+|---|---|---|
+| 1 / 1.1 / 1.2 | Founder → dashboard → API → Domain | Authenticated exact-target decision with server-formed trusted context; the UI cannot create authority. |
+| 1.3 / 1.4 | Domain ↔ Guard | Current-state decision check returns an internal verdict. Guard neither creates nor persists approval. |
+| 1.5 (Tx A) | Domain → CaseRepository and AuditPort | Persist accepted decision, exact ApprovalRecord, required audit and applicable work together. |
+| 2 / 2.1 (Tx B) | Domain → Operations; Operations ↔ Domain | Dispatch saved work, reload permitted current records and obtain durable claim/intent before a new effect. |
+| 2.2 / 2.3 | Operations ↔ Guard / provider | Check final current scope/expiry/authority at each effect boundary, plus provider permission, allowlist and durable idempotency. Invoke return then label under their dependencies. |
+| 2.4 (Tx C) | Operations → Domain → CaseRepository/AuditPort | Raw observations become trusted facts only after Domain validation and atomic state/audit/work acceptance. Save return before label; a label requires its controlled artifact reference before SUCCEEDED. |
+| 3 / 3.1 | Domain → Operations → notification adapter | Only the accepted persisted outcome selects notification. Core success requires both saved effects first; reject/manual paths can notify without effects. |
+| 3.2 (Tx D) | Operations → Domain → CaseRepository/AuditPort | Accept delivery result, state, required audit and any retry work together. Failed notification never replays return/label. |
 
-| Sequence No. | Sender | Receiver | Invocation Signature | Architectural Concern & Invariant |
-|---|---|---|---|---|
-| `1` | `founder` | `dashboard` | `review_and_approve(case_id, proposal_v2)` | Human Founder executes explicit approval decision on dashboard UI (`UC-03`). |
-| `1.1` | `dashboard` | `api` | `POST /v1/founder/cases/{case_id}/decisions (decision)` | Client submits authenticated approval payload containing proposal ID and scope. |
-| `1.1.1` | `api` | `guard` | `validate_approval_scope(packet_v2, decision)` | **Initial Guard Validation:** Verifies decision hash matches proposal v2; checks expiry. |
-| `1.1.1.1` | `guard` | `domain` | `persist_approval_and_transition(approval_rec)` | Domain Service writes immutable `ApprovalRecord` and transitions `ReturnCase` to `APPROVED`. |
-| `2` | `domain` | `ops` | `dispatch_operation(approval_id, tool_commands)` | Domain Service requests simulated operations dispatch for approved line items. |
-| `2.1` | `ops` | `guard` | `revalidate_at_dispatch(approval_id, fingerprint)` | **Dispatch Revalidation:** Verifies approval has not expired, case has not been superseded, and scope matches. |
-| `2.2` | `ops` | `returnsAdapter` | `create_return(case_ref, items, auth_token)` | Deterministic dispatch to Mock Returns Provider; generates return parcel reference. |
-| `2.3` | `ops` | `logisticsAdapter` | `generate_label(parcel_id, weight, dimensions)` | Deterministic dispatch to Mock Logistics Adapter; creates consignment tracking and printable label. |
-| `2.4` | `ops` | `notifyAdapter` | `send_confirmation(customer_ref, tracking_number)` | Simulated customer notification dispatched with label access link. |
-| `2.5` | `ops` | `auditPort` | `record_audit_event(event_id, provenance_record)` | Immutable audit record logged via `AuditPort` recording causal actor, hash, and timestamp. |
+## 3. Authority and recovery boundaries
 
----
+Domain alone calls `CaseRepository` and `AuditPort`. Business writes, required non-personal audit and applicable work share the same transaction context; a separate audit append cannot turn a failed state transaction into success. Operations/provider/Guard observations return to Domain for validation; none can directly write trusted business audit.
 
-## 3. Architectural Analysis: Invariants & Authority Barriers
+External effects are outside the local database transaction. Before every new effect, final checks must coordinate with current Domain state, authority generation and durable claims at the actual call boundary. Merely checking twice does not prove freedom from races; AD-0.2 and later concurrency/fault tests govern that unproven implementation boundary. A permitted version change is an internal guarded action, not an arbitrary post-review customer append route.
 
-### 3.1 Structural Communication (`COL-1`) vs Temporal Sequence (`INT-1`)
-While sequence diagrams (`sequenceDiagram` / `INT-1`) emphasise the linear chronological timeline of message lifelines, the communication diagram (`COL-1`) highlights the structural topology of interacting components. In `COL-1`, spatial positioning reflects component relationships:
-- The human operator interacts strictly with the frontend presentation layer (`dashboard`).
-- The frontend interacts strictly with the application boundary (`api`).
-- The deterministic backend services (`domain`, `ops`) mediate all access to external mock providers.
-- The diagram makes immediately visible that no cross-boundary links bypass security controls.
+Unknown effects reconcile the original attempt before any justified retry. A known label effect with incomplete local artifact retains EXECUTING and recovers that same artifact without reinvocation; only complete saved result/reference permits SUCCEEDED. Notification recovery remains independent. Late results do not overwrite an accepted manual/rejected case outcome. The diagram omits AI-to-provider/DB paths as a design restriction; runtime enforcement still needs implementation and negative tests.
 
-### 3.2 The Double Approval Guard Invariant
-In accordance with Invariant 3 in `docs/00` §10.4, an approval valid when granted by a human founder can become invalid by the time operations dispatch occurs (e.g. if the customer concurrently submits an amended statement, or if the authorisation TTL expires). To eliminate this race condition:
-1. **Invocation `1.1.1`:** `Approval Guard` validates the proposal at the moment of Founder decision entry, ensuring the Founder is approving the exact grounded proposal version (`proposal_version = 2`).
-2. **Invocation `2.1`:** `Operations Service` invokes `Approval Guard` immediately prior to dispatching physical tool commands. If the case state has drifted or the authorisation has expired, dispatch is aborted with an audit failure.
-
-### 3.3 Strict Execution Barrier (Zero Agent Execution Authority)
-In accordance with Hard Rule H1 and Project Description requirements, autonomous LLM agents (Customer Case Coordinator Agent, Returns Assessment Agent, Compliance & Risk Reviewer Agent) are **completely excluded from operations execution**:
-- No message arrow originates from an AI agent to `returnsAdapter`, `logisticsAdapter`, or `notifyAdapter`.
-- All operations execution is mediated by `Operations Service`, which is pure deterministic software without LLM components.
-- Operations Service executes solely upon receiving a validated `ApprovalRecord` containing an unexpired cryptographic fingerprint of the Founder's decision.
+See [follow-up disposition](../reviews/b-shared-model-followup-20260917.md) for exact sources and validation scope. No B personal model, public DTO, route, feature owner or WBS dependency changes here.

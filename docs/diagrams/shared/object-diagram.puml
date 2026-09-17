@@ -1,5 +1,5 @@
 @startuml
-title OBJ-1 / ReturnOps AU Concrete Named-Instance Object Diagram\nCriterion C7a Candidate — Runtime Instance Snapshot at Governance Decision Gate (AWAITING_APPROVAL)
+title OBJ-1 / ReturnOps AU Concrete Named-Instance Object Diagram\nCriterion C7a Candidate — Synthetic Instance Snapshot at Governance Decision Gate (AWAITING_APPROVAL)
 
 skinparam defaultFontName SansSerif
 skinparam defaultFontSize 11
@@ -21,8 +21,8 @@ object "cust101 : Customer" as cust101 {
 
 object "case101 : ReturnCase" as case101 {
   case_id = "CASE-2026-0881"
-  case_version = 2
-  input_version = 1
+  case_version = 8
+  input_version = 3
   status = AWAITING_APPROVAL
   created_at = "2026-09-14T08:30:00Z"
 }
@@ -49,7 +49,7 @@ object "stmt102 : CustomerStatement" as stmt102 {
 }
 
 object "facts101 : ExtractedFacts" as facts101 {
-  input_version = 1
+  input_version = 3
   issue_category = FAULTY_OR_QUALITY_ISSUE
   customer_requested_outcome = REPLACEMENT
   possible_basis = CONSUMER_GUIDANCE
@@ -122,15 +122,15 @@ object "doc2 : PolicyDocument" as doc2 {
   optional_published_version = "2024.1"
   accessed_on = "2026-09-01"
   corpus_version = "2026.1"
-  is_synthetic = false
+  is_synthetic = true
 }
 
 object "p2 : PolicyPassage" as p2 {
   passage_id = "PAS-ACL-MAJOR"
   source_id_ref = "DOC-ACL-GUIDE-02"
-  source_location = "ACL Consumer Guarantees Guide p. 18"
+  source_location = "Synthetic guidance fixture / section G1"
   content_hash = "sha256:47b2c9..."
-  content = "Statutory consumer guarantees against major failure cannot be excluded by store policies"
+  content = "Synthetic guidance: assess applicable remedies separately from a store time window"
   retrieved_at = "2026-09-14T08:35:00Z"
 }
 
@@ -138,13 +138,13 @@ object "p2 : PolicyPassage" as p2 {
 object "prop101 : DecisionPacket" as prop101 {
   proposal_id = "PROP-8812"
   proposal_version = 2
-  input_version = 1
+  input_version = 3
   statement_refs = ["STMT-001", "STMT-002"]
   recommended_action = REPLACE_ITEM
   alternatives = ["REFUND_TO_ORIGINAL_PAYMENT", "REPAIR"]
-  conditional_rationale = "Customer provided photo of crack on arrival; ACL guarantee supersedes merchant 14-day limit"
+  conditional_rationale = "Synthetic scenario assumes claim within store window; consider replacement subject to Founder review"
   open_questions = []
-  responsibility_and_cost_facts = "Merchant absorbs return shipping; supplier warranty claim lodged"
+  responsibility_and_cost_facts = "Synthetic candidate: merchant-funded return proposed; no supplier claim or effect executed"
   confidence = 0.88
   model_prompt_version = "prompt-assmt-v2.1"
 }
@@ -161,7 +161,7 @@ object "cit2 : Citation" as cit2 {
   citation_id = "CIT-02"
   claim_ref = "CLAIM-ACL-NONEXCLUDABLE"
   passage_id_ref = "PAS-ACL-MAJOR"
-  cited_location = "Guide p. 18"
+  cited_location = "Synthetic section G1"
   cited_content_hash = "sha256:47b2c9..."
 }
 
@@ -169,7 +169,7 @@ object "rev101 : ProposalReview" as rev101 {
   review_id = "REV-9901"
   proposal_id_ref = "PROP-8812"
   proposal_version = 2
-  input_version = 1
+  input_version = 3
   corpus_version = "2026.1"
   decision = PASS_WITH_WARNING
   reviewer_invocation_id = "INV-771"
@@ -181,7 +181,7 @@ object "rev101 : ProposalReview" as rev101 {
 object "rf101 : RiskFinding" as rf101 {
   finding_id = "RF-01"
   category = POLICY_CONFLICT
-  reason = "Store policy states 14-day return window; ACL guidance asserts non-excludable statutory guarantee for major failure"
+  reason = "Different source scopes retained; within-window fixture permits a conditional proposal, no unresolved blocking conflict"
   supporting_refs = ["PAS-STORE-14D", "PAS-ACL-MAJOR"]
   blocks_execution = false
 }
@@ -213,12 +213,13 @@ prop101 *-- cit2 : cites
 cit1 --> p1 : resolves_to
 cit2 --> p2 : resolves_to
 prop101 --> stmt101 : references_original
+prop101 --> stmt102 : references_original
 
 case101 *-- rev101 : records_reviews
 rev101 --> prop101 : reviews_exact_version
 rev101 *-- rf101 : records_findings
 
-' --- Invariant Note: The Empty Space Argument ---
+' --- Illustrative governance boundary, not execution evidence ---
 note as N_GOV
   <b>MBSE Governance Boundary Condition (Decision Gate Snapshot):</b>
   At this precise logical moment (case101.status = AWAITING_APPROVAL):
@@ -226,8 +227,11 @@ note as N_GOV
   -- <b>ToolCommand</b> (CreateReturnCommand / GenerateLabelCommand) do NOT exist
   -- <b>OperationAttempt</b> does NOT exist (no external dispatch has occurred)
   -- <b>ReturnParcel / ParcelLabel</b> do NOT exist
-  <i>The absence of these execution objects proves that autonomous AI agents</i>
-  <i>possess zero authority to disburse funds or trigger external side-effects.</i>
+  All values, passages, hashes and content references are synthetic fixtures.
+  input v1: initial statement; v2: accepted order snapshot; v3: clarification.
+  case v8 is a separate illustrative business revision; old records are omitted.
+  Object absence illustrates this chosen snapshot, not an authority proof.
+  Runtime authorisation, current-state guards and negative tests remain required.
 end note
 
 case101 .. N_GOV
