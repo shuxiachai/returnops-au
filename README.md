@@ -1,6 +1,6 @@
 # ReturnOps AU
 
-> **Delivery handoff — 2026-09-16:** see [deliverables, next actions and cautions](#delivery-handoff--2026-09-16) below. This is a dated C-branch handoff, not a new status board or a main merge. Older local/publication notices are historical; use the exact PR commits and review evidence linked in the handoff for current work.
+> **Review handoff — 2026-09-17:** see the [current review entrance](#review-handoff--2026-09-17), including C's populated delivery/AI-use record and A's new report-integration receipt. The [September 16 handoff](#delivery-handoff--2026-09-16) remains a historical delivery snapshot; it is not a live status board or a main merge.
 
 > **rc.5 publication reference (2026-09-07):** this revision is delivered through [PR #11](https://github.com/shuxiachai/returnops-au/pull/11), identified by the actual commit containing this notice. The PR records the exact source SHA, CI runs and review state; C must reproduce that SHA, not old `57d86fe` or a floating branch. Local-only/unpublished wording, test runs and raw-file hashes below are pre-publication history. Current Git content is recorded in `docs/reviews/rc5-publication-artifacts-20260907.json`. Publication does not establish acceptance, B/C review, C reproduction or a Jira update.
 
@@ -66,7 +66,20 @@ These are prototype targets, not achieved results. Proposal latency runs from
 accepted complete input to the stored review-ready packet, includes machine
 revision/risk loops and excludes human/physical waiting only.
 
+## Review handoff — 2026-09-17
+
+No separate handoff folder is required. Review the existing [C PR #12](https://github.com/shuxiachai/returnops-au/pull/12), using its **latest exact head and checks**, not the older B approval of `c9f205d` or A COMMENT on `32c704f`.
+
+1. Read [C's delivery and AI-use record, MC-PER-0.2](docs/reports/member-c-contribution-and-interview.md). Section 1.1 links the actual model/figure/report/review artifacts, §2 and §3 explain their technical basis, §4 distinguishes supplied material from pending shared participation, and §6 provides a factual AI-disclosure draft. These are C-owned, AI-assisted candidate deliverables, not a claim of unaided work or a completed personal explanation. Real personal walkthrough dates/feedback and final confirmation remain unfilled.
+2. Review [MC-0.1.3](docs/18-member-c-model-chain.md), the [seven C source/view pairs](docs/diagrams/member-c) and [MC-RPT-0.4](docs/reports/member-c-stage1-draft.md). **A:** record the review target SHA, findings or approval, and Object/class consistency disposition in PR #12. If C adds further commits, review the new increment before final approval.
+3. Check the new [A-authored correction in B PR #14 at `1b094289`](https://github.com/shuxiachai/returnops-au/blob/1b094289c219727d9e42e694ade6f13431c34c7b/docs/reviews/b-shared-model-followup-20260917.md) and [team-report candidate](https://github.com/shuxiachai/returnops-au/blob/1b094289c219727d9e42e694ade6f13431c34c7b/docs/reports/stage-1-team-report.md). This supplies a candidate receipt for C's six report findings and uses C `15c136a`; it is not a merged final report, the shared Google Doc, completed M-S.03 or a substitute for A's C review.
+4. Resolve the stacked merge explicitly. C PR #12 targets A's `fix/10-kan-32-contract-review`, not main. Recommended order: complete the upstream review/acceptance decision for [PR #11](https://github.com/shuxiachai/returnops-au/pull/11), merge that approved dependency, then reconcile C with the resulting main, check the C-only diff and fresh CI, and review/merge the final C revision. Do not retarget the old C head to main merely to display a contributor name: it also carries A's unmerged history and lacks A's later `3dd1ff6` test correction. Preserve authorship and do not silently merge unrelated A/B work.
+
+After actual publication/review/merge events, synchronize the matching Jira evidence and status, keeping [KAN-22](https://lucastaooo.atlassian.net/browse/KAN-22) acceptance distinct from [F.01 / KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32), [F.02 / KAN-33](https://lucastaooo.atlassian.net/browse/KAN-33) and [F.03 / KAN-34](https://lucastaooo.atlassian.net/browse/KAN-34). Do not backdate transitions or equate a merge/CI pass with Done, clean-Git/PG17 reproduction, personal understanding, runtime implementation or course submission. This text does not itself record a Jira change.
+
 ## Delivery handoff — 2026-09-16
+
+Historical snapshot: the current review entrance above supersedes its pending report-receipt wording and worksheet version; original evidence and dates below are retained.
 
 **Published for review, not accepted:** C's delivery snapshot is
 [`048bf760`](https://github.com/shuxiachai/returnops-au/commit/048bf76099f9c2828ff2b46c8bda8677b01f8ba1)
