@@ -1,0 +1,96 @@
+@startuml
+title Member C - Grounding and independent Risk Review\nMC-ACT-0.1 candidate, 2026-09-12
+skinparam shadowing false
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 14
+skinparam activityBackgroundColor #EEF4F8
+skinparam activityBorderColor #27465B
+skinparam ArrowColor #27465B
+skinparam noteBackgroundColor #FFF5D9
+|A: Domain / Orchestrator|
+start
+:C01 Load authorised current work/input\nand accepted read-only order result;
+if (Authorised and current?) then (yes)
+else (no)
+  :Reject obsolete/unauthorised work;\nno change to replacement round;
+  stop
+endif
+if (Pre-proposal order block?) then (CONFLICT / AUTHORITY_DENIED)
+  :Persist actual OrderLookupBlock;\nmanual-only UC-03, no fake review;
+  stop
+endif
+if (Order/input usable?) then (yes)
+else (no)
+  :Correctable missing information -> Coordinator;\ntechnical error -> bounded recovery;\nno invented order or Risk outcome;
+  stop
+endif
+|C1: Retrieval / Verification|
+:C02 retrieve(RetrievalRequest)\nPreserve passages, provenance and conflicts;
+note right
+  NO_MATCH is a typed empty result.
+  Port error is a technical error.
+  Neither means Risk PASS.
+end note
+|A: Domain / Orchestrator|
+if (Retrieval port returned valid result?) then (yes)
+else (technical error)
+  :Record actual RETRIEVAL failure;\nbounded recovery, no fabricated source or PASS;
+  stop
+endif
+|A: Assessment / Orchestrator|
+:C03 Draft non-executable DecisionPacket;\npreserve original statement references;
+|C1: Retrieval / Verification|
+:verify_citations(CitationVerificationRequest)\nCheck exact location, version and hash;
+|A: Domain / Orchestrator|
+if (Verification port returned valid result?) then (yes)
+else (technical error)
+  :Record actual-stage technical failure;\nbounded recovery, no inferred valid citations;
+  stop
+endif
+:C04 Validate complete material and bindings;\ncheck every capacity without truncation;
+if (Complete admissible bundle?) then (yes)
+  :Atomically accept proposal +\nHistoricalProposalBundle + audit;
+else (no)
+  :No new current proposal / no partial review;\npreserve history; actual-stage typed failure;\ncapacity excess = REQUEST_TOO_LARGE, non-retryable;
+  stop
+endif
+:Select current work/round/invocation;\nsupply accepted RiskReviewRequest;
+|C2: Independent Risk Reviewer|
+:C05 Separate prompt and model invocation;\ncheck support, conflict, missing evidence,\nscope, confidence, injection and authority;
+note right
+  Read accepted original material,
+  not generator hidden reasoning.
+  No proposal edit, state write,
+  approval or provider capability.
+end note
+|A: Domain / Orchestrator|
+:C06 Validate reply / current bindings\nand atomic selected invocation guard;
+if (Event still selected and current?) then (yes)
+else (no)
+  :Discard for current use; obsolete reply, timeout,\nretry or exhaustion cannot alter newer round;
+  stop
+endif
+if (Well-formed valid business result?) then (yes)
+  :Atomically store RiskReview + audit;\nretain exact proposal/input/corpus binding;
+else (no / timeout)
+  :Bounded technical recovery of selected invocation;\notherwise explicit failure handling;\nnever fabricate PASS or a sixth outcome;
+  stop
+endif
+switch (RiskReview.outcome)
+case (PASS / PASS_WITH_WARNING)
+  :C07 Present current packet and any warnings;\nno BLOCK finding; AWAITING_APPROVAL\nonly if other Domain guards also pass;
+case (REVISE)
+  :C08 Route specific revision_requests;\nwithin budget -> new proposal/version and review;\nbudget exhausted -> explicit escalation, no fake outcome;
+case (NEEDS_INFORMATION)
+  :C09 Coordinator / UC-01E questions;\naccepted current answer -> new input/proposal;\nold review remains historical;
+case (ESCALATE)
+  :C10 Show BLOCK findings to Founder;\ncurrent proposal may be revised or handled manually;\nnever approve this escalated proposal;
+endswitch
+stop
+legend bottom
+One admitted analysis round. Revision/clarification schedules a separately guarded round.
+Only Domain writes business state. PASS is not approval. No operation is dispatched here.
+Source-policy conflict != pre-proposal OrderLookupBlock != technical ProcessingFailure.
+AI-assisted refinement of the shared report discussion candidate; A/C review pending.
+endlegend
+@enduml

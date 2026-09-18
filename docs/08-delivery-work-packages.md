@@ -1,5 +1,7 @@
 # ReturnOps AU：可执行工作包与验收清单
 
+> **2026-09-14 课程核对补充：**[docs/19](19-course-assessment-requirements.md)是当前课程来源和全员验收说明，[docs/11](11-stage1-readiness.md)是提交核验入口。仅补充课程覆盖与证据要求，不改变 89 项 ID/Owner/Reviewer/S/F，不将记录要求当作已完成进度。
+
 > 状态：Planned；本文件列出计划与验收条件，不代表功能已经实现。功能归属与边界的唯一来源是 [固定分工方案](07-frozen-work-allocation.md)，需求依据为 [v1.0 候选基线](00-project-definition-v1.md)。候选基线的正式采纳条件不因本清单创建而改变。
 
 ## 1. 使用约定
@@ -172,7 +174,7 @@ A 的 [MA-0.2 个人模型链候选](12-member-a-model-chain.md)在既有规格�
 | M-C.05 | C | A | M-C.04 | — | C 链一致性核验 | 一条通过、一条冲突升级、一条补信息案例走通；类/活动/顺序/状态和 UC 一致。 |
 | M-C.06 | C | A | M-C.05 | — | C 的报告段落与答辩证据 | 个人模型/实现/评测证据区分，说明局限；Jira 维护不替代两个核心功能；研究来源摘要控制为报告约 1–2 页并引用冻结附录。 |
 | M-S.01 | A | C | F.01 | M-A.01、M-B.01、M-C.01 | 共享 Class/Package/Deployment 核验 | 三 AI 与确定性服务、接口、版本和部署边界统一；按 Lab 5 核对实际模式→组件/交互→优缺点→FR/NFR、关键类属性/方法及关联多重性，方法输入/输出/可信上下文/异常可解释；每人共享贡献有作者/评审证据；候选图和未运行部署图不算已验收/已部署。 |
-| M-S.02 | A | C | M-S.01 | — | Composite Structure 核验 | 显式 ports/connectors；独立 Risk、Approval Guard 和 Audit Port 可追踪；没有 Agent→操作 provider 直连。 |
+| M-S.02 | A | C | M-S.01 | — | Composite Structure 与对象实例图核验 | 保留显式 ports/connectors、独立 Risk、Approval Guard 和 Audit Port，无 Agent→操作 provider 直连；按 Lab 6 补具名实例/具体属性值/链接及逻辑时刻的 Object Diagram，与既有类和 Composite 区分且一致；合成快照不算运行证据，三人实际贡献可定位。 |
 | M-S.03 | B | A | M-B.01 | M-A.01、M-C.01、M-S.02 | 分类/Feature/Use-case 及全模型索引 | C 提供需求分类及追踪核对，B 整合 Feature/Use-case/全模型索引并保留具体贡献；六个 UC 的规格/图对应，三人两核心一可选可定位；共享图与个人链引用一致；需后续实现的图仍标 Planned。 |
 
 ## 13. E：受控评测与各自测试
