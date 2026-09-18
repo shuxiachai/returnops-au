@@ -1,5 +1,7 @@
 # ReturnOps AU
 
+> **Course requirements checked 2026-09-14:** start with the [shared Canvas/rubric requirements and A/B/C evidence map](docs/19-course-assessment-requirements.md), then the [Stage 1 submission checklist](docs/11-stage1-readiness.md). This clarifies personal/shared models, Lab 6 Object Diagram, AI acknowledgement and the visible Oct 4 deadline, without changing feature owners or declaring coursework accepted. Older dated preparation notices below retain their original scope.
+
 > **rc.5 publication reference (2026-09-07):** this revision is delivered through [PR #11](https://github.com/shuxiachai/returnops-au/pull/11), identified by the actual commit containing this notice. The PR records the exact source SHA, CI runs and review state; C must reproduce that SHA, not old `57d86fe` or a floating branch. Local-only/unpublished wording, test runs and raw-file hashes below are pre-publication history. Current Git content is recorded in `docs/reviews/rc5-publication-artifacts-20260907.json`. Publication does not establish acceptance, B/C review, C reproduction or a Jira update.
 
 > Topic status: the project lead approved the Baseline v1.0 candidate on
@@ -65,6 +67,32 @@ accepted complete input to the stored review-ready packet, includes machine
 revision/risk loops and excludes human/physical waiting only.
 
 ## Project documents
+
+### Reading order and member entry points
+
+Start with the course requirements, then the product definition, frozen allocation
+and delivery work packages. Use the submission checklist when assembling the final
+report/video. The links below are navigation, not a second task or status board.
+
+| What you need | Read here |
+|---|---|
+| Current course requirements and rubric | [Course requirements and A/B/C evidence map](docs/19-course-assessment-requirements.md) |
+| Product scope, ownership and task acceptance | [Project definition](docs/00-project-definition-v1.md) → [Frozen allocation](docs/07-frozen-work-allocation.md) → [Delivery work packages](docs/08-delivery-work-packages.md) |
+| Final report, video, interview and submission checks | [Stage 1 readiness / R.04 checklist](docs/11-stage1-readiness.md) |
+| A: personal models and design rationale | [A model chain](docs/12-member-a-model-chain.md), [A design decisions](docs/14-member-a-design-decisions.md), [A review PR #11](https://github.com/shuxiachai/returnops-au/pull/11) |
+| B: intake/UI work and model-index integration | [B review PR #8](https://github.com/shuxiachai/returnops-au/pull/8); use its actual files/review history, with responsibilities fixed by docs/07–08 |
+| C: personal models and report text | [C model chain](https://github.com/shuxiachai/returnops-au/blob/docs/kan-22-c-model-review/docs/18-member-c-model-chain.md), [C Stage 1 report](https://github.com/shuxiachai/returnops-au/blob/docs/kan-22-c-model-review/docs/reports/member-c-stage1-draft.md) |
+| C: figures, actual contribution and explanation | [Editable PUML and SVG figures](https://github.com/shuxiachai/returnops-au/tree/docs/kan-22-c-model-review/docs/diagrams/member-c), [Personal contribution / interview worksheet](https://github.com/shuxiachai/returnops-au/blob/docs/kan-22-c-model-review/docs/reports/member-c-contribution-and-interview.md), [Dated course-alignment checks](https://github.com/shuxiachai/returnops-au/blob/docs/kan-22-c-model-review/docs/reviews/member-c-course-alignment-20260914.md) |
+| Shared structure and team integration | [Class model](docs/diagrams/01-domain-class-diagram.md), [Composite views](docs/13-shared-composite-structure.md); C's proposed Object slice is in the figure directory above, for A review and B indexing |
+| Workflow and evidence | [Jira/GitHub workflow](docs/03-team-and-github-workflow.md), [Model-check instructions](tools/model-checks/README.md) |
+
+C's links deliberately point to the separate [C review branch / PR #12](https://github.com/shuxiachai/returnops-au/pull/12);
+the shared course update is [PR #13](https://github.com/shuxiachai/returnops-au/pull/13).
+These review locations do not imply a main merge, personal explanation or team
+acceptance. Keep full editable models alongside report-sized views; retain actual
+contribution and review evidence rather than treating a file's presence as completion.
+
+### Full document catalogue
 
 - [Baseline v1.0 candidate — lead approved, pending team/tutor review](docs/00-project-definition-v1.md)
 - [Frozen work allocation v1.0 — owners, nine features and change rules](docs/07-frozen-work-allocation.md)
