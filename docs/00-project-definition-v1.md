@@ -17,8 +17,12 @@
 > adoption condition above is met, earlier v0.2 versions remain historical
 > inputs. Documents `01`–`05` and the five shared diagrams have a v1.0
 > alignment draft published in [PR #9](https://github.com/shuxiachai/returnops-au/pull/9),
-> together with F.01 rc.2. Consult that PR's merge record for main publication;
-> peer/tutor acceptance remains pending independently of the lead's merge instruction.
+> together with F.01 rc.2. That PR is the historical publication; the current
+> `1.0.0-rc.4` contract/model review candidate for
+> [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32) uses
+> [PR #11](https://github.com/shuxiachai/returnops-au/pull/11) as its review entry.
+> Check that PR for the actual head and reviews; rc.3 is an earlier candidate.
+> Peer/tutor acceptance remains pending independently of publication.
 > [PR #6](https://github.com/shuxiachai/returnops-au/pull/6) published the candidate
 > and frozen allocation under the lead's early-publication instruction; current
 > model alignment and individual contributions must still be reviewed.
@@ -305,22 +309,29 @@ Independence means that it:
 
 ### 4.4 Human Founder
 
-The Founder may approve, reject, request revision, or escalate to manual
-handling. Every decision binds the trusted actor, case ID, proposal ID and
-version, reason, and timestamp. An approval additionally binds:
+The Founder may approve, reject, request revision, or record a manual outcome
+for a current proposal. Every decision binds the trusted actor, case ID,
+reason, timestamp and exactly one current target: the proposal ID/version,
+or, for manual handling only when no current proposal exists, a persisted
+technical failure or order-lookup block. An approval additionally binds:
 
 - the exact command set;
 - parameter fingerprint;
 - amount ceiling where applicable; and
 - expiry.
 
-**Joint-review note (PR #9, not yet adopted):** the proposal-bound summary
-above and FR-009 require confirmation against the no-proposal technical-failure
-manual path in [F.01 rc.2, section 8.1](09-interface-contract-v1.md#81-提案不存在时的技术失败人工路径).
-That candidate records the current persisted failure instead of inventing a
-proposal; it permits only a non-executable manual outcome and notification.
-All executable approvals remain proposal-bound. This note records the pending
-wording alignment, not B/C/tutor acceptance or new execution authority.
+**Joint-review clarification (introduced in `1.0.0-rc.3`; current `1.0.0-rc.4` review candidate, not yet adopted):**
+[F.01 section 8.1](09-interface-contract-v1.md#81-提案不存在时的人工路径)
+distinguishes actual technical errors (`ProcessingFailure`) from an accepted
+pre-proposal order lookup returning `CONFLICT` or `AUTHORITY_DENIED`
+(`OrderLookupBlock`). An `ESCALATED` case without a current proposal exposes
+exactly one current record and permits only `MANUAL_HANDLING` targeting that
+record. It creates an audited outcome and notification, never a proposal,
+passing review, approval or return/label command. Source-policy conflicts
+remain evidence for a conditional packet and independent Risk review; they
+are not order-lookup blocks. Proposal revision and every executable approval
+remain proposal-bound. This clarification requires B/C/tutor review and does
+not change the fixed allocation or claim runtime implementation.
 
 ### 4.5 Deterministic Operations Service
 
@@ -348,7 +359,8 @@ The Operations Service is not a free-deciding AI agent. It only:
 | `RecommendedAction` | The system's conditional next step, stored separately from the customer request |
 | `RiskDecision` | `PASS`, `PASS_WITH_WARNING`, `REVISE`, `NEEDS_INFORMATION`, or `ESCALATE` |
 | `ApprovalDecision` | `APPROVE`, `REJECT`, `REQUEST_REVISION`, or `MANUAL_HANDLING` |
-| `OperationResult` | `SUCCEEDED`, `FAILED`, `UNKNOWN`, or `RECONCILING` |
+| `OperationStatus` | `PENDING`, `EXECUTING`, `SUCCEEDED`, `FAILED`, `UNKNOWN`, `RECONCILING`, or `BLOCKED`; the status of an `OperationAttempt` |
+| `OperationResult` | Typed confirmed-success payload for `CREATE_RETURN` or `GENERATE_LABEL`; failure/uncertainty remains on `OperationAttempt`, not a success-shaped result |
 | `DecisionPacket` | A non-executable package of facts, evidence, citations, conditional recommendations, alternatives, risks, and open questions |
 
 ---
@@ -365,7 +377,7 @@ The Operations Service is not a free-deciding AI agent. It only:
 | `FR-006` | The system shall retrieve grounding only from a reviewed, versioned store-policy and consumer-guidance corpus. | Every passage includes source ID, source type, source version when one exists, access date, location, content hash, and retrieval time; provenance completeness is 100%; a material case-relevant source conflict is routed to Risk Review. |
 | `FR-007` | The Assessment Agent shall create a schema-valid, versioned, non-executable decision packet that references the original `CustomerStatement` rather than copying it as a second source of truth. | The packet contains the customer-statement reference, conditional recommendation, alternatives, rationale, citations, confidence, open questions, and relevant return-responsibility/cost facts; packet completeness ≥95% using a denominator frozen in the label guide; it cannot be converted directly into an approval or command. |
 | `FR-008` | The Risk Reviewer shall independently check citations, conflicts, missing evidence, out-of-scope content, low-confidence output, prompt injection, and authority manipulation. | Risk-escalation recall ≥95% and specificity ≥80%; `REVISE` and `NEEDS_INFORMATION` return to assessment/intake. `ESCALATE` may be shown to the Founder for manual handling but cannot be approved for execution; an executable path requires a new proposal that receives `PASS` or `PASS_WITH_WARNING`. |
-| `FR-009` | Only an authenticated and authorised Founder may approve, reject, request revision, or record a manual-handling outcome for the current proposal. | Expired, wrong-case, stale-proposal, wrong-actor, wrong-command, over-scope, and parameter-changed approvals are invalid; AI cannot create a trusted `ApprovalRecord`; revision returns to Assessment; rejection/manual closure records and sends an audited customer-facing outcome. |
+| `FR-009` | Only an authenticated and authorised Founder may approve, reject, request revision, or record a manual-handling outcome for the current proposal. When an `ESCALATED` case has no current proposal, only manual handling may target its current persisted technical failure or pre-proposal order-lookup block. | Each decision has exactly one current target; stale, cross-case or wrong-input targets are rejected. Expired, wrong-actor, wrong-command, over-scope, and parameter-changed approvals are invalid; AI cannot create a trusted `ApprovalRecord`. Revision requires a current proposal and returns to Assessment. Rejection/manual closure records and sends an audited customer-facing outcome; neither no-proposal target creates approval or return/label work. |
 | `FR-010` | The Operations Service shall execute only allowlisted simulated commands that exactly match a current valid approval, independently verifying required provider authority before any effect. | Every attempt records provider ID, operation fingerprint, typed business result/error, and idempotency key. A repeated key produces at most one effect. An ambiguous timeout enters `UNKNOWN/RECONCILING`; provider-specific reconciliation occurs before any retry. Notification retry cannot repeat the return operation. Customer notification states the outcome, next step, and relevant packaging/drop-off/responsibility/cost information. No real order, inventory, money, or shipment changes. |
 | `FR-011` | The system shall maintain a reconstructable, tamper-evident audit trail while separating identifiable content from non-personal integrity records. | A correlation ID reconstructs input references, model/component and corpus versions, proposal, risk review, approval, state transition, provider ID/fingerprint/result, and notification. Identifiable content follows purpose, minimisation, retention, redaction, deletion, and de-identification rules; immutable event IDs/hashes preserve non-personal chain integrity after permitted PII removal. |
 | `FR-012` | The Founder Dashboard shall show authoritative case state, evidence, citations, current proposal, risk, approval scope, operation result, notification state, and audit history. | The dashboard reads the authoritative API and maintains no second workflow state; unauthorised users cannot access Founder data; every proposal and approval displays its version. |
@@ -441,7 +453,7 @@ chain.
 | `UC-01` | Lodge a return/remedy request | End Customer | — | Customer Portal | Member B | B; A supplies API contract |
 | `UC-01E` | Provide requested clarification or evidence | End Customer | — | Customer Portal, Coordinator | Member B | B; A supplies workflow contract |
 | `UC-02` | Obtain an evidence-grounded decision packet and risk assessment | Human Founder | Mock Order Provider | Coordinator, Assessment Agent, Risk Reviewer, Versioned Corpus | Member C | C owns grounding/review; A integrates orchestration |
-| `UC-03` | Review and decide the current proposal | Human Founder | Notification Provider | Founder Dashboard, Approval Guard | Member A | A owns decision rules; B supplies interface |
+| `UC-03` | Review a current proposal or record a no-proposal manual outcome | Human Founder | Notification Provider | Founder Dashboard, Approval Guard | Member A | A owns decision rules; B supplies interface |
 | `UC-04` | Execute exactly the approved simulated return and label action | Human Founder | Mock Returns, Logistics, and Notification Providers | Approval Guard, Operations Service | Member A | A |
 | `UC-05` | Inspect authoritative case state and audit history | Human Founder | — | Founder Dashboard, Audit Store | Member C | C owns model/spec; B supplies interface; A supplies API |
 
@@ -539,6 +551,15 @@ synthetic fixtures, and a small number of domain tests. The following remain
 - evaluation runner;
 - CI and Docker environment; and
 - cloud deployment.
+
+**F.02 environment candidate (2026-09-07):** a health-only FastAPI entry point,
+dependency locks, environment-only Alembic revision, Compose and CI candidate
+files now exist. Native PostgreSQL checks and the recovered Docker/PG17.11
+Compose build, migration and health/outage checks are recorded in [docs/10](10-f02-environment-readiness.md).
+This does not implement the planned business API, case/approval persistence,
+authorization or agent workflow. C's clean reproduction remains pending;
+CI status requires the specific run evidence on [PR #11](https://github.com/shuxiachai/returnops-au/pull/11).
+F.01/F.02 have not been accepted.
 
 ### 11.3 Core engineering stack
 
@@ -900,9 +921,9 @@ Evidence: CI run, audit trace, and demo recording
 - [x] The 2026-09-07 alignment of older documents/shared UML and F.01 rc.2 was
   published for review in [PR #9](https://github.com/shuxiachai/returnops-au/pull/9),
   preserving B/C contributions; review requests were sent to both members.
-- [ ] The published alignment receives current team review, including the
-  proposal/failure-target wording noted in section 4.4; publication alone does
-  not satisfy this review or the remaining adoption conditions.
+- [ ] The `1.0.0-rc.4` candidate receives team review at the exact reviewed PR head, including the
+  mutually exclusive proposal/failure/order-block targets in section 4.4;
+  historical rc.2 publication or rc.3 review alone does not satisfy this review or adoption.
 - [ ] B/C approve the current allocation and aligned models, tutor feedback is
   dispositioned, and the reviewed alignment change is merged. Earlier reviews
   of older commits do not automatically approve this revision.

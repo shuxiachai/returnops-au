@@ -1,17 +1,28 @@
 # System Design
 
-> **Published v1 alignment draft — 2026-09-07:** [PR #9](https://github.com/shuxiachai/returnops-au/pull/9); its merge record is separate from pending acceptance.
+> **rc.5 发布定位（2026-09-07）：**本版交付至 [PR #11](https://github.com/shuxiachai/returnops-au/pull/11)，由包含本说明的实际提交定位。PR 中记录准确 source SHA、CI run 与评审状态；C 复现使用该准确 SHA，不能使用旧 `57d86fe` 或浮动分支。下文“未发布/本地准备”、旧测试和旧哈希是发布前历史；当前提交以 Git 文件内容及 `docs/reviews/rc5-publication-artifacts-20260907.json` 为准。发布不等于 F.01/F.02 接受、B/C 本人审阅/复现或课程提交，Jira 未由此同步。
+
+> **Historical v1 alignment publication — 2026-09-07:** [PR #9](https://github.com/shuxiachai/returnops-au/pull/9); its merge record is separate from pending acceptance.
 > This design follows the lead's
 > published working baseline, [fixed ownership](07-frozen-work-allocation.md)
 > and [work packages](08-delivery-work-packages.md). B/C shared-model review
 > and tutor feedback are still required. Diagrams describe intended behaviour,
 > not an implemented or accepted API.
+> The local `1.0.0-rc.5` contract and `MA-0.3` aligned models are unpublished review candidates;
+> the review entrance is [PR #11](https://github.com/shuxiachai/returnops-au/pull/11).
+> Use its exact head and review records for current status. The rc.3 commit
+> `9093156` is the historical starting point; F.01 remains tracked by
+> [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32).
+> [F.02](10-f02-environment-readiness.md) provides the health API,
+> PostgreSQL/Alembic foundation and local Compose evidence. These do not
+> implement the fifteen business API operations or establish CI/F.02 acceptance.
 >
 > **Contribution provenance:** the three-agent architecture, separate read-only
 > order provider and deterministic Operations Service reuse Member B
 > (`ChengsiLi`)'s [PR #8](https://github.com/shuxiachai/returnops-au/pull/8),
 > commit `cbba595`. The present revision corrects the state-write, recovery
-> and notification boundaries and adds a compact Lab 4 analysis. It does not
+> and notification boundaries, retains the Lab 4 analysis, and adds the
+> Lab 5 pattern/method clarification under M-S.01. It does not
 > merge PR #8, rewrite B's commits or claim B/C approval of this revision.
 
 ## 1. Architectural drivers
@@ -97,6 +108,13 @@ components cannot write case state directly. Audit Port accepts correlated
 evidence but grants no workflow authority. Rejection/manual-outcome notifications
 follow recorded Founder decisions; they cannot invoke the return/label commands.
 
+The [CS-0.2 Composite Structure candidate](13-shared-composite-structure.md)
+refines these conceptual arrows into part properties, ports and connectors.
+Its Audit path clarifies the arrows above: material observations pass through
+deterministic services and Domain validation before becoming trusted business
+events; the business change, work and required audit share a transaction context.
+Direct conceptual Agent-to-Audit arrows do not grant an LLM append authority.
+
 ## 3. Proposed technology stack
 
 | Area | Initial choice | Reason |
@@ -130,10 +148,12 @@ identified portfolio extensions; they are not prerequisites for course delivery.
 | PolicyDocument | Versioned store policy or approved guidance source |
 | PolicyPassage | Source ID/type, version when available, access date, content hash, location and retrieval time |
 | DecisionPacket | Versioned non-executable conditional proposal referencing original statements, sources, alternatives and uncertainty |
+| ProcessingFailure | Current case/input-bound technical failure; a no-proposal manual target, not a business-risk result |
+| OrderLookupBlock | Current case/input-bound record of an accepted pre-proposal CONFLICT or AUTHORITY_DENIED lookup; a non-executable manual target |
 | RiskFinding | Unsupported claim, conflict, missing evidence, or escalation reason |
 | RiskReview | Independent five-outcome result bound to case/input/proposal and source versions |
 | ActionPreview | Server-prepared read-only scope preview; neither an AI command nor an approval |
-| FounderDecisionRecord | One of four decisions, trusted actor, current proposal, reason and timestamp |
+| FounderDecisionRecord | Trusted actor, case, reason/time and exactly one current target: proposal ID/version, processing failure ID or order-lookup block ID; no-proposal targets permit only MANUAL_HANDLING |
 | ApprovalRecord | Produced only for APPROVE, bound to current versions, exact command scope/fingerprint and expiry |
 | ToolCommand | Allowlisted typed, idempotent external action request bound to case, proposal, and approval |
 | OperationAttempt | Provider-specific command, fingerprint, idempotency, outcome/error and reconciliation evidence |
@@ -147,7 +167,10 @@ source passages; cases and proposals reference them, not a second exclusive copy
 
 `IntakeSession` (B), `ProposalReview` (C) and `OperationAttempt` (A) are the
 subjects of the three personal state-machine chains. A lifecycle subject and a
-wire DTO need not be the same class; any mapping must be explicit. Shared
+wire DTO need not be the same class: C's independent call consumes
+`RiskReviewRequest` and returns the rc.3 `RiskReview` DTO. Domain Service validates
+that result before recording it in the conceptual `ProposalReview` lifecycle;
+the lifecycle name is not another wire response. Shared
 [class-model work](diagrams/01-domain-class-diagram.md) and the
 [F.01 contract candidate](09-interface-contract-v1.md) require consistency review;
 the legacy `DecisionProposal`/enum code has not been migrated by this document.
@@ -162,6 +185,8 @@ Every transition goes through Domain Service; no API accepts an arbitrary state.
 | Event/result | Required route and guard |
 |---|---|
 | New or clarified customer input | Preserve originals, validate ownership and versions; missing facts await information, complete facts proceed to investigation/assessment |
+| Pre-proposal CONFLICT / AUTHORITY_DENIED lookup | Domain Service records the accepted OrderLookupBlock and ESCALATED state; only a manual outcome may target that current block |
+| Pre-proposal technical recovery exhausted | Record the actual ProcessingFailure and safe escalation; no placeholder proposal or passing review; only a manual outcome may target that current failure |
 | REVISE / NEEDS_INFORMATION | Return to Assessment / Coordinator respectively; new facts or proposal invalidate stale reviews and pending approvals |
 | PASS / PASS_WITH_WARNING | Prepare Founder review only when all other prerequisites hold; warnings remain visible |
 | ESCALATE | Manual-handling route; an executable return path requires a new proposal and a new passed review |
@@ -248,6 +273,34 @@ sequenceDiagram
     Domain->>Domain: Complete successful return path and append audit
 ```
 
+### Local rc.5 replay and artifact correction
+
+Allowed content removal also invalidates POST receipt content. Same-key/same-body replay preserves original acceptance but returns 409 INVALID_STATE if its receipt is no longer available; it never executes again or restores deleted text. See docs/09 section 7. A confirmed label effect whose artifact is unsaved stays EXECUTING with an internal durable receipt and artifact-only recovery task; only the original label may be retrieved/stored. Complete Domain persistence precedes SUCCEEDED. MA-0.3 / CS-0.2 describe these local corrections; rc.4/57d86fe remains the published historical evidence.
+
+### rc.4 candidate historical reads and recovery boundary
+
+The [contract candidate](09-interface-contract-v1.md) adds two authorised
+history GETs with separate Founder/Customer schemas. Domain reads immutable
+typed revisions at a stable case snapshot; old proposal material includes the
+accepted statements/order/retrieval/citation input, and Risk records reference
+that exact historical record. Audit references include trusted actor provenance.
+Current view arrays are bounded previews with explicit full-history cursors,
+never the source for approval or unresolved-effect guards. Deletion yields
+tombstones and suppresses dependent copies; it cannot reveal an older revision
+by fallback. Input capacity failure must not silently omit accepted evidence. Complete
+material/capacity preflight precedes accepting the current proposal; store its
+bundle atomically and preserve older revisions when the candidate cannot be
+accepted.
+
+The saved outcome governs notification recovery. Late historical return/label
+confirmation cannot overwrite a manual/reject outcome or reopen a terminal case.
+Creation/current clarification are the only customer evidence-binding paths;
+other input-version changes use controlled internal updates with state and
+in-flight-effect guards. No new public append/execute API is implied. These
+rc.4 / MA-0.2 refinements remain candidates pending B/C review through
+[PR #11](https://github.com/shuxiachai/returnops-au/pull/11); publication does not
+establish their acceptance or runtime implementation.
+
 ## 7. Human gates
 
 Only the authenticated Founder may decide. Server-side checks are independent
@@ -259,9 +312,17 @@ scope invalidates pending authorisation; a historical approval is not sufficient
 | Founder decision | Effect |
 |---|---|
 | APPROVE | Create exact-scope approval for a currently executable, passed-review proposal; independently revalidate each operation |
-| REJECT | Record the reason and notify; no return/label command |
-| REQUEST_REVISION | Record the reason; create a new proposal through Assessment and repeat independent review |
-| MANUAL_HANDLING | Record the manual outcome and notify; no return/label command |
+| REJECT | Target the current proposal, record the reason and notify; no return/label command |
+| REQUEST_REVISION | Target the current proposal, record the reason; create a new proposal through Assessment and repeat independent review |
+| MANUAL_HANDLING | Target the current proposal or, without a proposal, exactly one current ProcessingFailure or OrderLookupBlock; record the actual manual outcome and notify, without return/label work |
+
+Under the [rc.3 clarification](09-interface-contract-v1.md), a no-proposal
+target requires an `ESCALATED` case and matching current case/input/record
+versions. It permits no `APPROVE`, `REJECT` or `REQUEST_REVISION`, and cannot
+create a preview, passing review, approval or operation command. An
+`OrderLookupBlock` is restricted to an accepted `CONFLICT/AUTHORITY_DENIED`
+order-provider result; source-policy conflicts remain material for a conditional
+packet and independent Risk review, not an order block or technical failure.
 
 Material unresolved conflicts, injection, unsupported scope or evidence do not
 become safe merely because the Founder clicks approve. An escalated proposal
@@ -347,6 +408,29 @@ reviews and failures rather than double-counting proposal versions.
 
 ## 10. Architectural decisions to defend
 
+### 10.1 Lab 5: selected patterns and their concrete application
+
+These patterns describe the architecture already shown in sections 2, 6 and 8;
+they introduce no framework, process, business AI role or public endpoint.
+The modular monolith is the deployment and module organisation choice. Layering,
+ports/adapters and bounded supervision explain different aspects of the same
+design rather than competing implementation stacks.
+
+| Adopted style or pattern | Existing components and interaction | Problem addressed | Benefit and limitation | Requirement evidence to inspect |
+|---|---|---|---|---|
+| Modular monolith with a repository and one transactional case store | API, Domain Service, orchestration and Operations are modules; `CaseRepository` is realised by the PostgreSQL adapter. Domain Service commits case versions, decisions and associated work/audit through that boundary. Provider effects still occur outside the database transaction. | Concurrent UI/agent/provider results must not become conflicting sources of case state; a small team needs a reproducible integration unit. | One state authority simplifies version checks, trace reconstruction and local integration. A single store is also a failure/contention boundary; a transaction cannot undo an external effect, so idempotency and UNKNOWN reconciliation remain necessary. This is not a high-availability claim. | FR-009/011/012; NFR-004/006/008. Trace a stale decision, concurrent duplicate request and provider success followed by local persistence failure. |
+| Layered responsibilities with ports and adapters | Portal/Dashboard request actions through API → Domain Service. Domain/Operations use typed `OrderProviderPort`, `RetrievalPort`, `ReturnsLogisticsPort`, `NotificationPort`, `AuditPort` and `CaseRepository`; adapters translate provider-specific data. The shared class model shows interface realisation and the sequence model shows call direction. | UI state and provider-specific details must not bypass approval rules or leak into every business module. | Providers can be replaced behind tested contracts, and UI/AI tests can use controlled substitutes. Mapping and version validation add work; an interface alone does not establish provider permission, correct provenance or safe retry. | FR-003/006/009/010/012; NFR-002/003/006/007/009. Inspect request/result mappings, denied-provider cases and a replacement adapter retaining the same approval guards. |
+| Bounded Supervisor–Worker orchestration | `WorkflowOrchestrator` invokes Coordinator, Assessment and an independently prompted Risk Reviewer, submits their typed results to Domain Service and follows permitted revision/information/escalation branches. The supervisor is deterministic control, not a fourth AI role; only Operations can invoke approved effects. | Three specialised analyses need controlled hand-offs and recovery without unrestricted peer calls, hidden reasoning sharing or an agent-created approval. | Role-specific contracts and an independent Risk invocation make failures and source disagreements visible. Central coordination remains a dependency, and repeated model calls add latency/cost; independent invocation does not guarantee statistically independent errors. Budgets and evaluation must show the limits. | FR-002/005–008; NFR-001/002/005/008/009. Walk through PASS, REVISE, NEEDS_INFORMATION, ESCALATE and malformed/stale output, preserving the complete retrieval result. |
+
+The store is shared infrastructure, not an open blackboard that agents may
+mutate. Assessment prepares a non-executable recommendation; deterministic
+scope preparation plus Founder approval separates that analysis from execution.
+The project does not require unrestricted ReAct, a free-form executable LLM
+planner or every pattern listed as a Lab 5 example. Choosing a pattern does not
+replace the state, authority, concurrency and provider tests named above.
+
+### 10.2 Alternatives and design rationale
+
 | Chosen approach | Discarded alternative | Rationale |
 |---|---|---|
 | Domain-controlled workflow with bounded agent calls | Unrestricted agents calling each other | Easier to model, test, audit, and control |
@@ -355,6 +439,31 @@ reviews and failures rather than double-counting proposal versions.
 | Mock provider adapters | Production payment and logistics access | Safe and achievable for a course prototype |
 | Small approved corpus | Open web search for every case | Better provenance, repeatability, and evaluation |
 | Three request types | Universal customer support | Keeps requirements and evaluation tractable |
+
+### 10.3 Lab 5: service methods and acceptance boundary
+
+The [shared class model's method contracts](diagrams/01-domain-class-diagram.md#21-method-contracts-and-trusted-context)
+connect representative method parameters and returns to the existing F.01 rc.3
+DTOs. They distinguish a transport request from authenticated server context,
+and distinguish a returned model/provider observation from an authoritative
+persisted result. Domain records remain data-oriented where appropriate;
+the model does not add arbitrary CRUD methods to every DTO.
+
+A leads M-S.01 using these three checks; C reviews source/risk/authority details,
+and B contributes and reviews the UI/application interactions and their mapping:
+
+1. Identify each selected pattern in the existing component and sequence views;
+   explain one relevant benefit, limitation and discarded choice against its
+   FR/NFR references. Record each member's actual shared contribution.
+2. Check major service inputs, outputs, associations, multiplicities and
+   interface realisations. Follow one normal and one rejected/stale/unknown
+   interaction from a method parameter to its guarded result. Method names,
+   role-specific DTOs and personal behavioural models must agree.
+3. Keep the runtime instances, ports and connectors in M-S.02 and the personal
+   AH → UC → Activity/Interaction/State chains in their existing work packages.
+   Neither this table nor a Mermaid syntax pass accepts those deliverables or
+   demonstrates an implemented runtime. B/C joint review and tutor feedback
+   remain outstanding.
 
 ## 11. Model-to-code traceability
 
@@ -404,9 +513,11 @@ in parallel.
 | Physical | Browser, application process, authoritative database and simulated/test provider boundaries | Proposed stack and Docker plan only; deployment-model review and actual run evidence remain required. No live deployment is claimed. |
 | +1 scenarios | Show the views agree for normal, missing-information, risk and ambiguous-timeout cases | [Use cases](diagrams/05-use-case-diagram.md) and [Lab 3 material](05-lab-3-requirement-modelling.md) are inputs; run consistency walkthroughs and record tutor findings, rather than counting historical Lab 3 work as current acceptance. |
 
-The required runtime complex-structure model with instances, ports and
-connectors remains a separate M-S.02 deliverable. This architecture flowchart or
-a static class diagram does not substitute for it. [Feature modelling](diagrams/04-feature-diagram.md)
+The required runtime complex-structure model remains a separate M-S.02
+deliverable. [CS-0.2](13-shared-composite-structure.md) now supplies candidate
+part/port/connector views, pending human review and the original dependencies.
+This architecture flowchart or a static class diagram does not substitute for
+its acceptance. [Feature modelling](diagrams/04-feature-diagram.md)
 must also agree with the nine features, 45/27/28 planned effort and selected
 course optionals. Three-person contributions, missing models and review status
 are recorded in the linked work packages and actual Jira/GitHub evidence.

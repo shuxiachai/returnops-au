@@ -1,0 +1,53 @@
+# F.02 candidate: PostgreSQL -> successful migration -> health-only API.
+# Existing host services and other Docker projects are not referenced.
+name: returnops-au-f02
+
+x-api-environment: &api-environment
+  DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-returnops_dev}:${POSTGRES_PASSWORD:?Run tools/environment/local.py init first}@db:5432/${POSTGRES_DB:-returnops_f02}
+
+services:
+  db:
+    image: postgres:17-bookworm@sha256:051f7b7b3abdd564d5d1bd1e8c4b9c1b6e77087d1dd22020ede611c096a272e0
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-returnops_dev}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run tools/environment/local.py init first}
+      POSTGRES_DB: ${POSTGRES_DB:-returnops_f02}
+    ports:
+      - "127.0.0.1:${DB_PORT:-5433}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
+  migrate:
+    build: .
+    environment: *api-environment
+    command: ["python", "-m", "alembic", "upgrade", "head"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build: .
+    environment: *api-environment
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:${API_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import ProxyHandler, build_opener; build_opener(ProxyHandler({})).open('http://127.0.0.1:8000/health/ready', timeout=5).close()"]
+      interval: 5s
+      timeout: 6s
+      retries: 12
+      start_period: 10s
+
+volumes:
+  postgres-data:

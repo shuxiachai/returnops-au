@@ -1,0 +1,75 @@
+@startuml
+title CS-01 / Governed Case Assessment\nComposite structure candidate CS-0.2
+skinparam componentStyle rectangle
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 14
+skinparam shadowing false
+skinparam componentBackgroundColor #EEF4F8
+skinparam componentBorderColor #27465B
+skinparam ArrowColor #27465B
+skinparam noteBackgroundColor #FFF5D9
+skinparam nodesep 90
+skinparam ranksep 60
+
+component "GovernedCaseAssessment\n{proposed structured classifier}" as System {
+  portin "case (P)" as SYS_CASE
+  portout "images (R)" as SYS_IMAGES
+  portout "labelStore (R)" as SYS_LABELS
+
+  component "domain : DomainService [1]" as Domain {
+    portin "application (P)" as DOM_APP
+    portin "analysisControl (P)" as DOM_ANALYSIS
+    portin "operationControl (P)" as DOM_RESULTS
+    portout "analysisWork (R)" as DOM_WORK
+    portout "executionWork (R)" as DOM_EXEC
+    portout "decisionCheck (R)" as DOM_GUARD
+    portout "caseStore (R)" as DOM_STORE
+    portout "audit (R)" as DOM_AUDIT
+  }
+  component "analysis : GovernedAnalysis [1]\n{expanded in CS-02}" as Analysis {
+    portin "work (P)" as AN_WORK
+    portout "domain (R)" as AN_DOMAIN
+    portout "images (R)" as AN_IMAGES
+  }
+  component "execution : GovernedExecution [1]\n{expanded in CS-03}" as Execution {
+    portin "work (P)" as EX_WORK
+    portin "decisionCheck (P)" as EX_GUARD
+    portout "domain (R)" as EX_DOMAIN
+    portout "labelStore (R)" as EX_LABELS
+  }
+  component "caseStore :\nPostgreSQLCaseRepository [1]" as Repo {
+    portin "caseRepository (P)" as REPO_CASE
+  }
+  component "audit :\nIntegrityAuditAdapter [1]" as Audit {
+    portin "append (P)" as AUD_APPEND
+  }
+}
+
+SYS_CASE -- DOM_APP : D01
+AN_IMAGES -- SYS_IMAGES : D02
+EX_LABELS -- SYS_LABELS : D03
+DOM_WORK -- AN_WORK : A01
+AN_DOMAIN -- DOM_ANALYSIS : A02
+DOM_EXEC -- EX_WORK : A03
+DOM_GUARD -- EX_GUARD : A04
+EX_DOMAIN -- DOM_RESULTS : A05
+DOM_STORE -- REPO_CASE : A06
+DOM_AUDIT -- AUD_APPEND : A07
+
+legend bottom
+  case: authenticated API only; D01 also serves the two rc.4 history GETs.
+  rc.5 OpenAPI (shape unchanged from rc.4): original 13 public operations retained, 15 operations in total.
+  images / labelStore: scoped internal A-managed artifact boundaries, not public AI tools.
+  CaseRepository is the only business-state store interface; Domain is its only caller.
+  Repository + business AuditPort share one transaction context and one authoritative DB.
+  Analysis/execution observations are untrusted until Domain validates and creates events.
+  New effects additionally require CS-03 guards; a connector alone proves no ordering.
+
+  role : Type [multiplicity] = part property, not a deployed object snapshot.
+  P = provided contract; R = required contract. Interface meanings: docs/13 section 3.
+  Solid lines = connectors carrying request/reply, not sequence arrows.
+  Dxx = delegation to a boundary port; Axx = assembly between internal parts.
+  The two part types refined in CS-02/03 organise existing responsibilities; no new service/process.
+  A integrates; C reviews; B/C contribution confirmations and F.01/M-S.01 remain pending.
+endlegend
+@enduml

@@ -6,8 +6,10 @@
 > second authority for acceptance criteria. IDs are preserved. Team/tutor
 > adoption and review of this alignment remain pending. The aligned version is
 > published in [PR #9](https://github.com/shuxiachai/returnops-au/pull/9); consult its merge record separately from acceptance.
-> The proposal-bound FR-009 summary and failure-target manual exception need
-> the joint wording confirmation recorded in docs/00 section 4.4 and docs/09.
+> The `1.0.0-rc.3` three-target clarification under
+> [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32) is a review candidate.
+> Its joint wording confirmation is recorded in docs/00 section 4.4
+> and docs/09; PR #9 remains the historical rc.2 publication.
 >
 > **Execution plan**: [Frozen allocation](07-frozen-work-allocation.md) fixes
 > the nine features and owners; [work packages](08-delivery-work-packages.md)
@@ -27,16 +29,16 @@
 |---|---|---|
 | FR-001 | Accept an English physical-goods request, original message, optional order ID/outcome/evidence. | One submission key creates at most one case; preserve `CustomerStatement`. Missing required facts trigger clarification, not a command; reasonable proof-of-purchase alternatives are allowed. |
 | FR-002 | Coordinator extracts typed facts and separates missing, ambiguous, conflicting and not-applicable information. | Mandatory-information recall ≥95%; unnecessary follow-up ≤15%; zero critical-fact fabrication on frozen negatives. Freeze definitions/denominators before evaluation. |
-| FR-003 | Assessment obtains a read-only order snapshot through a typed provider. | Test `MATCHED`, `NOT_FOUND`, `CONFLICT`, `AUTHORITY_DENIED`, `PROVIDER_FAILURE`; lookup cannot mutate orders. |
+| FR-003 | Assessment obtains a read-only order snapshot through a typed provider. | Test `MATCHED`, `NOT_FOUND`, `CONFLICT`, `AUTHORITY_DENIED`, `PROVIDER_FAILURE`; lookup cannot mutate orders. The rc.3 clarification records accepted pre-proposal CONFLICT/AUTHORITY_DENIED results as OrderLookupBlock, separately from technical ProcessingFailure. |
 | FR-004 | Separately store issue category, customer-requested outcome, possible basis and assessment status. | Independent fields cannot overwrite one another; category macro-F1 ≥0.85 (stretch ≥0.90). Unclear/out-of-scope cases clarify or escalate; no final legal determination. |
 | FR-005 | Build a criterion-level evidence matrix and case-relevant follow-ups. | `PRESENT/MISSING/CONFLICTING/NOT_APPLICABLE`; allow proof-of-purchase alternatives. Original packaging is not a universal faulty-product rule; transport/cost questions are asked only when relevant. |
 | FR-006 | Retrieve from reviewed, versioned store-policy and consumer-guidance sources. | 100% provenance completeness: source ID/type, version when available, access date, location, content hash, retrieval time. Material case-relevant conflicts remain visible to Risk Review. |
 | FR-007 | Generate a versioned, non-executable `DecisionPacket` referencing the original statement. | Conditional recommendation, alternatives, rationale, citations, confidence, open questions and relevant return-cost/responsibility facts; completeness ≥95% with a frozen denominator. No direct packet-to-approval/command conversion. |
 | FR-008 | Independently review evidence, citation support, conflicts, scope, confidence, injection and authority manipulation. | Recall ≥95%, specificity ≥80%; exactly `PASS/PASS_WITH_WARNING/REVISE/NEEDS_INFORMATION/ESCALATE`. Escalated proposals cannot be approved for execution; a new proposal needs a new pass/warning-pass review. |
-| FR-009 | Only the trusted Human Founder may `APPROVE/REJECT/REQUEST_REVISION/MANUAL_HANDLING` the current proposal. | Bind actor, case, proposal ID/version, reason/time; approval also binds exact commands, parameter fingerprint, applicable amount ceiling and expiry. Wrong actor/case/version/scope or expired approval is invalid. Rejection/manual outcome is recorded and notified. |
+| FR-009 | Only the trusted Human Founder may `APPROVE/REJECT/REQUEST_REVISION/MANUAL_HANDLING` the current proposal. An ESCALATED case without a proposal permits only MANUAL_HANDLING of its current ProcessingFailure or OrderLookupBlock. | Bind actor, case, reason/time and exactly one current target: proposal ID/version, processing failure ID or order-lookup block ID. Reject stale, cross-case or wrong-input targets. Only proposal approval binds exact commands, fingerprint, applicable amount ceiling and expiry; revision also requires a proposal. Both no-proposal targets forbid APPROVE/REJECT/REQUEST_REVISION and all approval/return/label work. Record and notify the manual outcome. |
 | FR-010 | Execute only exact-approved, allowlisted simulated return/label operations and independently notify the outcome. | Verify provider authority separately. Record provider ID, fingerprint, typed result/error and idempotency key. Unknown timeout requires `UNKNOWN/RECONCILING` before retry; duplicate key has at most one effect; notification retry never repeats return/label. Include next steps and relevant packaging/drop-off/cost/responsibility facts. No real money, order, inventory or shipment effects. |
 | FR-011 | Maintain reconstructable, tamper-evident audit records separately from identifiable content. | Correlation links inputs, component/model/corpus versions, proposal/review/approval, state and provider/notification results. Retention/redaction/deletion preserve non-personal event IDs/hash integrity, not personal content forever. |
-| FR-012 | Show authoritative case, proposal, evidence, citations, risk, approval, operations, notification and audit state. | Founder-only API access; versions visible; UI keeps no independent workflow state. |
+| FR-012 | Show authoritative case, proposal, evidence, citations, risk, approval, operations, notification and audit state, including the current no-proposal manual target when applicable. | Founder-only API access; versions visible; an ESCALATED case without a proposal exposes exactly one current ProcessingFailure or OrderLookupBlock. UI keeps no independent workflow state and cannot invent a proposal or approval. |
 
 ### Mandatory quality requirements
 
@@ -57,7 +59,7 @@
 | ID | Rule |
 |---|---|
 | BR-001 | ReturnOps AU presents approved guidance and conditional recommendations; it does not give legal advice or make a definitive ACL entitlement, major-failure, or minor-failure determination. |
-| BR-002 | Material case-relevant source conflicts remain visible. Non-blocking differences may give `PASS_WITH_WARNING`; unresolved conflicts preventing a safe recommendation require `ESCALATE`. No silent source precedence. |
+| BR-002 | Material case-relevant source conflicts remain visible in the conditional packet and independent Risk review. Non-blocking differences may give `PASS_WITH_WARNING`; unresolved conflicts preventing a safe recommendation require `ESCALATE`. No silent source precedence; source conflicts are not OrderLookupBlock or technical ProcessingFailure records. |
 | BR-003 | Refund, replacement, repair, order/payment/inventory mutation, and cost-bearing logistics operations are high-impact actions. |
 | BR-004 | The course prototype uses simulated provider operations and never moves real money or changes a production order. |
 | BR-005 | High model confidence cannot bypass missing evidence, a failed risk review, command allowlisting, or human approval. |

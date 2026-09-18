@@ -1,5 +1,36 @@
 # Agent Context & Persistent Memory
 
+> **rc.5 publication reference (2026-09-07):** this revision is delivered through [PR #11](https://github.com/shuxiachai/returnops-au/pull/11), identified by the actual commit containing this notice. The PR records the exact source SHA, CI runs and review state; C must reproduce that SHA, not old `57d86fe` or a floating branch. Local-only/unpublished wording, test runs and raw-file hashes below are pre-publication history. Current Git content is recorded in `docs/reviews/rc5-publication-artifacts-20260907.json`. Publication does not establish acceptance, B/C review, C reproduction or a Jira update.
+
+## Latest local defect correction — 2026-09-07
+
+The lead authorised fixing six reviewed defects. Read [A-FIX-0.1](docs/reviews/a-defect-closure-20260907.md) before the older snapshots: local F.01 rc.5 / MA-0.3 / CS-0.2 / AD-0.2 / PD-0.2 / F03-D0.2 supersede the earlier local candidates. Changes cover deleted-receipt replay, durable known-label/artifact recovery, EXECUTING vocabulary, Composite connector parsing, proxy-independent Compose healthcheck and pinned local Docker context in the C reproduction packet. Wire shapes, seven operation states, fifteen routes, nine-feature ownership and 89 WBS dependencies stay unchanged; the 1-based count proposal is not adopted. HEAD remains 57d86fe and these fixes are uncommitted/unpublished. Existing PR #11/CI cover rc.4 only; no merge, Jira write, member signature, business implementation or F.01/F.02 acceptance occurred. C needs a future exact published fix SHA to reproduce. Earlier A-PREP hashes are historical; use the new correction manifest for current bytes.
+
+
+## Latest local preparation — 2026-09-07
+
+The lead requested completion of the ordered A preparation tasks. Read
+[A-PREP-0.1](docs/reviews/a-preimplementation-readiness-20260907.md): new
+AD-0.1 decisions, PD-0.1 Package/Deployment, F.03 authorization design,
+A3 feasibility, C reproduction packet and A report draft are local candidates.
+Existing rc.4 / MA-0.2 / CS-0.1 wire/behavior artifacts remain unchanged.
+The shared-model checker now selects only `*-composite.puml` for CS parsing;
+all nine PUML/SVG pairs remain covered. No F.01 acceptance or business API
+implementation, personal human review, commit/push/merge or Jira write occurred.
+HEAD remains `57d86fe`; the working tree is now dirty with these new materials.
+
+Live read-only checks found PR #11 open at that head, no reviews, four successful
+existing CI checks; main remains `9eb7b0b`. Jira KAN-32 still describes rc.2/PR #9;
+KAN-14 only references F.02 as a dependency, so F.02's actual delivery key is
+still unverified. The lead supplied Canvas course 74323: report 695832 and video
+695833 both display Oct 4, 2026 23:59, locked until Sep 20 0:00; timezone and
+locked upload rules are not visible. Canvas shows 25/5 points versus local
+15/15 report/presentation-interview materials: seek clarification, do not remove
+interviews. The lead explicitly says the team has no Australia Post/StarTrack
+contract or test account; A3 access is unavailable today. Shippo is only a
+public-documentation investigation direction, not an approved replacement.
+Root handover files remain local; earlier snapshots below are historical.
+
 > **Course**: USYD ELEC5620 Model-Based Software Engineering (Semester 2, 2026)  
 > **Course Root**: `d:/AAA树下/硕士/26S2/5620`  
 > **Project Repository**: `d:/AAA树下/硕士/26S2/5620/assignment/returnops-au`  
@@ -38,6 +69,119 @@ orchestrator; C implements Risk Reviewer, retrieval and image analysis. Consult
 `docs/07` for submodule ownership rather than treating all agent code as A-owned.
 
 ## F.01 contract hand-off — 2026-09-07
+
+**Current review package — 2026-09-07:** the lead explicitly authorised
+committing the contract, model and environment changes, updating the existing
+[PR #11](https://github.com/shuxiachai/returnops-au/pull/11) review entrance,
+running real CI and requesting B/C review with C clean-environment reproduction.
+The candidate versions are F.01 rc.4 / MA-0.2 / CS-0.1, plus health-only F.02.
+Use that PR's exact commits, check runs and reviews for publication evidence;
+earlier statements below about uncommitted work or PR #11 containing only rc.3
+are preparation history. KAN-32 maps F.01, KAN-13 maps the A/shared model work;
+F.02's actual Jira key is still unverified. Main and B/C PRs #7/#8 are preserved.
+No merge, F.01/F.02 acceptance, member authorship or Jira change is implied.
+
+**Local F.02 environment preparation — 2026-09-07:** the lead requested
+environment preparation and asked why the preceding work was not committed.
+The previous local-review boundary, not failing checks or B/C review, was the
+reason; candidate commits/publication and acceptance are distinct. The current
+working tree now includes health-only FastAPI, full hash dependency locks,
+Alembic 0001_environment (no business tables), Compose and local CI files.
+Read docs/10 before running anything. Native PostgreSQL 18.2 on a newly created
+project-tmp cluster was used for environment/HTTP checks and stopped afterward;
+the existing host PostgreSQL service on 5432 was not reused or stopped.
+Subsequent lead-authorised Docker repair preserved the stale run and Secrets
+Engine socket directories by same-parent rename; Desktop 4.85.0 / Engine 29.6.2
+now runs without settings/ACL changes or data reset. Exact backups are in docs/10.
+Compose build/start with PG17.11 passes; 30 Windows-venv tests against that
+container and actual container HTTP success/outage/recovery checks pass.
+The project's ignored .env now uses API_PORT=8001 to preserve academic_agent on
+8000; project api/db remain running on loopback 8001/5433. Host PG18 is unchanged.
+Real PR CI, C reproduction and joint F.02 acceptance remain pending.
+No business API, F.01/F.02 acceptance, commit, push, Jira write or member review
+is implied. The earlier rc.4/MA/CS work remains preserved in the dirty tree.
+
+**Local defect-closure revision — 2026-09-07:** after the course/AI-application
+career-fit audit the lead requested the next step. The current dirty branch
+`docs/kan-13-a-model-chain` now holds rc.4 and MA-0.2 candidates, not a new
+publication. PR #11 remains rc.3 at `90931562f7e8d038b994d8d3ff3b2f289e462643`.
+Read docs/09 for two role-isolated history GETs (15 total), typed historical
+material/provenance, bounded previews and snapshot/retention rules. Manual or
+reject outcomes survive late operation confirmations; staged uploads do not
+create a post-review customer append path. Internal input-capacity excess must
+not silently truncate facts. Read docs/07–08 for sealed initial Gold labels
+before timed-answer access, minimal review packets and separate R.05 source/
+demo checks. IDs, owners, reviewers and S/F of the 89 WBS rows stay fixed.
+KAN-13 was observed to cover M-A.01–06 and A-owned M-S.01/.02; docs/13 corrects
+its earlier unmapped note. tools/model-checks provides tracked reproducible
+static checks. No runtime service, F.01/model human acceptance, commit, upload,
+PR/Jira write or member confirmation is performed by this local revision.
+Older candidate descriptions below are chronological history, not current DTOs.
+
+**Shared Composite candidate — 2026-09-07:** the lead then requested the next
+step. [CS-0.1](docs/13-shared-composite-structure.md) adds three PlantUML/SVG
+internal-structure views, 29 connectors with interface mappings and 12 static
+walkthroughs. Domain remains the only CaseRepository caller and creates trusted
+business AuditEvents; raw source receipts are observations until Domain accepts
+their bindings. CS-D01/02/03 cover receipt forwarding, audit submission and mock
+versus A3 configuration; CS-Q01/02 retain part-type and artifact-port details.
+This remains local uncommitted work on `docs/kan-13-a-model-chain`, not part of
+the earlier PR #11 publication. M-S.02 A/C ownership, S=M-S.01, F.01 acceptance,
+actual B/C shared contribution and human review remain unchanged/pending.
+Package/Deployment and final model-index work remain separate. No remote/Jira
+action, runtime implementation or personal B/C completion is implied.
+
+**Member A model candidate — 2026-09-07:** the lead asked to advance the model
+chain. Read [MA-0.1](docs/12-member-a-model-chain.md): AH-10 / UC-04 with UC-03
+admission, Activity, two Sequence panels and an OperationAttempt seven-state
+model, plus 15 static walkthrough scenarios. Editable PlantUML and rendered
+SVGs are under `docs/diagrams/member-a/`. This local work starts from rc.3
+commit `90931562f7e8d038b994d8d3ff3b2f289e462643` on
+`docs/kan-13-a-model-chain`; it was not part of PR #11's earlier publication.
+It is AI-assisted preparation, not A's independent completion, C's review or
+F.01 acceptance. MA-D01/02 propose attempt identity and query phases; MA-Q01/02/03
+retain count/ID mapping, cross-approval recovery and runtime concurrency questions.
+No new wire fields or runtime behavior are implemented. B/C models, shared
+Composite Structure and original WBS ownership/dependencies remain unchanged.
+Verify actual working-tree/publication state before any later remote action.
+
+**Current-stage closure — 2026-09-07:** the lead asked to finish current
+preparation before taking on the next task. Read
+[Stage 1 readiness](docs/11-stage1-readiness.md): R.04.a–h cover requirements,
+contract review, personal/shared models, report, ≤8-minute video, interview and
+submission verification. A integrates/submits; C remains R.04 Owner for evidence
+audit; B/C author their own materials. A maintains Jira, C verifies evidence;
+C produces classification and B integrates M-S.03. Nine feature owners, 89 WBS
+IDs and S/F dependencies are unchanged. Lab 5 pattern/method detail is now a
+review draft in docs/02 and the shared class model, not accepted models.
+E.09 validates the runner/adapter with labelled fixtures; R.03 verifies full B4.
+Stage 1 submission follows the actual course deadline with open items disclosed,
+without waiting for whole R.04/R.01 acceptance or final R.05/E.12. Actual Canvas
+dates, member capacity, B/C reviews, complete personal/composite models and A3
+test-access eligibility remain unverified or unfinished. These preparation
+artifacts do not establish acceptance, a Jira update or a permission change.
+The lead will record the course video personally later; B/C provide and verify
+their model/contribution material and retain their individual interviews.
+
+**Current review follow-up — 2026-09-07:** the lead authorised publication of
+the F.01 consistency revision and its model/readiness materials for B/C review.
+The follow-up branch carries candidate `1.0.0-rc.3`, not yet jointly accepted.
+Technical review is tracked in [Issue #10](https://github.com/shuxiachai/returnops-au/issues/10)
+on branch `fix/10-kan-32-contract-review`; #5 stays the baseline-adoption issue.
+Read docs/09 and contracts/README for the
+three exclusive decision targets: current proposal, technical failure, or
+pre-proposal OrderLookupBlock. Only MANUAL_HANDLING may use a non-proposal
+target; no approval or return/label dispatch follows. docs/00 and shared
+models contain the corresponding candidate clarification, not new execution
+authority. F.01 is actually mapped to
+[KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32); baseline review is
+KAN-12 / Issue #5. PR #9 was merged as rc.2 and must not be re-merged or treated
+as acceptance of rc.3. A now leads Jira maintenance without changing feature
+owners or C's permissions. docs/10 records F.02 preparation and outstanding
+API/PostgreSQL/migration/CI acceptance; its Jira key remains unmapped. Recheck
+live remote and local state before later publication or workflow changes.
+
+The paragraphs below retain the earlier rc.2 hand-off history.
 
 The lead requested the first implementation-preparation step, F.01. Read
 [the interface contract candidate](docs/09-interface-contract-v1.md) before

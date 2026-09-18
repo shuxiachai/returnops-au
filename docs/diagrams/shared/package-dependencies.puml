@@ -1,0 +1,81 @@
+@startuml
+title PD-01 / Package dependencies\nM-S.01 candidate PD-0.2 — logical modules, not deployed services
+!pragma layout smetana
+top to bottom direction
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 14
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam packageBorderColor #27465B
+skinparam ArrowColor #27465B
+skinparam noteBackgroundColor #FFF5D9
+skinparam nodesep 40
+skinparam ranksep 55
+
+package "P01 apps/web\nB: intake / Founder / analytics\n{planned}" as Web #FFF3D6
+package "P02 apps/api\nA: health API {exists}\nauth / business API / wiring {planned}" as API #E4F2EB
+package "P03 contracts/v1\nrc.5 schema / OpenAPI / examples\n{artifacts exist; not an API}" as Wire #E4F2EB
+package "P04 packages/domain\nA: legacy models {exist}\nDomainService / entities / ports {planned}" as Domain #E8EEF7
+
+package "packages/agent_core {planned}" as AgentCore {
+  package "P05 orchestration\nA: WorkflowOrchestrator\nbounded deterministic control" as Orch #FFF3D6
+  package "P06 Coordinator / Assessment\nA: two role invocation wrappers\nno executable output" as RolesA #FFF3D6
+  package "P07 Risk / image capability\nC: independent Risk invocation\nC3 image input is optional per run" as RolesC #FFF3D6
+}
+package "P08 grounding / corpus\nC: RetrievalPort implementation\nversioned retrieval + citation checks\n{planned; final subpath open}" as Sources #FFF3D6
+package "P09 execution\nA: OperationsService / ApprovalGuard\n{planned logical module; subpath open}" as Execution #FFF3D6
+package "packages/provider_adapters {planned}" as Adapters {
+  package "P10 read-only order\nA: MockOrderAdapter" as Orders #FFF3D6
+  package "P11 effects / notification\nA: mock return-label / notification\nA3 authorised test alternative" as Effects #FFF3D6
+}
+package "P12 persistence / artifacts\nA: PostgreSQLCaseRepository\nIntegrityAuditAdapter / scoped files\n{planned; final subpath open}" as Persistence #FFF3D6
+
+Web ..> API : public HTTP only
+API ..> Wire : transport conformance
+API ..> Domain : application boundary\ntrusted server context
+API ..> Persistence : composition root binds adapters\nnot a business-write call
+Orch ..> Domain : analysisControl / analysisWork\naccepted observations / work contract
+Orch ..> RolesA : coordinate / assess
+Orch ..> RolesC : independent review / C3
+Orch ..> Sources : verify citations\noriginal source receipts
+RolesA ..> Orders : lookup only
+RolesA ..> Sources : retrieve only
+RolesC ..> Domain : C3 scoped evidence-read contract\nno case-write capability
+Execution ..> Domain : operationControl / executionWork\ncurrent records, claim, observations
+Execution ..> Effects : guarded invoke / query\nseparate saved-message delivery
+Execution ..> Persistence : scoped label artifact only\nnot CaseRepository
+Orders ..> Domain : OrderProviderPort
+Sources ..> Domain : RetrievalPort
+Effects ..> Domain : ReturnsLogisticsPort\nNotificationPort
+Persistence ..> Domain : CaseRepository / AuditPort\nscoped artifact contracts
+Domain ..> Wire : vocabulary / mapping specification\nnot a runtime JSON import
+
+note bottom of Domain
+  P04 owns the business application and port contracts.
+  Domain alone calls CaseRepository and business AuditPort.
+  analysisWork / executionWork are internal capabilities;
+  implementations are wired by the application, not by LLMs.
+  Source receipts remain observations until Domain accepts them.
+end note
+
+note bottom of Execution
+  Guard validates; Domain creates trusted approval/work.
+  Operations invokes only after fresh guard + provider authority.
+  New effects, historical queries and notifications differ.
+  An accepted manual/reject outcome survives late observations.
+end note
+
+legend bottom
+  Dashed arrow = supplier dependency / interface usage, not message order or authority.
+  Packages are logical responsibility boundaries; new subpaths are proposals, not files already present.
+  P02 health code uses SQLAlchemy directly for infrastructure reads; no business repository exists yet.
+  API wiring may construct adapters. Business writes still require Domain and one transaction context.
+  CaseRepository + required AuditPort append share PostgreSQL; provider effects are outside that transaction.
+  P06/P07 use a common model-call boundary (A); C owns Risk/image prompts and outputs.
+  No AI -> execution/effect dependency; Risk gets full accepted material, never generator hidden reasoning.
+  P11 selects mock OR one authorised A3 test adapter per logical operation, never both.
+  P12 file reads/writes are scoped capabilities (CS-Q02), not new public endpoints or a second case store.
+  C3 is a selected optional capability, not a fourth business Agent or a microservice.
+  F.01 rc.5 / MA-0.3 / CS-0.2 alignment; Owner A, Reviewer C; no human acceptance claimed.
+endlegend
+@enduml
