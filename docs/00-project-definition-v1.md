@@ -2,6 +2,8 @@
 
 ## Project Definition, Requirements and Engineering Roadmap — Baseline v1.0 Candidate
 
+> Course-assessment companion (2026-09-14): [docs/19](19-course-assessment-requirements.md) records current Canvas/rubric sources, personal/shared obligations and submission boundaries. It supplements this product definition, not a new business scope, wire contract, allocation or acceptance claim.
+
 | Field | Value |
 |---|---|
 | Status | Lead-approved candidate, published to main on 2026-09-06; current team/tutor adoption reviews remain required |
@@ -514,6 +516,14 @@ The team jointly completes:
 - deployment diagram; and
 - **Governed Case Assessment Composite Structure Diagram** using explicit ports
   and connectors.
+
+Lab 6 also requires an **Object Diagram**: a stated logical-time snapshot with
+named instances of existing classes, concrete attribute values and instance
+links. Complete it within existing shared modelling work and preserve the
+Composite's distinct part/port meaning. A synthetic design snapshot is not
+evidence of a running system. Every member participates and records actual
+contributions; [docs/19](19-course-assessment-requirements.md) distinguishes
+scored/optional rubric rows from retained project model choices.
 
 The complex runtime model must show that:
 
