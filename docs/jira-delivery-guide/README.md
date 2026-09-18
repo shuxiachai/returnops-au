@@ -1,63 +1,77 @@
 # Jira Delivery Guide
 
-> Snapshot prepared on 2026-09-02 from the ReturnOps AU Jira project. Jira remains the source of truth for live status, assignee, estimate, blockers, and dates. This directory is a delivery guide, not a second project board.
+This is a compact workflow reference, not a second backlog or a live status
+snapshot. Start at the [repository README](../../README.md) for current
+delivery, review and submission receipts. Earlier guide revisions remain in
+Git history; their dates, WIP assignments and pending-merge instructions must
+not be reused as current facts.
 
-This guide turns the agreed Jira workflow into a small, repeatable GitHub delivery process. For the current ownership snapshot, see [team-assignments.md](team-assignments.md). For the full team agreement, see [`docs/03-team-and-github-workflow.md`](../03-team-and-github-workflow.md).
+## Sources and responsibilities
 
-## Source-of-truth split
+| Source | Authority |
+|---|---|
+| [Team workflow](../03-team-and-github-workflow.md) | Branch, review, Jira and evidence conventions |
+| [Frozen allocation](../07-frozen-work-allocation.md) | Nine feature owners, default reviewers and hand-offs |
+| [Work packages](../08-delivery-work-packages.md) | All 89 stable WBS IDs, Owner/Reviewer, S/F dependencies and acceptance |
+| [Stage 1 readiness](../11-stage1-readiness.md) / [course requirements](../19-course-assessment-requirements.md) | Submission checks and dated Canvas/rubric evidence |
+| [Team assignments](team-assignments.md) | Small ownership/WBS navigation index, not replacement allocation |
 
-| System | Record kept there |
-| --- | --- |
-| Jira | Epics and Stories, owner, estimate, priority, stage, status history, blockers, and Timeline |
-| GitHub Issue | Technical scope, explicit non-scope, acceptance criteria, Requirement IDs, dependencies, and expected tests/evidence |
-| GitHub branch, PR, review, commit, and CI | Implementation and engineering-review evidence |
+Jira holds live status, estimates, dates, blockers and Timeline. GitHub holds
+technical scope, models/code, commits, PR reviews and CI. A coordinates Jira
+maintenance; each member supplies their real progress; C verifies R.04
+evidence. Do not duplicate a GitHub Project status board, copy every long
+description, invent historical transitions, or turn 89 WBS checks into 89 new
+cards. Group only related checks with the same owner and reviewable outcome;
+retain each check's ID, dependencies and evidence.
 
-Do not create a duplicate GitHub Project status board or copy full Jira descriptions into this directory.
+## Workflow and review packet
 
-## Required workflow
+The [docs/03](../03-team-and-github-workflow.md) team convention is
+`Backlog → Ready → In Progress → In Review → Done`. These are workflow rules,
+not a claim that the live Jira columns or any item currently have those states.
 
-`Backlog -> Ready -> In Progress -> In Review -> Done`
+| State | Evidence required |
+|---|---|
+| Backlog | Agreed outcome; prerequisites and blockers remain visible. |
+| Ready | Owner, estimate, priority, stage, dependencies, acceptance and linked technical Issue for repository work. Verify the actual delivery key; do not substitute a parent Epic or guess a new key. |
+| In Progress | Work actually started. Follow docs/03: one primary item per member, three across the team. Small review/preparation work is not a fabricated extra implementation start. |
+| In Review | Focused PR or reviewable non-code artifact, exact version, expected/actual checks and explicit limitations. Passing old CI does not validate a new revision. |
+| Done | Original S/F dependencies and acceptance satisfied, normal/principal failure evidence, clean documented reproduction, non-author review, merged PR or approved artifact, and final evidence linked in Jira. Merge alone is insufficient. |
 
-| Status | Entry and exit rule |
-| --- | --- |
-| Backlog | The outcome is agreed but the item is not yet implementation-ready. Keep dependencies and blockers visible in Jira. |
-| Ready | Jira has an owner, estimate, Project Priority, Stage, Delivery Type, Requirement IDs, acceptance outcome, and—for repository work—a linked GitHub Issue with a Jira backlink and expected evidence. |
-| In Progress | The owner has pulled the highest-priority Ready item, created a correctly based branch, and started producing evidence. Each member may own at most one primary In Progress item; the team limit is three. |
-| In Review | A focused PR is open, the Jira key and Jira link are present, acceptance evidence is included, and automated checks are passing or any exception is explained. |
-| Done | Acceptance criteria and normal/failure-path tests pass; traceability and documentation are consistent; a teammate has approved; the change is merged (or an approved non-code artefact is complete); and Jira links the final evidence. |
+Every review packet identifies the actual Jira key, WBS IDs, owner/reviewer,
+FR/NFR, AH/UC/UML, exact commit or artifact version, scope/non-scope,
+reproducible commands/results, unresolved issues and next hand-off. Distinguish
+static checks, mock/stub evidence, native execution, Compose reproduction,
+business integration and measured evaluation. One does not silently prove
+another. Never include secrets, real customer data or course PDF copies.
 
-Blocked work stays visible. Add the `blocked` label, record the reason and next decision in Jira, and add `needs:tutor-feedback` when tutor input is the gating dependency.
+For repository changes, link the technical Issue, put the Jira key in the
+Issue/PR, and use the Issue-based branch convention in docs/03. Keep the diff
+focused; the author resolves feedback. Preserve the normal review/check/merge
+policy and teammates' authorship; this guide grants no approval or authority
+to merge another person's branch.
 
-## GitHub evidence contract
+Default reviewers are **A → C, B → A, C → A**. Add affected producer/consumer
+owners for interface or safety changes. Self-approval, AI-generated review
+notes and syntax checks are not a teammate's personal acceptance.
 
-1. Start from one Jira Story and its linked GitHub Issue. Do not begin an untracked implementation item.
-2. Include the GitHub Issue number in the branch name, for example `feat/42-case-intake`, `fix/41-approval-check`, or `docs/5-jira-delivery-guide`.
-3. Put the Jira key in the Issue and PR title, for example `[KAN-18] Deliver customer submission and clarification portal`.
-4. In the PR body, include the Jira link, related GitHub Issue, Requirement IDs, scope/non-scope, tests or artefact evidence, dependencies, and known risks.
-5. Keep the PR reviewable in about 20 minutes. Split unrelated outcomes into separate Jira/GitHub delivery items.
-6. The author resolves review comments. At least one other member approves; CI, tests, linting, and documentation checks pass before squash merge.
-7. Update Jira's GitHub Link and move the item through the workflow as the evidence changes. Do not use GitHub Issues as a second sprint board.
+## Course and acceptance boundaries
 
-## Review rotation
+- Each member retains two core features and one **selected course optional**.
+  Each member tests their own features; C coordinates evaluation, not all tests.
+- Each member explains their own AH/UC/Activity/Interaction/State chain and
+  records real participation in all shared tasks. The Lab 6 named-instance
+  Object Diagram is distinct from Composite roles/ports. Acknowledge actual AI
+  assistance without inventing personal walkthroughs, signatures or percentages.
+- A integrates/submits the report and video; B/C supply and confirm their
+  material; C verifies R.04 artifacts and receipts. Use docs/11 and current
+  official instructions, not old guide/Jira dates. Submit honestly by the
+  course deadline without waiting for Stage 2/Gold or all internal gates to close.
+- For Gold evaluation, preserve docs/07–08 blinding: C seals the initial 30
+  labels/sources/hash before reading any timed answers; both independent A/B
+  outputs lock before E.05 hand-off, A review, B arbitration and E.08 final
+  freeze/scoring. Pilot data is separate. This guide contains no Gold labels.
 
-- Member A work is reviewed by Member B or Member C.
-- Member B work is reviewed by Member A or Member C.
-- Member C work is reviewed by Member A or Member B.
-- The author never provides the only approval for their own PR.
-- Changes to scope, interfaces, models, evaluation labels, or human-safety controls require review by the downstream owner as well as a general code review.
-
-## Definition of Done checklist
-
-- [ ] Acceptance criteria pass.
-- [ ] Normal and principal failure paths have automated tests or reproducible artefact evidence.
-- [ ] Structured logs and errors are meaningful.
-- [ ] Requirement IDs and affected MBSE models remain traceable.
-- [ ] No secret, real customer data, or copyrighted course material is committed.
-- [ ] New interfaces or architectural decisions are documented.
-- [ ] Another team member has approved the PR.
-- [ ] The change works from a clean documented setup.
-- [ ] Jira links the merged PR or approved artefact before moving to Done.
-
-## Current baseline gate
-
-The Baseline v1.0 candidate remains non-canonical until the remaining team/tutor review is recorded and the stacked adoption sequence is completed. Member C's review is complete; Member B and tutor review remain open. [KAN-6](https://lucastaooo.atlassian.net/browse/KAN-6) therefore remains visible and blocked. Preserve the existing PR order [#2](https://github.com/shuxiachai/returnops-au/pull/2) -> [#4](https://github.com/shuxiachai/returnops-au/pull/4) -> [#6](https://github.com/shuxiachai/returnops-au/pull/6); do not treat candidate-only text as merged `main` behaviour before adoption.
+PR [#7](https://github.com/shuxiachai/returnops-au/pull/7) is supporting Jira
+workflow documentation in the KAN-12 baseline context. Its publication does
+not complete R.01, C's personal models/features, F.02, or course submission.

@@ -1,0 +1,1450 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ReturnOps AU — Planned Public API Contract",
+    "version": "1.0.0-rc.5",
+    "description": "F.01 review candidate only. This document defines intended requests, responses and authority boundaries; it does not implement or claim a running server, identity service, database, agent, provider or runtime security control. Shared JSON Schemas are in ./schemas.json. Owner A; B consumes UI contracts and C consumes agreed read/evaluation contracts. Internal retrieval, Risk Review, Coordinator/Assessment and operations dispatch are not public API endpoints. Authentication and all authoritative writes remain server-side responsibilities. Requires B/C review before contract adoption."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000",
+      "description": "Planned local development address only; no running service is asserted."
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "x-status": "Planned",
+  "x-work-package": "F.01",
+  "x-jira-key": "KAN-32",
+  "x-authority-boundary": "Only the server-authenticated Founder can record an exact-scope approval; no customer, LLM, request body or preview can mint trusted approval or dispatch arbitrary commands.",
+  "paths": {
+    "/v1/session": {
+      "get": {
+        "operationId": "getSession",
+        "summary": "Read the authenticated demo principal",
+        "description": "Returns only the principal derived from the validated bearer token and server-side identity configuration. There is no caller-selectable role or token-issuance endpoint in F.01; authentication implementation belongs to F.03.",
+        "x-status": "Planned",
+        "x-owner": "A",
+        "x-consumers": [
+          "B"
+        ],
+        "x-roles": [
+          "CUSTOMER",
+          "FOUNDER"
+        ],
+        "x-requirements": [
+          "FR-009",
+          "FR-012",
+          "NFR-002",
+          "NFR-003"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read the authenticated demo principal: accepted contract response. This endpoint is planned and is not implemented by this contract.",
+            "headers": {
+              "X-Correlation-ID": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas.json#/$defs/Principal"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/evidence": {
+      "post": {
+        "operationId": "stageEvidence",
+        "summary": "Stage an owner-bound evidence attachment",
+        "description": "The server binds the staged attachment to the authenticated CUSTOMER. No case binding is performed during upload. CreateCaseRequest or ClarificationRequest subsequently consumes eligible attachment references and atomically binds them to that customer's case. A foreign, expired or already-incompatibly-bound reference cannot be attached. Staged content remains private and subject to retention. The 10 MiB limit applies to file bytes; metadata and MIME declarations do not replace server-side content validation. All POST retries follow the shared IdempotencyKey retention/receipt rule; a 409 receipt-unavailable response does not undo prior acceptance or authorise resubmission.",
+        "x-status": "Planned",
+        "x-owner": "A",
+        "x-consumers": [
+          "B"
+        ],
+        "x-roles": [
+          "CUSTOMER"
+        ],
+        "x-requirements": [
+          "FR-001",
+          "FR-005",
+          "NFR-003",
+          "NFR-009"
+        ],
+        "responses": {
+          "201": {
+            "description": "Attachment staged for the authenticated customer; this does not create or bind a case.",
+            "headers": {
+              "X-Correlation-ID": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "./schemas.json#/$defs/EvidenceAttachment"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": "STAGED"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLarge"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Exactly one file, at most 10 MiB (10,485,760 bytes), and an optional customer description. Accepted file types: JPEG, PNG and PDF. MIME and file content must agree; filename, description and attachment text remain untrusted.",
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "file"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "JPEG, PNG or PDF. Maximum 10,485,760 file bytes; enforced by the future upload service.",
+                    "x-max-bytes": 10485760
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 2000
+                  }
+                }
+              },
+              "encoding": {
+                "file": {
+                  "contentType": "image/jpeg, image/png, application/pdf"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/evidence/{evidence_id}/content": {
+      "parameters": [
+        {
+          "name": "evidence_id",
+          "in": "path",
+          "required": true,
+          "description": "Opaque evidence attachment ID.",
+          "schema": {
+            "$ref": "./schemas.json#/$defs/Id"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "getEvidenceContent",
+        "summary": "Read authorised evidence content",
+        "description": "A CUSTOMER may read only their own eligible staged or case-bound evidence. A FOUNDER may read evidence only through an authorised case relationship. Missing, expired, deleted and resource-inaccessible IDs use a non-revealing 404. This endpoint does not accept an arbitrary URL or expose a reusable provider/storage credential. C's image analysis consumes an authorised internal attachment hand-off from A, not an unauthenticated public analysis endpoint.",
+        "x-status": "Planned",
+        "x-owner": "A",
+        "x-consumers": [
+          "B"
+        ],
+        "x-roles": [
+          "CUSTOMER",
+          "FOUNDER"
+        ],
+        "x-requirements": [
+          "FR-005",
+          "FR-012",
+          "NFR-003",
+          "NFR-009"
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorised original file bytes with the validated media type; no JSON success envelope.",
+            "headers": {
+              "X-Correlation-ID": {
+                "$ref": "#/components/headers/CorrelationId"
+              },
+              "Cache-Control": {
+                "description": "Private evidence must not be retained by shared caches.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/cases": {
+      "post": {
+        "operationId": "createCase",
+        "summary": "Submit one customer case",
+        "description": "Preserves the original customer statement and requested outcome independently from any normalised facts or recommendation. One submission key creates at most one case. Eligible staged evidence references are owner-checked and bound atomically with case creation. Missing information is a valid intake result and cannot create an operational command. The returned CustomerCaseView is a narrow customer-facing acknowledgement, not the Founder read model. All POST retries follow the shared IdempotencyKey retention/receipt rule; a 409 receipt-unavailable response does not undo prior acceptance or authorise resubmission.",
+        "x-status": "Planned",
+        "x-owner": "A",
+        "x-consumers": [
+          "B"
+        ],
+        "x-roles": [
+          "CUSTOMER"
+        ],
+        "x-requirements": [
+          "FR-001",
+          "FR-002",
+          "FR-004",
+          "FR-005",
+          "NFR-003",
+          "NFR-004"
+        ],
+        "responses": {
+          "201": {
+            "description": "Submit one customer case: accepted contract response. This endpoint is planned and is not implemented by this contract.",
+            "headers": {
+              "X-Correlation-ID": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas.json#/$defs/CustomerCaseView"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Customer input only. Identity, authoritative case state, trusted approval, risk result and tool commands cannot be supplied by the caller.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./schemas.json#/$defs/CreateCaseRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/cases/{case_id}": {
+      "parameters": [
+        {
+          "name": "case_id",
+          "in": "path",
+          "required": true,
+          "description": "Opaque case ID owned by the authenticated customer.",
+          "schema": {
+            "$ref": "./schemas.json#/$defs/Id"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "getCustomerCase",
+        "summary": "Read the customer's narrow case view",
+        "description": "CUSTOMER-only ownership-scoped read used to resume intake and clarification and inspect the customer-facing outcome. It excludes internal prompts, private risk analysis, command credentials and the full Founder audit view. An inaccessible case is indistinguishable from a missing case. This is not a full customer account centre or a second authoritative workflow.",
+        "x-status": "Planned",
+        "x-owner": "A",
+        "x-consumers": [
+          "B"
+        ],
+        "x-roles": [
+          "CUSTOMER"
+        ],
+        "x-requirements": [
+          "FR-001",
+          "FR-005",
+          "FR-012",
+          "NFR-003"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read the customer's narrow case view: accepted contract response. This endpoint is planned and is not implemented by this contract.",
+            "headers": {
+              "X-Correlation-ID": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas.json#/$defs/CustomerCaseView"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/cases/{case_id}/clarifications": {
+      "parameters": [
+        {
+          "name": "case_id",
+          "in": "path",
+          "required": true,
+          "description": "Opaque case ID owned by the authenticated customer.",
+          "schema": {
+            "$ref": "./schemas.json#/$defs/Id"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "submitClarification",
+        "summary": "Submit clarification for an existing case",
+        "description": "Appends a new customer statement or answer without overwriting the original. The service checks body.expected_case_version and whether the clarification belongs to the current intake request. Eligible staged evidence is owner-checked and bound atomically to the case; new evidence invalidates dependent proposal/review/approval state under the Domain Service rules. Acceptance does not imply AI completion or operation execution. All POST retries follow the shared IdempotencyKey retention/receipt rule; a 409 receipt-unavailable response does not undo prior acceptance or authorise resubmission.",
+        "x-status": "Planned",
+        "x-owner": "A",
+        "x-consumers": [
+          "B"
+        ],
+        "x-roles": [
+          "CUSTOMER"
+        ],
+        "x-requirements": [
+          "FR-001",
+          "FR-002",
+          "FR-005",
+          "NFR-003",
+          "NFR-004"
+        ],
+        "responses": {
+          "202": {
+            "description": "Submit clarification for an existing case: accepted contract response. This endpoint is planned and is not implemented by this contract.",
+            "headers": {
+              "X-Correlation-ID": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas.json#/$defs/CustomerCaseView"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Uses body.expected_case_version for optimistic concurrency. If-Match is not part of this contract.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./schemas.json#/$defs/ClarificationRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/founder/cases": {
+      "get": {
+        "operationId": "listFounderCases",
+        "summary": "List authoritative Founder case summaries",
+        "description": "Cursor-paginated summaries for the single demo store. The bearer principal must be a server-authorised FOUNDER. Cursors are opaque, are validated for the authenticated scope and cannot grant access. This read does not mutate case status.",
+        "x-status": "Planned",
+        "x-owner": "A",
+        "x-consumers": [
+          "B"
+        ],
+        "x-roles": [
+          "FOUNDER"
+        ],
+        "x-requirements": [
+          "FR-012",
+          "NFR-003"
+        ],
+        "responses": {
+          "200": {
+            "description": "List authoritative Founder case summaries: accepted contract response. This endpoint is planned and is not implemented by this contract.",
+            "headers": {
+              "X-Correlation-ID": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas.json#/$defs/CaseList"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ]
+      }
+    },
+    "/v1/founder/cases/{case_id}": {
+      "parameters": [
+        {
+          "name": "case_id",
+          "in": "path",
+          "required": true,
+          "description": "Opaque case ID in the authenticated Founder's authorised store.",
+          "schema": {
+            "$ref": "./schemas.json#/$defs/Id"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "getFounderCase",
+        "summary": "Read the full Founder case view",
+        "description": "Returns the authoritative Founder CaseView, including current proposal/review and eligible non-executable ActionPreview. ESCALATED without a current proposal carries exactly one current ProcessingFailure (technical) or OrderLookupBlock (CONFLICT/AUTHORITY_DENIED), bound to the case/input. Do not invent a proposal, risk review or technical error for a business block. The UI retains the exact current target ID and case version, and can submit only MANUAL_HANDLING for either non-proposal target. Historical decisions, approvals, operations including unknown effects, notifications and audit references remain preserved. A preview or a history record grants no authority; browser state cannot replace server guards.",
+        "x-status": "Planned",
+        "x-owner": "A",
+        "x-consumers": [
+          "B"
+        ],
+        "x-roles": [
+          "FOUNDER"
+        ],
+        "x-requirements": [
+          "FR-007",
+          "FR-008",
+          "FR-009",
+          "FR-011",
+          "FR-012",
+          "NFR-001",
+          "NFR-003"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read the full Founder case view: accepted contract response. This endpoint is planned and is not implemented by this contract.",
+            "headers": {
+              "X-Correlation-ID": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas.json#/$defs/CaseView"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/founder/cases/{case_id}/decisions": {
+      "parameters": [
+        {
+          "name": "case_id",
+          "in": "path",
+          "required": true,
+          "description": "Opaque case ID in the authenticated Founder's authorised store.",
+          "schema": {
+            "$ref": "./schemas.json#/$defs/Id"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "recordFounderDecision",
+        "summary": "Record a proposal decision or a non-executable failure outcome",
+        "description": "Accepts APPROVE, REJECT, REQUEST_REVISION or MANUAL_HANDLING for the current proposal ID/version. Alternatively, only MANUAL_HANDLING may target the current processing_failure_id or order_lookup_block_id when the case is ESCALATED and has no current proposal. Exactly one of the three targets is allowed. The server derives the trusted Founder from authenticated context and atomically checks expected_case_version, current case/input/target identity and state. A stale, replaced, foreign or wrong-kind target grants no authority. Non-proposal manual handling accepts no proposal, preview, scope fingerprint or approval, records an audited customer-facing outcome, and queues notification only; never a return/label. Same-key/same-body replay follows the shared IdempotencyKey rule after authentication and authorisation, even after state advances: reuse acceptance, but return 409 INVALID_STATE if retention has made original receipt content unavailable; never dispatch again. New intents require current guards. For proposal approval revalidate current passing review, preview and exact scope; ESCALATE cannot be approved. APPROVE persists trusted exact-scope authority and governed simulated execution work atomically. No second dispatch endpoint, new role or business decision is added. 202 means acceptance, not operation or notification success. All POST retries follow the shared IdempotencyKey retention/receipt rule; a 409 receipt-unavailable response does not undo prior acceptance or authorise resubmission.",
+        "x-status": "Planned",
+        "x-owner": "A",
+        "x-consumers": [
+          "B"
+        ],
+        "x-roles": [
+          "FOUNDER"
+        ],
+        "x-requirements": [
+          "FR-008",
+          "FR-009",
+          "FR-010",
+          "FR-011",
+          "FR-012",
+          "NFR-002",
+          "NFR-004",
+          "NFR-009"
+        ],
+        "responses": {
+          "202": {
+            "description": "Accepted proposal-target decision or failure-target manual outcome. This planned contract does not implement the state, authority, persistence or notification checks.",
+            "headers": {
+              "X-Correlation-ID": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas.json#/$defs/DecisionReceipt"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "expected_case_version plus exactly one target: proposal_id/proposal_version, processing_failure_id, or order_lookup_block_id. The latter two are MANUAL_HANDLING only and forbid proposal/preview/scope/approval fields. Runtime validates the current case/input/target and trusted Founder; a schema-valid ID cannot authorise a decision. No client actor or arbitrary command.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./schemas.json#/$defs/FounderDecisionRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/founder/operations/{operation_id}/reconcile": {
+      "parameters": [
+        {
+          "name": "operation_id",
+          "in": "path",
+          "required": true,
+          "description": "Opaque operation attempt ID belonging to an authorised case.",
+          "schema": {
+            "$ref": "./schemas.json#/$defs/Id"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "reconcileOperation",
+        "summary": "Request reconciliation of an uncertain operation",
+        "description": "Valid only for a recoverable UNKNOWN/RECONCILING operation in the current case version. The request starts or resumes provider-specific result lookup using the stored provider ID/fingerprint. It cannot change the approved command, parameters, provider or approval. An uncertain result is not an instruction to repeat the effect; any later safe retry remains subject to current exact approval, provider authority and idempotency guards. This endpoint is not a generic dispatch or unrestricted retry API. All POST retries follow the shared IdempotencyKey retention/receipt rule; a 409 receipt-unavailable response does not undo prior acceptance or authorise resubmission.",
+        "x-status": "Planned",
+        "x-owner": "A",
+        "x-consumers": [
+          "B"
+        ],
+        "x-roles": [
+          "FOUNDER"
+        ],
+        "x-requirements": [
+          "FR-010",
+          "FR-011",
+          "NFR-002",
+          "NFR-004",
+          "NFR-007"
+        ],
+        "responses": {
+          "202": {
+            "description": "Request reconciliation of an uncertain operation: accepted contract response. This endpoint is planned and is not implemented by this contract.",
+            "headers": {
+              "X-Correlation-ID": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas.json#/$defs/OperationAttempt"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "body.expected_case_version refers to the operation's owning case; the server resolves and authorises that case from operation_id. No If-Match header is used.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./schemas.json#/$defs/VersionPrecondition"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/founder/notifications/{notification_id}/retry": {
+      "parameters": [
+        {
+          "name": "notification_id",
+          "in": "path",
+          "required": true,
+          "description": "Opaque notification record ID belonging to an authorised case.",
+          "schema": {
+            "$ref": "./schemas.json#/$defs/Id"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "retryNotification",
+        "summary": "Request notification-only retry",
+        "description": "Retries the existing pending/failed notification using its saved outcome and target, after checking body.expected_case_version and current state. It does not repeat CREATE_RETURN, GENERATE_LABEL, approval or any other operational effect, and cannot change the recipient or message through this request. The case reaches core completion only after the stored outcome has been successfully notified under the Domain Service rules. All POST retries follow the shared IdempotencyKey retention/receipt rule; a 409 receipt-unavailable response does not undo prior acceptance or authorise resubmission.",
+        "x-status": "Planned",
+        "x-owner": "A",
+        "x-consumers": [
+          "B"
+        ],
+        "x-roles": [
+          "FOUNDER"
+        ],
+        "x-requirements": [
+          "FR-009",
+          "FR-010",
+          "FR-011",
+          "NFR-002",
+          "NFR-004"
+        ],
+        "responses": {
+          "202": {
+            "description": "Request notification-only retry: accepted contract response. This endpoint is planned and is not implemented by this contract.",
+            "headers": {
+              "X-Correlation-ID": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas.json#/$defs/NotificationRecord"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "body.expected_case_version refers to the notification's owning case. The notification ID resolves its scope; no If-Match header is used.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./schemas.json#/$defs/VersionPrecondition"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/founder/cases/{case_id}/audit": {
+      "parameters": [
+        {
+          "name": "case_id",
+          "in": "path",
+          "required": true,
+          "description": "Opaque case ID in the authenticated Founder's authorised store.",
+          "schema": {
+            "$ref": "./schemas.json#/$defs/Id"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "listCaseAudit",
+        "summary": "Read the redacted case audit trail",
+        "description": "Provides cursor-paginated authorised audit records with correlation and integrity references. Non-personal integrity records remain verifiable after permitted personal-content deletion or de-identification. Responses exclude credentials, hidden model reasoning and raw unrestricted logs. Pagination does not expose another case's events.",
+        "x-status": "Planned",
+        "x-owner": "A",
+        "x-consumers": [
+          "B",
+          "C"
+        ],
+        "x-roles": [
+          "FOUNDER"
+        ],
+        "x-requirements": [
+          "FR-011",
+          "FR-012",
+          "NFR-001",
+          "NFR-003",
+          "NFR-008"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read the redacted case audit trail: accepted contract response. This endpoint is planned and is not implemented by this contract.",
+            "headers": {
+              "X-Correlation-ID": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas.json#/$defs/AuditPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ]
+      }
+    },
+    "/v1/founder/analytics": {
+      "get": {
+        "operationId": "getFounderAnalytics",
+        "summary": "Read case-level operations analytics",
+        "description": "Read-only OF-006 summary for one cohort, frozen at response.as_of. Optional created_from/created_before select case.created_at in [from, before); omitted from means no lower bound, omitted before means the as_of snapshot cut-off. An explicit future bound never includes data after as_of. Optional status is one CaseStatus evaluated at as_of, not a historical transition or comma-separated list. Both times must satisfy from < before; invalid values or range return 422, with ordering enforced by application logic rather than JSON Schema. Echo the supplied validated filters in AnalyticsSnapshot.filters, using {} when omitted. All counts share this created-at/current-status cohort and count each case once. Current risk means the latest valid review of the current proposal/input at as_of; missing/invalid reviews are separate. Latency selects each case's latest assessment episode for its current input: sample_count, failed_count and unmeasured_count are disjoint and sum to case_count. Incomplete/unstarted/in-progress/unrecorded measurements are unmeasured; terminal failed episodes are failed. p50/p95 cover only successful valid measurements and are omitted with zero samples, not presented as whole-system success. Measure accepted-complete-input to stored-review-ready-proposal, including machine risk/revision loops and excluding human/physical waiting. Historical retries or versions do not add cases; targets remain unachieved until measured. Runtime aggregation and guards remain unimplemented.",
+        "x-status": "Planned",
+        "x-owner": "A",
+        "x-consumers": [
+          "B",
+          "C"
+        ],
+        "x-roles": [
+          "FOUNDER"
+        ],
+        "x-requirements": [
+          "OF-006",
+          "FR-011",
+          "FR-012",
+          "NFR-005",
+          "NFR-008"
+        ],
+        "parameters": [
+          {
+            "name": "created_from",
+            "in": "query",
+            "required": false,
+            "description": "Inclusive case.created_at lower bound in RFC 3339 UTC (Z). Omit for no lower bound. If created_before is also supplied, application validation requires created_from < created_before; invalid ranges return 422.",
+            "schema": {
+              "$ref": "./schemas.json#/$defs/Timestamp"
+            }
+          },
+          {
+            "name": "created_before",
+            "in": "query",
+            "required": false,
+            "description": "Exclusive case.created_at upper bound in RFC 3339 UTC (Z). Omit for the response.as_of snapshot cut-off. No observation after as_of is included, even if this bound is later.",
+            "schema": {
+              "$ref": "./schemas.json#/$defs/Timestamp"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "One current CaseStatus at as_of. Omit for all statuses. Unknown values or a multi-value status expression return 422; this does not select historical state transitions.",
+            "schema": {
+              "$ref": "./schemas.json#/$defs/CaseStatus"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Read case-level operations analytics: accepted contract response. This endpoint is planned and is not implemented by this contract.",
+            "headers": {
+              "X-Correlation-ID": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas.json#/$defs/AnalyticsSnapshot"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/founder/cases/{case_id}/history": {
+      "parameters": [
+        {
+          "name": "case_id",
+          "in": "path",
+          "required": true,
+          "description": "Case in the authenticated role and principal scope; customer must own this case.",
+          "schema": {
+            "$ref": "./schemas.json#/$defs/Id"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "listFounderCaseHistory",
+        "summary": "Read founder-authorised immutable case history",
+        "description": "Planned read-only typed history. Authenticate every page. Customer permits only own statements/evidence/already sent safe outcome messages; Founder materials use the separate Founder schema. Freeze immutable revisions at one case snapshot, sort by (recorded_sequence, record_id). Cursor binds principal, role, case, kind, exact object filters, limit, snapshot and last key using authenticated server state or signature. First request omits cursor; a collection_windows.start_cursor starts the full unfiltered kind at the view snapshot with default limit 20. Every later request repeats kind/filters/limit. Invalid, tampered, cross-scope or changed-query cursor returns 409 INVALID_STATE after access checks; expired snapshot returns 409 INVALID_STATE and requires an explicit restart without cursor. Never silently restart. Later appends/updates are excluded; permitted deletion replaces content with tombstones even in an existing snapshot. Exact object_version requires object_id. No arbitrary payload/read URL or write operation. See docs/09 section 10.4 for required runtime checks.",
+        "x-status": "Planned",
+        "x-owner": "A",
+        "x-consumers": [
+          "B",
+          "C"
+        ],
+        "x-roles": [
+          "FOUNDER"
+        ],
+        "x-requirements": [
+          "FR-011",
+          "FR-012",
+          "NFR-001",
+          "NFR-003",
+          "NFR-008"
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorised immutable history page or retention tombstones; candidate only.",
+            "headers": {
+              "X-Correlation-ID": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas.json#/$defs/FounderHistoryPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "./schemas.json#/$defs/FounderHistoryKind"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "name": "object_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "./schemas.json#/$defs/Id"
+            }
+          },
+          {
+            "name": "object_version",
+            "in": "query",
+            "required": false,
+            "description": "Requires object_id; server rejects lone version with 422 VALIDATION_ERROR.",
+            "schema": {
+              "$ref": "./schemas.json#/$defs/Version"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/cases/{case_id}/history": {
+      "parameters": [
+        {
+          "name": "case_id",
+          "in": "path",
+          "required": true,
+          "description": "Case in the authenticated role and principal scope; customer must own this case.",
+          "schema": {
+            "$ref": "./schemas.json#/$defs/Id"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "listCustomerCaseHistory",
+        "summary": "Read customer-authorised immutable case history",
+        "description": "Planned read-only typed history. Authenticate every page. Customer permits only own statements/evidence/already sent safe outcome messages; Founder materials use the separate Founder schema. Freeze immutable revisions at one case snapshot, sort by (recorded_sequence, record_id). Cursor binds principal, role, case, kind, exact object filters, limit, snapshot and last key using authenticated server state or signature. First request omits cursor; a collection_windows.start_cursor starts the full unfiltered kind at the view snapshot with default limit 20. Every later request repeats kind/filters/limit. Invalid, tampered, cross-scope or changed-query cursor returns 409 INVALID_STATE after access checks; expired snapshot returns 409 INVALID_STATE and requires an explicit restart without cursor. Never silently restart. Later appends/updates are excluded; permitted deletion replaces content with tombstones even in an existing snapshot. Exact object_version requires object_id. No arbitrary payload/read URL or write operation. See docs/09 section 10.4 for required runtime checks.",
+        "x-status": "Planned",
+        "x-owner": "A",
+        "x-consumers": [
+          "B",
+          "C"
+        ],
+        "x-roles": [
+          "CUSTOMER"
+        ],
+        "x-requirements": [
+          "FR-011",
+          "FR-012",
+          "NFR-001",
+          "NFR-003",
+          "NFR-008"
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorised immutable history page or retention tombstones; candidate only.",
+            "headers": {
+              "X-Correlation-ID": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas.json#/$defs/CustomerHistoryPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "./schemas.json#/$defs/CustomerHistoryKind"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "name": "object_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "./schemas.json#/$defs/Id"
+            }
+          },
+          {
+            "name": "object_version",
+            "in": "query",
+            "required": false,
+            "description": "Requires object_id; server rejects lone version with 422 VALIDATION_ERROR.",
+            "schema": {
+              "$ref": "./schemas.json#/$defs/Version"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Planned F.03 demo identity: the server validates the token and derives principal/roles from trusted configuration. Token signing, expiry/issuer/audience validation and access control are not implemented by this contract. No client-selected-role login endpoint is exposed."
+      }
+    },
+    "parameters": {
+      "IdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "description": "Required for every POST. A safe opaque ASCII key scoped to the authenticated principal, operation and addressed resource. After authentication and resource authorisation, same-key/same-fingerprint replay reuses the original acceptance without a duplicate mutation or scheduling. Return the original receipt only while all its content remains available under the current retention policy. If allowed removal makes any receipt content unavailable, return 409 INVALID_STATE with retryable=false and a sanitised message that the request was previously accepted but its receipt is unavailable; read the current case/history. Never return removed content, substitute a current view as the original receipt, or retry under a new key automatically. Keep minimal scope/key/fingerprint/accepted-resource-and-work references and receipt availability; removing response content must not erase deduplication and permit another execution. Coordinate retention removal and replay reads so cached receipts cannot bypass deletion. Different content still returns 409 IDEMPOTENCY_CONFLICT. For file upload the fingerprint includes inspected file bytes and allowed metadata. Durable idempotency, retention and transactional queuing remain unimplemented requirements.",
+        "schema": {
+          "$ref": "./schemas.json#/$defs/IdempotencyKey"
+        }
+      },
+      "Cursor": {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "description": "Opaque next-page cursor from the preceding response, constrained to the authenticated query scope. Omit for the first page.",
+        "schema": {
+          "$ref": "./schemas.json#/$defs/Cursor"
+        }
+      },
+      "Limit": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "description": "Maximum number of records in one page.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 20
+        }
+      }
+    },
+    "headers": {
+      "CorrelationId": {
+        "description": "Server-issued opaque correlation ID for the request/response, also present in any ErrorEnvelope. Never embeds customer personal data or secrets.",
+        "schema": {
+          "$ref": "./schemas.json#/$defs/Id"
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Malformed request or multipart structure; no accepted mutation.",
+        "headers": {
+          "X-Correlation-ID": {
+            "$ref": "#/components/headers/CorrelationId"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "./schemas.json#/$defs/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Missing, invalid or expired bearer credentials. A token is not a caller-selected role.",
+        "headers": {
+          "X-Correlation-ID": {
+            "$ref": "#/components/headers/CorrelationId"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "./schemas.json#/$defs/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Authenticated principal lacks the role required for this operation. Do not disclose resource existence.",
+        "headers": {
+          "X-Correlation-ID": {
+            "$ref": "#/components/headers/CorrelationId"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "./schemas.json#/$defs/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource is missing, expired/deleted where relevant, or not accessible to this principal. Use the same non-revealing response shape for ownership/resource denials.",
+        "headers": {
+          "X-Correlation-ID": {
+            "$ref": "#/components/headers/CorrelationId"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "./schemas.json#/$defs/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "Stale expected_case_version, proposal/preview or processing-failure target, invalid current state, or an Idempotency-Key reused with a different canonical request fingerprint. A conflict grants no new authority and creates no new effect.",
+        "headers": {
+          "X-Correlation-ID": {
+            "$ref": "#/components/headers/CorrelationId"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "./schemas.json#/$defs/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "UnprocessableEntity": {
+        "description": "Request is syntactically readable but fails the published schema or semantic constraints; validation details must not echo secrets or unrestricted personal content.",
+        "headers": {
+          "X-Correlation-ID": {
+            "$ref": "#/components/headers/CorrelationId"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "./schemas.json#/$defs/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "Unavailable": {
+        "description": "The service or a required dependency is temporarily unavailable. Retry according to the error envelope and reuse the original Idempotency-Key for a POST whose acceptance is uncertain. This does not authorise repeating an uncertain provider effect.",
+        "headers": {
+          "X-Correlation-ID": {
+            "$ref": "#/components/headers/CorrelationId"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "./schemas.json#/$defs/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "PayloadTooLarge": {
+        "description": "The uploaded file exceeds 10 MiB (10,485,760 bytes). No eligible attachment is staged.",
+        "headers": {
+          "X-Correlation-ID": {
+            "$ref": "#/components/headers/CorrelationId"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "./schemas.json#/$defs/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "UnsupportedMediaType": {
+        "description": "The file is not an accepted JPEG, PNG or PDF, or declared MIME and inspected content disagree.",
+        "headers": {
+          "X-Correlation-ID": {
+            "$ref": "#/components/headers/CorrelationId"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "./schemas.json#/$defs/ErrorEnvelope"
+            }
+          }
+        }
+      }
+    }
+  }
+}

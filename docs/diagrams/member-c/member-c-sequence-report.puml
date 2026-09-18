@@ -1,0 +1,61 @@
+@startuml
+title C sequence — independent review detail\nMC-SEQ-RPT-0.1 · UC-02 C04-C06
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 20
+skinparam legendFontSize 20
+skinparam noteFontSize 20
+skinparam titleFontSize 24
+skinparam sequenceMessageAlign center
+skinparam ParticipantBackgroundColor #EEF4F8
+skinparam ParticipantBorderColor #27465B
+skinparam ArrowColor #27465B
+skinparam noteBackgroundColor #FFF5D9
+hide footbox
+participant "Domain\nA: sole writer" as D
+participant "Orchestrator\nA" as O
+participant "Risk Reviewer\nC2" as C
+note over D,C
+Precondition: complete accepted packet + bundle.
+Original C1 sources/conflicts, not generator prose.
+Full retrieval and verification path: MC-SEQ-0.1.
+end note
+O -> D : Select current work;\nobtain accepted input
+D --> O : RiskReviewRequest
+O -> C : review(request)\nseparate invocation
+note right of C
+No Assessment
+hidden reasoning;
+no approval or
+provider capability.
+end note
+C --> O : Untrusted result\nor technical failure
+O -> D : Submit event with\nselected identity
+D -> D : Atomically check identity,\ncurrent context + permission
+alt obsolete event
+  D --> O : No change to newer work
+else current technical failure
+  D --> O : Bounded recovery /\nactual failure handling
+else current valid result
+  D -> D : Store RiskReview + audit\nand exact proposal binding
+  D --> O : Route stored outcome\n(no execution authority)
+end
+legend bottom
+PASS / PASS_WITH_WARNING → guarded Founder review.
+REVISE → bounded new proposal + fresh review.
+NEEDS_INFORMATION → clarification; new input/review.
+ESCALATE → revision/manual, not approval.
+Exhausted REVISE retains the real result + proposal;
+no fabricated technical failure or different outcome.
+
+All effectful events use the selected work/round/
+invocation guard: reply/failure/retry/exhaustion.
+Recovery matches the selected failed invocation.
+No partial input; no extra wire fields or HTTP routes.
+
+MC-SEQ-0.1 full source: member-c-sequence.puml.
+Bounds: docs/18 MC-D01-03 disposition.
+AI-assisted design; not runtime or human acceptance.
+endlegend
+@enduml

@@ -1,0 +1,59 @@
+@startuml
+!pragma layout smetana
+title C state — review-work overview\nMC-SM-RPT-0.1 · seven internal phases
+hide empty description
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 22
+skinparam legendFontSize 22
+skinparam ArrowFontSize 22
+skinparam titleFontSize 26
+skinparam stateBackgroundColor #EEF4F8
+skinparam stateBorderColor #27465B
+skinparam ArrowColor #27465B
+skinparam ranksep 35
+skinparam nodesep 20
+state "QUEUED" as Q
+state "INVOKING" as I
+state "VALIDATING" as V
+state "RECOVERY_WAIT" as R
+state "ACCEPTED" as A
+state "HISTORICAL" as H
+state "CLOSED_WITHOUT_RESULT" as X
+[*] --> Q : admit current bundle
+Q --> I : start [G_START + bound]
+I --> V : reply [G_EVENT]
+I --> R : timeout [G_EVENT]
+V --> R : invalid [G_EVENT]
+R --> I : retry [G_EVENT + bound]
+V --> A : valid [G_EVENT]\n/ store review + audit
+R --> X : exhausted [G_EVENT]
+Q --> X : retire [G_RETIRE]
+I --> X : retire [G_RETIRE]
+V --> X : retire [G_RETIRE]
+R --> X : retire [G_RETIRE]
+A --> H : retire [G_RETIRE]\n/ preserve result
+H --> [*]
+X --> [*]
+legend bottom
+<b>Domain owns every transition and atomic effect.</b>
+G_START: selected queued work/round; no invocation yet.
+G_EVENT: selected work/round/active invocation;
+in recovery, selected failed/retired invocation.
+G_RETIRE: compare the exact work/association retired.
+Recheck current context + permission at start/accept.
+Stale events cannot retire or alter replacement work.
+
+ACCEPTED stores one immutable RiskReview; its outcome:
+PASS | PASS_WITH_WARNING | REVISE |
+NEEDS_INFORMATION | ESCALATE.
+Those five results are NOT these seven phases.
+New proposal → new work; same-proposal retry → new
+selected invocation. Failure is not a sixth outcome.
+
+Compact projection of member-c-state.puml (MC-SM-0.1).
+Complete actions/bounds: docs/18 MC-D01-03 disposition.
+No new wire fields; design only, not runtime evidence.
+endlegend
+@enduml

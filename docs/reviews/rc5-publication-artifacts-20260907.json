@@ -1,0 +1,225 @@
+{
+  "version": "RC5-PUB-0.1",
+  "date": "2026-09-07",
+  "base_commit": "57d86fe5bf80e2ed8cb445a6bec30c2ef7d8a577",
+  "review_pr": "https://github.com/shuxiachai/returnops-au/pull/11",
+  "scope": "SHA-256 of staged Git blob bytes for the rc.5 publication tree, after Git line-ending normalization. Verify with git show <review-sha>:<path>, not raw Windows checkout bytes. This manifest excludes itself to avoid self-reference. The exact publishing source SHA and actual CI evidence are recorded in PR #11. Old A-PREP/A-FIX raw-byte manifests are retained as pre-publication history.",
+  "candidate_versions": [
+    "F.01 1.0.0-rc.5",
+    "MA-0.3",
+    "CS-0.2",
+    "AD-0.2",
+    "PD-0.2",
+    "F03-D0.2"
+  ],
+  "files": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "4b38c7b2a55b1ab34b194999754b1bf4fcedb0ab5e7e472acfd5ed6885fd2e44"
+    },
+    {
+      "path": "README.md",
+      "sha256": "7de80f2d86bac45a8f040d7f34443ec2c5afc44f29ae0fd90ab486c5c8d2b766"
+    },
+    {
+      "path": "compose.yaml",
+      "sha256": "f18440b6800a2202bdad0ea96cc6807e6a663dd40f0d6f0fce1f2255c85a8f43"
+    },
+    {
+      "path": "contracts/README.md",
+      "sha256": "cc7d214febdd26eb9f289e40fd49c471a1811f5c389968481bb13e9eb849f2ad"
+    },
+    {
+      "path": "contracts/v1/examples.json",
+      "sha256": "6ebbf9c905397aa3f3824cfcfacd4338a14fe24d4b768fcca85ff57da11f0290"
+    },
+    {
+      "path": "contracts/v1/openapi.json",
+      "sha256": "da7a3fcb6fce889631689c4a3a18d6aeb6a8c09d10421cd248c823babe084ad6"
+    },
+    {
+      "path": "contracts/v1/schemas.json",
+      "sha256": "8057d4569f470c0dc6933d5368dad5480291abfcaa2fb8950fe1b8fcf136a8c2"
+    },
+    {
+      "path": "docs/00-project-definition-v1.md",
+      "sha256": "5900f49d4368f51d9b7a3fc0538a679d404faa2ca20cd4d0ff451a47f387860f"
+    },
+    {
+      "path": "docs/02-system-design.md",
+      "sha256": "1626127e70d6719ab95694aa8baa81ebf371938482c2cbadf5e36dfd8913199e"
+    },
+    {
+      "path": "docs/05-lab-3-requirement-modelling.md",
+      "sha256": "9bf84beb50897fdc221976e76d7419d1d1075dfbf3117b0b5641c56fbe7532e8"
+    },
+    {
+      "path": "docs/08-delivery-work-packages.md",
+      "sha256": "47a07032c28d6eff9af4505ee0578ce35af809b8df39c588887b89865c56a918"
+    },
+    {
+      "path": "docs/09-interface-contract-v1.md",
+      "sha256": "fd0af1b6caa48763c04ffa23bc7ef583151b14683923dd5013d93f4c38a2ea8e"
+    },
+    {
+      "path": "docs/10-f02-environment-readiness.md",
+      "sha256": "fecbb614e87e30c3a275fadca7607268e5033372f2963c8cdbe4a8f0b6e54445"
+    },
+    {
+      "path": "docs/11-stage1-readiness.md",
+      "sha256": "e8a33c1481b97df25730de93fd623cb167ebd4af7303617222500980bae4d063"
+    },
+    {
+      "path": "docs/12-member-a-model-chain.md",
+      "sha256": "d02d4b2d581c1cc831e5dbbd6afde24bb860b2238afea280ece326aa33e6b65e"
+    },
+    {
+      "path": "docs/13-shared-composite-structure.md",
+      "sha256": "f36b43c124e63a670d02f05ee95f8146444a171b5cb0f95905bd56981817f393"
+    },
+    {
+      "path": "docs/14-member-a-design-decisions.md",
+      "sha256": "be4a11bdd876881451a5235a04f9747de3b26439d598104039dfdb03a8a45401"
+    },
+    {
+      "path": "docs/15-package-deployment-models.md",
+      "sha256": "a2620c798ae62bca0fbc20b061d957a1052253e809809e8ecccba2287917ee22"
+    },
+    {
+      "path": "docs/16-demo-identity-authorization.md",
+      "sha256": "9ced2385ebc886d04b883e583a4d412da62965c3eb99c07fb7890c6e2573f5c9"
+    },
+    {
+      "path": "docs/17-logistics-sandbox-feasibility.md",
+      "sha256": "848844608f3ea80b37f7cb0668523dcb85daf114831ed70f07e2b37e1f2656cc"
+    },
+    {
+      "path": "docs/diagrams/01-domain-class-diagram.md",
+      "sha256": "813ce668a9bd7f2391305a35835a63d58017b39f66fb7316fc91eae17a6a41a1"
+    },
+    {
+      "path": "docs/diagrams/02-state-machine-diagram.md",
+      "sha256": "dba51550b0df3c01e1db20014969c2445851b94d414521d03df9e46dee5421db"
+    },
+    {
+      "path": "docs/diagrams/03-sequence-diagram.md",
+      "sha256": "c7ca149ead905b7dc05c9ecb6a99f236173846fb1d230459b01d51221c229f43"
+    },
+    {
+      "path": "docs/diagrams/member-a/exact-scope-sequence.puml",
+      "sha256": "81af3d12217e81c6f1c94dd55540bdf61156180afcb2ba9fee80a05412d93ab9"
+    },
+    {
+      "path": "docs/diagrams/member-a/exact-scope-sequence.svg",
+      "sha256": "3d7e33e3e2445b60b4da266b992fa79be880921b65d80bc79c3eb84848c717e0"
+    },
+    {
+      "path": "docs/diagrams/member-a/governed-execution-activity.puml",
+      "sha256": "1ab86ff6ddf17d1da53939a1ff5d9e8591db20ad84e65c90c128323d4df5cb73"
+    },
+    {
+      "path": "docs/diagrams/member-a/governed-execution-activity.svg",
+      "sha256": "cc81dbaecb969fc57a7c2884b3106c5c644d4110d3e9b27d5d725eb2b8a1a718"
+    },
+    {
+      "path": "docs/diagrams/member-a/operation-attempt-state.puml",
+      "sha256": "af66a56a08b2a4fda9d06fd7aa1c4cd2c409acb16ad981053129c09f6b8430af"
+    },
+    {
+      "path": "docs/diagrams/member-a/operation-attempt-state.svg",
+      "sha256": "2bf56de20805e21ac097866b1ead7fdd9dc6020f89765f3a91afb67151e971e4"
+    },
+    {
+      "path": "docs/diagrams/member-a/recovery-notification-sequence.puml",
+      "sha256": "76d7d4b363eb335c380201cd782b37e8a66ae7eca150f9af96373bf30f61a180"
+    },
+    {
+      "path": "docs/diagrams/member-a/recovery-notification-sequence.svg",
+      "sha256": "99f83b5552daea50d00cad69dee7058fef1063c7407b72d830ccc917d55eaa32"
+    },
+    {
+      "path": "docs/diagrams/shared/deployment-topology.puml",
+      "sha256": "510d5e39b02af826c0c2057046c161dc357499955ec67258ca4d5a8f7714f089"
+    },
+    {
+      "path": "docs/diagrams/shared/deployment-topology.svg",
+      "sha256": "41f66e04f2f2d38ae81460e6d4ce5e664cdb5da4476104e7c608197f6853f0fe"
+    },
+    {
+      "path": "docs/diagrams/shared/governed-analysis-composite.puml",
+      "sha256": "534a478aab228aa709dc18be91f3fb8b669f51cc311260c8bf1d7d1a165fd336"
+    },
+    {
+      "path": "docs/diagrams/shared/governed-analysis-composite.svg",
+      "sha256": "3c6868910360f7e6e4eefc518debfb7045bfb8ceeae9985c8456c9edc9614744"
+    },
+    {
+      "path": "docs/diagrams/shared/governed-case-composite.puml",
+      "sha256": "748fb9180bc112612338120e10dd143259be597ce673a752a7935579486406bb"
+    },
+    {
+      "path": "docs/diagrams/shared/governed-case-composite.svg",
+      "sha256": "9c8c4a62924691273c3731d7fe4755726276dcecb09ccd553609430d19fb3d06"
+    },
+    {
+      "path": "docs/diagrams/shared/governed-execution-composite.puml",
+      "sha256": "f8a3fee768a2980f82a918acd7838d77d9ee1d981839711ffe85571a684738ec"
+    },
+    {
+      "path": "docs/diagrams/shared/governed-execution-composite.svg",
+      "sha256": "f1e564afae30a8dce8f172e78eead97a8b286540db96b73eff33f79b00818cea"
+    },
+    {
+      "path": "docs/diagrams/shared/package-dependencies.puml",
+      "sha256": "9db430079188171a973334291558687202b701218b2f4c3fc0fb16d9f9659046"
+    },
+    {
+      "path": "docs/diagrams/shared/package-dependencies.svg",
+      "sha256": "eac9adc09b91aaff3191dadd590f695dc2f48e7cf37a8349ce66149b664c8577"
+    },
+    {
+      "path": "docs/reports/member-a-stage1-draft.md",
+      "sha256": "d3a9ca77838fbc5a74066febaae16f743055b460b7790331c0fd19f6036c5cfd"
+    },
+    {
+      "path": "docs/reviews/a-defect-artifacts-20260907.json",
+      "sha256": "e34e4cf97f816f9c2554de93ab597b142cdf9339480939e621a60947ed9048f4"
+    },
+    {
+      "path": "docs/reviews/a-defect-closure-20260907.md",
+      "sha256": "047288543d3247635e20773ecbb2f3ff543c1d55b699abba1f514041ed41e036"
+    },
+    {
+      "path": "docs/reviews/a-preimplementation-readiness-20260907.md",
+      "sha256": "03e7762ff0c57a65c3330c2cd0e9af7b5b5af1a401639f5c3be1051e839a998b"
+    },
+    {
+      "path": "docs/reviews/a-preparation-artifacts-20260907.json",
+      "sha256": "d252fd95b287c33b5c0a1d621924188a51b35fe2d00528f66e1eff6d2242df87"
+    },
+    {
+      "path": "docs/reviews/f02-independent-reproduction.md",
+      "sha256": "d3e7f0d2712ba0f0d7c457462f5c8ef66f2b22620ba614b64fdad2be3def539f"
+    },
+    {
+      "path": "tests/contracts/test_contract_v1_rc5.py",
+      "sha256": "a9ca0d790bd98a95f160f4673fd3974a1723214dae85eeb6b9803f35566f2d8c"
+    },
+    {
+      "path": "tests/environment/test_compose_healthcheck.py",
+      "sha256": "08ab55773c7f6c61a5292f2256689ef0859084786261f2707098a30b77f4c062"
+    },
+    {
+      "path": "tools/model-checks/README.md",
+      "sha256": "ae9ca023e7858ce98764fa8f26c264ee627f9943b171a79fbacc4895bfcbfb7d"
+    },
+    {
+      "path": "tools/model-checks/check.py",
+      "sha256": "917f6df63c22d546d305489d40003e60ea16deb530f57d6c358e1b0e6b3c7116"
+    },
+    {
+      "path": "tools/model-checks/test_check.py",
+      "sha256": "093bc55abe6e3fd97cee4ce35909742f1d55cfb45cf5af733e36c09da3b78421"
+    }
+  ]
+}

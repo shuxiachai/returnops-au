@@ -1,0 +1,85 @@
+@startuml
+!pragma layout smetana
+title Member C - ProposalReview work lifecycle\nMC-SM-0.1 internal candidate, 2026-09-12
+hide empty description
+skinparam shadowing false
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 14
+skinparam stateBackgroundColor #EEF4F8
+skinparam stateBorderColor #27465B
+skinparam ArrowColor #27465B
+skinparam noteBackgroundColor #FFF5D9
+
+state QUEUED
+state INVOKING
+state VALIDATING
+state RECOVERY_WAIT
+state ACCEPTED
+state HISTORICAL
+state CLOSED_WITHOUT_RESULT
+
+QUEUED : Complete accepted bundle; no trusted Risk result
+INVOKING : Exactly selected invocation may return
+VALIDATING : Candidate remains untrusted
+RECOVERY_WAIT : Selected failed invocation retired
+ACCEPTED : Immutable RiskReview stored; route its outcome
+HISTORICAL : Retained result no longer current
+CLOSED_WITHOUT_RESULT : No accepted RiskReview for this work
+
+[*] --> QUEUED : admit [current authorised bundle]\n/ Domain.selectWork()
+QUEUED --> INVOKING : start [G_START; current; budget]\n/ Domain.selectInvocation()
+INVOKING --> VALIDATING : reply [G_EVENT]\n/ validate shape and bindings
+INVOKING --> RECOVERY_WAIT : timeout [G_EVENT]\n/ Domain.retireSelectedInvocation()
+VALIDATING --> RECOVERY_WAIT : invalidReply [G_EVENT]\n/ Domain.retireSelectedInvocation()
+VALIDATING --> ACCEPTED : validReply [G_EVENT; current; valid outcome]\n/ Domain.storeReviewAndAuditAtomically()
+RECOVERY_WAIT --> INVOKING : retry [G_EVENT; current; budget remains]\n/ Domain.selectNewRoundAndInvocation()
+RECOVERY_WAIT --> CLOSED_WITHOUT_RESULT : exhausted [G_EVENT; no budget]\n/ Domain.recordActualFailureAndRoute()
+QUEUED --> CLOSED_WITHOUT_RESULT : contextRetired [G_RETIRE]\n/ Domain.retireThisWork()
+INVOKING --> CLOSED_WITHOUT_RESULT : contextRetired [G_RETIRE]\n/ Domain.retireThisWorkAndInvocation()
+VALIDATING --> CLOSED_WITHOUT_RESULT : contextRetired [G_RETIRE]\n/ Domain.retireThisWorkAndInvocation()
+RECOVERY_WAIT --> CLOSED_WITHOUT_RESULT : contextRetired [G_RETIRE]\n/ Domain.retireThisWork()
+ACCEPTED --> HISTORICAL : proposal/input replaced or invalidated [G_RETIRE]\n/ Domain.removeCurrentAssociation(); preserve result
+HISTORICAL --> [*]
+CLOSED_WITHOUT_RESULT --> [*]
+
+note right of ACCEPTED
+  RiskReview.outcome is exactly one of:
+  PASS -> Founder review
+  PASS_WITH_WARNING -> visible warning
+  REVISE -> new proposal and review
+  NEEDS_INFORMATION -> Coordinator
+  ESCALATE -> Founder, no direct approval
+  These five outcomes are NOT lifecycle phases.
+  No outcome creates approval or provider work.
+end note
+note left of INVOKING
+  G_START: match selected work / round,
+  with no invocation yet selected.
+  G_EVENT: atomically match selected work,
+  round and active invocation.
+  In RECOVERY_WAIT, match the selected
+  failed/retired invocation instead.
+  Recheck current context and authority
+  before new work or accepting a result.
+end note
+note left of HISTORICAL
+  G_RETIRE: compare-and-set the exact
+  selected work / association being retired;
+  also match its invocation where present.
+  Never retire a replacement round.
+  Old PASS cannot authorise a new proposal.
+end note
+note right of RECOVERY_WAIT
+  All obsolete reply, validation, timeout,
+  retry and exhaustion events are no-ops
+  for current state and business audit outcome.
+  A new proposal creates new review work;
+  it does not reset an old accepted result.
+  Failure is not a sixth Risk outcome.
+end note
+legend bottom
+Phases are conceptual internal modelling labels, not JSON fields or ReturnCase states.
+Domain performs all authoritative actions; diagram arrows do not prove atomic runtime behaviour.
+MC-D01/02/03 remain A/C decisions. Adapted from the shared report Figure 23 candidate.
+endlegend
+@enduml

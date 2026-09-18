@@ -1,0 +1,52 @@
+@startuml
+title C activity — report overview\nMC-ACT-RPT-0.1 · AH-08 / UC-02
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 20
+skinparam legendFontSize 20
+skinparam noteFontSize 20
+skinparam titleFontSize 24
+skinparam activityBackgroundColor #EEF4F8
+skinparam activityBorderColor #27465B
+skinparam ArrowColor #27465B
+skinparam noteBackgroundColor #FFF5D9
+start
+:A / Domain admits current authorised work;
+:C1 retrieves original sources + conflicts;\nA / Assessment drafts a candidate packet;
+:C1 verifies exact citation references;\nresolvability is not claim support;
+note right
+<b>Five results, not work phases</b>
+PASS → guarded Founder review.
+PASS_WITH_WARNING → same;
+show warnings.
+REVISE → bounded new proposal
+and fresh independent review.
+NEEDS_INFORMATION → clarification;
+accepted answer → new input/review.
+ESCALATE → BLOCK visible;
+revision/manual only.
+
+<b>Guards and exception exits</b>
+Only Domain writes business state.
+Stale events cannot change new work.
+Incomplete/removed/oversized input:
+no partial review.
+Technical failure ≠ Risk outcome.
+Exhausted REVISE: keep real result
+and proposal; stop machine work;
+no fabricated ESCALATE reply.
+No proposal: genuine failure/order
+block → manual only.
+end note
+:A / Domain validates complete material,\ncapacity and case/input/proposal/corpus;\natomically accepts packet + bundle + audit;
+:A / Domain selects; Orchestrator invokes;\nC2 independently reviews accepted input;
+:A / Domain checks reply and current identity;\natomically stores valid RiskReview + audit;
+:A / Domain routes the accepted outcome;\nno review outcome grants approval;
+stop
+legend bottom
+Full source: member-c-activity.puml (MC-ACT-0.1 / C01-C10).
+Bounds: docs/18 MC-D01-03. AI-assisted design;
+not runtime verification or personal/team acceptance.
+endlegend
+@enduml

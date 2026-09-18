@@ -2,20 +2,32 @@
 
 ## Project Definition, Requirements and Engineering Roadmap — Baseline v1.0 Candidate
 
+> Course-assessment companion (2026-09-14): [docs/19](19-course-assessment-requirements.md) records current Canvas/rubric sources, personal/shared obligations and submission boundaries. It supplements this product definition, not a new business scope, wire contract, allocation or acceptance claim.
+
 | Field | Value |
 |---|---|
-| Status | Lead-approved candidate; team and tutor review required |
+| Status | Lead-approved candidate, published to main on 2026-09-06; current team/tutor adoption reviews remain required |
 | Candidate baseline | v1.0 |
 | Lead approval date | 2026-08-31 |
 | Course | ELEC5620 Model-Based Software Engineering |
 | Project theme | One-Person AI Company / E-commerce and Retail |
-| Adoption condition | Becomes canonical only after Member B and Member C record approval, tutor feedback is reviewed and dispositioned, and the reviewed baseline pull request is merged |
+| Adoption condition | Main publication is complete, but full adoption still requires B/C approval of the current baseline/allocation and aligned models, tutor feedback disposition, and review/publication of the alignment change; an early merge is not evidence of those reviews |
 
 > This document is the lead-approved candidate baseline. Technologies marked
 > `Planned` are not implemented claims. They may be marked `Implemented` only
 > when code, automated tests, and reproducible run evidence exist. Until the
-> adoption condition above is met, the existing v0.2 documents remain historical
-> inputs to this candidate rather than silently changing status.
+> adoption condition above is met, earlier v0.2 versions remain historical
+> inputs. Documents `01`–`05` and the five shared diagrams have a v1.0
+> alignment draft published in [PR #9](https://github.com/shuxiachai/returnops-au/pull/9),
+> together with F.01 rc.2. That PR is the historical publication; the current
+> `1.0.0-rc.4` contract/model review candidate for
+> [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32) uses
+> [PR #11](https://github.com/shuxiachai/returnops-au/pull/11) as its review entry.
+> Check that PR for the actual head and reviews; rc.3 is an earlier candidate.
+> Peer/tutor acceptance remains pending independently of publication.
+> [PR #6](https://github.com/shuxiachai/returnops-au/pull/6) published the candidate
+> and frozen allocation under the lead's early-publication instruction; current
+> model alignment and individual contributions must still be reviewed.
 
 ---
 
@@ -229,6 +241,11 @@ flowchart LR
     Ops --> Store
 ```
 
+This is a business-workflow overview, not a direct database-access diagram.
+Founder decisions, agent outputs and observed provider results all pass through
+deterministic validation; Domain Service alone commits business-state changes.
+See the [system design](02-system-design.md) for component/write boundaries.
+
 ### 4.1 Customer Case Coordinator Agent
 
 Responsibilities:
@@ -294,14 +311,29 @@ Independence means that it:
 
 ### 4.4 Human Founder
 
-The Founder may approve, reject, request revision, or escalate to manual
-handling. Every decision binds the trusted actor, case ID, proposal ID and
-version, reason, and timestamp. An approval additionally binds:
+The Founder may approve, reject, request revision, or record a manual outcome
+for a current proposal. Every decision binds the trusted actor, case ID,
+reason, timestamp and exactly one current target: the proposal ID/version,
+or, for manual handling only when no current proposal exists, a persisted
+technical failure or order-lookup block. An approval additionally binds:
 
 - the exact command set;
 - parameter fingerprint;
 - amount ceiling where applicable; and
 - expiry.
+
+**Joint-review clarification (introduced in `1.0.0-rc.3`; current `1.0.0-rc.4` review candidate, not yet adopted):**
+[F.01 section 8.1](09-interface-contract-v1.md#81-提案不存在时的人工路径)
+distinguishes actual technical errors (`ProcessingFailure`) from an accepted
+pre-proposal order lookup returning `CONFLICT` or `AUTHORITY_DENIED`
+(`OrderLookupBlock`). An `ESCALATED` case without a current proposal exposes
+exactly one current record and permits only `MANUAL_HANDLING` targeting that
+record. It creates an audited outcome and notification, never a proposal,
+passing review, approval or return/label command. Source-policy conflicts
+remain evidence for a conditional packet and independent Risk review; they
+are not order-lookup blocks. Proposal revision and every executable approval
+remain proposal-bound. This clarification requires B/C/tutor review and does
+not change the fixed allocation or claim runtime implementation.
 
 ### 4.5 Deterministic Operations Service
 
@@ -329,7 +361,8 @@ The Operations Service is not a free-deciding AI agent. It only:
 | `RecommendedAction` | The system's conditional next step, stored separately from the customer request |
 | `RiskDecision` | `PASS`, `PASS_WITH_WARNING`, `REVISE`, `NEEDS_INFORMATION`, or `ESCALATE` |
 | `ApprovalDecision` | `APPROVE`, `REJECT`, `REQUEST_REVISION`, or `MANUAL_HANDLING` |
-| `OperationResult` | `SUCCEEDED`, `FAILED`, `UNKNOWN`, or `RECONCILING` |
+| `OperationStatus` | `PENDING`, `EXECUTING`, `SUCCEEDED`, `FAILED`, `UNKNOWN`, `RECONCILING`, or `BLOCKED`; the status of an `OperationAttempt` |
+| `OperationResult` | Typed confirmed-success payload for `CREATE_RETURN` or `GENERATE_LABEL`; failure/uncertainty remains on `OperationAttempt`, not a success-shaped result |
 | `DecisionPacket` | A non-executable package of facts, evidence, citations, conditional recommendations, alternatives, risks, and open questions |
 
 ---
@@ -346,7 +379,7 @@ The Operations Service is not a free-deciding AI agent. It only:
 | `FR-006` | The system shall retrieve grounding only from a reviewed, versioned store-policy and consumer-guidance corpus. | Every passage includes source ID, source type, source version when one exists, access date, location, content hash, and retrieval time; provenance completeness is 100%; a material case-relevant source conflict is routed to Risk Review. |
 | `FR-007` | The Assessment Agent shall create a schema-valid, versioned, non-executable decision packet that references the original `CustomerStatement` rather than copying it as a second source of truth. | The packet contains the customer-statement reference, conditional recommendation, alternatives, rationale, citations, confidence, open questions, and relevant return-responsibility/cost facts; packet completeness ≥95% using a denominator frozen in the label guide; it cannot be converted directly into an approval or command. |
 | `FR-008` | The Risk Reviewer shall independently check citations, conflicts, missing evidence, out-of-scope content, low-confidence output, prompt injection, and authority manipulation. | Risk-escalation recall ≥95% and specificity ≥80%; `REVISE` and `NEEDS_INFORMATION` return to assessment/intake. `ESCALATE` may be shown to the Founder for manual handling but cannot be approved for execution; an executable path requires a new proposal that receives `PASS` or `PASS_WITH_WARNING`. |
-| `FR-009` | Only an authenticated and authorised Founder may approve, reject, request revision, or record a manual-handling outcome for the current proposal. | Expired, wrong-case, stale-proposal, wrong-actor, wrong-command, over-scope, and parameter-changed approvals are invalid; AI cannot create a trusted `ApprovalRecord`; revision returns to Assessment; rejection/manual closure records and sends an audited customer-facing outcome. |
+| `FR-009` | Only an authenticated and authorised Founder may approve, reject, request revision, or record a manual-handling outcome for the current proposal. When an `ESCALATED` case has no current proposal, only manual handling may target its current persisted technical failure or pre-proposal order-lookup block. | Each decision has exactly one current target; stale, cross-case or wrong-input targets are rejected. Expired, wrong-actor, wrong-command, over-scope, and parameter-changed approvals are invalid; AI cannot create a trusted `ApprovalRecord`. Revision requires a current proposal and returns to Assessment. Rejection/manual closure records and sends an audited customer-facing outcome; neither no-proposal target creates approval or return/label work. |
 | `FR-010` | The Operations Service shall execute only allowlisted simulated commands that exactly match a current valid approval, independently verifying required provider authority before any effect. | Every attempt records provider ID, operation fingerprint, typed business result/error, and idempotency key. A repeated key produces at most one effect. An ambiguous timeout enters `UNKNOWN/RECONCILING`; provider-specific reconciliation occurs before any retry. Notification retry cannot repeat the return operation. Customer notification states the outcome, next step, and relevant packaging/drop-off/responsibility/cost information. No real order, inventory, money, or shipment changes. |
 | `FR-011` | The system shall maintain a reconstructable, tamper-evident audit trail while separating identifiable content from non-personal integrity records. | A correlation ID reconstructs input references, model/component and corpus versions, proposal, risk review, approval, state transition, provider ID/fingerprint/result, and notification. Identifiable content follows purpose, minimisation, retention, redaction, deletion, and de-identification rules; immutable event IDs/hashes preserve non-personal chain integrity after permitted PII removal. |
 | `FR-012` | The Founder Dashboard shall show authoritative case state, evidence, citations, current proposal, risk, approval scope, operation result, notification state, and audit history. | The dashboard reads the authoritative API and maintains no second workflow state; unauthorised users cannot access Founder data; every proposal and approval displays its version. |
@@ -422,7 +455,7 @@ chain.
 | `UC-01` | Lodge a return/remedy request | End Customer | — | Customer Portal | Member B | B; A supplies API contract |
 | `UC-01E` | Provide requested clarification or evidence | End Customer | — | Customer Portal, Coordinator | Member B | B; A supplies workflow contract |
 | `UC-02` | Obtain an evidence-grounded decision packet and risk assessment | Human Founder | Mock Order Provider | Coordinator, Assessment Agent, Risk Reviewer, Versioned Corpus | Member C | C owns grounding/review; A integrates orchestration |
-| `UC-03` | Review and decide the current proposal | Human Founder | Notification Provider | Founder Dashboard, Approval Guard | Member A | A owns decision rules; B supplies interface |
+| `UC-03` | Review a current proposal or record a no-proposal manual outcome | Human Founder | Notification Provider | Founder Dashboard, Approval Guard | Member A | A owns decision rules; B supplies interface |
 | `UC-04` | Execute exactly the approved simulated return and label action | Human Founder | Mock Returns, Logistics, and Notification Providers | Approval Guard, Operations Service | Member A | A |
 | `UC-05` | Inspect authoritative case state and audit history | Human Founder | — | Founder Dashboard, Audit Store | Member C | C owns model/spec; B supplies interface; A supplies API |
 
@@ -431,6 +464,12 @@ chain.
 ## 10. Team contribution and course-model chains
 
 ### 10.1 Planned workload
+
+The lead froze the detailed allocation on 2026-09-06 in
+[Frozen Work Allocation v1.0](07-frozen-work-allocation.md), with executable
+checklists in [Delivery Work Packages](08-delivery-work-packages.md).
+Those documents govern new work ownership and hand-offs; they do not claim
+implementation completion or replace the product-baseline adoption reviews.
 
 | Member | Responsibility | Share |
 |---|---|---:|
@@ -442,13 +481,15 @@ chain.
 
 | Member | Core Feature 1 | Core Feature 2 | Optional Feature |
 |---|---|---|---|
-| A | **Manage the authoritative return-case lifecycle** — `FR-003`, `FR-007`, `FR-011`, `FR-012`; `UC-03`, `UC-05` | **Approve and execute an exact-scope simulated return** — `FR-009`, `FR-010`; `UC-03`, `UC-04` | **Recover a logistics sandbox/test operation** — `OF-004`, subject to the same approval and idempotency rules |
+| A | **Manage the authoritative return-case lifecycle**, including Coordinator/Assessment and orchestration — `FR-001`–`FR-005`, `FR-007`, `FR-011`, `FR-012`; `UC-01`, `UC-01E`, `UC-02`, `UC-05` implementation support | **Approve and execute an exact-scope simulated return** — `FR-009`, `FR-010`; `UC-03`, `UC-04` | **Integrate an independent logistics sandbox/test-mode adapter and demonstrate recovery** — `OF-004`; requires available test access and the same approval/idempotency rules; core mock/retry work cannot be counted again |
 | B | **Submit and clarify a customer request** — `FR-001`, `FR-002`, `FR-005`; `UC-01`, `UC-01E` | **Review and decide through the Founder Dashboard** — interface for `FR-009`, `FR-012`; `UC-03`, `UC-05` | **Operations Analytics Dashboard** — `OF-006` |
 | C | **Ground a decision packet with versioned sources** — `FR-006`, `FR-007`; `UC-02` | **Independently review and escalate proposal risk** — `FR-008`, `NFR-009`; `UC-02` | **Product-image Evidence Analysis** — `OF-001`, activated only after the text workflow is stable |
 
-Member C also owns the 30-case Gold set, the required `B1` versus `B4`
-evaluation report, and the parameterised safety/workflow suites as cross-system
-quality responsibilities; those responsibilities do not substitute for the two
+The three selected optional features are course deliverables, not portfolio-only
+work. Member C coordinates the 30-case Gold set, evaluation runner, required
+`B1` versus `B4` report, and cross-system QA. Each member implements tests for
+their own functionality; labels are authored and independently reviewed across
+the team. These quality responsibilities do not substitute for C's two
 product-facing core features.
 
 ### 10.3 Individual Stage 1 model chain
@@ -475,6 +516,14 @@ The team jointly completes:
 - deployment diagram; and
 - **Governed Case Assessment Composite Structure Diagram** using explicit ports
   and connectors.
+
+Lab 6 also requires an **Object Diagram**: a stated logical-time snapshot with
+named instances of existing classes, concrete attribute values and instance
+links. Complete it within existing shared modelling work and preserve the
+Composite's distinct part/port meaning. A synthetic design snapshot is not
+evidence of a running system. Every member participates and records actual
+contributions; [docs/19](19-course-assessment-requirements.md) distinguishes
+scored/optional rubric rows from retained project model choices.
 
 The complex runtime model must show that:
 
@@ -512,6 +561,15 @@ synthetic fixtures, and a small number of domain tests. The following remain
 - evaluation runner;
 - CI and Docker environment; and
 - cloud deployment.
+
+**F.02 environment candidate (2026-09-07):** a health-only FastAPI entry point,
+dependency locks, environment-only Alembic revision, Compose and CI candidate
+files now exist. Native PostgreSQL checks and the recovered Docker/PG17.11
+Compose build, migration and health/outage checks are recorded in [docs/10](10-f02-environment-readiness.md).
+This does not implement the planned business API, case/approval persistence,
+authorization or agent workflow. C's clean reproduction remains pending;
+CI status requires the specific run evidence on [PR #11](https://github.com/shuxiachai/returnops-au/pull/11).
+F.01/F.02 have not been accepted.
 
 ### 11.3 Core engineering stack
 
@@ -698,7 +756,8 @@ evidence rather than population-level performance.
 - Record a disposition for `CP-001–CP-012`.
 - Confirm verification for every FR/NFR.
 - Confirm each member's individual model chain.
-- Create the Jira project and link its initial backlog to GitHub delivery items.
+- Verify the existing Jira project and map its actual backlog to GitHub delivery
+  items; do not create a duplicate project or infer live status from this plan.
 - Complete team and tutor review.
 
 ### Gate 1 — Executable Safety Spine
@@ -732,6 +791,10 @@ Required evidence:
 ### Gate 3 — Course Release Candidate
 
 - Customer Portal and Founder Dashboard are complete.
+- Each member's two core features and selected optional feature have independent
+  implementation, test and review evidence under the frozen allocation. Missing
+  A3 sandbox access remains an explicit blocker for that feature, not permission
+  to count the core mock twice or defer the selected feature silently.
 - Normal, missing-information, warning/escalation, and approval-bypass demos pass.
 - Thirty Gold cases are frozen.
 - The required `B1` versus `B4` comparison is reproducible on the Gold set.
@@ -853,6 +916,9 @@ Evidence: CI run, audit trace, and demo recording
   it to approximately one to two pages in the assessed report.
 - [x] `D-15` Require Jira for Agile planning/timeline evidence while retaining
   GitHub as the engineering delivery and review record.
+- [x] `D-16` On 2026-09-06, freeze the nine-feature ownership, selected-optional
+  course scope, hand-offs and change rules in `docs/07`, with detailed work
+  packages in `docs/08`; preserve actual authorship and pending adoption reviews.
 
 ## 17. Remaining adoption reviews
 
@@ -860,5 +926,14 @@ Evidence: CI run, audit trace, and demo recording
 - [ ] Member C reviews grounding, risk, benchmark labels, and personal model chain.
 - [ ] The tutor reviews course fit, individual contribution, scope, model
   feasibility, and the Jira/GitHub evidence split.
-- [ ] The team updates affected v0.2 documents and UML in one traceable baseline-adoption change.
-- [ ] The baseline-adoption pull request is reviewed and merged.
+- [x] The lead-directed initial publication merged PRs #2, #4 and #6 into main
+  on 2026-09-06; publication is separate from final team/tutor adoption.
+- [x] The 2026-09-07 alignment of older documents/shared UML and F.01 rc.2 was
+  published for review in [PR #9](https://github.com/shuxiachai/returnops-au/pull/9),
+  preserving B/C contributions; review requests were sent to both members.
+- [ ] The `1.0.0-rc.4` candidate receives team review at the exact reviewed PR head, including the
+  mutually exclusive proposal/failure/order-block targets in section 4.4;
+  historical rc.2 publication or rc.3 review alone does not satisfy this review or adoption.
+- [ ] B/C approve the current allocation and aligned models, tutor feedback is
+  dispositioned, and the reviewed alignment change is merged. Earlier reviews
+  of older commits do not automatically approve this revision.

@@ -1,0 +1,87 @@
+name: F.02 checks
+
+on:
+  pull_request:
+  push:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONDONTWRITEBYTECODE: "1"
+  PYTHONUTF8: "1"
+
+jobs:
+  offline-contract-models:
+    name: Offline contracts and models
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      # Official release refs verified 2026-09-07; see tools/checks/README.md.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          package-manager-cache: false
+      - name: Install locked Python environment and local package
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install --no-deps --no-build-isolation -e .
+          python -m pip check
+      - name: Install locked Mermaid parser
+        run: npm ci --prefix tools/model-checks --ignore-scripts --no-audit --no-fund
+      - name: Check PR against its base WBS
+        if: github.event_name == 'pull_request'
+        env:
+          WBS_BASE_REF: ${{ github.event.pull_request.base.sha }}
+        run: python -B tools/checks/run.py offline --baseline-ref "$WBS_BASE_REF"
+      - name: Check push artifacts and WBS structure
+        if: github.event_name == 'push'
+        # No independent agreed baseline is selected for an arbitrary branch push.
+        run: python -B tools/checks/run.py offline --skip-baseline
+
+  api-environment:
+    name: API and PostgreSQL environment
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      # Disposable CI service credentials; never use these outside this job.
+      DATABASE_URL: postgresql+psycopg://returnops_ci:ci_synthetic_only@localhost:5432/returnops_f02_ci
+    services:
+      postgres:
+        image: postgres:17-bookworm@sha256:051f7b7b3abdd564d5d1bd1e8c4b9c1b6e77087d1dd22020ede611c096a272e0
+        env:
+          POSTGRES_USER: returnops_ci
+          POSTGRES_PASSWORD: ci_synthetic_only
+          POSTGRES_DB: returnops_f02_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U returnops_ci -d returnops_f02_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install locked Python environment and local package
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install --no-deps --no-build-isolation -e .
+          python -m pip check
+      - name: Migrate and check disposable PostgreSQL environment
+        run: python -B tools/checks/run.py environment

@@ -1,71 +1,78 @@
-# Team Assignments
+# Team Assignments and Hand-offs
 
-> Snapshot: 2026-09-02. Use the linked Jira items for live status, dates, assignee, estimates, and blockers. This file records stable ownership and hand-off intent only.
+Use the [root README](../../README.md) for current receipts and Jira for live
+status, estimates, dates and availability. This index does not reassign work.
+[docs/07](../07-frozen-work-allocation.md) governs ownership;
+[docs/08](../08-delivery-work-packages.md) governs every acceptance and S/F
+dependency. Earlier dated guide snapshots remain historical.
 
-## Member A — System Architect and Backend / Agent Lead
+## Nine fixed features
 
-**Identity:** Jingbo Chai / GitHub `@shuxiachai` / Jira `Jingbo Chai`  
-**Epic ownership:** [KAN-6](https://lucastaooo.atlassian.net/browse/KAN-6), [KAN-7](https://lucastaooo.atlassian.net/browse/KAN-7), and [KAN-10](https://lucastaooo.atlassian.net/browse/KAN-10)
+| Member / default reviewer | Two core features | Selected course optional | Personal model chain |
+|---|---|---|---|
+| A — Jingbo Chai, `@shuxiachai` / C | A1 authoritative case lifecycle, Coordinator/Assessment and orchestration; A2 exact Founder approval and simulated execution | A3 independent authorized logistics test adapter and recovery | AH-10 → UC-03/04 → governed execution Activity, exact-scope Interaction, OperationAttempt State |
+| B — Chengsi Li, `@ChengsiLi` / A | B1 customer intake/clarification; B2 Founder review dashboard | B3 operations analytics | AH-01 → UC-01/01E → intake Activity/Interaction, IntakeSession State |
+| C — Lucas Tao, `@lulucas-tao` / A | C1 versioned retrieval/citation verification; C2 independent Risk Reviewer | C3 image evidence observations | AH-08 → UC-02/05 → grounding/risk Activity, Assessment–Reviewer Interaction, ProposalReview work-state model |
 
-Immediate Jira action: KAN-6 currently occupies A's primary In Progress slot and is blocked on the remaining baseline reviews. Keep KAN-12, KAN-13, and KAN-28 in review, record Member B/tutor disposition, preserve the `#2 -> #4 -> #6` adoption order, and do not pull another primary item until the WIP slot is available.
+A3/B3/C3 are not portfolio-only work. A3 requires authorized test access or an
+explicitly accepted alternative; the core mock cannot be counted twice. C3
+follows the stable text workflow and authorized attachment boundaries. The
+45/27/28 allocation is planned effort, not actual contribution percentages.
 
-| Jira item | Required outcome | Planned due date |
-| --- | --- | --- |
-| [KAN-12](https://lucastaooo.atlassian.net/browse/KAN-12) | Adopt Baseline v1.0 and freeze traceability | 2026-09-06 |
-| [KAN-28](https://lucastaooo.atlassian.net/browse/KAN-28) | Freeze and summarise desk-research evidence and assumptions | 2026-09-06 |
-| [KAN-13](https://lucastaooo.atlassian.net/browse/KAN-13) | Complete shared MBSE models and the AH-10 chain | 2026-09-13 |
-| [KAN-29](https://lucastaooo.atlassian.net/browse/KAN-29) | Implement the mock commerce adapter and typed order lookup | 2026-09-20 |
-| [KAN-14](https://lucastaooo.atlassian.net/browse/KAN-14) | Enforce the authoritative lifecycle, typed contracts, and audit spine | 2026-09-27 |
-| [KAN-30](https://lucastaooo.atlassian.net/browse/KAN-30) | Implement typed case extraction, order matching, and the evidence-gap path | 2026-10-04 |
-| [KAN-31](https://lucastaooo.atlassian.net/browse/KAN-31) | Generate versioned, non-executable decision proposals | 2026-10-11 |
-| [KAN-15](https://lucastaooo.atlassian.net/browse/KAN-15) | Build exact-scope approval and governed simulated execution | 2026-10-25 |
-| [KAN-16](https://lucastaooo.atlassian.net/browse/KAN-16) | Optional logistics sandbox/test adapter and recovery path | Portfolio / unscheduled |
+## Navigate the 89 WBS checks without duplicating them
 
-## Member B — Frontend and User Experience Lead
+| WBS group | Count | Owner / reviewer routing |
+|---|---:|---|
+| F.01–.07 | 7 | A / C |
+| A1.01–.08, A2.01–.07, A3.01–.03 | 18 | A / C |
+| B1.01–.05, B2.01–.05, B3.01–.03 | 13 | B / A |
+| C1.01–.05, C2.01–.05, C3.01–.03 | 13 | C / A |
+| M-A.01–.06, M-B.01–.06, M-C.01–.06 | 18 | Named member; A reviewed by C, B/C by A |
+| M-S.01–.03 | 3 | M-S.01/.02 A / C; M-S.03 B / A; all members contribute |
+| E.01–.12 | 12 | C owns .01/.02/.05/.08/.09/.12; A owns .03/.06/.10; B owns .04/.07/.11; original reviewers/dependencies in docs/08 |
+| R.01–.05 | 5 | A owns .01/.02/.05; C owns .03/.04; original reviewers/dependencies in docs/08 |
+| **Total** | **89** | Preserve every original ID, Owner, Reviewer, S and F |
 
-**Identity:** Chengsi Li / GitHub `@ChengsiLi` / Jira `banana`  
-**Epic ownership:** [KAN-8](https://lucastaooo.atlassian.net/browse/KAN-8)
+R.04.a–h and R.05.a/.b are subchecks of existing work, not new main WBS rows.
+This table is navigation, not permission to begin dependency-blocked integration
+or evidence that a check is complete. Map a reviewable outcome to its existing
+delivery card; keep unmapped work explicitly pending verification by A/C.
 
-Immediate Jira action: review the Baseline v1.0 candidate and its `#2 -> #4 -> #6` stack without opening another primary WIP item. KAN-27 currently occupies B's In Progress slot; finish, park, or explicitly reclassify it before moving KAN-17 from Ready to In Progress.
+## Verified delivery entrances
 
-| Jira item | Required outcome | Planned due date |
-| --- | --- | --- |
-| [KAN-17](https://lucastaooo.atlassian.net/browse/KAN-17) | Review journeys and author the AH-01 to UC-01 personal model chain | 2026-09-13 |
-| [KAN-18](https://lucastaooo.atlassian.net/browse/KAN-18) | Deliver the customer submission and clarification portal | 2026-10-11 |
-| [KAN-19](https://lucastaooo.atlassian.net/browse/KAN-19) | Deliver the Founder review and approval dashboard | 2026-10-25 |
-| [KAN-20](https://lucastaooo.atlassian.net/browse/KAN-20) | Complete UI end-to-end tests and repeatable demo fixtures | 2026-11-01 |
-| [KAN-21](https://lucastaooo.atlassian.net/browse/KAN-21) | Optional operations analytics dashboard | Portfolio / unscheduled |
+| Entrance | Scope / boundary |
+|---|---|
+| [KAN-12](https://lucastaooo.atlassian.net/browse/KAN-12) / [Issue #5](https://github.com/shuxiachai/returnops-au/issues/5) | R.01 baseline, owner A / reviewer C. [PR #7](https://github.com/shuxiachai/returnops-au/pull/7) supplies supporting workflow documentation, not R.01 completion. |
+| [KAN-22](https://lucastaooo.atlassian.net/browse/KAN-22) / [PR #12](https://github.com/shuxiachai/returnops-au/pull/12) | M-C.01–.06, owner C / reviewer A. The root README records publication; personal explanation and acceptance evidence remain distinct. |
+| [KAN-33](https://lucastaooo.atlassian.net/browse/KAN-33) / [PR #11](https://github.com/shuxiachai/returnops-au/pull/11) | F.02 environment, owner A / reviewer C; S=none, F=F.01. Exact-source clean reproduction and joint acceptance are separate from PR/CI evidence. |
 
-KAN-27 is B-owned and must not be edited by another member. It is excluded from this delivery allocation unless B and the team explicitly reclassify it in Jira.
+No live state, due date, estimate, new key or additional mapping is inferred by
+this table. Consult the actual cards before changing anything; a parent Epic
+or related prerequisite is not automatically the delivery card.
 
-## Member C — Grounding, Risk, and AI Evaluation Lead
+## Producer/consumer hand-offs
 
-**Identity:** GitHub `@lulucas-tao` / Jira `Lucas Tao`  
-**Epic ownership:** [KAN-9](https://lucastaooo.atlassian.net/browse/KAN-9) and [KAN-11](https://lucastaooo.atlassian.net/browse/KAN-11)
+1. A owns authoritative state, typed contracts, identity/attachment access and
+   deterministic approval/execution. B/C confirm their consumption; contract
+   samples permit isolated drafts, not a claim of integrated runtime.
+2. C1 returns complete versioned retrieval and citation checks; C2 independently
+   reviews the exact proposal/input/corpus bindings and returns five outcomes.
+   A owns routing and bounded loops. C cannot create approval, mutate the
+   proposal or invoke operations. C3 returns observations, not legal decisions.
+3. B renders server facts, evidence and failure states. C's UC-05 model/spec
+   ownership does not transfer the B interface or A API implementation to C.
+4. A leads shared Class/Complex Structure, B integrates Feature/overall UC and
+   the full model index, C provides classification and grounding/risk traceability.
+   Every member records actual contribution to all shared tasks, including the
+   distinct named-instance Object Diagram; synthesis is not runtime evidence.
+5. A tests domain/approval/provider behavior, B tests UI/E2E, C tests
+   retrieval/risk/image behavior. C coordinates the evaluation runner/labels;
+   A/B retain their timing, review/arbitration and testing work under docs/08.
+6. A integrates/submits course artifacts; each member supplies and explains
+   their own material; C verifies R.04 evidence and real receipts. See
+   [Stage 1 readiness](../11-stage1-readiness.md) and
+   [course requirements](../19-course-assessment-requirements.md).
 
-Immediate Jira action: confirm the Ready gates on KAN-22, then move only KAN-22 to In Progress while the team WIP limit allows it. After its review, deliver the versioned corpus, independent risk review, and reproducible Gold-set evaluation evidence in priority order.
-
-| Jira item | Required outcome | Planned due date |
-| --- | --- | --- |
-| [KAN-22](https://lucastaooo.atlassian.net/browse/KAN-22) | Review grounding/evaluation and author the AH-08 to UC-02 chain | 2026-09-13 |
-| [KAN-23](https://lucastaooo.atlassian.net/browse/KAN-23) | Build the versioned runtime corpus and citation verification | 2026-10-11 |
-| [KAN-24](https://lucastaooo.atlassian.net/browse/KAN-24) | Implement independent risk review and escalation | 2026-10-25 |
-| [KAN-25](https://lucastaooo.atlassian.net/browse/KAN-25) | Freeze the 30-case Gold set and run B1 versus B4 evaluation and safety suites | 2026-11-01 |
-| [KAN-26](https://lucastaooo.atlassian.net/browse/KAN-26) | Optional product-image evidence analysis | Portfolio / unscheduled |
-
-## Cross-team hand-off gates
-
-1. **Baseline gate:** A owns the adoption record; B and C review the candidate and unresolved assumptions before implementation treats it as canonical.
-2. **Contract gate:** A publishes the domain, lifecycle, provider, case-extraction, and proposal contracts before B or C depend on them. Interface changes require downstream-owner review.
-3. **Experience gate:** B supplies customer/Founder flows and repeatable UI fixtures; A confirms API compatibility and C confirms that evidence, warnings, and escalation states remain visible.
-4. **Grounding and risk gate:** C publishes versioned passages, citation checks, risk outcomes, and evaluation labels; A integrates them without granting an agent approval authority, and B presents them without implying an unapproved action is complete.
-5. **Evaluation gate:** B's repeatable fixtures and A's deterministic services feed C's Gold-set and parameterised suites. Failures remain documented; unsafe or materially conflicted proposals cannot reach Operations.
-6. **Review gate:** the owner moves work to In Review only with linked evidence. A different member reviews it, and Jira moves to Done only after merge/artefact approval and final evidence linking.
-
-## Daily rule for every member
-
-1. Check Jira, not this file, for the live highest-priority Ready item.
-2. Keep no more than one primary item In Progress.
-3. Record blockers in Jira immediately; do not leave scope or safety decisions only in chat.
-4. Link the GitHub Issue, branch, PR, tests, and review evidence back to the same Jira key.
-5. Before finishing, run the Definition of Done checklist in [README.md](README.md).
+Apply the [workflow and review packet](README.md). Record real activity and
+remaining limits; never turn merged documentation into fabricated personal
+attendance, joint acceptance, completed functionality or a submission receipt.

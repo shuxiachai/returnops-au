@@ -10,7 +10,10 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 .venv/
+.venv-contracts/
 venv/
+*.egg-info/
+build/
 
 # Node
 node_modules/
@@ -34,4 +37,3 @@ tmp/
 # Local credentials
 *.pem
 *.key
-

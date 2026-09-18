@@ -1,0 +1,216 @@
+{
+  "version": "A-FIX-0.1",
+  "date": "2026-09-07",
+  "base_commit": "57d86fe5bf80e2ed8cb445a6bec30c2ef7d8a577",
+  "scope": "Current unpublished repository working-copy changes, including retained prior preparation. Raw bytes; recompute if publication normalizes line endings. This manifest and the closure index are excluded to avoid self-reference. Root course memory files remain local and are not included.",
+  "candidate_versions": [
+    "F.01 1.0.0-rc.5",
+    "MA-0.3",
+    "CS-0.2",
+    "AD-0.2",
+    "PD-0.2",
+    "F03-D0.2"
+  ],
+  "files": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "37e517fc53563fb7a233c5d8039316f2dca7c53bcddcefcefc054b03c1f0d1d9"
+    },
+    {
+      "path": "README.md",
+      "sha256": "74b273bce7812387c627f6c5e1de2ebdc4e2171241dc76e9b7540790ddef700f"
+    },
+    {
+      "path": "compose.yaml",
+      "sha256": "f18440b6800a2202bdad0ea96cc6807e6a663dd40f0d6f0fce1f2255c85a8f43"
+    },
+    {
+      "path": "contracts/README.md",
+      "sha256": "1a4281bcea384522292743cfe433b77227842494a331b06819894306a63d7829"
+    },
+    {
+      "path": "contracts/v1/examples.json",
+      "sha256": "a7ee72acebd356668cc33ffc2d31c951c5085b2a07fe4eebca4aad7df151005f"
+    },
+    {
+      "path": "contracts/v1/openapi.json",
+      "sha256": "467c6d8fef03abb5ed3dc71888f242388d6575d4a42619e47945f9b95ec407e6"
+    },
+    {
+      "path": "contracts/v1/schemas.json",
+      "sha256": "bb511c77575a7d78f9dd5b42690a34346fdfc3cf37232a5ba94a2f1bf75d18bd"
+    },
+    {
+      "path": "docs/00-project-definition-v1.md",
+      "sha256": "8f5b1509af8ad15fe56cc8f5ff22777cb3e9e6745b392a921e1020d3859c5449"
+    },
+    {
+      "path": "docs/02-system-design.md",
+      "sha256": "aa33ecb9652fad4bd82a13eaf3bc018770c1fbe615b3208b20539720ef1a4283"
+    },
+    {
+      "path": "docs/05-lab-3-requirement-modelling.md",
+      "sha256": "c134d74abac41a21189c48b8b91558c71dfe5face5c157eaf0fa510dfcc72eb6"
+    },
+    {
+      "path": "docs/08-delivery-work-packages.md",
+      "sha256": "e2428798d8e5cf5b8bfe325c4b4e2a02169d3a5b5ec330eb02786a97130c427a"
+    },
+    {
+      "path": "docs/09-interface-contract-v1.md",
+      "sha256": "e75b3acbeb7cac6823492638681c480b6509de5627e6a6811d9e36749abac48a"
+    },
+    {
+      "path": "docs/10-f02-environment-readiness.md",
+      "sha256": "4d68ee75db62df7b3781d2a9a383cd1219d813bea6ecb7462e4a278f89d036a6"
+    },
+    {
+      "path": "docs/11-stage1-readiness.md",
+      "sha256": "c23a6ada1d99f9fa9ba22286f918802ceb5f43b234238e288a354d3eea87b560"
+    },
+    {
+      "path": "docs/12-member-a-model-chain.md",
+      "sha256": "58ff4d9b8a8c94e0e6de472c81dcd311f563b9b912858576eb94500c8bb02117"
+    },
+    {
+      "path": "docs/13-shared-composite-structure.md",
+      "sha256": "5cc1ed36c2db64b5f3cb65947060e02b915fd3b14d93c6e0df60534fce728ea8"
+    },
+    {
+      "path": "docs/14-member-a-design-decisions.md",
+      "sha256": "55e165207340ba22e6076685447a15a38cd3886fd86c2eb6abd508eeac9d8aa8"
+    },
+    {
+      "path": "docs/15-package-deployment-models.md",
+      "sha256": "fadf4e4c098303825fbafcf90f3cfaf4aaa50a5f50ba9847868a37caa77072d2"
+    },
+    {
+      "path": "docs/16-demo-identity-authorization.md",
+      "sha256": "105498d7fe5e39f18c15acb7b8abe2f80c7ecd38518eeba6ca9ed82ba92dd03f"
+    },
+    {
+      "path": "docs/17-logistics-sandbox-feasibility.md",
+      "sha256": "44afbb0004a10df6422bcfe71d473d34efa6cb7d73d6c5dbeb71fa97864bdbda"
+    },
+    {
+      "path": "docs/diagrams/01-domain-class-diagram.md",
+      "sha256": "8c4824a321b11f3ce8c8ee13c0b0e53e9135820d1c6631d663e9288396fcdaba"
+    },
+    {
+      "path": "docs/diagrams/02-state-machine-diagram.md",
+      "sha256": "81bf2987aacc47836cf62bf63d7c529892cf7eb8a64a305e3c55dc958e624870"
+    },
+    {
+      "path": "docs/diagrams/03-sequence-diagram.md",
+      "sha256": "fb771e5569d714a6db8254e1bdd9ee0fcf400d89052abe20119f16814cf2e580"
+    },
+    {
+      "path": "docs/diagrams/member-a/exact-scope-sequence.puml",
+      "sha256": "30fbbc422dc79baef9a2381b02e51d05c8b72def8a6fc2f030d6f8432a3cb668"
+    },
+    {
+      "path": "docs/diagrams/member-a/exact-scope-sequence.svg",
+      "sha256": "3d7e33e3e2445b60b4da266b992fa79be880921b65d80bc79c3eb84848c717e0"
+    },
+    {
+      "path": "docs/diagrams/member-a/governed-execution-activity.puml",
+      "sha256": "265d38f0a65f2ed5bd7f3e1263408cb4d109b5808cabba0d013984c0a4d26116"
+    },
+    {
+      "path": "docs/diagrams/member-a/governed-execution-activity.svg",
+      "sha256": "cc81dbaecb969fc57a7c2884b3106c5c644d4110d3e9b27d5d725eb2b8a1a718"
+    },
+    {
+      "path": "docs/diagrams/member-a/operation-attempt-state.puml",
+      "sha256": "54ffa6b086d526c494483ef886004876a9a45126101c6682ee2b6c0d3d9bb072"
+    },
+    {
+      "path": "docs/diagrams/member-a/operation-attempt-state.svg",
+      "sha256": "2bf56de20805e21ac097866b1ead7fdd9dc6020f89765f3a91afb67151e971e4"
+    },
+    {
+      "path": "docs/diagrams/member-a/recovery-notification-sequence.puml",
+      "sha256": "71b99b256f674b15d75fedbb07a8531d365bad44b10bead3260f8c1c49f41c5f"
+    },
+    {
+      "path": "docs/diagrams/member-a/recovery-notification-sequence.svg",
+      "sha256": "99f83b5552daea50d00cad69dee7058fef1063c7407b72d830ccc917d55eaa32"
+    },
+    {
+      "path": "docs/diagrams/shared/deployment-topology.puml",
+      "sha256": "d72287da9fee9219d8aeeaec35a903a92165e910ef64362cbb31ef60fb8d022e"
+    },
+    {
+      "path": "docs/diagrams/shared/deployment-topology.svg",
+      "sha256": "41f66e04f2f2d38ae81460e6d4ce5e664cdb5da4476104e7c608197f6853f0fe"
+    },
+    {
+      "path": "docs/diagrams/shared/governed-analysis-composite.puml",
+      "sha256": "c08b3656b5e040d06564f644ff1468d895841ae6b800392423c669bbb84b1d47"
+    },
+    {
+      "path": "docs/diagrams/shared/governed-analysis-composite.svg",
+      "sha256": "3c6868910360f7e6e4eefc518debfb7045bfb8ceeae9985c8456c9edc9614744"
+    },
+    {
+      "path": "docs/diagrams/shared/governed-case-composite.puml",
+      "sha256": "36da4efc22478aff27860e966e8509505a7b74a55b42ef52a8faf434b034e094"
+    },
+    {
+      "path": "docs/diagrams/shared/governed-case-composite.svg",
+      "sha256": "9c8c4a62924691273c3731d7fe4755726276dcecb09ccd553609430d19fb3d06"
+    },
+    {
+      "path": "docs/diagrams/shared/governed-execution-composite.puml",
+      "sha256": "b6de5ca77abdcb46baa0674570226f4afc6b5d84072d9d1617ef3afa89f16298"
+    },
+    {
+      "path": "docs/diagrams/shared/governed-execution-composite.svg",
+      "sha256": "f1e564afae30a8dce8f172e78eead97a8b286540db96b73eff33f79b00818cea"
+    },
+    {
+      "path": "docs/diagrams/shared/package-dependencies.puml",
+      "sha256": "f153dd8036849bb45c9e1fe44029cf35e1f423a2c8eee9991379b12eef863fe5"
+    },
+    {
+      "path": "docs/diagrams/shared/package-dependencies.svg",
+      "sha256": "eac9adc09b91aaff3191dadd590f695dc2f48e7cf37a8349ce66149b664c8577"
+    },
+    {
+      "path": "docs/reports/member-a-stage1-draft.md",
+      "sha256": "6161a6808d4f14efbdfc68ed24650c0e2d856b4cd17a825ce8e9eddaa8a55457"
+    },
+    {
+      "path": "docs/reviews/a-preimplementation-readiness-20260907.md",
+      "sha256": "b0d3a2b909a6f1f3823a52b6c0bed317e1e276a4ce08582e617cbcdd2a532fd4"
+    },
+    {
+      "path": "docs/reviews/a-preparation-artifacts-20260907.json",
+      "sha256": "c0fb31e6090c1cacf91f5b6c8342233ed23deb32f766baaa2c3d3588ecabeb33"
+    },
+    {
+      "path": "docs/reviews/f02-independent-reproduction.md",
+      "sha256": "e5f9f2f81715b094cbab8064ca18bf5e75fe6f3d59f299f23f232500d7ed07d0"
+    },
+    {
+      "path": "tests/contracts/test_contract_v1_rc5.py",
+      "sha256": "a9ca0d790bd98a95f160f4673fd3974a1723214dae85eeb6b9803f35566f2d8c"
+    },
+    {
+      "path": "tests/environment/test_compose_healthcheck.py",
+      "sha256": "08ab55773c7f6c61a5292f2256689ef0859084786261f2707098a30b77f4c062"
+    },
+    {
+      "path": "tools/model-checks/README.md",
+      "sha256": "ae9ca023e7858ce98764fa8f26c264ee627f9943b171a79fbacc4895bfcbfb7d"
+    },
+    {
+      "path": "tools/model-checks/check.py",
+      "sha256": "917f6df63c22d546d305489d40003e60ea16deb530f57d6c358e1b0e6b3c7116"
+    },
+    {
+      "path": "tools/model-checks/test_check.py",
+      "sha256": "093bc55abe6e3fd97cee4ce35909742f1d55cfb45cf5af733e36c09da3b78421"
+    }
+  ]
+}
