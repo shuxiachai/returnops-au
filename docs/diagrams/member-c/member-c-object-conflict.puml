@@ -1,0 +1,107 @@
+@startuml
+title C object snapshot — blocking source conflict\nMC-OBJ-0.1 · synthetic MC-T02 · UC-02 / AH-08
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 20
+skinparam legendFontSize 20
+skinparam ArrowFontSize 20
+skinparam titleFontSize 24
+skinparam objectBackgroundColor #EEF4F8
+skinparam objectBorderColor #27465B
+skinparam ArrowColor #27465B
+skinparam noteBackgroundColor #FFF5D9
+skinparam nodesep 25
+skinparam ranksep 30
+object "<u>case02 : ReturnCase</u>" as CASE {
+  case_id = "case-02"
+  case_version = 4
+  input_version = 1
+  status = ESCALATED
+}
+object "<u>packet02 : DecisionPacket</u>" as PACKET {
+  case_id = "case-02"
+  proposal_id = "proposal-02"
+  proposal_version = 1
+  input_version = 1
+  corpus_version = "mc02-v1"
+  confidence = 0.90
+}
+object "<u>review02 : RiskReview</u>" as REVIEW {
+  review_id = "review-02"
+  case_id = "case-02"
+  proposal_id = "proposal-02"
+  proposal_version = 1
+  input_version = 1
+  corpus_version = "mc02-v1"
+  outcome = ESCALATE
+}
+object "<u>block02 : RiskFinding</u>" as FIND {
+  finding_id = "finding-02"
+  category = CONFLICT
+  severity = BLOCK
+  message = "Criterion X conflict"
+  citation_ids = ["cit-p", "cit-g"]
+}
+object "<u>policyRef : Citation</u>" as PCITE {
+  citation_id = "cit-p"
+  passage_id = "src-p"
+  location = "synthetic clause 1"
+}
+object "<u>guidanceRef : Citation</u>" as GCITE {
+  citation_id = "cit-g"
+  passage_id = "src-g"
+  location = "synthetic clause 2"
+}
+object "<u>policy01 : PolicyPassage</u>" as POLICY {
+  passage_id = "src-p"
+  document_id = "doc-p"
+  source_type = STORE_POLICY
+  source_version = "v1"
+  corpus_version = "mc02-v1"
+  location = "synthetic clause 1"
+  content = "Criterion X: not eligible."
+  is_synthetic = true
+}
+object "<u>guidance01 : PolicyPassage</u>" as GUIDANCE {
+  passage_id = "src-g"
+  document_id = "doc-g"
+  source_type = REVIEWED_CONSUMER_GUIDANCE
+  source_version = "v1"
+  corpus_version = "mc02-v1"
+  location = "synthetic clause 2"
+  content = "Criterion X: eligible."
+  is_synthetic = true
+}
+CASE -right- PACKET : current proposal
+CASE -- REVIEW : current result
+PACKET -- REVIEW : exact version
+REVIEW -right- FIND : findings
+PACKET -- PCITE : citations
+PACKET -- GCITE : citations
+FIND -- PCITE : citation_ids
+FIND -- GCITE : citation_ids
+PCITE -- POLICY : resolves to
+GCITE -- GUIDANCE : resolves to
+PCITE -[hidden]right- GCITE
+POLICY -[hidden]right- GUIDANCE
+REVIEW -[hidden]down- PCITE
+FIND -[hidden]down- GCITE
+legend bottom
+<b>Instant: accepted ESCALATE; Founder has not decided.</b>
+Synthetic design, not execution/legal guidance/Gold data; named instances,
+selected concrete slots (not full JSON); links have no multiplicity.
+Omitted rc.5 fields, exact hashes/verification and original retrieval
+(both sources + conflict) remain in the accepted input bundle.
+Resolved citations ≠ supported claim or resolved conflict.
+
+ProposalReview WORK phase = ACCEPTED (internal MC-SM); immutable
+RiskReview RESULT outcome = ESCALATE. Phase is not a DTO slot/outcome.
+ReturnCase is conceptual; other slots use rc.5 DTO names.
+No FounderDecision/ApprovalRecord/command/operation or failure/order block.
+Only Domain writes; Founder may revise/handle manually, not approve here.
+
+C Lab 6/shared contribution; A reviews, B indexes. Sources: docs/18 MC-T02,
+shared class and rc.5 schemas. Personal explanation/acceptance pending.
+endlegend
+@enduml
