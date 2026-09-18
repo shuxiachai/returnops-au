@@ -444,7 +444,7 @@ The Activity model separates source retrieval, citation checks, complete proposa
 ### 8.1 4+1 Viewpoint Analysis (Criterion C5 / Lab 4 & 5 Integration)
 - **Logical View:** Domain class hierarchy, state machine invariants, and multi-agent responsibility separation.
 - **Process View:** Asynchronous request processing, non-blocking HTTP 202 task handoffs, and background reconciliation loops.
-- **Development View:** Modular Python package structure (`packages/domain`, `packages/coordinator`, `packages/assessment`, `packages/risk`, `packages/operations`).
+- **Development View:** 12-package modular decomposition (`apps/api`, `apps/web`, `contracts/v1`, `packages/domain`, `packages/agent_core`, `packages/grounding`, `packages/execution`, `packages/provider_adapters`, `packages/persistence`) enforcing inward dependency inversion towards `packages/domain` (`PKG-1`).
 - **Physical / Deployment View:** Dockerised micro-tier topology, PostgreSQL persistence node, and mock third-party service gateways.
 - **Use Case / Scenarios View:** Realised through 6 core use cases demonstrating system response to typical and adversarial customer requests.
 
@@ -453,25 +453,31 @@ Architectural overview illustrating the tripartite agent pipeline surrounding th
 *(Reference: [docs/02-system-design.md](../02-system-design.md))*.
 
 ### 8.3 Package Diagram (`PKG-1` / Criterion C12)
-Depicts strict acyclic dependency structure:
-```
-[ packages/portal (UI/Frontend) ] ──> [ packages/api (REST Endpoints) ]
-                                              │
-                                              ▼
-[ packages/agents (Coord, Assmt, Risk) ] ──> [ packages/domain (Core Entities & Invariants) ]
-                                              ▲
-                                              │
-[ packages/operations (Execution Service) ] ──┘
-```
-`packages/domain` has zero outgoing dependencies on agents, API frameworks, or operational providers.
+
+Full documentation: [09-package-diagram.md](../diagrams/09-package-diagram.md) · PlantUML source: [package-dependencies.puml](../diagrams/shared/package-dependencies.puml)
+
+![PKG-1 Package Dependency Architecture](../diagrams/shared/package-dependencies.svg)
+
+The package diagram presents the **Development View** (Kruchten 4+1) of the system. Twelve logical packages (`P01`–`P12`) are arranged in a strict acyclic dependency graph where **all arrows point inward towards `packages/domain` (`P04`)**. This is the Clean Architecture / Hexagonal (Ports and Adapters) invariant made visible:
+
+- **`P04 packages/domain` has zero outgoing dependencies** on agents, API frameworks, operational providers, or persistence implementations. It defines port interfaces only; adapters implement them.
+- **No dependency runs from any agent package (`P05`–`P08`) to any execution or effect package (`P09`–`P11`).** This structural firewall ensures that AI agents propose observations — they cannot invoke provider effects. The only path from analysis to execution passes through `P04 Domain` → `P09 Execution`, where the `ApprovalGuard` enforces a fresh human-granted `ApprovalRecord`.
+- **Adapters (`P10`, `P11`, `P12`) depend on `P04` via port interfaces.** Replacing a mock adapter with a production implementation requires changing only the adapter package and the composition root wiring in `P02` — never the domain layer.
+- The acyclic property guarantees independent compilation and testing of each package, clear layering for future service extraction, and no hidden mutual coupling.
 
 ### 8.4 Deployment Diagram (`DEP-1` / Criterion C13)
-Proposed deployment roles (see [PD-0.2](../15-package-deployment-models.md)); the health-only F.02 environment does not implement this complete topology:
-- `Client Device Node`: Modern web browser running React/SPA Customer Portal & Founder Workspace.
-- `Application Server Node`: Linux/Docker container hosting FastAPI REST API, background worker threads, and LangGraph multi-agent orchestrator.
-- `Database Node`: PostgreSQL 17 target for the existing health-only F.02 Compose environment; business persistence and concurrency behaviour remain planned.
-- `Simulated Gateway Node`: Standalone mock sandbox servers for Australia Post API and order queries.
-*(PlantUML Source: [deployment topology](../diagrams/shared/deployment-topology.puml))*.
+
+Full documentation: [10-deployment-diagram.md](../diagrams/10-deployment-diagram.md) · PlantUML source: [deployment-topology.puml](../diagrams/shared/deployment-topology.puml)
+
+![DEP-1 Deployment Topology](../diagrams/shared/deployment-topology.svg)
+
+The deployment diagram presents the **Physical View** (Kruchten 4+1). The F.02 Docker Compose environment is the deployed baseline; business modules are planned:
+
+- **Real (green) nodes:** Developer workstation, Browser/HTTP client, `api` container (Python 3.12 / Uvicorn, non-root UID 10001), `migrate` container (one-shot Alembic, `restart: no`), `db` container (PostgreSQL 17, service `db:5432`), Docker named volume (`postgres-data`), and local environment tools. These are deployed and verified.
+- **Planned (yellow) nodes:** Customer/Founder UI (`P01`), future monolith business modules (`P04`–`P12`), external LLM endpoint (provider not selected), and A3 logistics sandbox (eligibility not assumed; no production or chargeable shipping).
+- **Mixed (blue):** `returnops_f02` database — container and `alembic_version` table exist; business tables (`case`, `work`, `audit`) are planned.
+
+**Container orchestration sequence:** `db` healthy → `migrate` exits 0 → `api` starts. Health endpoints (`/health/live`, `/health/ready`) verify both liveness and the exact Alembic migration revision. All host-published ports bind to `127.0.0.1` only — no public Internet exposure. Multi-agent roles execute **in-process** within the `api` container (monolith-first strategy), ensuring deterministic transaction atomicity and bounded orchestration latency.
 
 ---
 
@@ -613,7 +619,7 @@ The 45%/27%/28% feature allocation is planned effort. Earlier per-diagram percen
 | URD-1 | Authored by Member B under Task T15 (PlantUML source, vector SVG, and wrapper 08-user-requirement-diagram.md); reviewed by Member C (grounding/risk) and Member A (governance/ops) | Detailed qualitative contributions and 50%/25%/25% split recorded in 08-user-requirement-diagram.md |
 | FEAT-1, CLS-1, ADH-1 | Earlier shared baseline and respective linked requirement/class/architecture sources; B assembled this report | Specific actual A/B/C elements, reviews and agreed attribution |
 | UCD-1, OBJ-1, COL-1 | B-published PR #14 shared additions at `6ddd8aa`; A/AI-assisted corrections documented in this follow-up | B explanation/revision and A/C shared contribution or review evidence; no verified percentages |
-| SC-1, PKG-1, DEP-1 | A/shared CS-0.2 and PD-0.2 sources; AI-assisted candidate preparation is disclosed | A explanation, designated review and genuine B/C participation |
+| SC-1, PKG-1, DEP-1 | A/shared CS-0.2 and PD-0.2 sources; AI-assisted candidate preparation is disclosed; document wrappers [09-package-diagram.md](../diagrams/09-package-diagram.md) and [10-deployment-diagram.md](../diagrams/10-deployment-diagram.md) authored under Task T11 | A primary design (50%), B package/deployment wrapper authoring and web/API boundary specification (25%), C risk/grounding boundary audit and simulated-node verification (25%); detailed qualitative splits recorded in each wrapper |
 | MC-OBJ-0.1 and C integration text | C PR #12 synthetic blocking-conflict slice and MC-RPT-0.4 at `15c136a` | C personal account and A/B integration acceptance; not authorship of OBJ-1 |
 
 #### Part B: Individual Behavioural Model Chains (Individually Assessed per `H4` / `C8`–`C10`)
