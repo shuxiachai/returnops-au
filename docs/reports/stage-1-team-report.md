@@ -146,44 +146,26 @@ Each member is assigned an informal ad-hoc requirement; their own explanation an
 - **Readiness Status:** `[CANDIDATE - PlantUML URD-1 & Mermaid FEAT-1 Synchronised]`
 
 ### 3.1 User Requirement Diagram (`URD-1`)
-The User Requirement Diagram bridges informal stakeholder goals (`Customer`, `Human Founder`, `Compliance Officer`) to concrete system requirements (`AH-*`, `FR-*`, `NFR-*`, `BR-*`).
 
-```plantuml
-@startuml
-skinparam handwritten false
-skinparam monochrome true
-skinparam packageStyle rectangle
+The User Requirement Diagram (`URD-1`) bridges informal stakeholder goals (`End Customer`, `Human Founder`, `Compliance Reviewer`) to concrete operational use cases, formal functional/non-functional specifications, and binding domain invariants in OMG SysML / UML 2.5 notation. *(Reference: [docs/diagrams/08-user-requirement-diagram.md](../diagrams/08-user-requirement-diagram.md) and [docs/05-lab-3-requirement-modelling.md](../05-lab-3-requirement-modelling.md))*.
 
-actor "Customer" as actCust
-actor "Human Founder" as actFnd
-actor "Risk / Compliance" as actRisk
+![URD-1 User Requirement Traceability Diagram](../diagrams/shared/user-requirement-diagram.svg)
 
-rectangle "ReturnOps AU Requirements Hierarchy" {
-  usecase (AH-01: Frictionless Natural Language Intake) as URD_AH01
-  usecase (AH-10: Idempotent Exact-Scope Execution) as URD_AH10
-  usecase (AH-08: Source Conflict & Grounded Escalation) as URD_AH08
-
-  usecase (FR-001/002: Statement & Evidence Preservation) as URD_FR_INTAKE
-  usecase (FR-005: Targeted Clarification Dialogue) as URD_FR_CLARIFY
-  usecase (FR-007/008: Grounded Assessment & Adversarial Review) as URD_FR_ASSESS
-  usecase (FR-009/010: Guarded Founder Gate & Simulated Ops) as URD_FR_EXEC
-  usecase (NFR-001/004: Verifiable Citations & Zero Duplicate Effects) as URD_NFR
-  usecase (BR-001/004: Invariant Governance & Audit Logging) as URD_BR
-}
-
-actCust --> URD_AH01
-actFnd --> URD_AH10
-actRisk --> URD_AH08
-
-URD_AH01 ..> URD_FR_INTAKE : <<refines>>
-URD_AH01 ..> URD_FR_CLARIFY : <<refines>>
-URD_AH10 ..> URD_FR_EXEC : <<enforces>>
-URD_AH10 ..> URD_NFR : <<constrains>>
-URD_AH08 ..> URD_FR_ASSESS : <<governs>>
-URD_AH08 ..> URD_BR : <<mandates>>
-@enduml
-```
-*(Source: [docs/05-lab-3-requirement-modelling.md](../05-lab-3-requirement-modelling.md) §1 and [docs/diagrams/04-feature-diagram.md](../diagrams/04-feature-diagram.md))*.
+`URD-1` demonstrates systematic traceability descent across four explicit abstraction tiers:
+1. **Level 1 — Informal Stakeholder Needs (`AH-*` / Criterion C1):** Captures raw user-language problems:
+   - `AH-01` (Customer / Member B): *"Let me describe the return or product issue without navigating internal systems."* (Frictionless natural-language intake).
+   - `AH-10` (Founder / Member A): *"Execute only the exact approved simulated action and never perform it twice by accident."* (Idempotent orchestration and safety).
+   - `AH-08` (Auditor / Member C): *"Show material source conflicts; if they prevent a safe proposal, stop and hand the case to me."* (Grounded assessment and safe escalation).
+2. **Level 2 — Operational Use Cases (`UC-*` / Criterion C3):** Operationalises informal goals through `<<refine>>` dependencies into observable interactions: `UC-01` (Intake), `UC-01E` (Clarification), `UC-02` (Assessment & Risk), `UC-03` (Founder Gate), `UC-04` (Sandbox Ops), and `UC-05` (Audit & Telemetry).
+3. **Level 3 — Formal Specifications (`FR-*`, `NFR-*`, `OF-*` / Criteria C1 & C2):** Connected via `<<satisfy>>` and `<<derive>>` edges to verifiable system contracts:
+   - Customer interaction is specified by `FR-001` (submission), `FR-002` (fact extraction), `FR-005` (clarification), `NFR-003` (PII redaction), and `OF-006` (dashboard analytics).
+   - Governed operations are specified by `FR-009` (human gate), `FR-010` (idempotent ops), `FR-011` (audit logging), `NFR-002` (pre-effect authority), `NFR-004` (zero duplicate side effects), and `OF-004` (logistics adapter).
+   - Policy grounding is specified by `FR-006` (statutory citations), `FR-008` (independent risk review), `NFR-001` (100% citation coverage), `NFR-009` (prompt injection defence), and `OF-001` (image evidence).
+4. **Level 4 — Governing Business Rules & Invariants (`BR-*` / §2.1.2 & §16):** Enforces statutory and domain boundaries via `<<enforce>>` and `<<constrain>>` dependencies:
+   - Customer outcome requested and system recommendation remain permanently distinct (`BR-008`), restricted to single order and single parcel (`BR-009`), with operational telemetry targets maintained separately from measured results (`BR-011`).
+   - High-impact mutations mandate explicit human founder authority (`BR-003`, `BR-007`), simulated sandbox execution only (`BR-004`), dual authorisation (`BR-006`), completion prerequisite (`BR-010`), and complete prohibition of direct AI writes (`BR-012`).
+   - System outputs remain conditional non-legal guidance (`BR-001`), material conflicts force escalation (`BR-002`), and model confidence cannot bypass missing evidence (`BR-005`).
+*(Source: [docs/diagrams/08-user-requirement-diagram.md](../diagrams/08-user-requirement-diagram.md) and [docs/diagrams/shared/user-requirement-diagram.puml](../diagrams/shared/user-requirement-diagram.puml))*.
 
 ### 3.2 Comprehensive Feature Diagram (`FEAT-1`)
 The Feature Diagram captures the structural composition of the ReturnOps AU product, decomposing the solution into Mandatory Core features, Optional modules, and Alternative workflow paths.
@@ -626,9 +608,10 @@ In accordance with `docs/07-frozen-work-allocation.md` §1 and §2:
 
 The 45%/27%/28% feature allocation is planned effort. Earlier per-diagram percentages are removed because no measured author contributions substantiate them. Ownership/reviewer assignments do not establish completion or personal authorship. Preserve Git source authors and record exact personal changes, explanations and shared reviews before claiming every member's participation.
 
-| Models | Available source / preparation evidence | Remaining personal/shared record |
+| Model / Artefact | Source and Integration Context | Authorship and Contribution Record |
 |---|---|---|
-| URD-1, FEAT-1, CLS-1, ADH-1 | Earlier shared baseline and respective linked requirement/class/architecture sources; B assembled this report | Specific actual A/B/C elements, reviews and agreed attribution |
+| URD-1 | Authored by Member B under Task T15 (PlantUML source, vector SVG, and wrapper 08-user-requirement-diagram.md); reviewed by Member C (grounding/risk) and Member A (governance/ops) | Detailed qualitative contributions and 50%/25%/25% split recorded in 08-user-requirement-diagram.md |
+| FEAT-1, CLS-1, ADH-1 | Earlier shared baseline and respective linked requirement/class/architecture sources; B assembled this report | Specific actual A/B/C elements, reviews and agreed attribution |
 | UCD-1, OBJ-1, COL-1 | B-published PR #14 shared additions at `6ddd8aa`; A/AI-assisted corrections documented in this follow-up | B explanation/revision and A/C shared contribution or review evidence; no verified percentages |
 | SC-1, PKG-1, DEP-1 | A/shared CS-0.2 and PD-0.2 sources; AI-assisted candidate preparation is disclosed | A explanation, designated review and genuine B/C participation |
 | MC-OBJ-0.1 and C integration text | C PR #12 synthetic blocking-conflict slice and MC-RPT-0.4 at `15c136a` | C personal account and A/B integration acceptance; not authorship of OBJ-1 |
