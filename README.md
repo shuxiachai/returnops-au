@@ -1,5 +1,43 @@
 # ReturnOps AU
 
+## Post-merge status — 2026-09-18
+
+**Read this section before the dated preparation notes below.** The verified published main snapshot is [main at `da1a09fe`](https://github.com/shuxiachai/returnops-au/commit/da1a09fe7704bdb2fd2f989a44ab62bd7f089a41). Publication and technical review have advanced; personal evidence, joint acceptance and final course submission are separate gates. The September 7/16/17 notes are retained as history, not instructions to repeat completed merges or request the same old review.
+
+| Delivery | Verified publication / review receipt |
+|---|---|
+| A rc.5 contracts, models and F.02 environment | [PR #11](https://github.com/shuxiachai/returnops-au/pull/11) merged to main on September 18, 18:59 Sydney time. The later C-F01 test correction is retained. |
+| Shared course/rubric requirements | [PR #13](https://github.com/shuxiachai/returnops-au/pull/13) merged at 19:06. Use [docs/19](docs/19-course-assessment-requirements.md) and [docs/11](docs/11-stage1-readiness.md), not old unmerged-branch wording. |
+| C models, report contribution and review evidence | [PR #12](https://github.com/shuxiachai/returnops-au/pull/12#event-31380761223) merged at 19:34 as `3024e36c770fbb1d5e272dd2fc43eca3fd68e232`, after A approved synchronized source `79dc6630d37d61f18f42cf037b3f51dee23f72b6`; GitHub records four successful checks. It no longer targets an unmerged A branch. |
+| B personal/shared models and team-report candidate | [PR #14](https://github.com/shuxiachai/returnops-au/pull/14) merged at 19:43. The [team report](docs/reports/stage-1-team-report.md) is a merged candidate, not an uploaded final PDF or course receipt. |
+
+A's [final C review](https://github.com/shuxiachai/returnops-au/pull/12#pullrequestreview-5246362189) records an explicitly delegated, AI-assisted technical approval. It preserves the 26 non-README C contribution files, both README notices and inherited main corrections. The Object Diagram is accepted as a **partial conceptual/DTO snapshot**, not a complete runtime schema. Approval/CI do not certify unaided authorship, personal understanding, runtime implementation, joint acceptance or submission. Three existing Markdown hard-break whitespace diagnostics were retained; do not describe every diagnostic as passing.
+
+### C delivery and the remaining evidence
+
+The C artifacts are available directly in this branch: [model chain MC-0.1.3](docs/18-member-c-model-chain.md), [seven editable PUML/SVG pairs](docs/diagrams/member-c), [report contribution MC-RPT-0.4](docs/reports/member-c-stage1-draft.md), and [delivery/AI-use and interview record](docs/reports/member-c-contribution-and-interview.md). PR #12 merged MC-PER-0.2; this follow-up explicitly updates that record to **MC-PER-0.3** with the merge receipts and a practical explanation/video/final-delivery checklist. The models, diagrams and report source versions are unchanged.
+
+| Remaining gate | Concrete next evidence and owner |
+|---|---|
+| C personal explanation | C explains T01/T02/T03/T09 and D01-D03 in their own words using the existing worksheet; record actual dates, revisions and reviewer feedback. Rehearse real peer questions and verify the eventual individual interview slot; reference answers and the team video do not replace the interview. No invented signature or percentage. |
+| Clean-Git / PostgreSQL 17 Compose reproduction | C uses the [published reproduction procedure](docs/reviews/f02-independent-reproduction.md), an exact reviewed SHA, a new checkout/venv and isolated local project/volume. Record full environment tests, migration and repeat migration, same-API healthy → DB outage → recovery, failed-config exit, sanitized logs and source/checks links. The current [KAN-33](https://lucastaooo.atlassian.net/browse/KAN-33) target is A `3dd1ff637693a826990eee5712cfb239a3c3da7b`; agree and record a different target explicitly before calling it accepted. An archive, CI or native PG run is not a substitute. |
+| F.01 / F.02 / F.03 acceptance | Original owners/reviewers record exact-version dispositions and unresolved findings in [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32), [KAN-33](https://lucastaooo.atlassian.net/browse/KAN-33) and [KAN-34](https://lucastaooo.atlassian.net/browse/KAN-34); F.01 retains B's consumer confirmation and its three-member contract review. [F.03 PR #15](https://github.com/shuxiachai/returnops-au/pull/15) remains separate; the September 18 merge batch did not include it. Preserve each WBS completion dependency. |
+| Shared report/model index and course delivery | B verifies/finalizes M-S.03 and returns exact section/figure links; A integrates/submits the final report and ≤8-minute team video; each member verifies their material and actual contribution/AI disclosure; C audits R.04 evidence. C's actual participation must be traceable in every shared task (Feature, overall Use-case, Class and Complex Structure), not only the Object slice. Record final files, duration/readability checks and real Canvas receipt. The merged report candidate does not by itself establish the remaining acceptance/submission checks. |
+
+On September 18, authenticated Git access was established on C's Mac and a new clean checkout verified the published main SHA above. The official Docker Desktop installer is downloaded and checksum-verified; installation/engine readiness and the PostgreSQL 17 Compose run are not yet completed. A clean checkout alone is not the full reproduction. Never include tokens, passwords, `.env` files or private account exports in the evidence.
+
+The last verified Canvas schedule in [docs/19](docs/19-course-assessment-requirements.md) showed September 20 unlock and October 4, 2026 23:59 report/video deadlines. Recheck the unlocked instructions/timezone and unresolved point grouping; this is not a new Canvas verification. Stage 1 submission must disclose open implementation work and must not wait for all Stage 2/Gold work to finish.
+
+### Jira guide and workflow
+
+[PR #7](https://github.com/shuxiachai/returnops-au/pull/7) is a **separate C-authored workflow guide** in the [KAN-12](https://lucastaooo.atlassian.net/browse/KAN-12) baseline context. It is not C's already-merged model PR, proof of R.01 adoption, or permission to duplicate 89 Jira cards. Its revision must follow [frozen allocation](docs/07-frozen-work-allocation.md), [89 work packages](docs/08-delivery-work-packages.md) and [team workflow](docs/03-team-and-github-workflow.md): each selected optional remains course scope; C coordinates evaluation while every member tests their own features. Root README remains the navigation/current-publication entry; Jira remains the live status, dates, estimates and blocker record. Inspect PR #7's live review/check state before merging it; do not infer approval from this notice.
+
+Record real publication/review/merge evidence in the existing Jira cards without backdating, changing ownership or marking Done merely because files reached main. [KAN-22](https://lucastaooo.atlassian.net/browse/KAN-22) remains distinct from baseline R.01 and F.01/F.02/F.03 acceptance. Technical approval is recorded; the remaining personal/acceptance evidence above is not prefilled.
+
+### Historical notes retained below
+
+The earlier wording about unpublished rc.5, pending A review, PR #12's old base and unmerged course/report files describes its original dated snapshot and is superseded for publication state by this section. It remains useful provenance, not current merge instructions.
+
 > **Review handoff — 2026-09-17:** see the [current review entrance](#review-handoff--2026-09-17), including C's populated delivery/AI-use record and A's new report-integration receipt. The [September 16 handoff](#delivery-handoff--2026-09-16) remains a historical delivery snapshot; it is not a live status board or a main merge.
 
 > **Course requirements checked 2026-09-14:** start with the [shared Canvas/rubric requirements and A/B/C evidence map](docs/19-course-assessment-requirements.md), then the [Stage 1 submission checklist](docs/11-stage1-readiness.md). This clarifies personal/shared models, Lab 6 Object Diagram, AI acknowledgement and the visible Oct 4 deadline, without changing feature owners or declaring coursework accepted. Older dated preparation notices below retain their original scope.
