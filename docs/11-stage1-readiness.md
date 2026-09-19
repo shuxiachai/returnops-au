@@ -1,5 +1,7 @@
 # Stage 1：当前阶段收口与提交核验
 
+> **2026-09-14 课程要求更新：**统一来源、15/5/10 分值、全员个人/共享任务和 Lab 6 对象图要求见 [docs/19](19-course-assessment-requirements.md)。本文件继续作为 R.04 核验清单；未勾选项不是已完成，九项功能和 89 项固定字段不变。下面带 2026-09-07 日期的项目状态是历史记录，不是本轮实时 PR/Jira 状态。
+
 > **rc.5 发布定位（2026-09-07）：**本版交付至 [PR #11](https://github.com/shuxiachai/returnops-au/pull/11)，由包含本说明的实际提交定位。PR 中记录准确 source SHA、CI run 与评审状态；C 复现使用该准确 SHA，不能使用旧 `57d86fe` 或浮动分支。下文“未发布/本地准备”、旧测试和旧哈希是发布前历史；当前提交以 Git 文件内容及 `docs/reviews/rc5-publication-artifacts-20260907.json` 为准。发布不等于 F.01/F.02 接受、B/C 本人审阅/复现或课程提交，Jira 未由此同步。
 
 > 2026-09-07；状态：**准备与核验清单，未完成 Stage 1 验收**。
@@ -17,7 +19,7 @@ Stage 2 也须分别核对源码提交与演示：docs/08 的 R.05.a/.b 沿用�
 
 ## 1. 课程依据与待核验信息
 
-课程原件保留在课程目录，不复制 PDF 进 Git。以下页码为 PDF 页码。2026-09-07 已登录并只读核验 [Canvas 作业列表](https://canvas.sydney.edu.au/courses/74323/assignments)及两个 Stage One 详情页：
+课程原件保留在课程目录，不复制 PDF 进 Git。以下页码为 PDF 页码。2026-09-14 再次只读核对当前 rubric、Lab & Project、Tutorial 1–6、官方 Unit Outline、[Canvas 作业列表](https://canvas.sydney.edu.au/courses/74323/assignments)及两个 Stage One 详情页；来源与读取/下载范围见 [docs/19](19-course-assessment-requirements.md)：
 
 | Canvas 实际入口 | 页面可见信息 | 仍未核验 |
 |---|---|---|
@@ -26,7 +28,7 @@ Stage 2 也须分别核对源码提交与演示：docs/08 的 R.05.a/.b 沿用�
 
 页面没有明确显示时区，不能自行加上 AEST/AEDT/UTC；解锁时间也按页面原样记录。列表显示尚无提交，详情中的 Attempt 1 不代表已提交或获得回执。当前列表只显示这两项 Stage One 作业，不能由此判断 Stage 2 不存在或另推截止。
 
-Canvas **25+5** 分值口径与本地 Project Description 的 **15 分报告 + 15 分 presentation/interview** 不同，需向 tutor 确认最新构成；不据此取消个人 interview、修改工作比例或重新分工。时区、完整正文和具体提交规则待解锁后/通过 tutor 核对。
+当前 rubric 明确 **15 分报告 + 5 分视频 + 10 分 interview**。Canvas 显示的 **25+5** 可能将报告与 interview 归在同一作业项，但锁定正文不足以确认这种归组；需要时向 tutor 澄清，不据此取消 interview、修改工作比例或重新分工。时区、完整正文、具体提交规则仍待解锁后核对。
 
 | 原件 | 本清单采用的要求 |
 |---|---|
@@ -34,6 +36,8 @@ Canvas **25+5** 分值口径与本地 Project Description 的 **15 分报告 + 1
 | 同上，第 1–2 页 | 每人的 Ad-hoc requirement、Use Case、Activity、Interaction、State 模型形成同源链；每人参与共享任务并明确个人贡献 |
 | `Project Description.pdf`，第 1–2 页 | 报告、presentation 和个人贡献；第 2 页要求说明采纳/放弃的设计、模型概览、变更/验收和个人贡献；Stage 2 源码须最终周周一之前交 Canvas，演示在最终周 |
 | `ELEC5620-Lab-Note-5.pdf`，第 1 页 | 设计模式与优缺点对 FR/NFR 的影响，类属性/方法及关联多重性核对；不由此推断新的提交日期或全部图的硬性要求 |
+| `ELEC5620-Lab-Note-6.pdf` / Tutorial 6 | 明确的 Object Diagram：既有类的具名实例、具体属性值及某逻辑时刻的链接；保留 Composite 的独立角色/端口含义，不能只改标题替代实例内容 |
+| 2026 官方 Unit Outline | Stage 1/2 标注 AI allowed，仍需 acknowledgement；个人任务本人理解/解释及真实贡献要求不取消，完整任务声明格式待解锁核对 |
 | `lecture&tutorial/ELEC5620-TUT-01.pdf`，第 18 页 | Stage 2 的 Agile 过程包含 Jira software timeline evidence 与支持文档；需持续保留真实记录，不能以最后补一张看板代替过程 |
 
 brief 的 presentation slides 内容要求与 rubric 的 ≤8 分钟视频要求一并核对；已取得上面的两个实际入口，是否另交 slides、具体格式和当前 interview 安排仍待锁定正文/tutor 确认。Package/Deployment、Architecture Analysis 在 rubric 标为 Optional，但 Lab 4/5 的架构分析与设计练习仍需对应说明，不把可选评分项误写成无需设计。
@@ -56,10 +60,10 @@ brief 的 presentation slides 内容要求与 rubric 的 ≤8 分钟视频要求
 
 | 子检查 | 制作/行动责任与原 WBS | 具体输出及验收证据 | 确认人 |
 |---|---|---|---|
-| R.04.a 提交要求 | A 核对 Canvas/tutor，B/C 核对个人安排 | 记录已见两项入口及 Oct 4, 2026 23:59；确认页面未显示的时区、锁定文件规则、视频方式、25+5 与旧 15+15 分值差异及 interview 安排；不从旧 Jira 日期推定 | A 记录，C 核验来源，B/C 确认个人时段 |
+| R.04.a 提交要求 | A 核对 Canvas/tutor，B/C 核对个人安排 | 按 docs/19 保留当前来源与两项 Oct 4, 2026 23:59；解锁后核对时区、格式、group/视频规则及 AI 声明；保留 rubric 15/5/10，必要时澄清 Canvas 25/5 归组和 interview 时段，不从旧 Jira 日期推定 | A 记录，C 核验来源，B/C 确认个人时段 |
 | R.04.b 契约与未决项 | A 制作 F.01；C 指定 review；B 确认消费边界 | rc.5 三目标、无提案只人工处理、订单阻断与来源冲突及本轮缺陷修订逐项有人审；版本、问题处置、测试与 KAN-32/PR #11 的具体提交可定位，Jira 旧 rc.2/PR #9 差距明示；本地新增及未接受项在课程材料中标注 | A/B/C 分别确认核对范围；tutor 反馈单独记录 |
 | R.04.c 三条个人链 | A/B/C 各自完成 M-A/M-B/M-C.01–.06 | 本人的 requirement→UC→Activity→Interaction→State→报告段落/答辩说明；正常及主要异常场景走通，具体提交、图版本和修正记录可查 | M-A：C；M-B/M-C：A；本人能独立解释 |
-| R.04.d 共享模型 | A：M-S.01/.02；B：M-S.03；C 提供分类/风险追踪核对 | Class/Package/Deployment 的适用范围与状态清楚；Composite Structure 有 ports/connectors；Feature/Use-case/全模型索引一致；每人共享贡献可定位 | M-S.01/.02：C；M-S.03：A；三人确认本人的贡献 |
+| R.04.d 共享模型 | A：M-S.01/.02；B：M-S.03；C 提供分类/风险追踪核对 | Class/Package/Deployment 的评分适用范围与状态清楚；保留 Composite ports/connectors，并补 Lab 6 具名对象/具体值/实例链接的逻辑时刻快照；Feature/Use-case/全模型索引一致，每人对所有共享任务的具体贡献及版本可定位 | M-S.01/.02：C；M-S.03：A；三人确认本人的贡献 |
 | R.04.e 报告 | A 整合；B 用户交互/个人章节；C 来源摘要/风险/评测；各自 M-*.06 | 可阅读的报告候选及逐条 rubric→章节/图/作者索引；来源/假设摘要约 1–2 页；目标、规划、实现和实测分开；未决项未隐藏 | 各作者确认自己章节，C 核对证据完整性，A 确认整合版本 |
 | R.04.f 视频 | A 后续自行录制、整合、导出与提交；B/C 提供并确认本人模型、贡献说明和所需素材，本轮不要求录制 | 最终视频≤8分钟；画面/模型/文字可读，声音可懂；包含设计取舍、模型概览、变更/验收、个人贡献；记录成品名、时长、版本和提交回执/可访问性结果 | 三人看完整成片并确认个人段落；C 核验成品与提交证据，A 执行提交 |
 | R.04.g 个人 interview | 各成员本人准备与参加，关联各自 M-*.06 | 每人可脱离他人代答解释个人链、共享贡献、异常守卫、设计取舍与未实现内容；完成一次互问记录，时间以实际通知为准 | 本人负责；A/B/C 互问，C 汇总准备证据 |
@@ -71,11 +75,12 @@ R.04 的整体 Done 仍受 docs/08 原有完成依赖约束；子检查的提交
 
 - [ ] 需求分类、Ad-hoc/Feature/Use-case 视图与当前产品边界一致；六个详细 UC 覆盖课程要求的 5–10 个，正常/异常路径、前后置条件和验收清楚。
 - [ ] 每人 .01 规格、.02 Activity、.03 Interaction/Sequence、.04 State、.05 一致性、.06 报告/答辩证据逐项可定位。不能用 ReturnCase 共享状态图冒充三人的对象生命周期。
-- [ ] 共享类图有适用的属性/方法、关联、继承、组合/聚合、接口和多重性；Composite Structure 的对象/协作/结构化类与 ports/connectors 可解释，不能只换标题充数。
+- [ ] 共享类图有适用的属性/方法、关联、继承、组合/聚合、接口和多重性；Composite 的 parts/ports/connectors 与 Lab 6 Object Diagram 的具名实例/具体 slots/links 分别可解释且一致，不只换标题充数，也不把合成快照冒充实际运行。
 - [ ] A 的执行链、B 的 IntakeSession、C 的 ProposalReview 与 F.01 版本一致；人工决定、风险结果、未知效果核实和通知重试的边界互相吻合。
 - [ ] 对设计模式和架构取舍说明“为何选、为何不选、影响哪些 FR/NFR”；不把 Package/Deployment 等项目选择一律写成 rubric 强制项。
 - [ ] C 的来源摘要引用冻结研究证据；30 Gold、20例盲计时子集、独立 pilot 是计划或实际结果分别标注。C 读取任何计时答案前须按 E.02 密封初始标签/理由及版本/hash，不提前向 A/B 公开；之后按 E.05→A 复核→B 仲裁→最终冻结评分，修改保留依据，不能按被评分答案调整标签。Stage 1 不等正式评测已经运行。
 - [ ] 各图与章节明确作者/贡献、版本、review和待办；AI辅助、组长整合、既有PR来源如实记录，不能替代本人理解、修订、提交与讲解。
+- [ ] 按 docs/19 的逐任务贡献表核对三人参与所有共享任务的真实证据；B 返回 C 分类表的精确整合链接。对最终报告/视频实际尺寸检查可读性，概览面板保留完整模型引用，不用文件存在或语法检查替代成品检查。
 
 ## 5. 下一项主工作与容量预约
 

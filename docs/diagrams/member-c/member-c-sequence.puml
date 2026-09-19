@@ -1,0 +1,93 @@
+@startuml
+title Member C - Accepted evidence and independent review\nMC-SEQ-0.1 candidate, 2026-09-12
+skinparam shadowing false
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 14
+skinparam sequenceMessageAlign center
+skinparam ParticipantBackgroundColor #EEF4F8
+skinparam ParticipantBorderColor #27465B
+skinparam ArrowColor #27465B
+skinparam noteBackgroundColor #FFF5D9
+autonumber
+participant "Domain Service\nA - sole business writer" as D
+participant "Orchestrator\nA - bounded work" as O
+participant "Assessment\nA" as A
+participant "Retrieval / verification\nC1" as C1
+participant "Independent reviewer\nC2" as C2
+actor "Founder" as F
+
+D -> O : Admit authorised current analysis work
+note over D,O
+Accepted order block before proposal -> manual-only target;
+missing facts -> Coordinator; technical errors -> bounded recovery.
+The loop below requires an admissible current input.
+end note
+loop First admitted round; repeat iff admitted REVISE and budget remains
+  O -> D : Read authorised full current input / source facts
+  D --> O : Original statements, order lookup, scoped attachments
+  O -> A : assess_case(authorised input, corrections)
+  A -> C1 : retrieve(RetrievalRequest) [CS A15]
+  C1 --> A : Complete RetrievalResult (including conflicts)
+  C1 -> O : Original retrieval receipt [CS A19]
+  O -> D : Submit receipt with source/work bindings [CS A02]
+  D -> D : Validate and accept original source observation
+  A --> O : Candidate DecisionPacket (no authority)
+  O -> C1 : verify_citations(CitationVerificationRequest)
+  C1 --> O : CitationVerificationResult
+  O -> D : Candidate + complete independent materials
+  break Invalid binding / capacity / required material unavailable
+    D --> O : No new current proposal; actual typed failure
+    note over D,O : Preserve history; never truncate to preview or invent source text.
+  end
+  D -> D : Atomically accept packet + HistoricalProposalBundle + audit
+  O -> D : Select current work/round/invocation; load accepted review input
+  D --> O : RiskReviewRequest from accepted bundle
+  O -> C2 : review(RiskReviewRequest), separate prompt/invocation
+  note over A,C2
+  No Assessment hidden reasoning. Evidence matrix is an interpretation.
+  Original sources, order and statements remain independent comparison material.
+  C2 cannot edit packet, write state, approve or call providers.
+  end note
+  alt Selected invocation yields a reply
+    C2 --> O : Untrusted RiskReview candidate
+    O -> D : Validate/accept reply with selected identity
+  else Timeout or malformed output
+    O -> D : Selected invocation failure event (not RiskReview)
+  end
+  D -> D : Atomic guard on work / round / invocation and current context
+  break Obsolete event or replaced context
+    D --> O : No change to newer round / business audit outcome
+  end
+  break Current technical failure
+    D -> D : Retire selected invocation; bounded retry or failure handling
+    note over D,O
+    Retry / exhaustion must match the selected failed invocation.
+    A late failure event cannot retire a newer same-version retry.
+    A retry uses a newly selected invocation; never synthesize PASS.
+    end note
+  end
+  D -> D : Store valid RiskReview and exact proposal history ref + audit
+  alt PASS / PASS_WITH_WARNING and other review-ready guards
+    D --> F : Current packet and visible warnings; no execution authority
+  else REVISE and machine budget remains
+    D --> O : Schedule new proposal_version with specific corrections
+    note over D,O : Old result retained, no old approval carried forward.
+  else NEEDS_INFORMATION
+    D --> O : Coordinator questions -> authorised UC-01E path
+    note over D,O : Leave machine loop; accepted answer changes input, then new proposal/review.
+  else ESCALATE or exhausted revision budget
+    D --> F : Explicit risk / bound reason, no direct approval
+    note over D,F
+    Current proposal: valid REQUEST_REVISION or MANUAL_HANDLING.
+    No proposal: exact current ProcessingFailure/OrderLookupBlock,
+    MANUAL_HANDLING only; no fabricated RiskReview or proposal.
+    end note
+  end
+end
+legend bottom
+Loop repeats only for an admitted revision; all other branches yield/stop this episode.
+Method labels describe internal messages, not new wire fields or public HTTP routes.
+All state-changing events (reply, timeout, invalidation, retry, exhaustion) use atomic identity guards.
+AI-assisted refinement of the shared report discussion candidate; runtime and A/C review pending.
+endlegend
+@enduml

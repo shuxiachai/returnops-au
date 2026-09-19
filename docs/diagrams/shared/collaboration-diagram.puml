@@ -1,0 +1,67 @@
+@startuml
+title COL-1 / ReturnOps AU Communication Diagram\nDesign candidate — exact approval, Domain acceptance and audit (UC-03/04)
+left to right direction
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 12
+skinparam shadowing false
+skinparam roundCorner 8
+skinparam objectBorderColor #27465B
+skinparam objectBackgroundColor #F8FAFC
+skinparam ArrowColor #27465B
+skinparam noteBackgroundColor #FFF8E7
+skinparam noteBorderColor #B27B10
+skinparam nodesep 55
+skinparam ranksep 75
+
+object "founder : HumanFounder" as founder
+object "dashboard : FounderDashboard" as dashboard
+object "api : ApplicationAPI" as api
+object "domain : DomainService" as domain
+object "guard : ApprovalGuard" as guard
+object "ops : OperationsService" as ops
+object "provider : MockReturnsLogisticsAdapter" as provider
+object "notify : MockNotificationAdapter" as notify
+object "store : CaseRepository" as store
+object "audit : AuditPort" as audit
+
+founder --> dashboard : 1: review exact current proposal
+dashboard --> api : 1.1: POST founder decision
+api --> domain : 1.2: decision + trusted context
+domain <--> guard : 1.3: current decision check\n1.4: verdict (not approval)
+domain --> ops : 2: dispatch saved work\n3: eligible notification work
+ops <--> domain : 2.1: current records / claim / intent (Tx B)\n2.4: operation observation -> saved result (Tx C)\n3.2: notification observation -> saved result (Tx D)
+ops <--> guard : 2.2: final dispatch scope check\nverdict for each new effect
+ops <--> provider : 2.3: authority check; guarded invoke\nraw effect observation (return, then label)
+ops <--> notify : 3.1: send persisted outcome\ndelivery observation
+domain --> store : 1.5 / 2.1 / 2.4 / 3.2:\nguarded business writes (Tx A/B/C/D)
+domain --> audit : same Tx A/B/C/D:\nrecord_non_personal_event(event, tx)
+
+note bottom of domain
+  <b>One authority and transaction boundary</b>
+  Tx A: accepted decision, exact approval and work.
+  Tx B: durable claim/intent before a new effect.
+  Tx C/D: accepted operation/notification facts and state.
+  Each change includes required audit and applicable work
+  in the same transaction context; failure is not success.
+  Domain alone calls CaseRepository and AuditPort.
+end note
+
+note bottom of ops
+  <b>Condensed success path; guards are still required</b>
+  Each effect requires current authority, scope, expiry,
+  provider permission, allowlist and durable idempotency.
+  Final checks coordinate with Domain at the call boundary.
+  Save return before label; complete label reference before
+  SUCCEEDED; save both effects before outcome notification.
+  Unknown effect: reconcile original attempt, never blind retry.
+  Known label: recover original artifact, never create again.
+  Notification retry does not repeat return or label.
+end note
+
+note top of audit
+  Provider calls are outside local database transactions.
+  Ops and Guard submit observations, not trusted audit events.
+  No AI-to-provider/DB path is authorised by this design.
+  This model is not runtime or concurrency proof.
+end note
+@enduml
