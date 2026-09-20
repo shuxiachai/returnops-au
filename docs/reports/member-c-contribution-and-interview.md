@@ -1,5 +1,7 @@
 # C：真实贡献、模型讲解与提交前核对
 
+> **2026-09-20 技术证据续补（MC-PER-0.4）。** 本次只补 C 委托的技术执行与交付追踪，不改 MC-0.1.3、MC-RPT-0.4 或七组图。Docker 已安装，9 月 18 日 KAN-22/12/33 评论已保存核验，旧“待安装／待同步”是历史状态，见 [PR #17 日期更正](https://github.com/shuxiachai/returnops-au/pull/17#issuecomment-5748904252)。对准确 A `3dd1ff6` 的 [F.01 六项技术核查](../reviews/member-c-f01-review-20260920.md)已完成：58 项契约测试和 8 项补充探针通过，一处低严重度通知样例文案问题交 A 处理。[PG17 Compose 技术复现](../reviews/member-c-pg17-reproduction-20260920.md)通过完整 32 项环境测试、重复迁移及同一 API 进程的数据库断连恢复；文件读取中断与独立 Git 副本复测过程均有记录。上述是 AI 辅助技术证据，不是联合验收。所有“C 本人”字段仍待实际回答，不从委托、commit 作者或技术测试推断个人掌握。当前入口见 [README](../../README.md#c-evidence-follow-up--2026-09-20)。
+
 > **2026-09-18 合并回执与个人准备（MC-PER-0.3）。** [C PR #12](https://github.com/shuxiachai/returnops-au/pull/12#event-31380761223) 已在 Sydney 19:34 合并到 main，合并提交 `3024e36c770fbb1d5e272dd2fc43eca3fd68e232`。A 对准确同步版本 `79dc6630d37d61f18f42cf037b3f51dee23f72b6` 的[最终技术 approval](https://github.com/shuxiachai/returnops-au/pull/12#pullrequestreview-5246362189)已取得；26 个非 README C 文件和 A 的后续测试修正保持不变，四项 CI 成功。此次记录补充可核实回执和 §8 操作清单，不改模型或代填本人解释。A 的授权 AI 辅助技术评审、本人理解、环境复现、联合验收和课程提交是不同证据。最新共享入口见 [README](../../README.md#post-merge-status--2026-09-18)；下方旧版本/未合并描述保留为历史，不再作为当前合并指令。
 
 > **历史补录：2026-09-17 交付事实与评审交接（MC-PER-0.2）。** C 负责并委托 AI 辅助完成的候选成果属于 C 的交付范围；下面补齐版本、交付内容、技术说明、AI 使用范围与已存在的整合回执，不把这些都留成空白。交付归属不等于未借助 AI 独立制作、本人已经讲解、评审通过或验收完成。补录日期不是虚构的个人阅读、会议或测试日期。新 commit 和检查结果以 [PR #12](https://github.com/shuxiachai/returnops-au/pull/12) 的本次发布记录为准；`15c136a` 是补录前的资料快照。
@@ -12,6 +14,8 @@
 对象：C / Lucas Tao / `lulucas-tao`。个人交付 WBS M-C.01–.06，对应已识别的 [KAN-22](https://lucastaooo.atlassian.net/browse/KAN-22)；F.01 评审关联 [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32)。这些是追踪入口，不声明当前实时状态。原 Owner、Reviewer、S/F 不变；不另外创建重复状态板。
 
 ## 1. 先固定要解释的版本
+
+**9 月 20 日解锁后报告／视频页核查：** Canvas [695832](https://canvas.sydney.edu.au/courses/74323/assignments/695832)明确 25 分为报告 15＋个人 interview 10，指定一人提交一份全组 PDF；C 不另交个人 PDF，但仍需个人讲解／interview。[视频页 695833](https://canvas.sydney.edu.au/courses/74323/assignments/695833)随后读取成功：5 分、≤8 分钟，介绍项目、主要 agent 角色／功能、use cases 和 design models，须上传 Canvas；YouTube 链接只是建议补充。两页显示截止 Oct 4, 2026 23:59，未显示时区；Oct 11 的开放结束不是延期。准确披露 AI／他人辅助，提交稿、草稿、AI 输出及研究材料保留一年。未代勾声明或提交，未看到成功回执。完整已知范围见 [README](../../README.md#unlocked-canvas-report-rules-verified-on-september-20)。
 
 | 项目 | 已知资料 / 本人需完成的记录 |
 |---|---|
