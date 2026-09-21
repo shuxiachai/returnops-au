@@ -16,6 +16,10 @@ change, final team acceptance, completed video or assessment submission.
   that the course requires every member to appear on camera.
 - [Shared Stage 1 report](https://docs.google.com/document/d/1xvGO8EA_yZwWj1It3UM7AKDFEoQjsj5eJJXbCz4bcnc/edit?tab=t.0).
 - [Team-provided Google Drive folder](https://drive.google.com/drive/folders/1bAjQFmkBl-zXthEj2G8a4MybvuaGkfMS).
+- Shared Office-file copies: [PPTX in Google Drive](https://docs.google.com/presentation/d/1oE-d_TP1XjoBB7gYHby2aZRRSqM9tBBB/edit)
+  and [script DOCX in Google Drive](https://docs.google.com/document/d/1wum-DFCBYcmXA8seB770K_n2R4qxWb7t/edit).
+  These are uploaded Office files, not converted native Google formats. Later
+  shared edits do not automatically update the dated Git copies in this folder.
 - [Stage 1 readiness checklist](../../11-stage1-readiness.md) and
   [course requirements evidence map](../../19-course-assessment-requirements.md).
 
