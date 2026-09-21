@@ -158,6 +158,7 @@ report/video. The links below are navigation, not a second task or status board.
 | Current course requirements and rubric | [Course requirements and A/B/C evidence map](docs/19-course-assessment-requirements.md) |
 | Product scope, ownership and task acceptance | [Project definition](docs/00-project-definition-v1.md) → [Frozen allocation](docs/07-frozen-work-allocation.md) → [Delivery work packages](docs/08-delivery-work-packages.md) |
 | Final report, video, interview and submission checks | [Stage 1 readiness / R.04 checklist](docs/11-stage1-readiness.md) |
+| Video slides and A/B/C rehearsal script — 21 September | [Nine-slide PPTX, speaking script and shared workspace links](docs/reports/stage1-video-2026-09-21/README.md); AI-assisted review/rehearsal material, not a completed video or submission |
 | A: personal models and design rationale | [A model chain](docs/12-member-a-model-chain.md), [A design decisions](docs/14-member-a-design-decisions.md), [A review PR #11](https://github.com/shuxiachai/returnops-au/pull/11) |
 | B: intake/UI work and model-index integration | [B review PR #8](https://github.com/shuxiachai/returnops-au/pull/8); use its actual files/review history, with responsibilities fixed by docs/07–08 |
 | C: personal models and report text | [C model chain](https://github.com/shuxiachai/returnops-au/blob/docs/kan-22-c-model-review/docs/18-member-c-model-chain.md), [C Stage 1 report](https://github.com/shuxiachai/returnops-au/blob/docs/kan-22-c-model-review/docs/reports/member-c-stage1-draft.md) |
