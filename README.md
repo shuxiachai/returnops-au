@@ -149,6 +149,16 @@ separate from that five-file delivery. Jira remains the live workflow record.
 
 ## Project documents
 
+### Stage 1 model and report navigator — 2026-09-19
+
+For an A-led, AI-assisted navigation draft prepared for B's review, start with
+[the Stage 1 model, requirements and report navigator](docs/stage1-model-index.md).
+It routes to existing sources only: it does not revise the frozen allocation,
+claim M-S.03 completion, replace individual contribution records, or establish
+runtime/human acceptance. The shared report remains the
+[canonical Google Doc](https://docs.google.com/document/d/1xvGO8EA_yZwWj1It3UM7AKDFEoQjsj5eJJXbCz4bcnc);
+the repository's modular team report remains a separate candidate.
+
 ### Reading order and member entry points
 
 Start with the course requirements, then the product definition, frozen allocation
