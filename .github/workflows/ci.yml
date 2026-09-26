@@ -42,6 +42,10 @@ jobs:
         run: npm ci --prefix tools/model-checks --ignore-scripts --no-audit --no-fund
       - name: Check isolated F.03 security candidate
         run: python -B -m pytest tests/security -q
+      - name: Check initial records without a database
+        run: python -B -m pytest tests/storage/test_records.py -q
+      - name: Build and import installed packages outside checkout
+        run: python -B tools/checks/check-installed.py
       - name: Check PR against its base WBS
         if: github.event_name == 'pull_request'
         env:
@@ -87,3 +91,7 @@ jobs:
           python -m pip check
       - name: Migrate and check disposable PostgreSQL environment
         run: python -B tools/checks/run.py environment
+      - name: Build runtime image and import installed packages outside app directory
+        run: |
+          docker build --tag returnops-a1-ci .
+          docker run --rm --workdir /tmp --entrypoint python returnops-a1-ci -I -B -c "from returnops_domain import StatementContent; from returnops_domain.storage import InitialRecordUnitOfWork; import returnops_api.security; assert StatementContent('statement_probe', '\x00\ud800', 'OTHER', None).raw_text == '\x00\ud800'; print('PASS installed runtime image imports')"

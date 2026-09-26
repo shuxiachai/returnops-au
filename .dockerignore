@@ -2,10 +2,16 @@
 !Dockerfile
 !pyproject.toml
 !requirements.lock
+!requirements-dev.lock
 !apps/
 !apps/api/
 !apps/api/returnops_api/
 !apps/api/returnops_api/*.py
+!apps/api/returnops_api/security/
+!apps/api/returnops_api/security/*.py
+!packages/
+!packages/returnops_domain/
+!packages/returnops_domain/*.py
 !alembic.ini
 !alembic/
 !alembic/*.py

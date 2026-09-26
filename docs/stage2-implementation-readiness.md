@@ -1,5 +1,21 @@
 # Stage 2 entry and implementation handoff
 
+## Current decision: lead-authorized foundation adoption
+
+On 26 September 2026, after the four-candidate rehearsal and independent technical review, A / Jingbo Chai explicitly authorized the scoped proposal: use the lead's decision and independent review for this batch's merges, and allow A to start formal domain/data-model and database implementation on that technical baseline. This is a recorded exception for this batch and implementation entry, not a change to the team's general review policy or a B/C personal or joint acceptance.
+
+[PR19](https://github.com/shuxiachai/returnops-au/pull/19), [PR15](https://github.com/shuxiachai/returnops-au/pull/15), [PR21](https://github.com/shuxiachai/returnops-au/pull/21) and [PR18](https://github.com/shuxiachai/returnops-au/pull/18) were merged in that order using GitHub's native squash operation. The actual resulting baseline is [08292520c54be75b162f8e69c8ba8798aff801ea](https://github.com/shuxiachai/returnops-au/commit/08292520c54be75b162f8e69c8ba8798aff801ea), tree 81d0e557b3ccf7f1b2f52c73f259ce20b0073be6, identical to the independently reviewed rehearsal content. Successive candidates were synchronized with each actual new main; synthetic rehearsal commits were not published. Exact-source and CI evidence is retained on the PRs and in the local merge receipt.
+
+The next implementation candidate provides immutable initial case/original-statement records, separate personal-content storage, a PostgreSQL migration and a transaction-scoped internal repository. Its IDs, owner/store, times and versions are explicit trusted-caller inputs. It does not provide a customer create service or register business HTTP routes. These storage primitives alone do not complete A1.01/A1.02, F.03 route integration, audit, idempotency, evidence binding, history/cursors, state transitions or provider effects.
+
+The fixed nine features and all 89 WBS Owner/Reviewer/S/F values remain unchanged. B retains M-S.03 ownership. B/C's actual feedback, personal explanation and three-person acceptance remain distinguishable from the lead's permission to proceed; Issues [5](https://github.com/shuxiachai/returnops-au/issues/5) and [10](https://github.com/shuxiachai/returnops-au/issues/10) track those remaining records. C-owned PR7/17/20 are outside this batch. No Jira Done status, tutor reply or personal sign-off is inferred.
+
+The submitted Stage 1 materials stay as submitted. A3 test entitlement/tutor disposition and the customer recovery/attempt interpretation decisions below remain open. R.02/Gate1 still precedes an executable LLM path. The new storage candidate follows the ordinary review process; this batch's authorization does not automatically merge it.
+
+## Historical entry snapshot before this authorization
+
+The remaining sections preserve the earlier 26 September entry snapshot and its evidence boundaries. Their statements that these four PRs are unmerged, that the limited foundation reviews remain deferred, or that A must still wait for an implementation-entry decision are superseded by the current decision above. Broader personal/joint acceptance and the remaining technical dependencies are not superseded.
+
 Recorded 26 September 2026. Owner A / Jingbo Chai coordinates integration. B / Chengsi Li and C / Yuwei Tao retain their fixed responsibilities. No work-package Owner, Reviewer, start dependency, finish dependency or feature is changed.
 
 ## Stage 1 status and preserved source

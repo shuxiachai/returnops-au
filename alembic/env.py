@@ -1,4 +1,4 @@
-"""F.02 migration entry point; A1.02 adds business metadata later."""
+"""Migration entry point for the environment and initial-record groundwork."""
 from alembic import context
 from sqlalchemy import create_engine, pool
 from sqlalchemy.exc import SQLAlchemyError
