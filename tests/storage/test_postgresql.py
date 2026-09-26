@@ -58,7 +58,7 @@ def test_commit_read_independent_connection_preserves_exact_content(pg_engine, b
 def test_repeat_migration_preserves_committed_data_and_exact_schema(pg_engine, bundle_factory):
     bundle = bundle_factory()
     committed(pg_engine, bundle)
-    expected = ["alembic_version", "case_records", "original_statement_contents", "original_statement_records"]
+    expected = ['alembic_version', 'case_heads', 'case_records', 'customer_acceptances', 'customer_audit_events', 'customer_clarification_sets', 'customer_evidence', 'customer_evidence_contents', 'customer_history_contents', 'customer_history_cursors', 'customer_history_revisions', 'customer_history_snapshots', 'customer_intake_sessions', 'customer_intake_work', 'customer_principals', 'customer_processing_failures', 'customer_receipt_refs', 'customer_receipts', 'customer_scope_audit_events', 'customer_scope_audit_heads', 'customer_sessions', 'original_statement_contents', 'original_statement_records']
     for _ in range(2):
         command.upgrade(Config(str(ROOT / "alembic.ini")), "head")
         assert sorted(inspect(pg_engine).get_table_names(schema="public")) == expected

@@ -44,6 +44,8 @@ jobs:
         run: python -B -m pytest tests/security -q
       - name: Check initial records without a database
         run: python -B -m pytest tests/storage/test_records.py -q
+      - name: Check bounded attachment parsers and customer codecs without a database
+        run: python -B -m pytest tests/customer/test_evidence_validation.py tests/customer/test_codec_and_dto.py tests/customer/test_foundation_guards.py -q
       - name: Build and import installed packages outside checkout
         run: python -B tools/checks/check-installed.py
       - name: Check PR against its base WBS
@@ -94,4 +96,4 @@ jobs:
       - name: Build runtime image and import installed packages outside app directory
         run: |
           docker build --tag returnops-a1-ci .
-          docker run --rm --workdir /tmp --entrypoint python returnops-a1-ci -I -B -c "from returnops_domain import StatementContent; from returnops_domain.storage import InitialRecordUnitOfWork; import returnops_api.security; assert StatementContent('statement_probe', '\x00\ud800', 'OTHER', None).raw_text == '\x00\ud800'; print('PASS installed runtime image imports')"
+          docker run --rm --workdir /tmp --entrypoint python returnops-a1-ci -I -B -c "from returnops_domain import StatementContent; from returnops_domain.storage import InitialRecordUnitOfWork; from returnops_domain.wire import create_request; from returnops_api.main import create_app; import returnops_api.security; assert create_request({'original_message':'image probe'})['requested_outcome'] == 'UNSPECIFIED'; assert StatementContent('statement_probe', '\x00\ud800', 'OTHER', None).raw_text == '\x00\ud800'; print('PASS installed runtime image imports')"

@@ -12,6 +12,7 @@
 !packages/
 !packages/returnops_domain/
 !packages/returnops_domain/*.py
+!packages/returnops_domain/schemas_v1.json
 !alembic.ini
 !alembic/
 !alembic/*.py
