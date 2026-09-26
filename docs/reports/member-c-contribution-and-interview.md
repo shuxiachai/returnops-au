@@ -1,6 +1,10 @@
 # C：真实贡献、模型讲解与提交前核对
 
-> **2026-09-17 交付事实与评审交接补录（MC-PER-0.2）。** C 负责并委托 AI 辅助完成的候选成果属于 C 的交付范围；下面补齐版本、交付内容、技术说明、AI 使用范围与已存在的整合回执，不把这些都留成空白。交付归属不等于未借助 AI 独立制作、本人已经讲解、评审通过或验收完成。补录日期不是虚构的个人阅读、会议或测试日期。新 commit 和检查结果以 [PR #12](https://github.com/shuxiachai/returnops-au/pull/12) 的本次发布记录为准；`15c136a` 是补录前的资料快照。
+> **2026-09-20 技术证据续补（MC-PER-0.4）。** 本次只补 C 委托的技术执行与交付追踪，不改 MC-0.1.3、MC-RPT-0.4 或七组图。Docker 已安装，9 月 18 日 KAN-22/12/33 评论已保存核验，旧“待安装／待同步”是历史状态，见 [PR #17 日期更正](https://github.com/shuxiachai/returnops-au/pull/17#issuecomment-5748904252)。对准确 A `3dd1ff6` 的 [F.01 六项技术核查](../reviews/member-c-f01-review-20260920.md)已完成：58 项契约测试和 8 项补充探针通过，一处低严重度通知样例文案问题交 A 处理。[PG17 Compose 技术复现](../reviews/member-c-pg17-reproduction-20260920.md)通过完整 32 项环境测试、重复迁移及同一 API 进程的数据库断连恢复；文件读取中断与独立 Git 副本复测过程均有记录。上述是 AI 辅助技术证据，不是联合验收。所有“C 本人”字段仍待实际回答，不从委托、commit 作者或技术测试推断个人掌握。当前入口见 [README](../../README.md#c-evidence-follow-up--2026-09-20)。
+
+> **2026-09-18 合并回执与个人准备（MC-PER-0.3）。** [C PR #12](https://github.com/shuxiachai/returnops-au/pull/12#event-31380761223) 已在 Sydney 19:34 合并到 main，合并提交 `3024e36c770fbb1d5e272dd2fc43eca3fd68e232`。A 对准确同步版本 `79dc6630d37d61f18f42cf037b3f51dee23f72b6` 的[最终技术 approval](https://github.com/shuxiachai/returnops-au/pull/12#pullrequestreview-5246362189)已取得；26 个非 README C 文件和 A 的后续测试修正保持不变，四项 CI 成功。此次记录补充可核实回执和 §8 操作清单，不改模型或代填本人解释。A 的授权 AI 辅助技术评审、本人理解、环境复现、联合验收和课程提交是不同证据。最新共享入口见 [README](../../README.md#post-merge-status--2026-09-18)；下方旧版本/未合并描述保留为历史，不再作为当前合并指令。
+
+> **历史补录：2026-09-17 交付事实与评审交接（MC-PER-0.2）。** C 负责并委托 AI 辅助完成的候选成果属于 C 的交付范围；下面补齐版本、交付内容、技术说明、AI 使用范围与已存在的整合回执，不把这些都留成空白。交付归属不等于未借助 AI 独立制作、本人已经讲解、评审通过或验收完成。补录日期不是虚构的个人阅读、会议或测试日期。新 commit 和检查结果以 [PR #12](https://github.com/shuxiachai/returnops-au/pull/12) 的本次发布记录为准；`15c136a` 是补录前的资料快照。
 
 > **历史入口：2026-09-16（MC-PER-0.1.1）。** B 已对 C `c9f205d` 留下[消费者边界 approval](https://github.com/shuxiachai/returnops-au/pull/12#pullrequestreview-5199940157)，不替代 A 的最终 review。C 的[六项报告反馈](../reviews/member-c-integration-followup-20260916.md)已由 A 在 B 的 PR #14 中作技术修订；[9 月 17 日处置回执](https://github.com/shuxiachai/returnops-au/blob/1b094289c219727d9e42e694ade6f13431c34c7b/docs/reviews/b-shared-model-followup-20260917.md)和下方固定版本链接取代“尚无整合回执”的旧状态，但不证明最终 PDF、共享 Google Doc 或个人确认已完成。
 
@@ -10,6 +14,8 @@
 对象：C / Lucas Tao / `lulucas-tao`。个人交付 WBS M-C.01–.06，对应已识别的 [KAN-22](https://lucastaooo.atlassian.net/browse/KAN-22)；F.01 评审关联 [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32)。这些是追踪入口，不声明当前实时状态。原 Owner、Reviewer、S/F 不变；不另外创建重复状态板。
 
 ## 1. 先固定要解释的版本
+
+**9 月 20 日解锁后报告／视频页核查：** Canvas [695832](https://canvas.sydney.edu.au/courses/74323/assignments/695832)明确 25 分为报告 15＋个人 interview 10，指定一人提交一份全组 PDF；C 不另交个人 PDF，但仍需个人讲解／interview。[视频页 695833](https://canvas.sydney.edu.au/courses/74323/assignments/695833)随后读取成功：5 分、≤8 分钟，介绍项目、主要 agent 角色／功能、use cases 和 design models，须上传 Canvas；YouTube 链接只是建议补充。两页显示截止 Oct 4, 2026 23:59，未显示时区；Oct 11 的开放结束不是延期。准确披露 AI／他人辅助，提交稿、草稿、AI 输出及研究材料保留一年。未代勾声明或提交，未看到成功回执。完整已知范围见 [README](../../README.md#unlocked-canvas-report-rules-verified-on-september-20)。
 
 | 项目 | 已知资料 / 本人需完成的记录 |
 |---|---|
@@ -21,7 +27,7 @@
 | 阅读/解释的真实日期与场合 | **待 C 本人记录**；不倒填日期、虚构会议、工时或签字 |
 | 本次讲解后仍不理解的问题 | **待 C 本人记录**；没有把握时写问题，不用 AI 输出冒充已掌握 |
 
-课程依据见[要求登记固定快照](https://github.com/shuxiachai/returnops-au/blob/b3b3b5869d33704e9f1da5b777c8c9338de6b565/docs/19-course-assessment-requirements.md)。该共享文件在独立 review 分支上；链接存在不代表已合并。Rubric 要求个人模型源于本人 AH/UC，所有成员参与所有共享任务并说明实际贡献；官方 unit outline 允许 AI 但要求 acknowledgement。任务解锁后的具体声明/上传规则仍需核对。
+课程依据见[要求登记固定快照](https://github.com/shuxiachai/returnops-au/blob/b3b3b5869d33704e9f1da5b777c8c9338de6b565/docs/19-course-assessment-requirements.md)及[当前仓库版本](../19-course-assessment-requirements.md)。该文件已随 PR #13 合并，不再等待原独立分支发布；其官方来源核对日期仍是 9 月 14 日。Rubric 要求个人模型源于本人 AH/UC，所有成员参与所有共享任务并说明实际贡献；官方 unit outline 允许 AI 但要求 acknowledgement。任务解锁后的具体声明/上传规则仍需核对。
 
 ### 1.1 C 负责的可核实交付台账
 
@@ -132,22 +138,24 @@
 | Feature diagram / B | [需求模型](../05-lab-3-requirement-modelling.md)；核对 C1/C2/C3 与共享边界 | 待 C 本人填写具体元素或实质评审 | 待最终图号、版本和整合确认 |
 | Overall Use-case diagram / B | UC-02/05 规格与其他四个 UC 的角色/边界 | C 的 AI 辅助规格与报告反馈明确 UC-05 归属、独立审查及不安全提案的合法路径；不冒称绘制 B 的整体图 | A 已在 PR #14 `1b094289` 修订共享 UCD 边界；C 本人复核和最终图号待补 |
 | Elementary Class / A | [共享类模型](../diagrams/01-domain-class-diagram.md)；来源、引用、work/result 关系 | 待 C 本人填写类/属性/方法/关系核对和修改 | 待 A 处置与最终图号/版本 |
-| Complex Structure / A | [既有 Composite](../13-shared-composite-structure.md)及 [C Object 切片](../diagrams/member-c/member-c-object-conflict.svg) | C 提供 MC-OBJ-0.1 的具名冲突对象切片及解释；区分 work/result、类/实例和观察/批准，属 AI 辅助候选 | A 的最终类/实例一致性处置、B 完整索引及 C 本人复核未完成；C 切片不替代共享 Composite，也不是 B OBJ-1 作者证明 |
+| Complex Structure / A | [既有 Composite](../13-shared-composite-structure.md)及 [C Object 切片](../diagrams/member-c/member-c-object-conflict.svg) | C 提供 MC-OBJ-0.1 的具名冲突对象切片及解释；区分 work/result、类/实例和观察/批准，属 AI 辅助候选 | A 的限定技术处置已记录（见 §5）；B 完整索引及 C 本人复核仍待完成。C 切片不替代共享 Composite，也不是 B OBJ-1 作者证明 |
 | 项目保留的 Architecture / Package / Deployment / A | [架构决定](../14-member-a-design-decisions.md)、[Package/Deployment](../15-package-deployment-models.md) | 待 C 记录真实参与/评审；不把 rubric Optional 误写为全部必选 | 待相应处置链接 |
 | 最终完整需求与模型索引 / B；报告整合 / A | [C 报告稿](member-c-stage1-draft.md)与本表 | C 提交报告 §10 替换文案及六项问题反馈；A 作 B 候选修订；本人讲解/实际手工改动不从 commit 作者名推断 | §1.1 的 `1b094289` 报告/处置已提供候选回执；最终全模型索引、PDF、Google Doc 和提交回执仍分开核对 |
 
 ## 5. 非作者评审与未决边界
 
-已存在的 A 技术 COMMENT 选择了 D01–03。它不是空白或待选择，但不等于个人讲解、联合接受，也不覆盖本轮新增报告视图/对象切片。请 reviewer 对最终准确版本记录以下内容，不替 reviewer 预填结论：
+早期 A 技术 COMMENT 选择了 D01–03。9 月 18 日 A 又对准确同步版本作最终技术 approval，包括报告视图和 Object/class 一致性的限定处置。以下按真实发布记录更新，仍不代填个人讲解或联合接受：
 
 | 核对项 | 真实结果 |
 |---|---|
-| A 对最终 C commit 的技术/课程一致性 review 链接 | 待 A 实际评审 |
+| A 对最终 C commit 的技术/课程一致性 review 链接 | 已取得：[A approval @79dc663](https://github.com/shuxiachai/returnops-au/pull/12#pullrequestreview-5246362189)。范围为授权 AI 辅助技术审阅，不是 tutor 评分或本人理解证明；本次 MC-PER-0.3 增量仍需自己的 review。 |
 | C 对上述四场景与 D01–03 的本人解释/确认 | 待 C 本人完成 |
-| A 对 Object 切片及共享类一致性的处置 | 待 A 实际记录 |
+| A 对 Object 切片及共享类一致性的处置 | 已取得：A 接受 MC-OBJ-0.1 为明确的部分 conceptual/DTO 快照，不是完整运行时对象/数据库结构。共享 ProposalReview 结果与 wire RiskReview 对应，C 的工作阶段另行区分；BLOCK/ESCALATE 且未批准时不能执行。见同一准确版本 review 及其保留的前次处置。 |
 | B 对分类/个人链/Object 索引的整合链接 | §1.1 已补 A 修订的 B 报告候选/处置链接；完整 M-S.03 索引、最终交付和个人认可仍待确认 |
 | F.01/F.02 联合接受、clean Git / PG17 Compose 复现 | 独立未决工作；不由本模板、图或旧测试自动完成 |
 | 本轮文档/图检查与运行测试区分 | 记录发布任务实际执行的检查；不重写 Sep 12/14 历史日志或把静态结果当业务测试 |
+
+**9 月 18 日环境进展：** [干净 Git 前置复现与日志](../reviews/member-c-clean-git-prerequisites-20260918.md)记录了准确 `3dd1ff6` 的真实新 clone、锁依赖安装、全部五步 offline、58 个契约测试和实际 Git 基线比较；初始/最终状态均干净。额外 28 项非 DB 测试通过，4 项 DB 测试明确未运行。此次由 Codex 辅助执行；尚无 Docker/PG17、迁移或真实容器断库恢复，不把已完成的前置检查再次说成未做，也不把它升级为整个 F.02 验收。
 
 ## 6. AI acknowledgement：事实表，而非预签声明
 
@@ -173,3 +181,44 @@
 - [ ] A 按最新 Canvas 规则整合提交，C 核验最终版本、可访问性及真实回执；不把旧 Tutorial 周次替代当前课程时间。
 
 Stage 2 的 C1 检索/引用、C2 独立审查和 C3 图片观察及各自实现/测试仍按 [docs/07](../07-frozen-work-allocation.md)、[docs/08](../08-delivery-work-packages.md) 执行。30 Gold、20-case 子集、p95 <120s 是项目协议/目标，不是全班统一的 Stage 1 评分门槛。此记录不创建 Gold、不证明 label sealing 或测量结果，也不允许越过 Gate 1 把 LLM 接入执行链。按时提交诚实标明未完成项的 Stage 1 材料，不等待 Stage 2 全部完成。
+
+## 8. 现在实际怎样完成剩余证据
+
+### 8.1 一次可复核的个人讲解
+
+这是一份准备流程，不是已经发生的会议记录。C 先打开准确版本的模型和图，用自己的话解释，再让 A/B 追问；可用真实笔记或录音链接记录结果，不要求为显示贡献而修改正确模型。
+
+1. 固定所读 commit，并记录实际日期、参与人和使用的图版本。
+2. 按 §3 四个场景走查：正常 PASS、阻断冲突、补信息产生新版本、旧事件/重试预算。每个场景指出图中一个节点/消息/守卫，说明它对应的需求、正常结果和主要失败路径。
+3. 解释 D01–03：工作阶段不等于五种结果；为何接受事件必须原子核对 selected identity；两次调用 reservation 与一次自动 revision 为何是不同预算。
+4. 解释一个实际取舍及局限。参考说明可用于复习，但不照搬成“本人已会”；不清楚的点如实保留为问题。
+5. 在 §2–§4 填真实复述、本人修改或核对、反馈链接及共享任务参与；请求 reviewer 针对这些真实材料反馈。个人 interview 的最终时间以课程通知为准。
+
+| 待实际填写的结果 | 记录入口 |
+|---|---|
+| 所读 commit / 讲解日期 / 实际参与人 | §1 |
+| T01/T02/T03/T09 的本人解释、图中位置、反馈 | §3 对应场景 |
+| D01–03 与本人能解释的设计取舍 | §2 |
+| Feature、overall UC、Class、Complex Structure 各自参与 | §4；精确最终图/章节链接，不用单一 Object 切片替代所有共享参与 |
+| 不清楚的问题与后续验证 | 保留未解决项及真实回应，不预填通过 |
+
+### 8.2 给 A 的 C 视频段落准备
+
+建议分配约 60–90 秒给 C，具体时长由 A 在全组 **≤8 分钟**内整合；这不是课程规定的个人时长，也不是已录制视频。
+
+- **问题与范围：** AH-08 导出 UC-02 的可信材料与独立审查、UC-05 的授权历史查看。C 负责检索/引用和 Risk Reviewer；界面 B、权威状态/API A。
+- **展示行为：** 用清晰报告视图讲“完整版本化材料 → 独立审查 → Domain 守卫 → Founder 决定”。PASS 不等于批准，Risk 不能执行。
+- **展示失败与结构：** 用合成冲突 Object 切片说明两个来源如何保留，以及为何未批准时不能执行；补信息创建新版本，旧 review 不自动适用。
+- **取舍与诚实局限：** 显式证据/失败、有界持久重试和人工精确批准；模型/静态检查不证明业务实现。说明实际 AI 辅助范围和自己的真实参与。
+
+A 以[已合并团队报告](stage-1-team-report.md)的 C 章节为基础，以 [C 报告 §3/§10](member-c-stage1-draft.md#10-september-16-team-report-integration-text)和七组图源/报告视图为来源；按本次合并回执校准旧状态措辞，不重新贴回过时的待评审说明。保留模型编号，最终组装后再检查正常播放尺寸的文字、箭头和总时长。
+
+### 8.3 最终交付与联合验收回执
+
+无需再建 handoff 文件夹。以 README 为入口、既有个人记录/报告和 Jira 为证据链：
+
+- B 核对已合并报告候选的全模型索引，返回最终章节/图号/commit；已有 PR #14 整合成果不要求重做。
+- A 整合最终 PDF、视频及 AI acknowledgement，三人各自核实其真实内容。C 只对实际检查过的成品记录可读性、时长、可访问性和版本。
+- 按 [F.02 复现包](../reviews/f02-independent-reproduction.md)记录干净 Git、锁依赖、PG17 Compose、迁移/重复迁移和同一 API 的健康→断库→恢复；旧 PG16 或仅 CI 不能代替。技术执行者若为 AI 助手必须注明。
+- F.01/F.02/F.03 保留各自 Owner/Reviewer、消费者确认和原 S/F；在既有卡中记录实际结果与未决项，不靠合并文档跳过验收。
+- 核对解锁后的 Canvas 上传规则，由 A 实际提交，C 保存最终文件/链接与真实回执。当前没有最终 PDF/视频或 Canvas 成功提交证据，不能预勾选。
