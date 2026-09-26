@@ -38,9 +38,9 @@ include = ["returnops_api*", "returnops_domain*"]
 namespaces = false
 
 [tool.pytest.ini_options]
-testpaths = ["tests/environment", "tests/security", "tests/storage", "tests/customer"]
+testpaths = ["tests/environment", "tests/security", "tests/storage", "tests/customer", "tests/orders"]
 addopts = "--strict-markers"
 markers = ["database: requires an explicitly configured disposable PostgreSQL database"]
 
 [tool.setuptools.package-data]
-returnops_domain = ["schemas_v1.json"]
+returnops_domain = ["schemas_v1.json", "order_data/*.json"]

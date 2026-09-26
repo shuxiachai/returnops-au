@@ -13,6 +13,8 @@
 !packages/returnops_domain/
 !packages/returnops_domain/*.py
 !packages/returnops_domain/schemas_v1.json
+!packages/returnops_domain/order_data/
+!packages/returnops_domain/order_data/synthetic_orders_v1.json
 !alembic.ini
 !alembic/
 !alembic/*.py
