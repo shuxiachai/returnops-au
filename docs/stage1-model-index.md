@@ -1,6 +1,6 @@
 # Stage 1 model, requirements and report navigator
 
-> **Preparation status — 2026-09-19:** A-led, AI-assisted navigation draft for B's review. It indexes existing evidence at main `da1a09fe7704bdb2fd2f989a44ab62bd7f089a41`; it is not a new model, requirements baseline, contribution record, runtime claim, human acceptance, or submission. M-S.03 remains **Owner B / Reviewer A**. C's classification and trace input is referenced without changing its ownership or status.
+> **Post-submission navigation — 2026-09-26:** The lead confirms that the Stage 1 report, PPT and team-recorded video have been submitted. The current shared report/PPT are nominated submission-content references; a Canvas receipt and exact uploaded bytes were not independently checked. This A-led, AI-assisted index follows main a6c4cbf7bcf7b4df90b2eaf92fdd258ace8a5a72. M-S.03 remains **Owner B / Reviewer A**; personal/shared participation and technical acceptance retain their own evidence. See [Stage 2 entry and dependency handoff](stage2-implementation-readiness.md).
 
 ## Reading path and source boundary
 
@@ -30,11 +30,12 @@ The authoritative acceptance criteria are in the [project definition](00-project
 
 ## Shared model sources
 
-Each row names an editable Git source. The baseline shared diagrams are Markdown/Mermaid views. The 22 current `.puml` files have paired SVG renderings in their directories; those `.puml` files remain their technical sources of record.
+Each row names an editable Git source. The baseline shared diagrams are Markdown/Mermaid views. The 23 current `.puml` files have paired SVG renderings in their directories; those `.puml` files remain their technical sources of record.
 
 | Concern | Source entries |
 |---|---|
 | Baseline shared diagrams | [class](diagrams/01-domain-class-diagram.md), [state](diagrams/02-state-machine-diagram.md), [sequence](diagrams/03-sequence-diagram.md), [feature](diagrams/04-feature-diagram.md), [use case](diagrams/05-use-case-diagram.md), [object](diagrams/06-object-diagram.md), [collaboration](diagrams/07-collaboration-diagram.md) |
+| B requirements and architecture additions | [URD-1](diagrams/08-user-requirement-diagram.md), [PKG-1 wrapper](diagrams/09-package-diagram.md), [DEP-1 wrapper](diagrams/10-deployment-diagram.md); editable URD source: diagrams/shared/user-requirement-diagram.puml and its paired SVG |
 | Shared structure | [composite](13-shared-composite-structure.md), [package/deployment](15-package-deployment-models.md), and `diagrams/shared/{governed-case-composite,governed-analysis-composite,governed-execution-composite,object-diagram,package-dependencies,use-case-diagram,collaboration-diagram,deployment-topology}.{puml,svg}` |
 | A governed execution | [A chain](12-member-a-model-chain.md) and `diagrams/member-a/{governed-execution-activity,exact-scope-sequence,recovery-notification-sequence,operation-attempt-state}.{puml,svg}` |
 | B intake | [B chain](19-member-b-model-chain.md) and `diagrams/member-b/{member-b-activity,member-b-sequence,member-b-state}.{puml,svg}` |
@@ -44,12 +45,15 @@ M-S.03 is B's later integration of requirement classification, Feature/Use-case 
 
 ## Report navigation and active figures
 
-The local-only assembly has a dated 24-figure view. Its active grouping in `docs/reports/stage1-v0.1/sections/report-opening.md` is: Figures 1–3 requirements/use cases; 4 package responsibilities; 5–8 class design; 9–11 runtime structure; 12 deployment; 13–16 A; 17–20 B; 21–23 C; and 24 the synthetic object snapshot. Use the local source for report captions/layout and the Git sources above for editable models and immutable commit provenance.
+The local-only full-report assembly is the previously verified 21 September export. The cloud report was subsequently clarified and the user nominated its current version as a submission-content reference. A separate 26 September reference archive retains a 53-page native PDF and the nine-slide PPT without overwriting the earlier local assembly. It is not an independently retrieved Canvas submission package, and this archival export was not newly visually reviewed.
 
-The Git [team-report candidate](reports/stage-1-team-report.md) and canonical Google Doc have separate source boundaries. Neither makes an unmerged draft or a main candidate equivalent to runtime implementation, personal acceptance, or submitted coursework.
+B's [VID-1 script](20-stage1-video-script.md), C's unmerged PR20 binary snapshot and the later shared Drive versions are distinct preparation artifacts. Their dates and speaking text differ. The user now confirms submission and manages video work; this index does not schedule recording or require rewriting submitted materials.
+
+The Git [team-report candidate](reports/stage-1-team-report.md) remains separate from the shared Google Doc. Submission, merged source, personal contribution, technical acceptance and runtime implementation are separate facts. Preserve original author/source attribution, and do not infer acceptance or contribution percentages from Git publication.
+
 
 ## Review and integration handoff
 
 1. B reviews this navigation against M-S.03 and records any accepted integration in B-owned work; this draft does not claim M-S.03 is done.
 2. A uses the fixed allocation and exact Git/PR history when preparing a repository candidate; only actual merged commits are Git-main evidence.
-3. Human reviewers separately record model review, actual contribution, environment/runtime evidence, acceptance and course submission.
+3. Preserve the user-confirmed submission status. Record remaining model review, actual contribution and environment/runtime acceptance separately; Stage 1 submission does not silently accept F.01 or F.03.
