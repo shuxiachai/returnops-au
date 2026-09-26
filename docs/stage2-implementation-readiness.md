@@ -1,6 +1,14 @@
 # Stage 2 entry and implementation handoff
 
-## Current decision: lead-authorized foundation adoption
+## Current status: customer backend candidate on merged PR22
+
+[PR22](https://github.com/shuxiachai/returnops-au/pull/22) has merged under its separately recorded lead authorization. The current implementation baseline is [4fcfa25047f5f07cfe89e77cdb72d20c1e5a65dd](https://github.com/shuxiachai/returnops-au/commit/4fcfa25047f5f07cfe89e77cdb72d20c1e5a65dd). The Issue #23 candidate implements the seven existing customer operations: session, evidence upload/download, case create/read/history and clarification admission. PostgreSQL receipts/history/audit, current F.03 authorization and separate durable deterministic intake processing support that flow; the original201 remains the accepted SUBMITTED view. It does not implement LLM/provider/Founder decision workflows or establish teammate/joint acceptance.
+
+The subsequent lead-authorized foundation and PR22 merges are the technical base for the current isolated customer-flow implementation, tracked by Issue #23. Its existing recorded umbrella mapping is KAN-14 (A1.01–03 / F.05), not a new Jira verification. See [the runtime guide](21-customer-flow.md) for the seven implemented operations, durable accepted-intake boundary, private demo, tests and remaining scope. This implementation does not alter the fixed WBS, B/C ownership, public v1 schemas or earlier historical acceptance records. Publication and merge status must be taken from the eventual exact-source PR; this local guide is not a review approval.
+
+All sections below the next historical heading preserve earlier dated decisions and source evidence. Their statements that082 was the latest main, that PR22 was still the next storage candidate, or that customer HTTP was absent describe those earlier snapshots and are superseded by this current status. The fixed allocation and the historical acceptance boundaries remain intact.
+
+## Historical decision: foundation adoption at 08292520
 
 On 26 September 2026, after the four-candidate rehearsal and independent technical review, A / Jingbo Chai explicitly authorized the scoped proposal: use the lead's decision and independent review for this batch's merges, and allow A to start formal domain/data-model and database implementation on that technical baseline. This is a recorded exception for this batch and implementation entry, not a change to the team's general review policy or a B/C personal or joint acceptance.
 
@@ -61,8 +69,3 @@ For that slice, accept a valid original request, preserve every character, use o
 The repository workflow requires at least one teammate approval and passing checks before a merge. Current PR15/18/19 have no such approval at the entry check, so this work prepares and publishes candidates without merging them. This restriction is distinct from the S/F integration and final-acceptance dependencies.
 
 This handoff adds no sprint dates, availability assumptions, Jira Done transitions, new feature allocation or personal sign-off. No member/tutor message is sent on its behalf.
-
-
-## Customer backend candidate, 26 September 2026
-
-The subsequent lead-authorized foundation and PR22 merges are the technical base for the current isolated customer-flow implementation, tracked by Issue #23. Its existing recorded umbrella mapping is KAN-14 (A1.01–03 / F.05), not a new Jira verification. See [the runtime guide](21-customer-flow.md) for the seven implemented operations, durable accepted-intake boundary, private demo, tests and remaining scope. This implementation does not alter the fixed WBS, B/C ownership, public v1 schemas or earlier historical acceptance records. Publication and merge status must be taken from the eventual exact-source PR; this local guide is not a review approval.
