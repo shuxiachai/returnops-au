@@ -1,5 +1,7 @@
 # ReturnOps AU
 
+> **F.03 publication reference (2026-09-15; F.01 baseline `3dd1ff637693a826990eee5712cfb239a3c3da7b`):** [F03-C0.1](docs/18-f03-security-component.md) is delivered through [PR #15](https://github.com/shuxiachai/returnops-au/pull/15), tracked by [KAN-34](https://lucastaooo.atlassian.net/browse/KAN-34) in **In Review**. Read the PR body and its [GitHub Actions records](https://github.com/shuxiachai/returnops-au/actions) for the exact current source SHA and corresponding CI results. This notice supersedes earlier local/unpublished F.03 snapshots; preparation receipts and first-publication CI records remain historical evidence for their own versions. The component implements isolated JWT/current-session verification and role/resource authorization with synthetic tests; it is not wired to the health-only API, database or business workflow. Publication does not establish F.01/F.02/F.03 acceptance or C's personal review.
+
 > **Review handoff — 2026-09-17:** see the [current review entrance](#review-handoff--2026-09-17), including C's populated delivery/AI-use record and A's new report-integration receipt. The [September 16 handoff](#delivery-handoff--2026-09-16) remains a historical delivery snapshot; it is not a live status board or a main merge.
 
 > **Course requirements checked 2026-09-14:** start with the [shared Canvas/rubric requirements and A/B/C evidence map](docs/19-course-assessment-requirements.md), then the [Stage 1 submission checklist](docs/11-stage1-readiness.md). This clarifies personal/shared models, Lab 6 Object Diagram, AI acknowledgement and the visible Oct 4 deadline, without changing feature owners or declaring coursework accepted. Older dated preparation notices below retain their original scope.
@@ -184,6 +186,7 @@ contribution and review evidence rather than treating a file's presence as compl
 - [A design decisions — attempt identity, recovery and pending review](docs/14-member-a-design-decisions.md)
 - [Package and Deployment candidates — module and runtime placement](docs/15-package-deployment-models.md)
 - [Demo identity and authorization design — preparation before F.03 integration](docs/16-demo-identity-authorization.md)
+- [Isolated F.03 security component — PR #15 review candidate and reproducible tests](docs/18-f03-security-component.md)
 - [Logistics sandbox feasibility — eligibility, recovery evidence and open questions](docs/17-logistics-sandbox-feasibility.md)
 - [A preparation delivery record — exact artifacts, checks and remaining acceptance](docs/reviews/a-preimplementation-readiness-20260907.md)
 - [Project charter](docs/01-project-charter.md)
