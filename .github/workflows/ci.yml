@@ -40,6 +40,8 @@ jobs:
           python -m pip check
       - name: Install locked Mermaid parser
         run: npm ci --prefix tools/model-checks --ignore-scripts --no-audit --no-fund
+      - name: Check isolated F.03 security candidate
+        run: python -B -m pytest tests/security -q
       - name: Check PR against its base WBS
         if: github.event_name == 'pull_request'
         env:
