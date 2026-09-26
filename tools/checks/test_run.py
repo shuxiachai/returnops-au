@@ -88,6 +88,14 @@ class RunnerTests(unittest.TestCase):
         selected = [command for label, command in steps if label == "synthetic order provider"]
         self.assertEqual(selected, [[runner.sys.executable, "-B", "-m", "pytest", "tests/orders", "-q"]])
 
+    def test_environment_selects_investigation_after_all_existing_groups(self):
+        steps = runner.build_steps("environment")
+        self.assertEqual([label for label, _ in steps], [
+            "upgrade the configured test database", "report installed migration",
+            "API/PostgreSQL environment tests", "initial-record PostgreSQL storage tests",
+            "customer HTTP, concurrency and retention tests", "order investigation PostgreSQL and real TCP tests",
+        ])
+        self.assertEqual(steps[-1][1], [runner.sys.executable, "-B", "-m", "pytest", "tests/investigation", "-q"])
 
 if __name__ == "__main__":
     unittest.main()

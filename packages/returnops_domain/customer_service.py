@@ -20,6 +20,8 @@ from .records import InitialCaseRecord, InitialRecordBundle, OriginalStatementRe
 from .scope_audit import append_scope_event
 from .storage import InitialRecordRepository, StorageError, DomainValidationError
 from .wire import clarification_request, create_request, validate
+from .case_state import initial_head, transition, record_denial
+from .investigation_admission import answer_group, record_answers
 
 @dataclass(frozen=True)
 class ResponseResult:
@@ -221,9 +223,7 @@ class CustomerFlow:
             OriginalStatementRecord(statement_id,case_id,"ORIGINAL",1,1,1,now),
             StatementContent(statement_id,request["original_message"],request["requested_outcome"],request.get("order_reference")))
         InitialRecordRepository(uow.connection,uow.poison).insert_initial_record(bundle)
-        head={"case_id":case_id,"owner_principal_id":actor.principal_id,"store_id":actor.store_id,
-              "case_version":1,"input_version":1,"status":"SUBMITTED","created_at":now,"updated_at":now,
-              "history_sequence":0,"audit_sequence":0,"audit_head":None,"current_question_set_id":None,"available":True}
+        head=initial_head(case_id,actor.principal_id,actor.store_id,now)
         uow.execute(t.case_heads.insert().values(**head))
         statement={"statement_id":statement_id,"kind":"ORIGINAL","raw_text":request["original_message"],
                    "requested_outcome":request["requested_outcome"],"submitted_at":timestamp(now)}
@@ -258,7 +258,8 @@ class CustomerFlow:
         known={q["question_id"] for q in questions}; answered={a["question_id"] for a in request["answers"]}
         if not answered<=known: raise FlowError("VALIDATION_ERROR")
         eligible=self._eligible_evidence(uow,actor,request["evidence_ids"],now)
-        remaining=[q for q in questions if q["question_id"] not in answered
+        decision=answer_group(uow,current,questions,request["answers"],eligible)
+        remaining=decision['remaining'] if decision is not None else [q for q in questions if q["question_id"] not in answered
                    and not (eligible and kinds.get(q["question_id"])=="PURCHASE_CONTEXT")]
         session=uow.execute(select(t.intake_sessions).where(t.intake_sessions.c.case_id==case_id)).mappings().one_or_none()
         if session is None: raise FlowError("INVALID_STATE")
@@ -268,10 +269,9 @@ class CustomerFlow:
             question_set_id=identifier("questions");rounds+=1
             uow.execute(t.questions.insert().values(question_set_id=question_set_id,case_id=case_id,input_version=new_input_version,
                 questions=encode_document(remaining),question_kinds=encode_document({q["question_id"]:kinds.get(q["question_id"],"TEXT_RESPONSE") for q in remaining})))
-        values={"case_version":new_case_version,"input_version":new_input_version,
-                "status":"AWAITING_INFORMATION" if remaining else "UNDER_INVESTIGATION","updated_at":now,
-                "current_question_set_id":question_set_id,"current_failure_id":None}
-        uow.execute(update(t.case_heads).where(t.case_heads.c.case_id==case_id,t.case_heads.c.case_version==head["case_version"]).values(**values));head.update(values)
+        head=transition(uow,head,'CLARIFICATION_ACCEPTED','AWAITING_INFORMATION' if remaining else 'UNDER_INVESTIGATION',
+            now,input_delta=1,question_set_id=question_set_id)
+        record_answers(uow,case_id,new_input_version,question_set_id,decision,now)
         refs=[]
         for answer in request["answers"]:
             statement_id=identifier("statement")
@@ -322,9 +322,8 @@ class CustomerFlow:
         # Called only by pre-mutation state/version guards, after authorized
         # idempotency lookup. Persist denial alone: no acceptance/work/revision.
         self._same_authority(uow,actor,"submitClarification",case_id)
-        append_event(uow,case_id,actor={"kind":"HUMAN","role":"CUSTOMER","principal_id":actor.principal_id},
-            event_type="CUSTOMER_TRANSITION_DENIED",correlation_id=correlation_id,
-            payload={"operation":"submitClarification","reason":code},object_ids=[],history_refs=[],now=now)
+        record_denial(uow,case_id,{"kind":"HUMAN","role":"CUSTOMER","principal_id":actor.principal_id},
+            'submitClarification',code,correlation_id,now)
         self._same_authority(uow,actor,"submitClarification",case_id)
         uow.commit()
         raise FlowError(code)

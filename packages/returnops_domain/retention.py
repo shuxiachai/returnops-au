@@ -13,6 +13,8 @@ from .errors import FlowError
 from .scope_audit import append_scope_event
 from .storage import original_statement_contents
 from .wire import validate
+from .case_state import retain_content_state
+from .investigation_retention import remove_case_payloads
 
 SERVICE={'kind':'SERVICE','component_id':'retention-v1'}
 
@@ -58,8 +60,8 @@ class RetentionService:
                 head=uow.execute(select(t.case_heads).where(t.case_heads.c.case_id==case_id)).mappings().one()
                 # A content removal changes the current view but is not new
                 # customer input or permission to recreate old accepted content.
-                uow.execute(update(t.case_heads).where(t.case_heads.c.case_id==case_id).values(
-                    case_version=head['case_version']+1,updated_at=now,current_question_set_id=None))
+                remove_case_payloads(uow,case_id)
+                retain_content_state(uow,head,now)
                 uow.execute(update(t.intake_work).where(t.intake_work.c.case_id==case_id,t.intake_work.c.state.in_(['PENDING','RUNNING','PAUSED'])).values(
                     state='PAUSED',safe_error='POLICY_OR_CONTENT_UNAVAILABLE'))
                 refs=[{'record_id':r['record_id'],'kind':kind,'object_id':object_id,'object_version':r['object_version']} for r in active]

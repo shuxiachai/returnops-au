@@ -10,12 +10,12 @@ from .canonical import decode_document, digest, encode_document
 from .errors import FlowError
 from .wire import validate
 
-_CONTENT_TYPES = {"STATEMENT": "CustomerStatement", "EVIDENCE": "EvidenceAttachment", "PROCESSING_FAILURE": "ProcessingFailure"}
+_CONTENT_TYPES = {"STATEMENT": "CustomerStatement", "EVIDENCE": "EvidenceAttachment", "PROCESSING_FAILURE": "ProcessingFailure", "ORDER_LOOKUP_BLOCK": "OrderLookupBlock"}
 
 def append_revision(uow, case_id, kind, object_id, object_version, content, now):
     if kind not in _CONTENT_TYPES: raise FlowError("INTERNAL_ERROR")
     validate(_CONTENT_TYPES[kind], content, internal=True)
-    identity_key = {"STATEMENT": "statement_id", "EVIDENCE": "evidence_id", "PROCESSING_FAILURE": "failure_id"}[kind]
+    identity_key = {"STATEMENT": "statement_id", "EVIDENCE": "evidence_id", "PROCESSING_FAILURE": "failure_id", "ORDER_LOOKUP_BLOCK": "block_id"}[kind]
     if content[identity_key] != object_id or (kind != "STATEMENT" and content["case_id"] != case_id):
         raise FlowError("INTERNAL_ERROR")
     head = uow.execute(select(t.case_heads).where(t.case_heads.c.case_id == case_id)).mappings().one()
@@ -41,10 +41,10 @@ def read_revision(uow, row):
         result["removal_reason"] = row["removal_reason"]
     oracle = "CustomerHistoryRecord" if row["kind"] in {"STATEMENT", "EVIDENCE", "OUTCOME_MESSAGE"} else "FounderHistoryRecord"
     validate(oracle, result, internal=True)
-    identity_key = {"STATEMENT": "statement_id", "EVIDENCE": "evidence_id", "PROCESSING_FAILURE": "failure_id"}.get(row["kind"])
+    identity_key = {"STATEMENT": "statement_id", "EVIDENCE": "evidence_id", "PROCESSING_FAILURE": "failure_id", "ORDER_LOOKUP_BLOCK": "block_id"}.get(row["kind"])
     if "content" in result and identity_key and result["content"][identity_key] != row["object_id"]:
         raise FlowError("INTERNAL_ERROR")
-    if "content" in result and row["kind"] in {"EVIDENCE", "PROCESSING_FAILURE"} and result["content"]["case_id"] != row["case_id"]:
+    if "content" in result and row["kind"] in {"EVIDENCE", "PROCESSING_FAILURE", "ORDER_LOOKUP_BLOCK"} and result["content"]["case_id"] != row["case_id"]:
         raise FlowError("INTERNAL_ERROR")
     return result
 

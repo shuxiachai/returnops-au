@@ -4,6 +4,7 @@ from threading import BoundedSemaphore
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from returnops_domain.intake_processor import IntakeProcessor,IntakeWorker
+from returnops_domain.investigation_processor import InvestigationProcessor
 from .database import build_engine,readiness
 from .settings import Settings
 from .customer_config import load_private_auth_config
@@ -16,14 +17,17 @@ def create_app(*,engine=None,auth_config=None,enable_processor=True):
     @asynccontextmanager
     async def lifespan(app):
         actual=engine if engine is not None else build_engine(settings)
-        app.state.engine=actual;app.state.auth_config=configured;app.state.intake_worker=None
+        app.state.engine=actual;app.state.auth_config=configured;app.state.intake_worker=None;app.state.investigation_worker=None
         app.state.upload_slots=BoundedSemaphore(2)
         try:
             if configured is not None and enable_processor:
                 app.state.intake_worker=IntakeWorker(IntakeProcessor(actual))
                 app.state.intake_worker.start()
+                app.state.investigation_worker=IntakeWorker(InvestigationProcessor(actual))
+                app.state.investigation_worker.start()
             yield
         finally:
+            if app.state.investigation_worker is not None: app.state.investigation_worker.stop()
             if app.state.intake_worker is not None: app.state.intake_worker.stop()
             if engine is None: actual.dispose()
     app=FastAPI(title='ReturnOps AU',lifespan=lifespan,docs_url=None,redoc_url=None,openapi_url=None)
