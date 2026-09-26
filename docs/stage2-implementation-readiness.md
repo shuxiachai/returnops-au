@@ -1,6 +1,12 @@
 # Stage 2 entry and implementation handoff
 
-## Current status: customer backend candidate on merged PR22
+## Current implementation: persisted investigation candidate after PR26
+
+The adopted technical baseline is main `4673f9f1372b29dbb753a41e4a029c9382e8f07b`, containing separately lead-authorized PR22 storage, PR24 customer flow and PR26 synthetic provider merges. [Issue #27](https://github.com/shuxiachai/returnops-au/issues/27), recorded KAN-14, adds the bounded A1.03 investigation/clarification/state loop described in [the implementation guide](23-order-investigation.md). It persists separate investigation work, current SERVICE/provider authority, raw lookup receipts and accepted facts, with actual typed outcome routing and guarded recovery/retention. The public seven operations, schemas and all89 WBS fields are unchanged.
+
+The implementation supports future A1.05 but does not claim its whole A1.03 start prerequisite accepted. Founder views, fixed packets, Risk review, approval, operations, model calls and real providers remain outside this delivery. Use the actual exact-source PR and CI evidence for publication/merge status; no teammate or joint acceptance is inferred. The previous customer-candidate/4fc and storage/082 sections below are preserved historical records, not the current main or next task.
+
+## Historical status: customer backend candidate on merged PR22
 
 [PR22](https://github.com/shuxiachai/returnops-au/pull/22) has merged under its separately recorded lead authorization. The current implementation baseline is [4fcfa25047f5f07cfe89e77cdb72d20c1e5a65dd](https://github.com/shuxiachai/returnops-au/commit/4fcfa25047f5f07cfe89e77cdb72d20c1e5a65dd). The Issue #23 candidate implements the seven existing customer operations: session, evidence upload/download, case create/read/history and clarification admission. PostgreSQL receipts/history/audit, current F.03 authorization and separate durable deterministic intake processing support that flow; the original201 remains the accepted SUBMITTED view. It does not implement LLM/provider/Founder decision workflows or establish teammate/joint acceptance.
 

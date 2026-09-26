@@ -19,7 +19,7 @@ def _require_private_output_runtime():
     if os.name == "nt" and sys.version_info < (3,12,4):
         raise ValueError("Private demo issuance on Windows requires Python3.12.4 or later.")
 
-def provision(directory,*,store,customer_one,customer_two,founder):
+def provision(directory,*,store,customer_one,customer_two,founder,order_investigation=False):
     """Caller explicitly chooses IDs/roles/store; generated credentials stay private."""
     _require_private_output_runtime()
     directory=Path(directory)
@@ -39,17 +39,25 @@ def provision(directory,*,store,customer_one,customer_two,founder):
     _private_write(directory/'auth.json',{'issuer':issuer,'audience':audience,'signing_key_base64':base64.b64encode(key).decode('ascii')})
     _private_write(directory/'sessions.json',{'principals':principals,'sessions':sessions,'tokens':tokens})
     engine=build_engine(settings)
-    try: TrustedRegistry(engine).provision(principals,sessions)
+    try:
+        TrustedRegistry(engine).provision(principals,sessions)
+        if order_investigation:
+            from returnops_domain.investigation_policy import InvestigationPolicy
+            from returnops_domain.mock_orders import load_builtin_catalogue
+            catalogue=load_builtin_catalogue();policy=InvestigationPolicy(engine)
+            policy.configure(store,catalogue=catalogue)
+            policy.grant(store,catalogue.metadata.provider_id,can_read=True)
     finally: engine.dispose()
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__);commands=parser.add_subparsers(dest='command',required=True)
     issue=commands.add_parser('provision');issue.add_argument('--private-dir',required=True)
     for name in ['store','customer-one','customer-two','founder']: issue.add_argument('--'+name,required=True)
+    issue.add_argument('--order-investigation',action='store_true',help='Explicitly enable synthetic investigation and grant this store read access.')
     serve=commands.add_parser('serve');serve.add_argument('--auth-file',required=True);serve.add_argument('--port',type=int,default=8000)
     args=parser.parse_args()
     if args.command=='provision':
-        provision(args.private_dir,store=args.store,customer_one=args.customer_one,customer_two=args.customer_two,founder=args.founder)
+        provision(args.private_dir,store=args.store,customer_one=args.customer_one,customer_two=args.customer_two,founder=args.founder,order_investigation=args.order_investigation)
         print('Private synthetic demo registration completed. Credentials are in the explicit private directory; do not share them.')
     else:
         if not Path(args.auth_file).is_absolute() or not 1024<=args.port<=65535: parser.error('Use an absolute private auth file and an unprivileged port.')

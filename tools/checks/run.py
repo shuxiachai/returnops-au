@@ -40,6 +40,7 @@ def build_steps(
             ("API/PostgreSQL environment tests", python + ["-m", "pytest", "tests/environment", "-q"]),
             ("initial-record PostgreSQL storage tests", python + ["-m", "pytest", "tests/storage", "-q"]),
             ("customer HTTP, concurrency and retention tests", python + ["-m", "pytest", "tests/customer", "-q"]),
+            ("order investigation PostgreSQL and real TCP tests", python + ["-m", "pytest", "tests/investigation", "-q"]),
         ]
     raise ValueError(f"Unknown check group: {mode}")
 

@@ -19,6 +19,8 @@ from .errors import AcceptanceOutcomeUnknown, FlowError
 from .history import append_revision, read_revision
 from .storage import original_statement_contents, original_statement_records
 from .wire import validate
+from .case_state import transition
+from .investigation_admission import configured, ensure_work
 
 SERVICE = {"kind":"SERVICE", "component_id":"deterministic-intake-v1"}
 
@@ -191,15 +193,15 @@ class IntakeProcessor:
 
     def _succeed(self,uow,work,head,session,remaining,kinds,result,now):
         question_set_id=head['current_question_set_id']; rounds=session['clarification_round']
-        if result.needs_purchase_context and not remaining:
+        if result.needs_purchase_context and not remaining and not configured(uow,head['store_id']):
             question={'question_id':identifier('question'),'text':'Please provide an order reference or alternative information showing the purchase.',
                       'reason':'Purchase context is needed for further investigation; it has not yet been verified.'}
             remaining=[question]; question_set_id=identifier('questions'); rounds+=1
             uow.execute(t.questions.insert().values(question_set_id=question_set_id,case_id=head['case_id'],input_version=head['input_version'],
                 questions=encode_document(remaining),question_kinds=encode_document({question['question_id']:'PURCHASE_CONTEXT'})))
         status='AWAITING_INFORMATION' if remaining else 'UNDER_INVESTIGATION'
-        uow.execute(update(t.case_heads).where(t.case_heads.c.case_id==head['case_id']).values(
-            case_version=head['case_version']+1,status=status,updated_at=now,current_question_set_id=question_set_id,current_failure_id=None))
+        advanced=transition(uow,head,'INTAKE_COMPLETE',status,now,question_set_id=question_set_id)
+        if not remaining: ensure_work(uow,work,advanced,now)
         uow.execute(update(t.intake_sessions).where(t.intake_sessions.c.case_id==head['case_id']).values(
             status='AWAITING_CLARIFICATION' if remaining else 'COMPLETE',clarification_round=rounds,
             internal_revision=session['internal_revision']+1,updated_at=now))
@@ -214,8 +216,7 @@ class IntakeProcessor:
         body={'failure_id':failure_id,'case_id':head['case_id'],'input_version':head['input_version'],
               'stage':'COORDINATOR','error':error,'occurred_at':timestamp(now)}
         validate('ProcessingFailure',body,internal=True)
-        uow.execute(update(t.case_heads).where(t.case_heads.c.case_id==head['case_id']).values(case_version=head['case_version']+1,
-            status='ESCALATED',updated_at=now,current_failure_id=failure_id,current_question_set_id=None))
+        transition(uow,head,'INTAKE_FAILED','ESCALATED',now,failure_id=failure_id)
         uow.execute(t.processing_failures.insert().values(failure_id=failure_id,case_id=head['case_id'],input_version=head['input_version'],body=encode_document(body),occurred_at=now))
         ref=append_revision(uow,head['case_id'],'PROCESSING_FAILURE',failure_id,1,body,now)
         append_event(uow,head['case_id'],actor=SERVICE,event_type='CUSTOMER_INTAKE_FAILED',correlation_id=correlation,

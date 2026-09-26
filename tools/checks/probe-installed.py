@@ -12,6 +12,9 @@ from returnops_domain.storage import InitialRecordUnitOfWork
 from returnops_domain.customer_service import CustomerFlow
 from returnops_domain.intake_processor import IntakeProcessor
 from returnops_domain.retention import RetentionService
+from returnops_domain.investigation_processor import InvestigationProcessor
+from returnops_domain.investigation_policy import InvestigationPolicy
+from returnops_domain.investigation_tables import metadata as investigation_metadata
 from returnops_domain.wire import create_request
 from returnops_domain.evidence_validation import validate_evidence
 from returnops_domain.mock_orders import MockOrderProvider, load_builtin_catalogue
@@ -44,3 +47,7 @@ assert result["snapshot"]["retrieved_at"] == "2026-09-20T00:00:00Z"
 assert len(catalogue.metadata.dataset_sha256) == 64
 print("PASS installed API/security/domain/storage imports outside checkout")
 print("PASS installed synthetic order resource and scoped lookup (A1.04)")
+
+assert len(investigation_metadata.tables) == 14
+assert InvestigationProcessor(None).catalogue.metadata == catalogue.metadata
+print("PASS installed investigation composition and 0005 metadata (no database execution)")
