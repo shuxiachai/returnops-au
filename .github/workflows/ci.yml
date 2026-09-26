@@ -96,4 +96,4 @@ jobs:
       - name: Build runtime image and import installed packages outside app directory
         run: |
           docker build --tag returnops-a1-ci .
-          docker run --rm --workdir /tmp --entrypoint python returnops-a1-ci -I -B -c "from returnops_domain import StatementContent; from returnops_domain.storage import InitialRecordUnitOfWork; from returnops_domain.wire import create_request; from returnops_api.main import create_app; import returnops_api.security; assert create_request({'original_message':'image probe'})['requested_outcome'] == 'UNSPECIFIED'; assert StatementContent('statement_probe', '\x00\ud800', 'OTHER', None).raw_text == '\x00\ud800'; print('PASS installed runtime image imports')"
+          docker run --rm -i --workdir /tmp --entrypoint python returnops-a1-ci -I -B - < tools/checks/probe-installed.py

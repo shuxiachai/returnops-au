@@ -79,5 +79,15 @@ class RunnerTests(unittest.TestCase):
         self.assertNotIn("--baseline-ref", skipped[1][1])
 
 
+    def test_offline_selects_the_order_component_alongside_all_existing_groups(self):
+        steps = runner.build_steps("offline", baseline_ref="verified-base")
+        self.assertEqual([label for label, _ in steps], [
+            "contract artifacts", "document/model references", "model-checker regressions",
+            "check-runner regressions", "Mermaid grammar", "synthetic order provider",
+        ])
+        selected = [command for label, command in steps if label == "synthetic order provider"]
+        self.assertEqual(selected, [[runner.sys.executable, "-B", "-m", "pytest", "tests/orders", "-q"]])
+
+
 if __name__ == "__main__":
     unittest.main()

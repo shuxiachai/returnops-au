@@ -1,3 +1,5 @@
+> **A1.04 / recorded KAN-29:** see the [independent synthetic order provider](docs/22-a104-synthetic-order-provider.md) for its internal port, immutable fixture provenance and installation checks. Customer-worker/Domain acceptance wiring belongs to later A1.05 work.
+
 > **Customer backend candidate (26 September 2026, Issue #23 / recorded KAN-14 mapping):** the isolated implementation now provides the seven frozen customer operations, PostgreSQL admission/receipts/history, current F.03 authorization, bounded attachments and separate durable deterministic intake processing. See [customer flow and private demo](docs/21-customer-flow.md). This remains a scoped implementation candidate; use its actual pull request and exact-source CI records for publication/review/merge status. It does not claim teammate or joint acceptance, verified purchase facts, AI processing, or a Founder/provider workflow. Earlier health-only/component-only notes below describe their historical baselines.
 
 # ReturnOps AU

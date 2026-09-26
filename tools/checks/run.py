@@ -31,6 +31,7 @@ def build_steps(
             ("model-checker regressions", python + ["-m", "unittest", "discover", "-s", "tools/model-checks", "-p", "test_*.py", "-v"]),
             ("check-runner regressions", python + ["-m", "unittest", "discover", "-s", "tools/checks", "-p", "test_*.py", "-v"]),
             ("Mermaid grammar", ["node", "tools/model-checks/check-mermaid.mjs"]),
+            ("synthetic order provider", python + ["-m", "pytest", "tests/orders", "-q"]),
         ]
     if mode == "environment":
         return [
