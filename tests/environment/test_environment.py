@@ -29,7 +29,8 @@ from returnops_api import database, main
 from returnops_api.settings import ConfigurationError, Settings, require_environment_database
 
 
-EXPECTED_REVISION = "0001_environment"
+EXPECTED_REVISION = "0002_initial_records"
+EXPECTED_TABLES = ["alembic_version", "case_records", "original_statement_contents", "original_statement_records"]
 SECRET = "environment-test-secret-do-not-log"
 STUB_URL = f"postgresql+psycopg://environment_user:{SECRET}@stub.invalid/environment"
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -204,7 +205,7 @@ def test_readiness_accepts_only_the_expected_single_revision(
 
 @pytest.mark.parametrize(
     "revisions",
-    [(), ("0000_old",), ("9999_unexpected",), (EXPECTED_REVISION, "0000_other")],
+    [(), ("0001_environment",), ("9999_unexpected",), (EXPECTED_REVISION, "0000_other")],
     ids=["unversioned", "old", "unexpected", "multiple-heads"],
 )
 def test_readiness_rejects_invalid_revision_sets(
@@ -340,23 +341,19 @@ def test_real_application_readiness(real_database_url: SecretStr) -> None:
 
 
 @pytest.mark.database
-def test_repeat_upgrade_head_preserves_the_environment_only_schema(
+def test_repeat_upgrade_head_preserves_the_exact_initial_record_schema(
     real_database_url: SecretStr, real_engine: Engine,
 ) -> None:
     # The URL fixture enforces the dedicated database name before Alembic runs.
     # Initial empty-database migration is a separate startup check. Here both
     # invocations deliberately repeat upgrade on that already-initialised DB.
-    assert sorted(inspect(real_engine).get_table_names(schema="public")) == [
-        "alembic_version"
-    ], "Refusing migration checks against a database containing business tables"
+    assert sorted(inspect(real_engine).get_table_names(schema="public")) == EXPECTED_TABLES, "Refusing migration checks against an unexpected schema"
     assert database.readiness(real_engine), "Migrate the dedicated environment DB first"
     configuration = Config(str(REPOSITORY_ROOT / "alembic.ini"))
     for _ in range(2):
         command.upgrade(configuration, "head")
         assert database.readiness(real_engine)
-        assert sorted(inspect(real_engine).get_table_names(schema="public")) == [
-            "alembic_version"
-        ]
+        assert sorted(inspect(real_engine).get_table_names(schema="public")) == EXPECTED_TABLES
 
 
 @pytest.mark.database
