@@ -78,6 +78,7 @@ class InitialRecordRepository:
 
     def _check_active(self) -> None:
         if self._connection.closed or not self._connection.in_transaction():
+            self._on_failure()
             raise StorageError("Initial storage requires an active transaction")
 
     def insert_initial_record(self, bundle: InitialRecordBundle) -> None:
@@ -113,6 +114,7 @@ class InitialRecordRepository:
         self._check_active()
         # Validate through the same scalar schema, without exposing query input.
         if not isinstance(case_id, str) or not 3 <= len(case_id) <= 80 or not case_id.isascii() or not case_id[0].isalnum() or any(not (c.isalnum() or c in "_-") for c in case_id):
+            self._on_failure()
             raise DomainValidationError("Initial record identifier is invalid")
         failure = False
         try:

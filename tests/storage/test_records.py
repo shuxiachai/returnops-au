@@ -32,7 +32,7 @@ def test_original_projection_matches_independent_frozen_schema(bundle_factory):
         oracle("Id", identity)
 
 
-@pytest.mark.parametrize("raw", ["x", " \r\n\t ", "\x00", "\ud800", "\udfff", "\ud83d\ude00", "🙂", "e\u0301", "漢" * 12000])
+@pytest.mark.parametrize("raw", ["x", " \r\n\t ", "\x00", "\ud800", "\udfff", "\ud83d\ude00", "🙂", "e\u0301", "漢" * 12000], ids=["ascii", "whitespace", "nul", "high-surrogate", "low-surrogate", "surrogate-pair", "astral", "combining", "max-length"])
 def test_private_codec_roundtrips_each_python_codepoint(bundle_factory, raw):
     bundle = bundle_factory(raw_text=raw, reference=raw[:120])
     assert _decode(_encode(bundle.content.raw_text)) == raw

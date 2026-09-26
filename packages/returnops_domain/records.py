@@ -11,7 +11,7 @@ from dataclasses import dataclass, field, fields
 from datetime import datetime, timezone
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, PlainValidator, StrictInt, StrictStr, ValidationError
 
 
 class DomainValidationError(ValueError):
@@ -48,11 +48,22 @@ class _StatementSchema(_Schema):
     submitted_at: datetime
 
 
+def _python_text(limit: int):
+    # Rust string constraints require Unicode scalar values. The frozen JSON
+    # contract also accepts Python surrogate codepoints; count len(str) here
+    # so validation cannot silently narrow the independently tested contract.
+    def validate(value: object) -> str:
+        if type(value) is not str or not 1 <= len(value) <= limit:
+            raise ValueError("Text type or length is invalid")
+        return value
+    return PlainValidator(validate)
+
+
 class _ContentSchema(_Schema):
     statement_id: Identifier
-    raw_text: Annotated[StrictStr, Field(min_length=1, max_length=12000)]
+    raw_text: Annotated[str, _python_text(12000)]
     requested_outcome: Outcome
-    original_order_reference: Annotated[StrictStr, Field(min_length=1, max_length=120)] | None
+    original_order_reference: Annotated[str, _python_text(120)] | None
 
 
 def _validate(record: object, schema: type[_Schema]) -> None:

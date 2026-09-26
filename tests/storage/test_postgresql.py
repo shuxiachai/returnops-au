@@ -244,3 +244,14 @@ def test_real_commit_acknowledgement_failure_never_retries_or_claims_rollback(pg
         assert read(pg_engine, bundle.case.case_id) == bundle
     else:
         assert_absent(pg_engine, bundle)
+
+
+def test_caught_invalid_read_prevents_commit_of_pending_valid_inserts(pg_engine, bundle_factory):
+    bundle = bundle_factory()
+    with InitialRecordUnitOfWork(pg_engine) as unit:
+        unit.repository.insert_initial_record(bundle)
+        with pytest.raises(DomainValidationError):
+            unit.repository.load_initial_record("x")
+        with pytest.raises(StorageError, match="cannot commit"):
+            unit.commit()
+    assert_absent(pg_engine, bundle)

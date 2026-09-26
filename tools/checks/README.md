@@ -57,10 +57,13 @@ python -B tools/checks/run.py environment
 
 This command changes the configured database by running this project's
 `python -B -m alembic upgrade head`, then reports `alembic current` and runs
-`python -B -m pytest tests/environment -q`. The initial `0001_environment`
-migration establishes a migration version without business DDL. The tests use
-FastAPI TestClient plus actual PostgreSQL readiness/version and temporary-table
-transaction checks; they do not need a running uvicorn server. Use the local
+`python -B -m pytest tests/environment -q` and `python -B -m pytest tests/storage -q`.
+The retained `0001_environment` baseline is followed by `0002_initial_records`,
+which adds the three tables described in [A1 storage groundwork](../../docs/a1-initial-storage.md).
+The tests use FastAPI TestClient plus actual PostgreSQL 17 readiness/version,
+constraints, exact content, atomic rollback and uncertain-commit checks. Repeat
+migration must preserve committed data and the exact four-table schema including
+`alembic_version`. They do not need a running uvicorn server. Use the local
 environment setup in [F.02 readiness](../../docs/10-f02-environment-readiness.md).
 The runner rejects a missing/wrong-driver target and database names other than
 `returnops_f02` or `returnops_f02_` followed by lowercase ASCII letters, digits
