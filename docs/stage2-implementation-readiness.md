@@ -61,3 +61,8 @@ For that slice, accept a valid original request, preserve every character, use o
 The repository workflow requires at least one teammate approval and passing checks before a merge. Current PR15/18/19 have no such approval at the entry check, so this work prepares and publishes candidates without merging them. This restriction is distinct from the S/F integration and final-acceptance dependencies.
 
 This handoff adds no sprint dates, availability assumptions, Jira Done transitions, new feature allocation or personal sign-off. No member/tutor message is sent on its behalf.
+
+
+## Customer backend candidate, 26 September 2026
+
+The subsequent lead-authorized foundation and PR22 merges are the technical base for the current isolated customer-flow implementation, tracked by Issue #23. Its existing recorded umbrella mapping is KAN-14 (A1.01–03 / F.05), not a new Jira verification. See [the runtime guide](21-customer-flow.md) for the seven implemented operations, durable accepted-intake boundary, private demo, tests and remaining scope. This implementation does not alter the fixed WBS, B/C ownership, public v1 schemas or earlier historical acceptance records. Publication and merge status must be taken from the eventual exact-source PR; this local guide is not a review approval.

@@ -38,6 +38,7 @@ def build_steps(
             ("report installed migration", python + ["-m", "alembic", "current"]),
             ("API/PostgreSQL environment tests", python + ["-m", "pytest", "tests/environment", "-q"]),
             ("initial-record PostgreSQL storage tests", python + ["-m", "pytest", "tests/storage", "-q"]),
+            ("customer HTTP, concurrency and retention tests", python + ["-m", "pytest", "tests/customer", "-q"]),
         ]
     raise ValueError(f"Unknown check group: {mode}")
 

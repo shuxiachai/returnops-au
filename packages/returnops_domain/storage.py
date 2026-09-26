@@ -15,6 +15,7 @@ from sqlalchemy import Column, DateTime, Integer, LargeBinary, MetaData, String,
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
+from .fence import acquire_fence
 from .records import DomainValidationError, InitialCaseRecord, InitialRecordBundle, OriginalStatementRecord, StatementContent
 
 
@@ -89,6 +90,7 @@ class InitialRecordRepository:
         failure = None
         try:
             bundle.validate()
+            acquire_fence(self._connection, write=True)
             self._connection.execute(case_records.insert(), asdict(bundle.case))
             self._connection.execute(original_statement_records.insert(), asdict(bundle.statement))
             self._connection.execute(original_statement_contents.insert(), {
@@ -118,6 +120,7 @@ class InitialRecordRepository:
             raise DomainValidationError("Initial record identifier is invalid")
         failure = False
         try:
+            acquire_fence(self._connection, write=True)
             case = self._connection.execute(select(case_records).where(case_records.c.case_id == case_id)).mappings().one_or_none()
             if case is None:
                 return None
@@ -172,6 +175,8 @@ class InitialRecordUnitOfWork:
         try:
             self._connection = self._engine.connect()
             self._transaction = self._connection.begin()
+            # This UoW permits later writes; lock exclusively before any read.
+            acquire_fence(self._connection, write=True)
         except SQLAlchemyError:
             failed = True
         if failed:

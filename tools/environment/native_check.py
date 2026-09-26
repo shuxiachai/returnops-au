@@ -124,7 +124,7 @@ def main() -> int:
         api_output = logs[2].open("w", encoding="utf-8")
         api = subprocess.Popen([sys.executable, "-B", "-m", "uvicorn",
                                 "returnops_api.main:create_app", "--factory", "--host",
-                                "127.0.0.1", "--port", str(args.api_port)], cwd=ROOT, env=env,
+                                "127.0.0.1", "--port", str(args.api_port), "--no-access-log"], cwd=ROOT, env=env,
                                stdout=api_output, stderr=subprocess.STDOUT, creationflags=FLAGS)
         deadline = time.monotonic() + 30
         while time.monotonic() < deadline:

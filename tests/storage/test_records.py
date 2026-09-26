@@ -115,6 +115,11 @@ class CommitFailureConnection:
     def begin(self):
         return self
 
+    def execute(self, statement, parameters):
+        from returnops_domain.fence import FENCE_KEY
+        assert str(statement) == "SELECT pg_advisory_xact_lock(:key)"
+        assert parameters == {"key": FENCE_KEY}
+
     def commit(self):
         self.server_committed = self.fail_after_commit
         raise SQLAlchemyError("PRIVATE_BODY postgresql://user:PRIVATE_DSN@host/db")

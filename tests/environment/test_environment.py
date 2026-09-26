@@ -29,8 +29,8 @@ from returnops_api import database, main
 from returnops_api.settings import ConfigurationError, Settings, require_environment_database
 
 
-EXPECTED_REVISION = "0002_initial_records"
-EXPECTED_TABLES = ["alembic_version", "case_records", "original_statement_contents", "original_statement_records"]
+EXPECTED_REVISION = "0004_pre_case_audit"
+EXPECTED_TABLES = ['alembic_version', 'case_heads', 'case_records', 'customer_acceptances', 'customer_audit_events', 'customer_clarification_sets', 'customer_evidence', 'customer_evidence_contents', 'customer_history_contents', 'customer_history_cursors', 'customer_history_revisions', 'customer_history_snapshots', 'customer_intake_sessions', 'customer_intake_work', 'customer_principals', 'customer_processing_failures', 'customer_receipt_refs', 'customer_receipts', 'customer_scope_audit_events', 'customer_scope_audit_heads', 'customer_sessions', 'original_statement_contents', 'original_statement_records']
 SECRET = "environment-test-secret-do-not-log"
 STUB_URL = f"postgresql+psycopg://environment_user:{SECRET}@stub.invalid/environment"
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -239,14 +239,17 @@ def test_database_failures_return_503_without_disclosing_configuration(
     assert engine.disposed
 
 
-def test_environment_app_exposes_no_docs_or_business_routes(
+def test_environment_app_has_only_customer_routes_and_no_public_identity_issuer(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     app = application_with_engine(monkeypatch, DiagnosticEngine())
-    assert {route.path for route in app.routes} == {"/health/live", "/health/ready"}
+    assert {route.path for route in app.routes} == {"/health/live", "/health/ready", "/v1/session", "/v1/evidence",
+        "/v1/evidence/{evidence_id}/content", "/v1/cases", "/v1/cases/{case_id}",
+        "/v1/cases/{case_id}/history", "/v1/cases/{case_id}/clarifications"}
     with TestClient(app) as client:
-        for path in ("/docs", "/redoc", "/openapi.json", "/v1/cases", "/v1/session"):
+        for path in ("/docs", "/redoc", "/openapi.json", "/v1/login", "/v1/founder/cases"):
             assert client.get(path).status_code == 404
+        assert client.get("/v1/session").status_code == 503  # no configured key/default identity
 
 
 @pytest.fixture
