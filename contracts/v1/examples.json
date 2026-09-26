@@ -1648,9 +1648,9 @@
         "case_version": 10,
         "status": "FAILED",
         "outcome": "RETURN_CREATED",
-        "message": "The simulated return and free label were recorded. Notification delivery failed.",
+        "message": "The simulated return and free label were recorded.",
         "next_steps": [
-          "Resend this message only; do not recreate the return or label."
+          "Review the simulated return and free label details. Contact the Founder if you need help; no physical parcel should be sent for this demonstration."
         ],
         "attempt_count": 1,
         "updated_at": "2026-09-07T02:00:00Z",
@@ -1674,9 +1674,9 @@
         "case_version": 11,
         "status": "SENT",
         "outcome": "RETURN_CREATED",
-        "message": "The simulated return and free label were recorded. Notification delivery failed.",
+        "message": "The simulated return and free label were recorded.",
         "next_steps": [
-          "Resend this message only; do not recreate the return or label."
+          "Review the simulated return and free label details. Contact the Founder if you need help; no physical parcel should be sent for this demonstration."
         ],
         "attempt_count": 2,
         "updated_at": "2026-09-07T02:00:00Z",
@@ -1795,9 +1795,9 @@
         "case_version": 11,
         "status": "PENDING",
         "outcome": "RETURN_CREATED",
-        "message": "The simulated return and free label were recorded. Notification delivery failed.",
+        "message": "The simulated return and free label were recorded.",
         "next_steps": [
-          "Resend this message only; do not recreate the return or label."
+          "Review the simulated return and free label details. Contact the Founder if you need help; no physical parcel should be sent for this demonstration."
         ],
         "attempt_count": 1,
         "updated_at": "2026-09-07T02:00:00Z"
@@ -2814,9 +2814,9 @@
           "case_version": 11,
           "status": "SENT",
           "outcome": "RETURN_CREATED",
-          "message": "The simulated return and free label were recorded. Notification delivery failed.",
+          "message": "The simulated return and free label were recorded.",
           "next_steps": [
-            "Resend this message only; do not recreate the return or label."
+            "Review the simulated return and free label details. Contact the Founder if you need help; no physical parcel should be sent for this demonstration."
           ],
           "attempt_count": 2,
           "updated_at": "2026-09-07T02:00:00Z",
@@ -3035,9 +3035,9 @@
         "content": {
           "notification_id": "notification-demo-001",
           "outcome": "RETURN_CREATED",
-          "message": "The simulated return and free label were recorded. Notification delivery failed.",
+          "message": "The simulated return and free label were recorded.",
           "next_steps": [
-            "Resend this message only; do not recreate the return or label."
+            "Review the simulated return and free label details. Contact the Founder if you need help; no physical parcel should be sent for this demonstration."
           ],
           "sent_at": "2026-09-07T02:00:00Z"
         }
@@ -4696,9 +4696,9 @@
         "content": {
           "notification_id": "notification-demo-001",
           "outcome": "RETURN_CREATED",
-          "message": "The simulated return and free label were recorded. Notification delivery failed.",
+          "message": "The simulated return and free label were recorded.",
           "next_steps": [
-            "Resend this message only; do not recreate the return or label."
+            "Review the simulated return and free label details. Contact the Founder if you need help; no physical parcel should be sent for this demonstration."
           ],
           "sent_at": "2026-09-07T02:00:00Z",
           "error": {
