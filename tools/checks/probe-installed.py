@@ -20,6 +20,8 @@ from returnops_domain.evidence_validation import validate_evidence
 from returnops_domain.mock_orders import MockOrderProvider, load_builtin_catalogue
 from returnops_domain.order_ports import OrderLookupError, OrderReadContext
 from returnops_api.main import create_app
+from returnops_domain.founder_service import FounderQueries
+from returnops_domain.founder_tables import metadata as founder_metadata
 
 for package in (returnops_api, returnops_api.security, returnops_domain):
     assert Path(package.__file__).resolve().is_relative_to(installed)
@@ -51,3 +53,10 @@ print("PASS installed synthetic order resource and scoped lookup (A1.04)")
 assert len(investigation_metadata.tables) == 14
 assert InvestigationProcessor(None).catalogue.metadata == catalogue.metadata
 print("PASS installed investigation composition and 0005 metadata (no database execution)")
+
+assert len(founder_metadata.tables) == 4
+app = create_app(engine=object(), enable_processor=False)
+assert {route.path for route in app.routes if route.path.startswith('/v1/founder')} == {
+    '/v1/founder/cases', '/v1/founder/cases/{case_id}',
+    '/v1/founder/cases/{case_id}/history', '/v1/founder/cases/{case_id}/audit'}
+print("PASS installed Founder read composition and isolated 0006 metadata (no database execution)")

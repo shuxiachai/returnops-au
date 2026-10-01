@@ -41,6 +41,7 @@ def build_steps(
             ("initial-record PostgreSQL storage tests", python + ["-m", "pytest", "tests/storage", "-q"]),
             ("customer HTTP, concurrency and retention tests", python + ["-m", "pytest", "tests/customer", "-q"]),
             ("order investigation PostgreSQL and real TCP tests", python + ["-m", "pytest", "tests/investigation", "-q"]),
+            ("Founder read PostgreSQL and real TCP tests", python + ["-m", "pytest", "tests/founder", "-q"]),
         ]
     raise ValueError(f"Unknown check group: {mode}")
 

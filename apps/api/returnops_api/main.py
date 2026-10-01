@@ -1,4 +1,4 @@
-"""Health diagnostics and the seven frozen customer operations."""
+"""Health diagnostics and the frozen customer/Founder read operations."""
 from contextlib import asynccontextmanager
 from threading import BoundedSemaphore
 from fastapi import FastAPI
@@ -9,6 +9,7 @@ from .database import build_engine,readiness
 from .settings import Settings
 from .customer_config import load_private_auth_config
 from .customer_http import register_customer_routes
+from .founder_http import register_founder_routes
 
 def create_app(*,engine=None,auth_config=None,enable_processor=True):
     # Keyword injection is trusted Python composition for tests, never HTTP input.
@@ -38,4 +39,5 @@ def create_app(*,engine=None,auth_config=None,enable_processor=True):
         healthy=readiness(app.state.engine)
         return JSONResponse({'status':'ready' if healthy else 'not_ready'},status_code=200 if healthy else 503)
     register_customer_routes(app)
+    register_founder_routes(app)
     return app
