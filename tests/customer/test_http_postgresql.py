@@ -133,11 +133,13 @@ def test_get_queries_and_cursor_context_are_validated(client):
     assert_error(client.get('/v1/cases/'+case+'/history?kind=STATEMENT&limit=1&limit=2'),422,'VALIDATION_ERROR')
     assert_error(client.get('/v1/cases/'+case+'/history?kind=STATEMENT&object_version=1'),422,'VALIDATION_ERROR')
 
-def test_only_frozen_customer_routes_and_health_are_registered(client):
+def test_only_frozen_customer_founder_reads_and_health_are_registered(client):
     routes={(next(iter(route.methods)),route.path) for route in client.app.routes}
     assert routes=={('GET','/health/live'),('GET','/health/ready'),('GET','/v1/session'),('POST','/v1/evidence'),
        ('GET','/v1/evidence/{evidence_id}/content'),('POST','/v1/cases'),('GET','/v1/cases/{case_id}'),
-       ('GET','/v1/cases/{case_id}/history'),('POST','/v1/cases/{case_id}/clarifications')}
+       ('GET','/v1/cases/{case_id}/history'),('POST','/v1/cases/{case_id}/clarifications'),
+       ('GET','/v1/founder/cases'),('GET','/v1/founder/cases/{case_id}'),
+       ('GET','/v1/founder/cases/{case_id}/history'),('GET','/v1/founder/cases/{case_id}/audit')}
 
 def test_maximum_legal_escaped_clarification_body_is_accepted(client,flow_engine):
     from returnops_domain.customer_uow import CustomerUnitOfWork
