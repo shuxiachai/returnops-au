@@ -250,5 +250,7 @@ def case_view(uow, actor, head, now, ttl):
             state['current_block_id'], decode_document(block['body']))
     if state is not None and state['current_projection_id'] is not None:
         result['order_snapshot'] = _order(uow, proof, head, state['current_projection_id'])
+    from .lifecycle_projection import project
+    project(uow,head,result)
     finite.validate('CaseView', result)
     return result, snap

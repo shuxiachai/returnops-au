@@ -38,7 +38,7 @@ include = ["returnops_api*", "returnops_domain*"]
 namespaces = false
 
 [tool.pytest.ini_options]
-testpaths = ["tests/environment", "tests/security", "tests/storage", "tests/customer", "tests/orders", "tests/investigation", "tests/founder"]
+testpaths = ["tests/environment", "tests/security", "tests/storage", "tests/customer", "tests/orders", "tests/investigation", "tests/founder", "tests/lifecycle"]
 addopts = "--strict-markers"
 markers = ["database: requires an explicitly configured disposable PostgreSQL database"]
 

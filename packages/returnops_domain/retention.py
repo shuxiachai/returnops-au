@@ -61,6 +61,8 @@ class RetentionService:
                 # A content removal changes the current view but is not new
                 # customer input or permission to recreate old accepted content.
                 remove_case_payloads(uow,case_id)
+                from .lifecycle_state import retain
+                retain(uow, head, reason, redact)
                 retain_content_state(uow,head,now)
                 uow.execute(update(t.intake_work).where(t.intake_work.c.case_id==case_id,t.intake_work.c.state.in_(['PENDING','RUNNING','PAUSED'])).values(
                     state='PAUSED',safe_error='POLICY_OR_CONTENT_UNAVAILABLE'))
