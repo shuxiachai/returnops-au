@@ -1,0 +1,250 @@
+{
+  "snapshotStatus": "verified_local_snapshot_prepared_for_independent_review",
+  "source": {
+    "url": "https://docs.google.com/document/d/1xvGO8EA_yZwWj1It3UM7AKDFEoQjsj5eJJXbCz4bcnc/edit",
+    "nativeDocumentId": "1xvGO8EA_yZwWj1It3UM7AKDFEoQjsj5eJJXbCz4bcnc",
+    "name": "ReturnOps AU Stage 1 Report Team Review Draft",
+    "modifiedTime": "2026-09-21T04:49:56.051Z",
+    "versionLabel": "Version 0.3 — 21 September clarification for final team review",
+    "authoritativeSource": "Native Google Doc",
+    "currentSourceReadDateUTC": "2026-10-03",
+    "currentSourceReadDateAustraliaSydney": "2026-10-03",
+    "completeSourceReadSHA256": "ed07790bd474e1819566e20a6262379b234c6d801559d8259831cffbc2f63662",
+    "postReadModifiedTimeUnchanged": "2026-09-21T04:49:56.051Z"
+  },
+  "preparedAtUTC": "2026-10-03T11:13:24.876393+00:00",
+  "preparedAtAustraliaSydney": "2026-10-03T21:13:24.876393+10:00",
+  "retrieval": {
+    "method": "User-provided local files from normal manual Google Docs download",
+    "receivedDateUTC": "2026-10-03",
+    "receivedDateAustraliaSydney": "2026-10-03",
+    "connectorSourceReadSucceeded": true,
+    "connectorExportReferencesReturned": true,
+    "connectorDownloadToLocalSucceeded": false,
+    "embeddedExportGenerationTimestamp": null,
+    "generationTimestampLimitation": "PDF CreationDate/ModDate absent; DOCX docProps/core.xml absent. No exact export-generation time is asserted.",
+    "pdf": {
+      "path": "ReturnOps-AU-Stage1.pdf",
+      "bytes": 2877368,
+      "sha256": "e1a6b88d695dd68f4e0d0a01d81a53d3a5ed02fc83c56bb6ce276bd3d114ec07",
+      "pages": 53
+    },
+    "docx": {
+      "path": "ReturnOps-AU-Stage1.docx",
+      "bytes": 1665136,
+      "sha256": "d22228e5efaaa0f9a4033af14e6f47dc7ae62549cd38b8b7e98ead8682336929",
+      "mediaFiles": 25
+    },
+    "exactProvidedFileCopies": true
+  },
+  "verification": {
+    "nativeDOCXMarkdownNonemptyParagraphs": 529,
+    "nativeDOCXMarkdownTableCount": 9,
+    "allTableRowsCellsAndTextOrderEqual": true,
+    "nativeDOCXMarkdownHyperlinks": 126,
+    "externalHyperlinks": 69,
+    "internalHyperlinks": 57,
+    "nativeDateChipsPreserved": 13,
+    "sourceWordBookmarksPreserved": 49,
+    "markdownOnlyNavigationAliases": 1,
+    "imageAssets": 25,
+    "allAssetBytesEqualDOCXMedia": true,
+    "pdfDOCXImagePixelMatchesInOrder": 25,
+    "allNativeImageExtentsAndDescriptionsMatchWord": true,
+    "internalLinkMapping": "Observed Google-to-Word identifier mapping: heading h.X to _X and bookmark id.X to X; all 27 heading destinations retain their matching paragraph and every Markdown internal link resolves.",
+    "bookmarkLocationLimit": "The native API read did not expose independent bookmark-location objects; exported Word targets are preserved.",
+    "nativeImageByteLimit": "Native image bytes were not fetched independently. Object sequence, dimensions and descriptions were compared; supplied PDF/DOCX image pixels agree.",
+    "markdownRenderer": "marked 17.0.5 (GFM)",
+    "markdownRole": "Repository-readable DOCX rendition; native pagination is represented by the PDF."
+  },
+  "repositoryNavigationRepair": {
+    "id": "yob7ra45allo",
+    "beforeCaption": "Figure 21A C activity: complete-input validation and bounded recovery",
+    "affectedExistingLinks": 2,
+    "reason": "The supplied DOCX references this Figure 21 target but contains no bookmark with that name.",
+    "scope": "Added only as a Markdown navigation alias. Original PDF, DOCX, report wording, link targets, and cloud document are unchanged."
+  },
+  "visualQA": {
+    "pdfPagesRendered": 53,
+    "parentReviewedContactSheets": 6,
+    "contactSheetsCoverAllPages": true,
+    "parentReviewedFullPageImages": [
+      1,
+      46,
+      47,
+      50
+    ],
+    "fullResolutionReviewOfEveryPage": false,
+    "wordPaginationIndependentlyRendered": false,
+    "pdfExtractionWholeBodyEqualityAsserted": false,
+    "pdfTextExtractionLimit": "TOC dot leaders are rendered text and smart-date chips can be extracted out of reading order."
+  },
+  "scope": {
+    "pointInTimeOnly": true,
+    "automaticSync": false,
+    "cloudDocumentChanged": false,
+    "stage2ReportContentAdded": false,
+    "sourceHistoricalSubmissionWordingPreserved": true,
+    "userConfirmedStage1Submitted": true,
+    "actualCanvasUploadReceiptVerified": false,
+    "personalOrTeamAcceptanceCreated": false,
+    "reviewApprovalCreated": false,
+    "jiraKey": "Pending mapping by A/C; no key invented"
+  },
+  "repository": {
+    "baseCommit": "6b45b7141126292a06ed783f5e4a3adcf9955210",
+    "prepublicationBranch": "docs/report-cloud-sync-20261003",
+    "publicationOrMergeClaim": "This metadata records file preparation and verification, not a commit, PR publication, merge, human sign-off, or independent approval."
+  },
+  "payloadManifest": {
+    "algorithm": "SHA-256",
+    "scope": "All files in this snapshot directory except this metadata file. The task-local frozen candidate manifest includes this file and both navigation files without a self-referential hash.",
+    "files": [
+      {
+        "path": "assets/figure-01.png",
+        "bytes": 30830,
+        "sha256": "0e406e0ca95660a33ace48266f8e8463c3bcb25c84fd56e4367d959123ba2ebc"
+      },
+      {
+        "path": "assets/figure-02.png",
+        "bytes": 48131,
+        "sha256": "1c3a1825a7451636748e5cffaf52cf4cc55707a4266759d4b32d7af445b43cd3"
+      },
+      {
+        "path": "assets/figure-03.png",
+        "bytes": 37841,
+        "sha256": "57d178a9fc5b8d46bbd758d603ff170c403379d4b7b43b62eabdda3ffbf8828f"
+      },
+      {
+        "path": "assets/figure-04.png",
+        "bytes": 33627,
+        "sha256": "d0105371cfff561ca3d6d054f0be41b94d36e5cf10e3a8fada25a71090ee723f"
+      },
+      {
+        "path": "assets/figure-05.png",
+        "bytes": 53735,
+        "sha256": "d817f34017c56034af0925c67f8b4ea0f596801a53691ba7195264664949fbde"
+      },
+      {
+        "path": "assets/figure-06.png",
+        "bytes": 139530,
+        "sha256": "950c2f1af7d261f9aa621b555ca6cc313ada0d2c0c72804fa5739a40b18e8ed5"
+      },
+      {
+        "path": "assets/figure-07.png",
+        "bytes": 98540,
+        "sha256": "41c7ee145401e5b25e50f47b6df35083a8a27f7ba989f2d410b0ade4522c8827"
+      },
+      {
+        "path": "assets/figure-08.png",
+        "bytes": 135241,
+        "sha256": "050d36fe0fb8dd594be293e339ae717441df489be363b71a2e9180ad3332d4c5"
+      },
+      {
+        "path": "assets/figure-09.png",
+        "bytes": 30158,
+        "sha256": "c879a26831723894e69e324508819018db9d51a1559235f69a81043c9bd12b5f"
+      },
+      {
+        "path": "assets/figure-10.png",
+        "bytes": 43359,
+        "sha256": "53a3b6367f01c46558a95c3cb1c75f61bf80849b32df451ee0b7c81fcff56613"
+      },
+      {
+        "path": "assets/figure-11.png",
+        "bytes": 38906,
+        "sha256": "b75d241a6d6a10a52333307095eee6abec225d1c173e0e5a9228b94745977101"
+      },
+      {
+        "path": "assets/figure-12.png",
+        "bytes": 41742,
+        "sha256": "e9f24984655a262e0b9660e04c2ccf73363cb330ba11ffe06f8ae48a188ec207"
+      },
+      {
+        "path": "assets/figure-13.png",
+        "bytes": 51344,
+        "sha256": "a9fd409ed8c236ede3c9fa52be9f6aa4864141a1f842a9ddb76f03bebf7a0694"
+      },
+      {
+        "path": "assets/figure-14.png",
+        "bytes": 57319,
+        "sha256": "b1e503cb40ca98321a789412a35c679a9f9b31f041655fee85c658336acfe98d"
+      },
+      {
+        "path": "assets/figure-15.png",
+        "bytes": 52321,
+        "sha256": "7fb8262bf163864440aae1fcaa6db515cb99c6235ad6039fbabf28f185b8c650"
+      },
+      {
+        "path": "assets/figure-16.png",
+        "bytes": 44278,
+        "sha256": "f6543cbf8403f6638638fda66784489022c0fec3d0079ddcb66de87c47085331"
+      },
+      {
+        "path": "assets/figure-17.png",
+        "bytes": 37520,
+        "sha256": "b3c30b5cfa44650f3999b6643702aae6deefcf34da8cb064e0cdf01f3d9eecf7"
+      },
+      {
+        "path": "assets/figure-18.png",
+        "bytes": 56172,
+        "sha256": "638a4dd4708769f7359e131fa6138146baef9f7b9bbc8a5e3a3568f783decf14"
+      },
+      {
+        "path": "assets/figure-19.png",
+        "bytes": 67738,
+        "sha256": "3211840bfe802a404f154c4c49c30fd220e62f15d54231520dc9665158d68900"
+      },
+      {
+        "path": "assets/figure-20.png",
+        "bytes": 70263,
+        "sha256": "b7b6323f5b908e87f3c0109a0235034937aaaff77ece832fa7139d2240224c8d"
+      },
+      {
+        "path": "assets/figure-21.png",
+        "bytes": 72094,
+        "sha256": "a36e5d50549f73843d878f1c2454b8f1346a88559bfbfe8c1164804d54f907b0"
+      },
+      {
+        "path": "assets/figure-22.png",
+        "bytes": 81662,
+        "sha256": "9a679a36887741ffddec58bfc6629e3ef9ba7c2bc6ca533f730a7d820d40017a"
+      },
+      {
+        "path": "assets/figure-23.png",
+        "bytes": 96275,
+        "sha256": "df02efe0d3b2f9669d69cb80736cc8c384fb316fe9dba6efc5230242814fce05"
+      },
+      {
+        "path": "assets/figure-24.png",
+        "bytes": 102381,
+        "sha256": "ec5aa323d86d3bdc5c3260c889f260506bcab9530b729b55399185e82fe8041b"
+      },
+      {
+        "path": "assets/figure-25.png",
+        "bytes": 129883,
+        "sha256": "b009ed3873354a91575278d80f68e45f6f772b2e9e5b12715d5669a70eec7137"
+      },
+      {
+        "path": "README.md",
+        "bytes": 2752,
+        "sha256": "274bae8407a9de5e51a9f4f224970300bcf0120cd2ed52e29896bec16523b8fc"
+      },
+      {
+        "path": "report.md",
+        "bytes": 113090,
+        "sha256": "837b175c207fb77b1c7e36624623b35fdbb9b54df898af6f2ccd22c3b62e8a34"
+      },
+      {
+        "path": "ReturnOps-AU-Stage1.docx",
+        "bytes": 1665136,
+        "sha256": "d22228e5efaaa0f9a4033af14e6f47dc7ae62549cd38b8b7e98ead8682336929"
+      },
+      {
+        "path": "ReturnOps-AU-Stage1.pdf",
+        "bytes": 2877368,
+        "sha256": "e1a6b88d695dd68f4e0d0a01d81a53d3a5ed02fc83c56bb6ce276bd3d114ec07"
+      }
+    ]
+  }
+}
