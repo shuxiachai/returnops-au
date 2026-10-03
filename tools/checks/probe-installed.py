@@ -60,3 +60,14 @@ assert {route.path for route in app.routes if route.path.startswith('/v1/founder
     '/v1/founder/cases', '/v1/founder/cases/{case_id}',
     '/v1/founder/cases/{case_id}/history', '/v1/founder/cases/{case_id}/audit'}
 print("PASS installed Founder read composition and isolated 0006 metadata (no database execution)")
+
+from returnops_domain.lifecycle_guards import LifecycleGuards
+from returnops_domain.lifecycle_tables import metadata as lifecycle_metadata
+from returnops_domain.lifecycle_events import ProposalAccepted, NotificationObserved
+import returnops_domain.lifecycle_proposal, returnops_domain.lifecycle_effects
+assert len(lifecycle_metadata.tables) == 6
+for module in (returnops_domain.lifecycle_proposal, returnops_domain.lifecycle_effects):
+    assert Path(module.__file__).resolve().is_relative_to(installed)
+assert LifecycleGuards('installed_probe').component_id == 'installed_probe'
+assert 'lifecycle' not in ' '.join(route.path for route in app.routes)
+print("PASS installed lifecycle component and isolated 0007 metadata (no future producer or database execution)")

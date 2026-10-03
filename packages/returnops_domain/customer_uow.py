@@ -10,8 +10,15 @@ class CustomerUnitOfWork:
         if type(lock_timeout_ms) is not int or not 1 <= lock_timeout_ms <= 10000: raise FlowError("INTERNAL_ERROR")
         self.lock_timeout_ms = lock_timeout_ms
         self.connection = None; self.transaction = None; self.failed = False; self.finished = False
+        self._commit_checks = []
 
     def poison(self): self.failed = True
+
+    def before_commit(self, check):
+        """Private guard checks run under this transaction's original fence."""
+        if not self.write or self.failed or self.finished or self.transaction is None or not callable(check):
+            self.poison(); raise FlowError('INTERNAL_ERROR')
+        self._commit_checks.append(check)
 
     def __enter__(self):
         if self.connection is not None or self.engine.echo or self.engine.pool.echo or not self.engine.hide_parameters:
@@ -44,6 +51,13 @@ class CustomerUnitOfWork:
 
     def commit(self):
         if self.failed or self.finished or self.transaction is None: raise FlowError("INTERNAL_ERROR")
+        check_failed = False
+        try:
+            for check in self._commit_checks: check()
+        except Exception:
+            self.poison(); check_failed = True
+        if check_failed:
+            raise FlowError('INVALID_STATE') from None
         failed = False
         try: self.transaction.commit()
         except SQLAlchemyError: failed = True

@@ -1,7 +1,7 @@
 """Bounded lifecycle mutation gate. Callers hold the exclusive Domain fence.
 
-No approval/revision/notification event is implemented by this slice. Rejected
-HTTP attempts use record_denial before committing only their audit observation.
+Intake/order targets remain bounded here. Reference-driven lifecycle events
+live in lifecycle_guards; neither entry exposes an arbitrary public status setter.
 """
 from sqlalchemy import update
 from . import customer_tables as t
@@ -32,6 +32,9 @@ def transition(uow, head, event, status, now, *, input_delta=0, question_set_id=
         status=status, updated_at=now, current_question_set_id=question_set_id, current_failure_id=failure_id)
     if max(values['case_version'],values['input_version']) > 9007199254740991:
         uow.poison();raise FlowError('INVALID_STATE')
+    if input_delta:
+        from .lifecycle_state import invalidate
+        invalidate(uow, head, input_version=values['input_version'])
     changed = uow.execute(update(t.case_heads).where(t.case_heads.c.case_id==head['case_id'],
         t.case_heads.c.case_version==head['case_version'],t.case_heads.c.input_version==head['input_version']).values(**values))
     if changed.rowcount != 1:

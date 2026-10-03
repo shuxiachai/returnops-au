@@ -8,7 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from .settings import Settings
 
 
-EXPECTED_SCHEMA_REVISION = "0006_founder_reads"
+EXPECTED_SCHEMA_REVISION = "0007_lifecycle_guards"
 
 
 def build_engine(settings: Settings) -> Engine:

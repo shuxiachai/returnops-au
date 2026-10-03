@@ -42,6 +42,7 @@ def build_steps(
             ("customer HTTP, concurrency and retention tests", python + ["-m", "pytest", "tests/customer", "-q"]),
             ("order investigation PostgreSQL and real TCP tests", python + ["-m", "pytest", "tests/investigation", "-q"]),
             ("Founder read PostgreSQL and real TCP tests", python + ["-m", "pytest", "tests/founder", "-q"]),
+            ("Lifecycle guard PostgreSQL component tests", python + ["-m", "pytest", "tests/lifecycle", "-q"]),
         ]
     raise ValueError(f"Unknown check group: {mode}")
 

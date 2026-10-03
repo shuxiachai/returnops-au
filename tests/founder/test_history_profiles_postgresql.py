@@ -2,6 +2,7 @@
 import pytest
 from sqlalchemy import select,update,inspect,text
 from returnops_domain import customer_tables as t, founder_tables as f, founder_codec as finite
+from returnops_domain import lifecycle_tables as lifecycle
 from returnops_domain.canonical import digest as old_digest, encode_document as old_encode
 from returnops_domain.customer_uow import CustomerUnitOfWork
 from returnops_domain.errors import FlowError
@@ -76,7 +77,10 @@ def test_0006_backfills_legacy_future_metadata_without_business_rewrites(flow_en
     before=business_fingerprints(flow_engine)
     migrate(flow_engine)
     migrate(flow_engine)
-    assert business_fingerprints(flow_engine) == before
+    after=business_fingerprints(flow_engine)
+    assert {name:value for name,value in after.items() if name not in lifecycle.metadata.tables} == before
+    assert set(after)-set(before) == set(lifecycle.metadata.tables)
+    assert all(rows(flow_engine,table)==[] for table in lifecycle.metadata.tables.values())
     assert rows(flow_engine,f.encodings)[0]['profile'] == finite.LEGACY_PROFILE
     result=founder(flow_engine,identities).read('listFounderCaseHistory',case_id,{'kind':'PROPOSAL'}).body
     assert result['items'][0]['content_sha256'] == finite.digest(value['content'])

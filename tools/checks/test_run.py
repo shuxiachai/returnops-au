@@ -94,10 +94,11 @@ class RunnerTests(unittest.TestCase):
             "upgrade the configured test database", "report installed migration",
             "API/PostgreSQL environment tests", "initial-record PostgreSQL storage tests",
             "customer HTTP, concurrency and retention tests", "order investigation PostgreSQL and real TCP tests",
-            "Founder read PostgreSQL and real TCP tests",
+            "Founder read PostgreSQL and real TCP tests", "Lifecycle guard PostgreSQL component tests",
         ])
-        self.assertEqual(steps[-2][1], [runner.sys.executable, "-B", "-m", "pytest", "tests/investigation", "-q"])
-        self.assertEqual(steps[-1][1], [runner.sys.executable, "-B", "-m", "pytest", "tests/founder", "-q"])
+        self.assertEqual(steps[-3][1], [runner.sys.executable, "-B", "-m", "pytest", "tests/investigation", "-q"])
+        self.assertEqual(steps[-2][1], [runner.sys.executable, "-B", "-m", "pytest", "tests/founder", "-q"])
+        self.assertEqual(steps[-1][1], [runner.sys.executable, "-B", "-m", "pytest", "tests/lifecycle", "-q"])
 
 if __name__ == "__main__":
     unittest.main()
