@@ -165,10 +165,14 @@ runtime/human acceptance. The shared report remains the
 [canonical Google Doc](https://docs.google.com/document/d/1xvGO8EA_yZwWj1It3UM7AKDFEoQjsj5eJJXbCz4bcnc);
 the repository's modular team report remains a separate candidate.
 
-The [Stage 1 cloud report snapshot](docs/reports/stage1-cloud-snapshot/README.md)
-contains the current clarified v0.3 report as exact user-provided PDF and DOCX
-exports plus a verified Markdown rendition. It is a point-in-time copy dated
-3 October 2026; the native Google Doc remains authoritative.
+The [Stage 1 cloud report v0.4 snapshot](docs/reports/stage1-cloud-v04/README.md)
+is the current repository-readable snapshot of the canonical Google Doc. Its
+README records the frozen source and exact retrieval, rendering, and native-format
+limitations; the native Google Doc remains authoritative.
+
+The [archived v0.3 cloud snapshot](docs/reports/stage1-cloud-snapshot/README.md)
+retains the 3 October 2026 PDF/DOCX exports and Markdown rendition as historical
+evidence; it is not the current report snapshot.
 
 ### Reading order and member entry points
 

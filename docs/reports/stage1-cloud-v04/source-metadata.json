@@ -1,0 +1,411 @@
+{
+  "title": "ReturnOps AU Stage 1 cloud report — v0.4",
+  "artifactType": "native-google-docs-markdown-rendition-with-native-exports",
+  "sourceDocumentUrl": "https://docs.google.com/document/d/1xvGO8EA_yZwWj1It3UM7AKDFEoQjsj5eJJXbCz4bcnc/edit",
+  "sourceTabId": "t.0",
+  "documentVersionText": "Version 0.4 — evidence and completeness revision",
+  "sourceModifiedTime": "2026-10-04T04:51:10.445Z",
+  "frozenNativeSourceSHA256": "512676417b0c80b2c3206de3aaa3afbd5d3e8b348fb1700f0246c7596380e7b7",
+  "nativeExports": [
+    {
+      "path": "stage1-report.pdf",
+      "format": "PDF",
+      "nativeExport": true,
+      "bytes": 2910433,
+      "sha256": "106fc78f77ece62c096c8733d8339bdfe15fe78db6699c3b09fe9ea014b3bca3",
+      "pages": 55
+    },
+    {
+      "path": "stage1-report.docx",
+      "format": "DOCX",
+      "nativeExport": true,
+      "bytes": 1669141,
+      "sha256": "2f6b9fedbb094e65866c7c4a64e02542d2ee0dce224d23a1b35f7f8fba3fd885"
+    }
+  ],
+  "verification": {
+    "result": "pass",
+    "renderer": "marked",
+    "rendererVersion": "17.0.5",
+    "counts": {
+      "paragraphs": 382,
+      "tables": 9,
+      "cells": 185,
+      "links": 157,
+      "anchors": 30,
+      "dates": 11,
+      "images": 25,
+      "pageBreaksOmitted": 5,
+      "pageNumbersOmitted": 1,
+      "blankLayoutParagraphsOmitted": 32
+    },
+    "orderedEvents": 421,
+    "sourceJsonSHA256": "512676417b0c80b2c3206de3aaa3afbd5d3e8b348fb1700f0246c7596380e7b7",
+    "reportSHA256": "5822223ddc1cbae2071679b674f715025a917365e7baf085804d79a6ff145dfc",
+    "renderedHtmlSHA256": "7a99653b1e0bfeb96cfc6809704000fd3b6b0d11384b16e4f17fda65ce8c38b9",
+    "semanticPolicy": "Ordered rendered text, paragraph roles, anchors, link targets and labels, cell boundaries and image identities; HTML whitespace normalization; run presentation and native pagination are not equivalence claims."
+  },
+  "exportVisualReviewScope": "The native PDF has visual review coverage for all 55 final pages, using whole-page inspections plus strict pixel-identity reuse for 54 unchanged pages and a fresh view of final page 2. This does not imply Markdown or Word layout equivalence.",
+  "linkPolicy": {
+    "heading": "preserved native heading IDs as local anchors",
+    "bookmark": "preserved bookmark IDs in canonical Google Docs deep links; independent bookmark locations are not exposed in the native API source"
+  },
+  "imageMaterialization": {
+    "phase": "final source after TOC page-number repair",
+    "freshDownloads": 25,
+    "failures": 0,
+    "retries": 0,
+    "earlierPhaseDownloadsRetainedSeparately": 25
+  },
+  "images": [
+    {
+      "ordinal": 1,
+      "objectId": "i.0",
+      "path": "assets/figure-01.png",
+      "format": "PNG",
+      "pixelWidth": 673,
+      "pixelHeight": 607,
+      "mode": "P",
+      "bytes": 30830,
+      "sha256": "0e406e0ca95660a33ace48266f8e8463c3bcb25c84fd56e4367d959123ba2ebc"
+    },
+    {
+      "ordinal": 2,
+      "objectId": "kix.q2mtblsd5cjm",
+      "path": "assets/figure-02.png",
+      "format": "PNG",
+      "pixelWidth": 700,
+      "pixelHeight": 886,
+      "mode": "P",
+      "bytes": 47879,
+      "sha256": "648eaaa8c2ab5cf8070fb2186ae8ea7d2088e33dcfd652d9ea64b00a2eec6d51"
+    },
+    {
+      "ordinal": 3,
+      "objectId": "i.2",
+      "path": "assets/figure-03.png",
+      "format": "PNG",
+      "pixelWidth": 1711,
+      "pixelHeight": 429,
+      "mode": "P",
+      "bytes": 37841,
+      "sha256": "57d178a9fc5b8d46bbd758d603ff170c403379d4b7b43b62eabdda3ffbf8828f"
+    },
+    {
+      "ordinal": 4,
+      "objectId": "i.3",
+      "path": "assets/figure-04.png",
+      "format": "PNG",
+      "pixelWidth": 1525,
+      "pixelHeight": 467,
+      "mode": "P",
+      "bytes": 33627,
+      "sha256": "d0105371cfff561ca3d6d054f0be41b94d36e5cf10e3a8fada25a71090ee723f"
+    },
+    {
+      "ordinal": 5,
+      "objectId": "i.4",
+      "path": "assets/figure-05.png",
+      "format": "PNG",
+      "pixelWidth": 1538,
+      "pixelHeight": 631,
+      "mode": "P",
+      "bytes": 53735,
+      "sha256": "d817f34017c56034af0925c67f8b4ea0f596801a53691ba7195264664949fbde"
+    },
+    {
+      "ordinal": 6,
+      "objectId": "kix.8tvphvedv9um",
+      "path": "assets/figure-06.png",
+      "format": "PNG",
+      "pixelWidth": 1486,
+      "pixelHeight": 796,
+      "mode": "RGB",
+      "bytes": 132702,
+      "sha256": "f88e115a2703342014642a4ef06a951fc393fb2d236ee60af7793a5dc269fcb2"
+    },
+    {
+      "ordinal": 7,
+      "objectId": "kix.vsyp1hne8uol",
+      "path": "assets/figure-07.png",
+      "format": "PNG",
+      "pixelWidth": 1588,
+      "pixelHeight": 487,
+      "mode": "RGB",
+      "bytes": 96721,
+      "sha256": "19696e170ea5e368fa3903dbf27fb8765a1c9a5cddfb9286d5f039bdeffc374a"
+    },
+    {
+      "ordinal": 8,
+      "objectId": "i.7",
+      "path": "assets/figure-08.png",
+      "format": "PNG",
+      "pixelWidth": 1264,
+      "pixelHeight": 741,
+      "mode": "RGB",
+      "bytes": 135241,
+      "sha256": "050d36fe0fb8dd594be293e339ae717441df489be363b71a2e9180ad3332d4c5"
+    },
+    {
+      "ordinal": 9,
+      "objectId": "i.8",
+      "path": "assets/figure-09.png",
+      "format": "PNG",
+      "pixelWidth": 607,
+      "pixelHeight": 638,
+      "mode": "P",
+      "bytes": 30158,
+      "sha256": "c879a26831723894e69e324508819018db9d51a1559235f69a81043c9bd12b5f"
+    },
+    {
+      "ordinal": 10,
+      "objectId": "kix.bbwwcwygikgh",
+      "path": "assets/figure-10.png",
+      "format": "PNG",
+      "pixelWidth": 841,
+      "pixelHeight": 641,
+      "mode": "P",
+      "bytes": 43108,
+      "sha256": "920e5e6430aa7ee22727d146038fbdf26c59fe5412dd3ba8c25aec4445fd3e02"
+    },
+    {
+      "ordinal": 11,
+      "objectId": "i.10",
+      "path": "assets/figure-11.png",
+      "format": "PNG",
+      "pixelWidth": 1156,
+      "pixelHeight": 526,
+      "mode": "P",
+      "bytes": 38906,
+      "sha256": "b75d241a6d6a10a52333307095eee6abec225d1c173e0e5a9228b94745977101"
+    },
+    {
+      "ordinal": 12,
+      "objectId": "i.11",
+      "path": "assets/figure-12.png",
+      "format": "PNG",
+      "pixelWidth": 1744,
+      "pixelHeight": 511,
+      "mode": "P",
+      "bytes": 41742,
+      "sha256": "e9f24984655a262e0b9660e04c2ccf73363cb330ba11ffe06f8ae48a188ec207"
+    },
+    {
+      "ordinal": 13,
+      "objectId": "i.12",
+      "path": "assets/figure-13.png",
+      "format": "PNG",
+      "pixelWidth": 962,
+      "pixelHeight": 958,
+      "mode": "P",
+      "bytes": 51344,
+      "sha256": "a9fd409ed8c236ede3c9fa52be9f6aa4864141a1f842a9ddb76f03bebf7a0694"
+    },
+    {
+      "ordinal": 14,
+      "objectId": "kix.hrk0xrp9dapl",
+      "path": "assets/figure-14.png",
+      "format": "PNG",
+      "pixelWidth": 971,
+      "pixelHeight": 1141,
+      "mode": "P",
+      "bytes": 53819,
+      "sha256": "c8140adb5c151899639d87805e6ccaaa75df061468dc6bd7c2aaab27c835677a"
+    },
+    {
+      "ordinal": 15,
+      "objectId": "i.14",
+      "path": "assets/figure-15.png",
+      "format": "PNG",
+      "pixelWidth": 551,
+      "pixelHeight": 1043,
+      "mode": "P",
+      "bytes": 52321,
+      "sha256": "7fb8262bf163864440aae1fcaa6db515cb99c6235ad6039fbabf28f185b8c650"
+    },
+    {
+      "ordinal": 16,
+      "objectId": "kix.uhp2p253z41n",
+      "path": "assets/figure-16.png",
+      "format": "PNG",
+      "pixelWidth": 1219,
+      "pixelHeight": 692,
+      "mode": "P",
+      "bytes": 44207,
+      "sha256": "d7808fa8f2deb40b340275d76c6d8355dc4767062fc7c3ff4766efdd0448e82b"
+    },
+    {
+      "ordinal": 17,
+      "objectId": "kix.oo9c8fhl2afj",
+      "path": "assets/figure-17.png",
+      "format": "PNG",
+      "pixelWidth": 525,
+      "pixelHeight": 909,
+      "mode": "P",
+      "bytes": 37537,
+      "sha256": "75fc0684376ece2f1c38cdb612ec46dff00ed5cb786c8a6e868318a900ee2585"
+    },
+    {
+      "ordinal": 18,
+      "objectId": "kix.rapjb1q6x13p",
+      "path": "assets/figure-18.png",
+      "format": "PNG",
+      "pixelWidth": 690,
+      "pixelHeight": 1259,
+      "mode": "P",
+      "bytes": 53334,
+      "sha256": "736fa8f240054a18d75bc2461a8d1df5196b64e84fee0aa102670e4de0f639cc"
+    },
+    {
+      "ordinal": 19,
+      "objectId": "kix.qco9fgjknw69",
+      "path": "assets/figure-19.png",
+      "format": "PNG",
+      "pixelWidth": 689,
+      "pixelHeight": 1150,
+      "mode": "P",
+      "bytes": 65528,
+      "sha256": "55df2be1ab305980a934eebda61893cfae78bf747d655508b4ca7881c868dc2e"
+    },
+    {
+      "ordinal": 20,
+      "objectId": "kix.evb8j2hr8fxz",
+      "path": "assets/figure-20.png",
+      "format": "PNG",
+      "pixelWidth": 840,
+      "pixelHeight": 1071,
+      "mode": "P",
+      "bytes": 69917,
+      "sha256": "689b7fea7341f9ec4a404dc34ab4ebb5763397bef946de7fbf5b54e48e531542"
+    },
+    {
+      "ordinal": 21,
+      "objectId": "kix.cujyqplvfpb",
+      "path": "assets/figure-21.png",
+      "format": "PNG",
+      "pixelWidth": 935,
+      "pixelHeight": 1343,
+      "mode": "P",
+      "bytes": 70859,
+      "sha256": "22fbb07cc20644eef602ddbe2f3b72a8ae8f611a929ddbc7d55fa608296d4dae"
+    },
+    {
+      "ordinal": 22,
+      "objectId": "kix.dy0xamnhbmkm",
+      "path": "assets/figure-22.png",
+      "format": "PNG",
+      "pixelWidth": 983,
+      "pixelHeight": 1552,
+      "mode": "P",
+      "bytes": 80509,
+      "sha256": "a06ed7b84821b5cb7e4b5212df907b60ce923b5fe1251a3f23ee3e1a707cca02"
+    },
+    {
+      "ordinal": 23,
+      "objectId": "kix.8szmmq1cto85",
+      "path": "assets/figure-23.png",
+      "format": "PNG",
+      "pixelWidth": 745,
+      "pixelHeight": 1527,
+      "mode": "P",
+      "bytes": 94416,
+      "sha256": "e254ff68fcb95233ddd555004066e8bfaac4a62cd9fc12c21f210c8dd97fd235"
+    },
+    {
+      "ordinal": 24,
+      "objectId": "kix.7odz6t6d4har",
+      "path": "assets/figure-24.png",
+      "format": "PNG",
+      "pixelWidth": 1196,
+      "pixelHeight": 1300,
+      "mode": "P",
+      "bytes": 101499,
+      "sha256": "151955838e0a6ed2604e7671afe586886e484994558c04bdae28f4e8908eb3c9"
+    },
+    {
+      "ordinal": 25,
+      "objectId": "kix.vnj2ymbwlpcj",
+      "path": "assets/figure-25.png",
+      "format": "PNG",
+      "pixelWidth": 1116,
+      "pixelHeight": 1405,
+      "mode": "P",
+      "bytes": 128661,
+      "sha256": "24c20c02f709e16164af25a12a07204842e82ac926dd050be4c249158b172cf3"
+    }
+  ],
+  "limitations": [
+    "Markdown is rendered from the native API source; the PDF and DOCX are separately preserved native exports.",
+    "The Markdown rendition does not reproduce native pagination, exact font/run styles or image cropping/physical positioning.",
+    "Static headers and footers appear once. Empty layout paragraphs, explicit page breaks and PAGE_NUMBER fields are omitted.",
+    "Native soft breaks remain rendered line breaks; semantic verification applies HTML whitespace normalization.",
+    "Tables retain row/cell order and use their first row as Markdown table headers.",
+    "Native bookmark locations are not inferred, and no legacy Figure 21 alias is added.",
+    "Historical v0.3 exports and the earlier v0.4 pre-layout-repair preparation evidence remain separate.",
+    "The byte-preserved native DOCX contains two Figure 21A–B internal references to an absent bookmark target. No replacement anchor is invented; Markdown uses the original canonical cloud bookmark links."
+  ],
+  "nativeDocxContentVerification": {
+    "sourceSHA256": "512676417b0c80b2c3206de3aaa3afbd5d3e8b348fb1700f0246c7596380e7b7",
+    "docxSHA256": "2f6b9fedbb094e65866c7c4a64e02542d2ee0dce224d23a1b35f7f8fba3fd885",
+    "orderedEvents": 391,
+    "paragraphEvents": 382,
+    "tables": 9,
+    "cells": 185,
+    "images": 25,
+    "externalHyperlinks": 93,
+    "externalHyperlinkSequenceLabelsTargets": "exact after adjacent same-target run coalescing",
+    "docxInternalAnchorOccurrences": 57,
+    "docxBookmarkNames": 52,
+    "unresolvedInternalAnchors": [
+      {
+        "target": "yob7ra45allo",
+        "label": "Figures 21A–21B"
+      },
+      {
+        "target": "yob7ra45allo",
+        "label": "Figure 21A–B. C activity: validation, bounded recovery and five-outcome routing"
+      }
+    ],
+    "internalBookmarkScope": "Word XML self-binding only. No mapping to unexposed native API bookmark positions is inferred.",
+    "pageAndLayoutPolicy": "Ignore empty layout paragraphs, native page/column breaks and PAGE/NUMPAGES fields; retain substantive soft breaks and normalize whitespace.",
+    "result": "pass",
+    "imageByteEqualCount": 10,
+    "imageRGBAAndDimensionsEqualCount": 25,
+    "evidenceSHA256": "e9ed6de273704da714ff37e7d6f0aae37b00dfd73cf7bdb3abf412bbe46f822d"
+  },
+  "nativePdfVisualReview": {
+    "status": "visually-reviewed",
+    "measuredPageCount": 55,
+    "finalPageVisualCoverage": 55,
+    "evidenceSHA256": "ba781c25507a3618fc3f739f7a2e712ed2939d04b0b6745830385f8aeefce7d5",
+    "pdfSHA256": "106fc78f77ece62c096c8733d8339bdfe15fe78db6699c3b09fe9ea014b3bca3",
+    "nativeSourceSHA256": "512676417b0c80b2c3206de3aaa3afbd5d3e8b348fb1700f0246c7596380e7b7",
+    "method": "Whole-page views of prior pages 1–55; strict decoded mode, dimensions and raw-pixel comparison proves final pages 1 and 3–55 unchanged; final page 2 was separately viewed after its References TOC correction.",
+    "pixelComparisonSHA256": "457046a6b541d919a03239cd51f5db7171d0c4757b06b4a488bd61139b683e8a",
+    "exactUnchangedPages": 54,
+    "actuallyReViewedFinalPages": [
+      2
+    ],
+    "layoutOutcome": "No actionable clipping, overlap, missing content, broken tables or stranded headings. Some existing figure bitmap softness remains readable.",
+    "all15MainTocPageLocatorsMatchActualPdf": true,
+    "tocPageLocators": [
+      3,
+      3,
+      4,
+      8,
+      10,
+      13,
+      14,
+      16,
+      19,
+      20,
+      23,
+      24,
+      24,
+      27,
+      52
+    ],
+    "referencesTocPage": 24,
+    "scope": "Native PDF visual layout only; no Markdown/Word font, crop, pagination, bookmark-location or course/personal acceptance equivalence."
+  }
+}
