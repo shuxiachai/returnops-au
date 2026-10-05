@@ -1,4 +1,4 @@
-"""A1.03 persisted event consumer, deliberately absent from runtime composition.
+"""A1.03 persisted event consumer; fixed proposals opt in through A1.05.
 
 Only IDs/expected versions enter this gate. Source bodies and targets are read
 from the same fenced transaction. Tests provide explicitly synthetic producers;
@@ -11,12 +11,12 @@ from . import customer_tables as old, lifecycle_tables as t
 from .audit import append_event, identifier
 from .canonical import digest
 from .errors import FlowError
-from .lifecycle_events import (LifecycleClaim, ProposalAccepted, RevisionRequested,
+from .lifecycle_events import (LifecycleClaim, ProposalAccepted, ProposalFailed, RevisionRequested,
     OutcomeAccepted, NotificationObserved, EffectObserved)
 from .lifecycle_sources import Sources, authority
 from .lifecycle_state import current, installed, invalidate, reject, MAX_VERSION
 
-PURPOSES = {ProposalAccepted: 'PROPOSAL', RevisionRequested: 'REVISION',
+PURPOSES = {ProposalAccepted: 'PROPOSAL', ProposalFailed: 'PROPOSAL', RevisionRequested: 'REVISION',
             OutcomeAccepted: 'OUTCOME', NotificationObserved: 'NOTIFICATION', EffectObserved: 'EFFECT'}
 TERMINAL = {'COMPLETED', 'REJECTED', 'MANUAL_HANDLED'}
 REVISION_STATES = {'RISK_REVIEW', 'AWAITING_APPROVAL', 'ESCALATED'}
@@ -51,7 +51,7 @@ class LifecycleGuards:
         grant = authority(uow, head, self.component_id, purpose)
         return head, current(uow, head, initialize=True), grant
 
-    def prepare(self, uow, case_id, expected_case_version, event_type, now, *, target_record_id=None):
+    def prepare(self, uow, case_id, expected_case_version, event_type, now, *, target_record_id=None, work_id=None):
         """Register metadata for one exact target; never runs its future producer."""
         try:
             purpose = PURPOSES.get(event_type)
@@ -64,18 +64,29 @@ class LifecycleGuards:
             elif target_record_id is not None:
                 reject(uow)
             fingerprint = target(head, state, purpose, target_record_id)
+            if work_id is not None:
+                from .wire import validate
+                validate('Id', work_id)
             existing = uow.execute(select(t.work).where(t.work.c.case_id == case_id,
                 t.work.c.purpose == purpose, t.work.c.generation == state['generation'],
                 t.work.c.target_hash == fingerprint)).mappings().one_or_none()
             if existing is not None:
                 if existing['component_id'] != self.component_id:
                     reject(uow, 'FORBIDDEN')
+                if work_id is not None and (existing['work_id'] != work_id
+                        or existing['store_id'] != head['store_id']
+                        or existing['owner_id'] != head['owner_principal_id']
+                        or existing['input_version'] != head['input_version']
+                        or existing['target_record_id'] != target_record_id):
+                    reject(uow, 'IDEMPOTENCY_CONFLICT')
                 return existing['work_id']
             if purpose=='NOTIFICATION':
                 # The accepted outcome owns its work identity from its original
                 # transaction. Recovery must never invent a replacement intent.
                 reject(uow)
-            work_id = identifier('lifecycle_work')
+            if work_id is not None and uow.execute(select(t.work.c.work_id).where(t.work.c.work_id == work_id)).first():
+                reject(uow, 'IDEMPOTENCY_CONFLICT')
+            work_id = work_id or identifier('lifecycle_work')
             uow.execute(t.work.insert().values(work_id=work_id,case_id=case_id,component_id=self.component_id,
                 store_id=head['store_id'],owner_id=head['owner_principal_id'],purpose=purpose,
                 input_version=head['input_version'],generation=state['generation'],target_hash=fingerprint,target_record_id=target_record_id,
@@ -154,10 +165,11 @@ class LifecycleGuards:
             if work is None or work['purpose'] != purpose:
                 reject(uow)
             head, state, grant = self._load(uow, work['case_id'], purpose)
-            fingerprint = digest({'kind':purpose, **asdict(event)}, 'lifecycle-event/v1')
+            event_kind = 'PROPOSAL_FAILED' if type(event) is ProposalFailed else purpose
+            fingerprint = digest({'kind':event_kind, **asdict(event)}, 'lifecycle-event/v1')
             accepted = uow.execute(select(t.events).where(t.events.c.record_id == event.record_id)).mappings().one_or_none()
             if accepted is not None:
-                if (accepted['fingerprint'] != fingerprint or accepted['event_id'] != event.event_id
+                if (accepted['fingerprint'] != fingerprint or accepted['event_kind'] != event_kind or accepted['event_id'] != event.event_id
                         or accepted['case_id'] != head['case_id'] or work['component_id'] != self.component_id):
                     reject(uow, 'IDEMPOTENCY_CONFLICT')
                 from .founder_integrity import CaseProof, read_revision
@@ -181,7 +193,13 @@ class LifecycleGuards:
                 reject(uow, 'STALE_CASE_VERSION')
             self._allowed(uow,head,state,purpose)
             sources = Sources(uow,head,self.component_id)
-            if purpose == 'PROPOSAL':
+            failure_id = None
+            if type(event) is ProposalFailed:
+                row, body, binding = sources.bound(event.record_id,work,claim,{'PROCESSING_FAILURE'})
+                self._proposal_failed(uow, head, state, work, row, body)
+                failure_id = row['object_id']
+                new_status = 'ESCALATED'
+            elif purpose == 'PROPOSAL':
                 row, body, binding = sources.bound(event.record_id,work,claim,{'PROPOSAL'})
                 new_status = self._proposal(uow,head,state,sources,row,body,binding)
             elif purpose == 'REVISION':
@@ -201,9 +219,11 @@ class LifecycleGuards:
                 new_status = head['status']
             if head['case_version'] >= MAX_VERSION:
                 reject(uow)
+            head_values = dict(status=new_status, case_version=head['case_version']+1, updated_at=now)
+            if failure_id is not None:
+                head_values['current_failure_id'] = failure_id
             changed = uow.execute(update(old.case_heads).where(old.case_heads.c.case_id == head['case_id'],
-                old.case_heads.c.case_version == head['case_version']).values(status=new_status,
-                    case_version=head['case_version']+1, updated_at=now))
+                old.case_heads.c.case_version == head['case_version']).values(**head_values))
             if changed.rowcount != 1:
                 reject(uow,'STALE_CASE_VERSION')
             after = uow.execute(select(t.state).where(t.state.c.case_id == head['case_id'])).mappings().one()
@@ -218,7 +238,7 @@ class LifecycleGuards:
                 uow.execute(update(t.state).where(t.state.c.case_id==head['case_id']).values(notification_work_id=work_id))
                 after=uow.execute(select(t.state).where(t.state.c.case_id==head['case_id'])).mappings().one()
             receipt = dict(event_id=event.event_id,case_id=head['case_id'],work_id=work['work_id'],record_id=row['record_id'],
-                fingerprint=fingerprint,event_kind=purpose,source_id=row['record_id'],
+                fingerprint=fingerprint,event_kind=event_kind,source_id=row['record_id'],
                 source_hash=row['content_sha256'],source_audit_event_id=sources.proof.origin(row)['event_id'],
                 pre_case_version=head['case_version'],pre_input_version=head['input_version'],pre_generation=state['generation'],
                 case_version=head['case_version']+1,input_version=head['input_version'],
@@ -232,7 +252,7 @@ class LifecycleGuards:
                 state='PENDING' if retry else 'DONE',lease_expires_at=None))
             append_event(uow,head['case_id'],actor={'kind':'SERVICE','component_id':self.component_id},
                 event_type='LIFECYCLE_EVENT_ACCEPTED',correlation_id=event.event_id,
-                payload={'event':purpose,'work_id':work['work_id'],'source_record_id':row['record_id'],'generation':after['generation']},
+                payload={'event':event_kind,'work_id':work['work_id'],'source_record_id':row['record_id'],'generation':after['generation']},
                 object_ids=[row['object_id'],work['work_id']],history_refs=[],now=now)
             sealed_work = dict(uow.execute(select(t.work).where(t.work.c.work_id == work['work_id'])).mappings().one())
             sealed_sources = [dict(item) for item in uow.execute(select(t.sources).where(
@@ -275,7 +295,12 @@ class LifecycleGuards:
             if saved is None or saved['content_sha256'] != binding['source_hash']:
                 reject(uow)
             sources.read(binding['record_id'],{saved['kind']})
-        if work['purpose']=='PROPOSAL':
+        if receipt['event_kind']=='PROPOSAL_FAILED':
+            _,failure=sources.read(receipt['record_id'],{'PROCESSING_FAILURE'})
+            if h['status'] != 'ESCALATED' or h['current_failure_id'] != failure['failure_id']:
+                reject(uow)
+            self._failure_content(uow,h,state,work,source,failure)
+        elif work['purpose']=='PROPOSAL':
             from .lifecycle_proposal import verify
             _,bundle=sources.read(receipt['record_id'],{'PROPOSAL'})
             primary=next(item for item in sealed_sources if item['slot']=='PRIMARY')
@@ -293,6 +318,52 @@ class LifecycleGuards:
         # after that work, immediately before this UoW attempts its commit.
         if self.clock() >= lease:
             reject(uow)
+
+    @staticmethod
+    def _failure_content(uow, head, state, work, row, body):
+        from . import investigation_tables as investigation
+        from .canonical import decode_document
+        from .proposal_policy import COMPONENT
+        from .proposal_sources import read_material
+        from .fixed_proposal import build_fixed_proposal, ProposalCapacityError, CAPACITY_MESSAGE
+        from .audit import timestamp
+        failure = uow.execute(select(old.processing_failures).where(
+            old.processing_failures.c.failure_id == row['object_id'])).mappings().one_or_none()
+        block = uow.execute(select(investigation.state.c.current_block_id).where(
+            investigation.state.c.case_id == head['case_id'])).scalar_one_or_none()
+        binding = uow.execute(select(t.sources).where(t.sources.c.record_id == row['record_id'])).mappings().one_or_none()
+        origin = Sources(uow,head,COMPONENT).proof.origin(row)
+        error = body['error']['error']
+        if (work['component_id'] != COMPONENT or row['object_version'] != 1
+                or any(state[name] is not None for name in ('proposal_record_id','review_record_id',
+                    'preview_id','approval_record_id','outcome_record_id','outcome'))
+                or block is not None or failure is None or binding is None
+                or origin['event_type'] != 'FIXED_PROPOSAL_FAILED'
+                or origin['actor'] != {'kind':'SERVICE','component_id':COMPONENT}
+                or body['case_id'] != head['case_id']
+                or body['input_version'] != head['input_version'] or body['stage'] != 'ASSESSMENT'
+                or error['code'] != 'REQUEST_TOO_LARGE' or error['retryable'] is not False
+                or error['message'] != CAPACITY_MESSAGE or error['details'] != []
+                or failure['case_id'] != head['case_id'] or failure['input_version'] != head['input_version']
+                or decode_document(failure['body']) != body
+                or timestamp(failure['occurred_at']) != body['occurred_at']
+                or body['occurred_at'] != timestamp(row['recorded_at'])):
+            reject(uow)
+        capacity = False
+        material = read_material(uow,head)
+        if binding['order_projection_id'] != material.projection_id:
+            reject(uow)
+        try:
+            build_fixed_proposal(material,work,state['proposal_version']+1,row['recorded_at'])
+        except ProposalCapacityError:
+            capacity = True
+        if not capacity:
+            reject(uow)
+
+    def _proposal_failed(self, uow, head, state, work, row, body):
+        if self.component_id != work['component_id'] or head['status'] != 'POLICY_ASSESSMENT' or head['current_failure_id'] is not None:
+            reject(uow)
+        self._failure_content(uow,head,state,work,row,body)
 
     @staticmethod
     def _proposal(uow, head, state, sources, row, bundle, binding):

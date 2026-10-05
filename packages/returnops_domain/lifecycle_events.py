@@ -1,6 +1,6 @@
 """Private A1.03 event references; no wire DTO or arbitrary status setter.
 
-Future deterministic producers save their source and binding on the same fenced
+Deterministic producers save their source and binding on the same fenced
 connection, then submit one of these references. This module does not produce
 proposals, reviews, decisions, approvals, operations, or notifications.
 """
@@ -27,6 +27,12 @@ class SourceEvent:
 
 @dataclass(frozen=True, slots=True, repr=False)
 class ProposalAccepted(SourceEvent):
+    pass
+
+
+@dataclass(frozen=True, slots=True, repr=False)
+class ProposalFailed(SourceEvent):
+    """Private fixed-proposal capacity failure; never a Risk result."""
     pass
 
 

@@ -19,7 +19,7 @@ def _require_private_output_runtime():
     if os.name == "nt" and sys.version_info < (3,12,4):
         raise ValueError("Private demo issuance on Windows requires Python3.12.4 or later.")
 
-def provision(directory,*,store,customer_one,customer_two,founder,order_investigation=False):
+def provision(directory,*,store,customer_one,customer_two,founder,order_investigation=False,fixed_proposal=False):
     """Caller explicitly chooses IDs/roles/store; generated credentials stay private."""
     _require_private_output_runtime()
     directory=Path(directory)
@@ -47,6 +47,9 @@ def provision(directory,*,store,customer_one,customer_two,founder,order_investig
             catalogue=load_builtin_catalogue();policy=InvestigationPolicy(engine)
             policy.configure(store,catalogue=catalogue)
             policy.grant(store,catalogue.metadata.provider_id,can_read=True)
+        if fixed_proposal:
+            from returnops_domain.proposal_policy import FixedProposalPolicy
+            FixedProposalPolicy(engine).grant(store,synthetic_demo=True,enabled=True)
     finally: engine.dispose()
 
 def main():
@@ -54,14 +57,17 @@ def main():
     issue=commands.add_parser('provision');issue.add_argument('--private-dir',required=True)
     for name in ['store','customer-one','customer-two','founder']: issue.add_argument('--'+name,required=True)
     issue.add_argument('--order-investigation',action='store_true',help='Explicitly enable synthetic investigation and grant this store read access.')
+    issue.add_argument('--fixed-proposal',action='store_true',help='Explicitly grant this synthetic store the fixed no-model PROPOSAL component only.')
     serve=commands.add_parser('serve');serve.add_argument('--auth-file',required=True);serve.add_argument('--port',type=int,default=8000)
+    serve.add_argument('--fixed-proposal',action='store_true',help='Enable the synthetic fixed-proposal worker; this does not grant store authority.')
     args=parser.parse_args()
     if args.command=='provision':
-        provision(args.private_dir,store=args.store,customer_one=args.customer_one,customer_two=args.customer_two,founder=args.founder,order_investigation=args.order_investigation)
+        provision(args.private_dir,store=args.store,customer_one=args.customer_one,customer_two=args.customer_two,founder=args.founder,order_investigation=args.order_investigation,fixed_proposal=args.fixed_proposal)
         print('Private synthetic demo registration completed. Credentials are in the explicit private directory; do not share them.')
     else:
         if not Path(args.auth_file).is_absolute() or not 1024<=args.port<=65535: parser.error('Use an absolute private auth file and an unprivileged port.')
         os.environ['RETURNOPS_AUTH_FILE']=args.auth_file
+        os.environ['RETURNOPS_FIXED_PROPOSAL_DEMO']='1' if args.fixed_proposal else '0'
         import uvicorn
         uvicorn.run('returnops_api.main:create_app',factory=True,host='127.0.0.1',port=args.port,access_log=False,log_level='warning')
 
