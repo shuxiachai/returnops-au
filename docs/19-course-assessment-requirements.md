@@ -1,5 +1,7 @@
 # ELEC5620：课程要求与全员交付对照
 
+> **Stage2 本地原件补充（2026-10-05）：**已核实新增的两页 `practical/ELEC5620 Project Stage 2 Marking Criteria.pdf`（SHA256 `21b40026f135debeac05c411440bdb2710ba00616198f6106d0aaf748e8083ea`）。评分为设计实现7、AI能力4、Agile4、先进技术5，共20分；明确要求 Jira 协作、2026-11-01 23:59 源码提交、Week13 从 Canvas 下载源码并现场部署、四项评分维度的真实贡献表。PDF 未注明时区；当前 Canvas 上传细则及后续通知尚未核验。详见[Stage2 提交检查与未填写贡献表](28-stage2-submission-checklist.md)。下方9月14日来源表保留为当时的证据记录，不把其旧截止核验状态当作本次最新结论；九功能、89项分工及原依赖不变。
+
 > **COURSE-20260914-0.1**，核对日期 2026-09-14；按 C 的请求进行 AI 辅助整理，供 A/全组评阅。这是官方来源与证据要求对照，不是 tutor 批准、个人贡献签字、实时看板或课程验收。产品范围仍以 [docs/00](00-project-definition-v1.md)为准，九项功能以 [docs/07](07-frozen-work-allocation.md)为准，89 项 ID/Owner/Reviewer/S/F 以 [docs/08](08-delivery-work-packages.md)为准；[docs/11](11-stage1-readiness.md)继续作为 R.04 提交核验入口。
 
 ## 1. 所有人先看
