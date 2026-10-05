@@ -80,8 +80,8 @@ revision/risk loops and excludes human/physical waiting only.
 
 No separate handoff folder is required. Review the existing [C PR #12](https://github.com/shuxiachai/returnops-au/pull/12), using its **latest exact head and checks**, not the older B approval of `c9f205d` or A COMMENT on `32c704f`.
 
-1. Read [C's delivery and AI-use record, MC-PER-0.2](docs/reports/member-c-contribution-and-interview.md). Section 1.1 links the actual model/figure/report/review artifacts, §2 and §3 explain their technical basis, §4 distinguishes supplied material from pending shared participation, and §6 provides a factual AI-disclosure draft. These are C-owned, AI-assisted candidate deliverables, not a claim of unaided work or a completed personal explanation. Real personal walkthrough dates/feedback and final confirmation remain unfilled.
-2. Review [MC-0.1.3](docs/18-member-c-model-chain.md), the [seven C source/view pairs](docs/diagrams/member-c) and [MC-RPT-0.4](docs/reports/member-c-stage1-draft.md). **A:** record the review target SHA, findings or approval, and Object/class consistency disposition in PR #12. If C adds further commits, review the new increment before final approval.
+1. Read [C's delivery and AI-use record, MC-PER-0.2](stage1/drafts/member-c-contribution-and-interview.md). Section 1.1 links the actual model/figure/report/review artifacts, §2 and §3 explain their technical basis, §4 distinguishes supplied material from pending shared participation, and §6 provides a factual AI-disclosure draft. These are C-owned, AI-assisted candidate deliverables, not a claim of unaided work or a completed personal explanation. Real personal walkthrough dates/feedback and final confirmation remain unfilled.
+2. Review [MC-0.1.3](docs/18-member-c-model-chain.md), the [seven C source/view pairs](docs/diagrams/member-c) and [MC-RPT-0.4](stage1/drafts/member-c-stage1-draft.md). **A:** record the review target SHA, findings or approval, and Object/class consistency disposition in PR #12. If C adds further commits, review the new increment before final approval.
 3. Check the new [A-authored correction in B PR #14 at `1b094289`](https://github.com/shuxiachai/returnops-au/blob/1b094289c219727d9e42e694ade6f13431c34c7b/docs/reviews/b-shared-model-followup-20260917.md) and [team-report candidate](https://github.com/shuxiachai/returnops-au/blob/1b094289c219727d9e42e694ade6f13431c34c7b/docs/reports/stage-1-team-report.md). This supplies a candidate receipt for C's six report findings and uses C `15c136a`; it is not a merged final report, the shared Google Doc, completed M-S.03 or a substitute for A's C review.
 4. Resolve the stacked merge explicitly. C PR #12 targets A's `fix/10-kan-32-contract-review`, not main. Recommended order: complete the upstream review/acceptance decision for [PR #11](https://github.com/shuxiachai/returnops-au/pull/11), merge that approved dependency, then reconcile C with the resulting main, check the C-only diff and fresh CI, and review/merge the final C revision. Do not retarget the old C head to main merely to display a contributor name: it also carries A's unmerged history and lacks A's later `3dd1ff6` test correction. Preserve authorship and do not silently merge unrelated A/B work.
 
@@ -105,8 +105,8 @@ separate from that five-file delivery. Jira remains the live workflow record.
 |---|---|
 | Updated requirements for everyone | [Course/rubric evidence map](https://github.com/shuxiachai/returnops-au/blob/b3b3b5869d33704e9f1da5b777c8c9338de6b565/docs/19-course-assessment-requirements.md) and [shared reading guide](https://github.com/shuxiachai/returnops-au/blob/b3b3b5869d33704e9f1da5b777c8c9338de6b565/README.md), delivered separately in [PR #13](https://github.com/shuxiachai/returnops-au/pull/13); not yet integrated here |
 | C models and figures | [MC-0.1.3 model chain, including §12 handoff](docs/18-member-c-model-chain.md) and [editable PUML / SVG figures](docs/diagrams/member-c) |
-| C text for the team report | [MC-RPT-0.4, §10](docs/reports/member-c-stage1-draft.md): replacement text for team report §§7.3, 10, 13.4, 14, 16 and 17; A/B integration is still pending |
-| Personal contribution / interview record | [MC-PER-0.1.1 worksheet](docs/reports/member-c-contribution-and-interview.md): questions and evidence fields, still to be completed by C personally |
+| C text for the team report | [MC-RPT-0.4, §10](stage1/drafts/member-c-stage1-draft.md): replacement text for team report §§7.3, 10, 13.4, 14, 16 and 17; A/B integration is still pending |
+| Personal contribution / interview record | [MC-PER-0.1.1 worksheet](stage1/drafts/member-c-contribution-and-interview.md): questions and evidence fields, still to be completed by C personally |
 | Report integration findings | [MC-INTEGRATION-0.1](docs/reviews/member-c-integration-followup-20260916.md): six corrections and exact source versions; [handoff to B's PR #14](https://github.com/shuxiachai/returnops-au/pull/14#issuecomment-5696352699) |
 | F.03 consumer review | [Dated C review](docs/reviews/member-c-f03-review-20260916.md) and [technical comment on A's PR #15](https://github.com/shuxiachai/returnops-au/pull/15#issuecomment-5696357090): bounded AI-assisted static review, not personal acceptance |
 
@@ -157,6 +157,9 @@ separate from that five-file delivery. Jira remains the live workflow record.
 
 ### Stage 1 model and report navigator — 2026-09-19
 
+Start with the [Stage 1 report, drafts and presentation archive](stage1/README.md)
+for the repository materials and final PPT source.
+
 For an A-led, AI-assisted navigation draft prepared for B's review, start with
 [the Stage 1 model, requirements and report navigator](docs/stage1-model-index.md).
 It routes to existing sources only: it does not revise the frozen allocation,
@@ -165,12 +168,12 @@ runtime/human acceptance. The shared report remains the
 [canonical Google Doc](https://docs.google.com/document/d/1xvGO8EA_yZwWj1It3UM7AKDFEoQjsj5eJJXbCz4bcnc);
 the repository's modular team report remains a separate candidate.
 
-The [Stage 1 cloud report v0.4 snapshot](docs/reports/stage1-cloud-v04/README.md)
+The [Stage 1 cloud report v0.4 snapshot](stage1/reports/v0.4/README.md)
 is the current repository-readable snapshot of the canonical Google Doc. Its
 README records the frozen source and exact retrieval, rendering, and native-format
 limitations; the native Google Doc remains authoritative.
 
-The [archived v0.3 cloud snapshot](docs/reports/stage1-cloud-snapshot/README.md)
+The [archived v0.3 cloud snapshot](stage1/reports/v0.3/README.md)
 retains the 3 October 2026 PDF/DOCX exports and Markdown rendition as historical
 evidence; it is not the current report snapshot.
 

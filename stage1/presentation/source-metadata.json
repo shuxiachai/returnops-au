@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "checked_on_local_date": "2026-10-05",
+  "timezone": "Australia/Sydney",
+  "ppt": {
+    "drive_file_id": "1oE-d_TP1XjoBB7gYHby2aZRRSqM9tBBB",
+    "drive_url": "https://docs.google.com/presentation/d/1oE-d_TP1XjoBB7gYHby2aZRRSqM9tBBB/edit",
+    "source_name": "ReturnOps_Stage1_Video.pptx",
+    "drive_size_bytes": 60493,
+    "drive_modified_time": "2026-09-22T08:53:27.525Z",
+    "current_metadata_read": "successful; source ID, size and modified time match retained source record",
+    "user_confirmed_final": true,
+    "user_confirmation": "Google drive中的ppt就是实际的最终版本的ppt",
+    "archive_path": "stage1/presentation/ReturnOps_Stage1_Video.pptx",
+    "sha256": "ffc710f5cf2e9c71ed6c433cae2cd5bced7a6c8afaaca74ac672629df2cc484b",
+    "archive_size_bytes": 60493,
+    "bytes_provenance": "Exact preserved Drive-source copy retrieved on 2026-09-26; not freshly downloaded in this task",
+    "retained_source_reference": "tmp/stage2-entry-20260926/submission-reference/ReturnOps_Stage1_Video.pptx",
+    "raw_materialization_this_task": "HTTP 403; no successful fresh byte retrieval",
+    "canvas_uploaded_bytes_independently_verified": false
+  },
+  "speaker_script": {
+    "drive_file_id": "1wum-DFCBYcmXA8seB770K_n2R4qxWb7t",
+    "drive_url": "https://docs.google.com/document/d/1wum-DFCBYcmXA8seB770K_n2R4qxWb7t/edit",
+    "source_name": "ReturnOps_Stage1_ABC_Script.docx",
+    "drive_size_bytes": 40046,
+    "drive_modified_time": "2026-09-22T09:30:07.699Z",
+    "current_metadata_read": "successful",
+    "raw_materialization_this_task": "HTTP 403; no local current archive included",
+    "archive_path": null
+  },
+  "submission_status": "User confirmed Stage 1 submission; no independent Canvas receipt or uploaded byte comparison in this task",
+  "video_scope": "PPT filename contains Video; actual recorded video remains managed by the user"
+}
