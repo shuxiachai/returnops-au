@@ -1,10 +1,26 @@
 # Stage 2 entry and implementation handoff
 
-## Current implementation: persisted investigation candidate after PR26
+## Current preparation: A1.03 acceptance and A1.05 offline assembly — 5 October 2026
 
-The adopted technical baseline is main `4673f9f1372b29dbb753a41e4a029c9382e8f07b`, containing separately lead-authorized PR22 storage, PR24 customer flow and PR26 synthetic provider merges. [Issue #27](https://github.com/shuxiachai/returnops-au/issues/27), recorded KAN-14, adds the bounded A1.03 investigation/clarification/state loop described in [the implementation guide](23-order-investigation.md). It persists separate investigation work, current SERVICE/provider authority, raw lookup receipts and accepted facts, with actual typed outcome routing and guarded recovery/retention. The public seven operations, schemas and all89 WBS fields are unchanged.
+The inspected main is `de8c4e423aba75bf69018ac0da55a7d34b0c5bdb` (tree `47332ad64650d87cdf3e367a4efb77e3a4fbc897`). It includes the adopted storage, customer intake/clarification, synthetic order lookup/investigation, Founder four read queries, persisted lifecycle guards and private fresh-authority denial-audit verification. The relevant161 scoped code/build/contract/test/tool and docs08/25/26 blobs match reviewed PR34 source `c0d9d6a0f0cc7005047ae8b7b315e98967a7ebd6`. Shared runtime code, public schemas, migration history and the89 fixed WBS fields are unchanged by this preparation.
 
-The implementation supports future A1.05 but does not claim its whole A1.03 start prerequisite accepted. Founder views, fixed packets, Risk review, approval, operations, model calls and real providers remain outside this delivery. Use the actual exact-source PR and CI evidence for publication/merge status; no teammate or joint acceptance is inferred. The previous customer-candidate/4fc and storage/082 sections below are preserved historical records, not the current main or next task.
+The [current A1.03 acceptance sheet](reviews/a103-acceptance-current.md) maps the original four criteria to precise existing implementation/tests and separates technical adoption from real A/C and predecessor decisions. Those decision fields remain unfilled in the current packet; whole A1.03 acceptance and A1.05 runtime permission are not inferred. The [A1.05 offline preparation](27-a105-offline-proposal-preparation.md) is a candidate assembler and contract tests only, preserving complete sources and producing an explicitly synthetic non-executable bundle. No real proposal/Risk/decision/approval/operation/notification/LLM producer is registered by this slice.
+
+The next runtime step, after original A1.03 acceptance, is A1.05 fixed-packet persistence with actual current full-source verification, ending at RISK_REVIEW. Its original finish conditions A1.04/F.03 remain. Complete A2 simulated approval/execution/notification and R.02/Gate1 before connecting AI output to the executable path; do not add A2 as a circular A1.03 prerequisite.
+
+| Member | Next bounded work under the original allocation | Reviewable output |
+|---|---|---|
+| A / Jingbo Chai | Record exact A1.03/predecessor decisions; prepare fixed proposals offline while gated | Current four-criterion sheet, genuine version/scope decisions and offline negative tests; actual runtime integration only after S acceptance |
+| B / Chengsi Li | B1 customer submission/clarification UI contract preparation | Complete/incomplete/loading/error cases, preserved original text and repeated submit key; use mock/server facts without a separate authoritative state; B1.04 integration keeps its original dependencies |
+| C / Yuwei Tao | Actual designated review; choose at most one main implementation item in C1/C2/E.01 | Personal criterion disposition; complete retrieval/citation source samples, five fixed risk outcomes, or pilot/label preparation according to original dependencies; C keeps module ownership |
+
+Before timed Gold answers, C seals all30 initial labels and supplies only inputs plus a label-free sealing receipt to A/B. Keep pilot separate and retain original E.02–E.08 handoffs. Do not infer personal feature implementation from AI-assisted preparation: the local Lab2 requires each member to implement at least two core and one optional feature.
+
+The user states on5 October that Stage2 notices have not yet arrived and identifies `practical/` and `lecture&tutorial/` as the available course sources. The newly available local Stage2 rubric specifies source submission on **1 November 2026 at23:59**, a Week13 demo downloaded directly from Canvas and deployed on site, and a four-criterion contribution statement with each row totaling100%. Its timezone and current upload/interview rules are not stated or newly verified. See the [source-grounded submission checklist and unfilled contribution table](28-stage2-submission-checklist.md). The [dated course evidence map](19-course-assessment-requirements.md) remains a source map, not a fresh Canvas notice.
+
+A3 still needs actual test entitlement and tutor qualification/scope disposition. Reuse the existing tutor question in [the feasibility record](17-logistics-sandbox-feasibility.md); the separate dated local brief is `docs/reviews/a3-tutor-decision-brief-20260914.md`, which is not a published GitHub download. Both are drafts, not permission or a reply. No alternative provider or optional substitution is approved here. Stage1 is user-confirmed submitted; its production and video remain user-managed.
+
+The following snapshots preserve earlier dated source evidence. Old4673/Issue27/4fc/082 statements describe historical checkpoints, not the current main or instructions to repeat completed implementation. Current source/CI/adoption must always be rechecked; publication and real acceptance stay separate.
 
 ## Historical status: customer backend candidate on merged PR22
 
