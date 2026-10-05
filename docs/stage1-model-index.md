@@ -10,11 +10,11 @@
 | Fixed ownership, dependencies and acceptance language | [Frozen allocation](07-frozen-work-allocation.md); [delivery work packages](08-delivery-work-packages.md) |
 | Course/report readiness | [Course requirements evidence map](19-course-assessment-requirements.md); [Stage 1 readiness](11-stage1-readiness.md) |
 | Shared model sources and static checks | [shared model catalogue](#shared-model-sources); [model-check instructions](../tools/model-checks/README.md) |
-| Modular Git report candidate | [Stage 1 team report](reports/stage-1-team-report.md) |
+| Modular Git report candidate | [Stage 1 team report](../stage1/drafts/stage-1-team-report.md) |
 | Canonical shared report | [shared Stage 1 Google Doc](https://docs.google.com/document/d/1xvGO8EA_yZwWj1It3UM7AKDFEoQjsj5eJJXbCz4bcnc) |
-| Local-only full-report assembly | `docs/reports/stage1-v0.1/README.md` and `ReturnOps-AU-Stage1-v0.1.md` in the local working tree; neither is a Git-main report source |
+| Repository Stage 1 archive | [Report snapshots, drafts and presentation](../stage1/README.md); [current v0.4](../stage1/reports/v0.4/README.md) and [historical v0.3](../stage1/reports/v0.3/README.md) |
 
-The modular repository report is a candidate, not a copy of the canonical Google Doc. The local assembly is report-specific; use the Git model sources below for editable technical artefacts. A green CI or actual Git merge does not establish runtime behaviour, personal explanation, human acceptance, or course submission.
+The modular repository report remains a draft distinct from the canonical Google Doc and the byte-preserved cloud snapshots. Stage 1 report and presentation materials are organised under the repository-root `stage1/` directory; use the existing Git model sources below for editable technical artefacts. A green CI or actual Git merge does not establish runtime behaviour, personal explanation, human acceptance, or course submission.
 
 ## Requirements and use cases
 
@@ -26,7 +26,7 @@ The authoritative acceptance criteria are in the [project definition](00-project
 | Grounding, proposal and risk | FR-006–FR-008 | [project definition](00-project-definition-v1.md#6-functional-requirements); [derived register](04-requirements-and-backlog.md#mandatory-capabilities); [C chain](18-member-c-model-chain.md) |
 | Founder governance, operations, audit and dashboard | FR-009–FR-012 | [project definition](00-project-definition-v1.md#6-functional-requirements); [derived register](04-requirements-and-backlog.md#mandatory-capabilities); [A chain](12-member-a-model-chain.md) |
 | Quality requirements | NFR-001–NFR-009 | [project definition](00-project-definition-v1.md#7-non-functional-requirements); [derived register](04-requirements-and-backlog.md#mandatory-quality-requirements) |
-| Use cases | UC-01, UC-01E, UC-02, UC-03, UC-04, UC-05 | [project definition](00-project-definition-v1.md#9-use-cases); [source](diagrams/05-use-case-diagram.md); [derived catalogue](04-requirements-and-backlog.md#laboratory-3-modelling-views) |
+| Use cases | UC-01, UC-01E, UC-02, UC-03, UC-04, UC-05 | [project definition](00-project-definition-v1.md#9-use-cases); [source](diagrams/05-use-case-diagram.md); [derived catalogue](04-requirements-and-backlog.md) |
 
 ## Shared model sources
 
@@ -45,11 +45,11 @@ M-S.03 is B's later integration of requirement classification, Feature/Use-case 
 
 ## Report navigation and active figures
 
-The local-only full-report assembly is the previously verified 21 September export. The cloud report was subsequently clarified and the user nominated its current version as a submission-content reference. A separate 26 September reference archive retains a 53-page native PDF and the nine-slide PPT without overwriting the earlier local assembly. It is not an independently retrieved Canvas submission package, and this archival export was not newly visually reviewed.
+The [v0.4 report archive](../stage1/reports/v0.4/README.md) is the latest repository snapshot, with [v0.3](../stage1/reports/v0.3/README.md) preserved separately. Their original source metadata, export bytes and verification limits are unchanged. The user confirms that the [Drive PPT](https://docs.google.com/presentation/d/1oE-d_TP1XjoBB7gYHby2aZRRSqM9tBBB/edit) is the actual final PPT; the [presentation archive](../stage1/presentation/README.md) records the retained source copy and current metadata check. The latest report archive is not thereby established as the actual uploaded report, and no Canvas receipt or uploaded byte comparison was independently checked.
 
 B's [VID-1 script](20-stage1-video-script.md), C's unmerged PR20 binary snapshot and the later shared Drive versions are distinct preparation artifacts. Their dates and speaking text differ. The user now confirms submission and manages video work; this index does not schedule recording or require rewriting submitted materials.
 
-The Git [team-report candidate](reports/stage-1-team-report.md) remains separate from the shared Google Doc. Submission, merged source, personal contribution, technical acceptance and runtime implementation are separate facts. Preserve original author/source attribution, and do not infer acceptance or contribution percentages from Git publication.
+The Git [team-report candidate](../stage1/drafts/stage-1-team-report.md) remains separate from the shared Google Doc. Submission, merged source, personal contribution, technical acceptance and runtime implementation are separate facts. Preserve original author/source attribution, and do not infer acceptance or contribution percentages from Git publication.
 
 
 ## Review and integration handoff
