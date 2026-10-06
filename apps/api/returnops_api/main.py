@@ -1,6 +1,7 @@
 """Health diagnostics and the frozen customer/Founder read operations."""
 from contextlib import asynccontextmanager
 from threading import BoundedSemaphore
+import os
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from returnops_domain.intake_processor import IntakeProcessor,IntakeWorker
@@ -11,14 +12,22 @@ from .customer_config import load_private_auth_config
 from .customer_http import register_customer_routes
 from .founder_http import register_founder_routes
 
-def create_app(*,engine=None,auth_config=None,enable_processor=True):
+def create_app(*,engine=None,auth_config=None,enable_processor=True,enable_fixed_proposal=None):
     # Keyword injection is trusted Python composition for tests, never HTTP input.
     configured=auth_config if auth_config is not None else load_private_auth_config()
+    if enable_fixed_proposal is None:
+        flag = os.environ.get('RETURNOPS_FIXED_PROPOSAL_DEMO','0')
+        if flag not in {'0','1'}:
+            raise ValueError('The synthetic fixed-proposal flag must be 0 or 1.')
+        enable_fixed_proposal = flag == '1'
+    if type(enable_fixed_proposal) is not bool:
+        raise ValueError('The synthetic fixed-proposal flag must be boolean.')
     settings=Settings.from_environment() if engine is None else None
     @asynccontextmanager
     async def lifespan(app):
         actual=engine if engine is not None else build_engine(settings)
         app.state.engine=actual;app.state.auth_config=configured;app.state.intake_worker=None;app.state.investigation_worker=None
+        app.state.proposal_worker=None
         app.state.upload_slots=BoundedSemaphore(2)
         try:
             if configured is not None and enable_processor:
@@ -26,8 +35,13 @@ def create_app(*,engine=None,auth_config=None,enable_processor=True):
                 app.state.intake_worker.start()
                 app.state.investigation_worker=IntakeWorker(InvestigationProcessor(actual))
                 app.state.investigation_worker.start()
+                if enable_fixed_proposal:
+                    from returnops_domain.proposal_processor import FixedProposalProcessor
+                    app.state.proposal_worker=IntakeWorker(FixedProposalProcessor(actual))
+                    app.state.proposal_worker.start()
             yield
         finally:
+            if app.state.proposal_worker is not None: app.state.proposal_worker.stop()
             if app.state.investigation_worker is not None: app.state.investigation_worker.stop()
             if app.state.intake_worker is not None: app.state.intake_worker.stop()
             if engine is None: actual.dispose()
