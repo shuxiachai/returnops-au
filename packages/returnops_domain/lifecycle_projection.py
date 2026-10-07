@@ -16,6 +16,13 @@ def project(uow, head, result):
         referenced={citation['passage_id'] for citation in packet['citations']}
         result['cited_passages']=[passage for passage in bundle['retrieval_result']['passages'] if passage['passage_id'] in referenced]
     if state['review_record_id'] is not None:
+        from .review_sources import accepted_review
+        from .lifecycle_schema import version, CURRENT, LEGACY
+        schema=version(uow.connection)
+        if schema==CURRENT:
+            accepted_review(uow,head,state,'lifecycle-read')
+        elif schema!=LEGACY:
+            reject(uow)
         _, bundle = sources.read(state['review_record_id'],{'REVIEW'},current_actor=False)
         review = bundle['review']
         if (state['proposal_record_id'] is None or bundle['proposal_record_id'] != state['proposal_record_id']

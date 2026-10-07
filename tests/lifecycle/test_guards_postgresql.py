@@ -62,6 +62,7 @@ def test_proposal_then_same_input_revision_revokes_actual_old_claim_and_keeps_mo
 
 
 @pytest.mark.parametrize('decision,terminal',[('REJECT','REJECTED'),('MANUAL_HANDLING','MANUAL_HANDLED')])
+@pytest.mark.parametrize('flow_engine',['0007_lifecycle_guards','head'],indirect=True)
 def test_saved_notification_pending_failed_sent_keeps_identity_and_has_no_effects(flow_engine,identities,enabled,decision,terminal):
     original=ready(flow_engine,identities);case=original['case_id'];proposal(flow_engine,identities,case)
     accepted,_=outcome(flow_engine,identities,case,decision=decision)

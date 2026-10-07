@@ -37,6 +37,12 @@ class ProposalFailed(SourceEvent):
 
 
 @dataclass(frozen=True, slots=True, repr=False)
+class EscalateReviewAccepted(SourceEvent):
+    """Private controlled ESCALATE acceptance, independently REVIEW-authorized."""
+    pass
+
+
+@dataclass(frozen=True, slots=True, repr=False)
 class RevisionRequested(SourceEvent):
     pass
 

@@ -9,8 +9,12 @@ from synthetic_effects import existing_execution, observe, return_outcome
 
 @pytest.mark.parametrize('decision,terminal',[('REJECT','REJECTED'),('MANUAL_HANDLING','MANUAL_HANDLED')])
 @pytest.mark.parametrize('notification_status',['PENDING','FAILED','SENT'])
+@pytest.mark.parametrize('flow_engine',['0007_lifecycle_guards'],indirect=True)
 def test_late_both_effect_successes_preserve_accepted_outcome_and_notification(flow_engine,identities,enabled,decision,terminal,notification_status):
+    from returnops_domain.lifecycle_schema import version,LEGACY
+    with flow_engine.connect() as connection:assert version(connection)==LEGACY
     original=ready(flow_engine,identities);case=original['case_id']
+    assert {r['purpose'] for r in rows(flow_engine,t.authorities)}=={'PROPOSAL','REVISION','OUTCOME','NOTIFICATION','EFFECT'}
     operations=existing_execution(flow_engine,identities,case)
     # Explicit private future-A2 failure starting condition; no provider runs.
     with CustomerUnitOfWork(flow_engine,write=True) as uow:
@@ -93,7 +97,10 @@ def test_decision_outcome_does_not_borrow_execution_or_review_edges(flow_engine,
     assert rows(flow_engine,old.history)==before and rows(flow_engine,t.state)[0]['outcome'] is None
 
 
+@pytest.mark.parametrize('flow_engine',['0007_lifecycle_guards'],indirect=True)
 def test_notification_claim_survives_unrelated_late_effect_case_version_changes(flow_engine,identities,enabled):
+    from returnops_domain.lifecycle_schema import version,LEGACY
+    with flow_engine.connect() as connection:assert version(connection)==LEGACY
     from sqlalchemy import select
     from returnops_domain import founder_codec as finite
     from returnops_domain.audit import identifier,timestamp
@@ -101,6 +108,7 @@ def test_notification_claim_survives_unrelated_late_effect_case_version_changes(
     from returnops_domain.lifecycle_guards import LifecycleGuards
     from synthetic_sources import COMPONENT,claim,head,stage,bind_source,now
     original=ready(flow_engine,identities);case=original['case_id'];operations=existing_execution(flow_engine,identities,case)
+    assert {r['purpose'] for r in rows(flow_engine,t.authorities)}=={'PROPOSAL','REVISION','OUTCOME','NOTIFICATION','EFFECT'}
     with CustomerUnitOfWork(flow_engine,write=True) as uow:
         uow.execute(update(old.case_heads).where(old.case_heads.c.case_id==case).values(status='ESCALATED'));uow.commit()
     outcome(flow_engine,identities,case)

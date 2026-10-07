@@ -11,12 +11,13 @@ from . import customer_tables as old, lifecycle_tables as t
 from .audit import append_event, identifier
 from .canonical import digest
 from .errors import FlowError
-from .lifecycle_events import (LifecycleClaim, ProposalAccepted, ProposalFailed, RevisionRequested,
+from .lifecycle_events import (LifecycleClaim, ProposalAccepted, ProposalFailed, EscalateReviewAccepted, RevisionRequested,
     OutcomeAccepted, NotificationObserved, EffectObserved)
 from .lifecycle_sources import Sources, authority
 from .lifecycle_state import current, installed, invalidate, reject, MAX_VERSION
+from .lifecycle_schema import version as schema_version, CURRENT
 
-PURPOSES = {ProposalAccepted: 'PROPOSAL', ProposalFailed: 'PROPOSAL', RevisionRequested: 'REVISION',
+PURPOSES = {ProposalAccepted: 'PROPOSAL', ProposalFailed: 'PROPOSAL', EscalateReviewAccepted: 'REVIEW', RevisionRequested: 'REVISION',
             OutcomeAccepted: 'OUTCOME', NotificationObserved: 'NOTIFICATION', EffectObserved: 'EFFECT'}
 TERMINAL = {'COMPLETED', 'REJECTED', 'MANUAL_HANDLED'}
 REVISION_STATES = {'RISK_REVIEW', 'AWAITING_APPROVAL', 'ESCALATED'}
@@ -45,6 +46,10 @@ class LifecycleGuards:
     def _load(self, uow, case_id, purpose):
         if not uow.write or not installed(uow):
             reject(uow)
+        if purpose == 'REVIEW':
+            from .lifecycle_schema import version, CURRENT
+            if version(uow.connection) != CURRENT:
+                reject(uow)
         head = uow.execute(select(old.case_heads).where(old.case_heads.c.case_id == case_id).with_for_update()).mappings().one_or_none()
         if head is None or not head['available']:
             reject(uow, 'NOT_FOUND')
@@ -105,6 +110,8 @@ class LifecycleGuards:
         if not state['available']:
             reject(uow)
         allowed = ((purpose == 'PROPOSAL' and head['status'] == 'POLICY_ASSESSMENT' and state['outcome'] is None)
+            or (purpose == 'REVIEW' and head['status'] == 'RISK_REVIEW' and state['proposal_record_id'] is not None
+                and all(state[name] is None for name in ('review_record_id','preview_id','approval_record_id','outcome_record_id','outcome')))
             or (purpose == 'REVISION' and head['status'] in REVISION_STATES and state['proposal_record_id'] is not None and state['outcome'] is None)
             or (purpose == 'OUTCOME' and head['status'] in DECISION_STATES | {'ACTION_IN_PROGRESS','RECONCILING'} and state['outcome'] is None)
             or (purpose == 'NOTIFICATION' and head['status'] in {'NOTIFICATION_PENDING','NOTIFICATION_FAILED'} and state['outcome'] is not None)
@@ -165,6 +172,7 @@ class LifecycleGuards:
             if work is None or work['purpose'] != purpose:
                 reject(uow)
             head, state, grant = self._load(uow, work['case_id'], purpose)
+            schema_revision=schema_version(uow.connection)
             event_kind = 'PROPOSAL_FAILED' if type(event) is ProposalFailed else purpose
             fingerprint = digest({'kind':event_kind, **asdict(event)}, 'lifecycle-event/v1')
             accepted = uow.execute(select(t.events).where(t.events.c.record_id == event.record_id)).mappings().one_or_none()
@@ -202,6 +210,12 @@ class LifecycleGuards:
             elif purpose == 'PROPOSAL':
                 row, body, binding = sources.bound(event.record_id,work,claim,{'PROPOSAL'})
                 new_status = self._proposal(uow,head,state,sources,row,body,binding)
+            elif purpose == 'REVIEW':
+                from .review_sources import verify_staged_review
+                row, body, binding = sources.bound(event.record_id,work,claim,{'REVIEW'})
+                verify_staged_review(uow,head,state,row,body,binding,work)
+                uow.execute(update(t.state).where(t.state.c.case_id == head['case_id']).values(review_record_id=row['record_id']))
+                new_status = 'ESCALATED'
             elif purpose == 'REVISION':
                 row, body, binding = sources.bound(event.record_id,work,claim,{'REVIEW','DECISION'})
                 new_status = self._revision(uow,head,state,sources,row,body,event)
@@ -261,7 +275,7 @@ class LifecycleGuards:
             sealed_notification = (dict(uow.execute(select(t.work).where(
                 t.work.c.work_id==after['notification_work_id'])).mappings().one()) if purpose=='OUTCOME' else None)
             uow.before_commit(lambda: self._before_commit(uow,work,claim,receipt,work['lease_expires_at'],
-                sealed_work,dict(after),sealed_sources,sealed_notification))
+                sealed_work,dict(after),sealed_sources,sealed_notification,head['status'],schema_revision))
             return receipt
         except FlowError:
             uow.poison()
@@ -270,7 +284,8 @@ class LifecycleGuards:
             uow.poison()
         raise FlowError('INVALID_STATE') from None
 
-    def _before_commit(self, uow, work, claim, receipt, lease, sealed_work, sealed_state, sealed_sources, sealed_notification):
+    def _before_commit(self, uow, work, claim, receipt, lease, sealed_work, sealed_state, sealed_sources, sealed_notification,
+                       pre_status, schema_revision):
         h,state,grant = self._load(uow,work['case_id'],work['purpose'])
         actual_work = uow.execute(select(t.work).where(t.work.c.work_id == work['work_id'])).mappings().one_or_none()
         actual_sources = [dict(item) for item in uow.execute(select(t.sources).where(
@@ -305,6 +320,15 @@ class LifecycleGuards:
             _,bundle=sources.read(receipt['record_id'],{'PROPOSAL'})
             primary=next(item for item in sealed_sources if item['slot']=='PRIMARY')
             verify(uow,h,sources,bundle,primary['order_projection_id'])
+        elif work['purpose']=='REVIEW':
+            from .review_sources import accepted_review
+            accepted_review(uow,h,state,self.component_id)
+        elif work['purpose']=='OUTCOME' and source['kind']=='DECISION':
+            _, decision = sources.read(source['record_id'],{'DECISION'})
+            if (schema_revision==CURRENT and pre_status=='ESCALATED'
+                    and decision.get('decision')=='MANUAL_HANDLING' and 'proposal_id' in decision):
+                from .review_sources import manual_proposal_target
+                manual_proposal_target(uow,h,state,decision,self.component_id,accepted_version=receipt['pre_case_version'])
         if state['outcome'] == 'RETURN_CREATED' and work['purpose'] in {'OUTCOME','NOTIFICATION'}:
             self._return_sources(uow,h,state,sources,state['return_record_id'],state['label_record_id'])
         elif work['purpose'] == 'EFFECT':
@@ -317,6 +341,15 @@ class LifecycleGuards:
         # Provenance/PDF validation may take time. The final time sample belongs
         # after that work, immediately before this UoW attempts its commit.
         if self.clock() >= lease:
+            reject(uow)
+        # Expensive source verification cannot outlive or replace this authority.
+        h2,s2,g2 = self._load(uow,work['case_id'],work['purpose'])
+        w2 = uow.execute(select(t.work).where(t.work.c.work_id == work['work_id'])).mappings().one_or_none()
+        if (g2['revision'] != claim.authority_revision or h2['owner_principal_id'] != work['owner_id']
+                or h2['store_id'] != work['store_id'] or dict(s2) != sealed_state
+                or h2['case_version']!=receipt['case_version'] or h2['input_version']!=receipt['input_version']
+                or h2['status']!=receipt['status'] or schema_version(uow.connection)!=schema_revision
+                or w2 is None or dict(w2) != sealed_work or self.clock() >= lease):
             reject(uow)
 
     @staticmethod
@@ -415,6 +448,17 @@ class LifecycleGuards:
 
     def _decision_target(self, uow, head, state, sources, body):
         if 'proposal_id' in body:
+            if (schema_version(uow.connection)==CURRENT and head['status']=='AWAITING_APPROVAL'
+                    and state['review_record_id'] is not None):
+                # The old empty-review private future fixture remains a legacy
+                # component edge. A current review cannot masquerade as PASS:
+                # this slice accepts ESCALATE only and has no approval entry.
+                reject(uow)
+            if (schema_version(uow.connection)==CURRENT and body['decision']=='MANUAL_HANDLING'
+                    and head['status']=='ESCALATED'):
+                from .review_sources import manual_proposal_target
+                manual_proposal_target(uow,head,state,body,self.component_id)
+                return 'MANUAL_HANDLED'
             _, packet = self._current_proposal(uow,head,state,sources)
             if any(body[name] != packet[name] for name in ('proposal_id','proposal_version')):
                 reject(uow)
@@ -450,6 +494,11 @@ class LifecycleGuards:
     def _outcome(self, uow, head, state, sources, event, row, body, work, claim):
         if row['kind'] == 'DECISION':
             outcome = self._decision_target(uow,head,state,sources,body)
+            if (schema_version(uow.connection)==CURRENT and body['decision']=='MANUAL_HANDLING'
+                    and 'proposal_id' in body and head['status']=='ESCALATED'):
+                decision_binding = uow.execute(select(t.sources).where(t.sources.c.record_id==row['record_id'])).mappings().one()
+                if decision_binding['target_record_id'] != state['review_record_id']:
+                    reject(uow)
             if event.return_record_id is not None or event.label_record_id is not None:
                 reject(uow)
         else:

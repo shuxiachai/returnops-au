@@ -51,6 +51,8 @@ def ready(engine, identities, *, reference='SYN-1001', key='lifecycle-create', e
     assert InvestigationProcessor(engine).run_once()
     with CustomerUnitOfWork(engine,write=True) as uow:
         for purpose in PURPOSES.values():
+            if purpose=='REVIEW':
+                continue  # Controlled REVIEW has its own explicit test authority.
             if not uow.execute(select(t.authorities).where(t.authorities.c.store_id==identities.people['customer_a']['store_id'],
                     t.authorities.c.component_id==COMPONENT,t.authorities.c.purpose==purpose)).first():
                 uow.execute(t.authorities.insert().values(store_id=identities.people['customer_a']['store_id'],
