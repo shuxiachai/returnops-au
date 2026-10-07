@@ -13,6 +13,7 @@ from returnops_domain.retention import RetentionService
 from synthetic_sources import COMPONENT, now, ready, proposal, outcome, notify, rows, head, material, stage, bind_source, claim
 
 
+@pytest.mark.parametrize('flow_engine',['0007_lifecycle_guards','head'],indirect=True)
 def test_proposal_then_same_input_revision_revokes_actual_old_claim_and_keeps_monotonic_version(flow_engine,identities,enabled):
     original=ready(flow_engine,identities);case=original['case_id']
     first,_=proposal(flow_engine,identities,case)
