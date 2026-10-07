@@ -4,7 +4,7 @@ from . import customer_tables as old, lifecycle_tables as t
 from .errors import FlowError
 
 LEGACY_REVISIONS = {'0003_customer_flow', '0004_pre_case_audit', '0005_order_investigation', '0006_founder_reads'}
-REVISION = '0007_lifecycle_guards'
+from .lifecycle_schema import CURRENT as REVISION, LEGACY, version as schema_version
 MAX_VERSION = 9007199254740991
 
 
@@ -22,7 +22,7 @@ def installed(uow):
     revisions = uow.execute(text('SELECT version_num FROM alembic_version')).scalars().all()
     names = set(uow.execute(text('SELECT tablename FROM pg_tables WHERE schemaname=current_schema()')).scalars())
     present = set(t.metadata.tables) & names
-    if revisions == [REVISION] and present == set(t.metadata.tables):
+    if revisions in ([REVISION], [LEGACY]) and schema_version(uow.connection) in {REVISION, LEGACY}:
         return True
     if len(revisions) == 1 and revisions[0] in LEGACY_REVISIONS and not present:
         return False

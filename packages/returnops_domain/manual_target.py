@@ -54,6 +54,10 @@ def read_target(uow, head, state, request, component, *, original_state=None):
     target must remain available and byte-identical after the outcome is staged.
     """
     initial = state if original_state is None else original_state
+    if 'proposal_id' in request:
+        from .review_sources import manual_proposal_target
+        return manual_proposal_target(uow,head,state,request,component,
+            accepted_version=None if original_state is None else head['case_version']-1)
     lookup = uow.execute(select(investigation.state).where(
         investigation.state.c.case_id == head['case_id'])).mappings().one_or_none()
     block_id = None if lookup is None else lookup['current_block_id']

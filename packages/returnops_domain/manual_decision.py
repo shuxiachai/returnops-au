@@ -40,7 +40,7 @@ class FounderDecisionService:
     @staticmethod
     def _request(request):
         value = validate('FounderDecisionRequest', request)
-        if value['decision'] != 'MANUAL_HANDLING' or 'proposal_id' in value:
+        if value['decision'] != 'MANUAL_HANDLING':
             raise FlowError('INVALID_STATE')
         return value
 
@@ -69,6 +69,18 @@ class FounderDecisionService:
         if (event['event_kind'] != 'OUTCOME' or event['case_version'] != receipt['case_version']
                 or event['source_hash'] != source['content_sha256'] or event['accepted_at'] != fact['accepted_at']):
             reject(uow)
+        from .lifecycle_sources import Sources
+        _, decision=Sources(uow,head,COMPONENT).read(source['record_id'],{'DECISION'},current_actor=False)
+        if 'proposal_id' in decision:
+            from .review_sources import accepted_review
+            binding=one(uow,t.sources,record_id=source['record_id'])
+            seal=accepted_review(uow,head,None,COMPONENT,record_id=binding['target_record_id'],current=False)
+            packet=seal['proposal']['body']['packet']
+            if (decision['decision_id']!=receipt['decision_id'] or decision['decision']!='MANUAL_HANDLING'
+                    or decision['principal_id']!=actor.principal_id
+                    or any(decision[k]!=packet[k] for k in ('proposal_id','proposal_version'))
+                    or event['pre_case_version']!=seal['event']['case_version']):
+                reject(uow)
         uow.before_commit(lambda: self._same_authority(uow, actor, head, grant))
         return receipt
 
@@ -103,6 +115,10 @@ class FounderDecisionService:
     def _new(self, uow, actor, head, grant, request, key, fingerprint, correlation):
         if not installed(uow):
             reject(uow)
+        if 'proposal_id' in request:
+            from .lifecycle_schema import version,CURRENT
+            if version(uow.connection)!=CURRENT:
+                reject(uow)
         if head['case_version'] != request['expected_case_version']:
             reject(uow, 'STALE_CASE_VERSION')
         if head['status'] != 'ESCALATED':
@@ -111,9 +127,10 @@ class FounderDecisionService:
         # Initialize only inside this authorized new-intent transaction; every
         # denial rolls this insertion back and GET/replay never initializes it.
         state = current(uow, head, initialize=True)
-        if (not state['available']
-                or any(state[name] is not None for name in ('proposal_record_id', 'review_record_id',
-                    'preview_id', 'approval_record_id', 'outcome_record_id', 'outcome'))):
+        excluded=('preview_id','approval_record_id','outcome_record_id','outcome')
+        if 'proposal_id' not in request:
+            excluded+=('proposal_record_id','review_record_id')
+        if not state['available'] or any(state[name] is not None for name in excluded):
             reject(uow)
         original_state = dict(state)
         source = read_target(uow, head, state, request, COMPONENT)
@@ -127,10 +144,14 @@ class FounderDecisionService:
         if claim is None:
             reject(uow)
         original_lease = one(uow, t.work, work_id=work_id)['lease_expires_at']
-        target_field = 'processing_failure_id' if 'processing_failure_id' in request else 'order_lookup_block_id'
+        if 'proposal_id' in request:
+            target_fields={k:request[k] for k in ('proposal_id','proposal_version')}
+        else:
+            target_field = 'processing_failure_id' if 'processing_failure_id' in request else 'order_lookup_block_id'
+            target_fields={target_field:request[target_field]}
         decision = dict(decision_id=identifier('manual_decision'), case_id=head['case_id'],
             decision='MANUAL_HANDLING', principal_id=actor.principal_id, reason=request['reason'],
-            decided_at=timestamp(now), **{target_field:request[target_field]})
+            decided_at=timestamp(now), **target_fields)
         decision_id, decision_hash = self._append(uow, head['case_id'], 'DECISION', decision,
             {'kind':'HUMAN', 'role':'FOUNDER', 'principal_id':actor.principal_id}, correlation, now)
         uow.execute(t.sources.insert().values(record_id=decision_id, case_id=head['case_id'],
@@ -171,8 +192,10 @@ class FounderDecisionService:
             # the final callback; never renew or borrow a replacement lease.
             if one(uow, t.work, work_id=work_id) != accepted_work:
                 reject(uow)
-            self._same_authority(uow, actor, head, grant)
-            if (self.clock() >= original_lease or self.guard.clock() >= original_lease
+            final_head=self._same_authority(uow, actor, head, grant)
+            if (final_head['status']!='NOTIFICATION_PENDING' or final_head['case_version']!=event['case_version']
+                    or final_head['input_version']!=head['input_version'] or dict(current(uow,final_head))!=dict(s)
+                    or self.clock() >= original_lease or self.guard.clock() >= original_lease
                     or accepted_work['claim_id'] != claim.claim_id or accepted_work['epoch'] != claim.epoch
                     or accepted_work['authority_revision'] != claim.authority_revision):
                 reject(uow)

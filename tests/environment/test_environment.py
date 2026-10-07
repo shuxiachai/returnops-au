@@ -29,7 +29,7 @@ from returnops_api import database, main
 from returnops_api.settings import ConfigurationError, Settings, require_environment_database
 
 
-EXPECTED_REVISION = "0007_lifecycle_guards"
+EXPECTED_REVISION = "0008_review_escalation"
 EXPECTED_TABLES = ['accepted_order_contents', 'accepted_order_projections', 'alembic_version', 'case_heads', 'case_investigation_state', 'case_records', 'customer_acceptances', 'customer_audit_events', 'customer_clarification_sets', 'customer_evidence', 'customer_evidence_contents', 'customer_history_contents', 'customer_history_cursors', 'customer_history_revisions', 'customer_history_snapshots', 'customer_intake_sessions', 'customer_intake_work', 'customer_principals', 'customer_processing_failures', 'customer_receipt_refs', 'customer_receipts', 'customer_scope_audit_events', 'customer_scope_audit_heads', 'customer_sessions', 'discarded_order_invocations', 'founder_history_encodings', 'founder_list_members', 'founder_read_cursors', 'founder_read_snapshots', 'investigation_clarification_inputs', 'investigation_inputs', 'investigation_policy_events', 'investigation_provider_grants', 'investigation_question_groups', 'investigation_services', 'investigation_work', 'order_lookup_blocks', 'order_lookup_contents', 'order_lookup_receipts', 'original_statement_contents', 'original_statement_records']
 EXPECTED_TABLES = sorted(EXPECTED_TABLES + ['case_lifecycle_state', 'lifecycle_authorities', 'lifecycle_work', 'lifecycle_source_bindings', 'lifecycle_event_receipts', 'lifecycle_effect_refs'])
 SECRET = "environment-test-secret-do-not-log"
@@ -64,6 +64,9 @@ class QueryResult:
     def scalars(self) -> ScalarValues:
         return ScalarValues(self.values)
 
+    def mappings(self):
+        return ScalarValues(self.values)
+
     def all(self) -> list[tuple[Any]]:
         return [(value,) for value in self.values]
 
@@ -93,6 +96,11 @@ class DiagnosticConnection:
             if self.engine.failure == "revision":
                 raise SQLAlchemyError(f"Version query failed: {STUB_URL}")
             return QueryResult(list(self.engine.revisions))
+        if 'PG_TABLES' in sql:
+            return QueryResult(EXPECTED_TABLES)
+        if 'PG_CONSTRAINT' in sql:
+            from returnops_domain.lifecycle_schema import _expected,CURRENT_PURPOSES
+            return QueryResult([dict(expression=_expected(CURRENT_PURPOSES),convalidated=True)])
         assert sql == "SELECT 1", f"Unexpected health query: {sql}"
         if self.engine.failure == "probe":
             raise SQLAlchemyError(f"Probe query failed: {STUB_URL}")

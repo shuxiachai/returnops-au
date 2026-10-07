@@ -27,7 +27,7 @@ def test_upgrade_real_0006_acceptance_to_empty_sidecars_repeat_preserves_every_o
     assert {name:value for name,value in after.items() if name not in t.metadata.tables}==before
     assert set(after)-set(before)==set(t.metadata.tables)
     with flow_engine.connect() as connection:
-        assert connection.execute(text('SELECT version_num FROM alembic_version')).scalar_one()=='0007_lifecycle_guards'
+        assert connection.execute(text('SELECT version_num FROM alembic_version')).scalar_one()=='0008_review_escalation'
         assert all(connection.execute(select(table)).first() is None for table in t.metadata.tables.values())
     assert identities.flow().create({'original_message':'synthetic before 0007','order_reference':'SYN-1001'},'migration-key',identifier('corr')).body==original.body
 
