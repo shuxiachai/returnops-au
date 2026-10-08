@@ -16,10 +16,26 @@ def project(uow, head, result):
         referenced={citation['passage_id'] for citation in packet['citations']}
         result['cited_passages']=[passage for passage in bundle['retrieval_result']['passages'] if passage['passage_id'] in referenced]
     if state['review_record_id'] is not None:
-        from .review_sources import accepted_review
         from .lifecycle_schema import version, CURRENT, LEGACY
         schema=version(uow.connection)
         if schema==CURRENT:
+            # Dispatch by immutable origin AND persisted event/work identity.
+            # Outcome text is untrusted until the selected full proof passes.
+            from .manual_target import one
+            from . import lifecycle_tables as tables
+            row,_=sources.read(state['review_record_id'],{'REVIEW'},current_actor=False)
+            origin=sources.proof.origin(row)
+            event=one(uow,tables.events,record_id=row['record_id'])
+            work=one(uow,tables.work,work_id=event['work_id'])
+            from .pass_review_sources import COMPONENT as PASS_COMPONENT
+            from .review_sources import COMPONENT as ESC_COMPONENT
+            identity=(origin['actor'],work['component_id'],event['event_kind'])
+            if identity==({'kind':'SERVICE','component_id':PASS_COMPONENT},PASS_COMPONENT,'REVIEW_PASS'):
+                from .pass_review_sources import accepted_review
+            elif identity==({'kind':'SERVICE','component_id':ESC_COMPONENT},ESC_COMPONENT,'REVIEW'):
+                from .review_sources import accepted_review
+            else:
+                reject(uow)
             accepted_review(uow,head,state,'lifecycle-read')
         elif schema!=LEGACY:
             reject(uow)

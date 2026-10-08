@@ -43,6 +43,12 @@ class EscalateReviewAccepted(SourceEvent):
 
 
 @dataclass(frozen=True, slots=True, repr=False)
+class PassReviewAccepted(SourceEvent):
+    """Private synthetic PASS family; distinct REVIEW_PASS event fingerprint."""
+    pass
+
+
+@dataclass(frozen=True, slots=True, repr=False)
 class RevisionRequested(SourceEvent):
     pass
 
