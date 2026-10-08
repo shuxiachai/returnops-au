@@ -139,8 +139,8 @@ def bind_source(uow, record_id, claim, *, target_record_id=None, slot='PRIMARY',
         target_record_id=target_record_id,slot=slot,**extra))
 
 
-def claim(uow, case_id, event_type, *, target_record_id=None):
-    h=head(uow,case_id); guard=LifecycleGuards(COMPONENT)
+def claim(uow, case_id, event_type, *, target_record_id=None, component=COMPONENT):
+    h=head(uow,case_id); guard=LifecycleGuards(component)
     work=guard.prepare(uow,case_id,h['case_version'],event_type,now(),target_record_id=target_record_id)
     return guard.claim(uow,work,now())
 
@@ -185,9 +185,9 @@ def outcome(engine, identities, case_id, *, decision='MANUAL_HANDLING', target_k
         return event,receipt
 
 
-def notify(engine, identities, case_id, status, *, mutate=None):
+def notify(engine, identities, case_id, status, *, mutate=None, component=COMPONENT):
     with CustomerUnitOfWork(engine,write=True) as uow:
-        token=claim(uow,case_id,NotificationObserved);h=head(uow,case_id)
+        token=claim(uow,case_id,NotificationObserved,component=component);h=head(uow,case_id)
         state=uow.execute(select(t.state).where(t.state.c.case_id==case_id)).mappings().one()
         previous=uow.execute(select(old.history).where(old.history.c.record_id==state['notification_record_id'])).mappings().one()
         raw=uow.execute(select(old.history_contents.c.body).where(old.history_contents.c.record_id==previous['record_id'])).scalar_one()
@@ -197,8 +197,9 @@ def notify(engine, identities, case_id, status, *, mutate=None):
             body['sent_at']=timestamp(now())
         if mutate:
             mutate(body)
-        source=stage(uow,h,'NOTIFICATION',body,object_version=previous['object_version']+1)
+        source=stage(uow,h,'NOTIFICATION',body,object_version=previous['object_version']+1,
+            actor={'kind':'SERVICE','component_id':component})
         bind_source(uow,source,token,target_record_id=state['outcome_record_id'])
         event=NotificationObserved(identifier('event'),token,source)
-        receipt=LifecycleGuards(COMPONENT).apply(uow,event,now());uow.commit()
+        receipt=LifecycleGuards(component).apply(uow,event,now());uow.commit()
         return event,receipt
