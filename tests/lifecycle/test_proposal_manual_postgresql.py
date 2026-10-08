@@ -460,7 +460,11 @@ def accepted_revision(engine,identities,case):
                 principal_id=identities.people['founder']['principal_id'],reason='Controlled synthetic revision request.',
                 decided_at=__import__('returnops_domain.audit',fromlist=['timestamp']).timestamp(now()),
                 proposal_id=proposal['object_id'],proposal_version=proposal['object_version'])
-        source=stage(uow,h,kind,body);bind_source(uow,source,claim,target_record_id=proposal['record_id'])
+        source=stage(uow,h,kind,body)
+        # This remains a direct-guard synthetic fixture, not FounderRevisionService.
+        # Modern ESCALATED HUMAN decisions bind the actual accepted review.
+        bind_source(uow,source,claim,target_record_id=state['review_record_id']
+            if kind=='DECISION' and h['status']=='ESCALATED' else proposal['record_id'])
         result=guard.apply(uow,RevisionRequested('synthetic_revision_event',claim,source),now());uow.commit()
     return result
 
