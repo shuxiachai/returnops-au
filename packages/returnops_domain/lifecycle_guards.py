@@ -2,7 +2,7 @@
 
 Only IDs/expected versions enter this gate. Source bodies and targets are read
 from the same fenced transaction. Tests provide explicitly synthetic producers;
-no decision, Risk PASS, approval, provider dispatch or message send is produced.
+no decision, approval, provider dispatch or message send is produced here.
 """
 from dataclasses import asdict
 from datetime import datetime, timedelta, timezone
@@ -11,13 +11,13 @@ from . import customer_tables as old, lifecycle_tables as t
 from .audit import append_event, identifier
 from .canonical import digest
 from .errors import FlowError
-from .lifecycle_events import (LifecycleClaim, ProposalAccepted, ProposalFailed, EscalateReviewAccepted, RevisionRequested,
+from .lifecycle_events import (LifecycleClaim, ProposalAccepted, ProposalFailed, EscalateReviewAccepted, PassReviewAccepted, RevisionRequested,
     OutcomeAccepted, NotificationObserved, EffectObserved)
 from .lifecycle_sources import Sources, authority
 from .lifecycle_state import current, installed, invalidate, reject, MAX_VERSION
 from .lifecycle_schema import version as schema_version, CURRENT
 
-PURPOSES = {ProposalAccepted: 'PROPOSAL', ProposalFailed: 'PROPOSAL', EscalateReviewAccepted: 'REVIEW', RevisionRequested: 'REVISION',
+PURPOSES = {ProposalAccepted: 'PROPOSAL', ProposalFailed: 'PROPOSAL', EscalateReviewAccepted: 'REVIEW', PassReviewAccepted: 'REVIEW', RevisionRequested: 'REVISION',
             OutcomeAccepted: 'OUTCOME', NotificationObserved: 'NOTIFICATION', EffectObserved: 'EFFECT'}
 TERMINAL = {'COMPLETED', 'REJECTED', 'MANUAL_HANDLED'}
 REVISION_STATES = {'RISK_REVIEW', 'AWAITING_APPROVAL', 'ESCALATED'}
@@ -43,7 +43,7 @@ class LifecycleGuards:
         self.component_id = component_id
         self.clock = clock
 
-    def _load(self, uow, case_id, purpose):
+    def _load(self, uow, case_id, purpose, *, initialize=True):
         if not uow.write or not installed(uow):
             reject(uow)
         if purpose == 'REVIEW':
@@ -54,7 +54,10 @@ class LifecycleGuards:
         if head is None or not head['available']:
             reject(uow, 'NOT_FOUND')
         grant = authority(uow, head, self.component_id, purpose)
-        return head, current(uow, head, initialize=True), grant
+        state = current(uow, head, initialize=initialize)
+        if state is None:
+            reject(uow)
+        return head, state, grant
 
     def prepare(self, uow, case_id, expected_case_version, event_type, now, *, target_record_id=None, work_id=None):
         """Register metadata for one exact target; never runs its future producer."""
@@ -171,9 +174,11 @@ class LifecycleGuards:
             work = uow.execute(select(t.work).where(t.work.c.work_id == claim.work_id)).mappings().one_or_none()
             if work is None or work['purpose'] != purpose:
                 reject(uow)
-            head, state, grant = self._load(uow, work['case_id'], purpose)
+            head, state, grant = self._load(uow, work['case_id'], purpose,
+                initialize=type(event) is not PassReviewAccepted)
             schema_revision=schema_version(uow.connection)
-            event_kind = 'PROPOSAL_FAILED' if type(event) is ProposalFailed else purpose
+            event_kind = ('PROPOSAL_FAILED' if type(event) is ProposalFailed else
+                          'REVIEW_PASS' if type(event) is PassReviewAccepted else purpose)
             fingerprint = digest({'kind':event_kind, **asdict(event)}, 'lifecycle-event/v1')
             accepted = uow.execute(select(t.events).where(t.events.c.record_id == event.record_id)).mappings().one_or_none()
             if accepted is not None:
@@ -187,7 +192,21 @@ class LifecycleGuards:
                         or proof.origin(original)['event_id'] != accepted['source_audit_event_id']):
                     reject(uow)
                 read_revision(uow,original,proof)
-                uow.before_commit(lambda: authority(uow,head,self.component_id,purpose))
+                if type(event) is PassReviewAccepted:
+                    from .pass_review_sources import accepted_review
+                    seal = accepted_review(uow,head,None,self.component_id,record_id=event.record_id,current=False)
+                    if seal['event'] != dict(accepted) or seal['work'] != dict(work):
+                        reject(uow)
+                    def replay_check():
+                        h,_,g = self._load(uow,work['case_id'],purpose,initialize=False)
+                        if dict(g)!=dict(grant) or accepted_review(uow,h,None,self.component_id,record_id=event.record_id,current=False)!=seal:
+                            reject(uow)
+                        h2,_,g2 = self._load(uow,work['case_id'],purpose,initialize=False)
+                        if dict(g2)!=dict(grant) or h2['owner_principal_id']!=work['owner_id'] or h2['store_id']!=work['store_id']:
+                            reject(uow)
+                    uow.before_commit(replay_check)
+                else:
+                    uow.before_commit(lambda: authority(uow,head,self.component_id,purpose))
                 return dict(accepted)
             if uow.execute(select(t.events.c.event_id).where(t.events.c.event_id == event.event_id)).first():
                 reject(uow, 'IDEMPOTENCY_CONFLICT')
@@ -212,11 +231,14 @@ class LifecycleGuards:
                 row, body, binding = sources.bound(event.record_id,work,claim,{'PROPOSAL'})
                 new_status = self._proposal(uow,head,state,sources,row,body,binding)
             elif purpose == 'REVIEW':
-                from .review_sources import verify_staged_review
+                if type(event) is PassReviewAccepted:
+                    from .pass_review_sources import verify_staged_review
+                else:
+                    from .review_sources import verify_staged_review
                 row, body, binding = sources.bound(event.record_id,work,claim,{'REVIEW'})
                 verify_staged_review(uow,head,state,row,body,binding,work)
                 uow.execute(update(t.state).where(t.state.c.case_id == head['case_id']).values(review_record_id=row['record_id']))
-                new_status = 'ESCALATED'
+                new_status = 'AWAITING_APPROVAL' if type(event) is PassReviewAccepted else 'ESCALATED'
             elif purpose == 'REVISION':
                 row, body, binding = sources.bound(event.record_id,work,claim,{'REVIEW','DECISION'})
                 new_status, revision_context = self._revision(uow,head,state,sources,row,body,event)
@@ -322,7 +344,10 @@ class LifecycleGuards:
             primary=next(item for item in sealed_sources if item['slot']=='PRIMARY')
             verify(uow,h,sources,bundle,primary['order_projection_id'])
         elif work['purpose']=='REVIEW':
-            from .review_sources import accepted_review
+            if receipt['event_kind']=='REVIEW_PASS':
+                from .pass_review_sources import accepted_review
+            else:
+                from .review_sources import accepted_review
             accepted_review(uow,h,state,self.component_id)
         elif work['purpose']=='REVISION' and revision_context is not None:
             from .revision_sources import read_target
