@@ -12,6 +12,14 @@ from returnops_domain.lifecycle_guards import LifecycleGuards
 from pass_review_helpers import ControlledPassReviewer
 
 
+def publish_ready(path, payload):
+    """Expose the ready marker only after its complete JSON is closed."""
+    temporary = path.with_name(path.name + '.tmp')
+    with temporary.open('x', encoding='utf8') as stream:
+        json.dump(payload, stream)
+    os.replace(temporary, path)
+
+
 if __name__=='__main__':
     config=json.loads(Path(sys.argv[1]).read_text(encoding='utf8'))
     engine=create_engine(os.environ['DATABASE_URL'],hide_parameters=True,echo=False,
@@ -45,8 +53,8 @@ if __name__=='__main__':
     else:
         adapter=ControlledPassReviewer(config.get('outcome','PASS'));caller=compose_private_pass_review(engine,adapter)
     if 'ready_path' in config:
-        Path(config['ready_path']).write_text(json.dumps(dict(pid=os.getpid(),case=config['case'],version=config['version'],
-            key=config.get('key','original-review-key'),application_name=config['application_name'])),encoding='utf8')
+        publish_ready(Path(config['ready_path']),dict(pid=os.getpid(),case=config['case'],version=config['version'],
+            key=config.get('key','original-review-key'),application_name=config['application_name']))
         deadline=time.monotonic()+30
         while not Path(config['release_path']).exists():
             assert time.monotonic()<deadline,'Parent did not release prepared child'
