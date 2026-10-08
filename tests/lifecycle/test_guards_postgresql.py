@@ -65,23 +65,41 @@ def test_proposal_then_same_input_revision_revokes_actual_old_claim_and_keeps_mo
 @pytest.mark.parametrize('decision,terminal',[('REJECT','REJECTED'),('MANUAL_HANDLING','MANUAL_HANDLED')])
 @pytest.mark.parametrize('flow_engine',['0007_lifecycle_guards','head'],indirect=True)
 def test_saved_notification_pending_failed_sent_keeps_identity_and_has_no_effects(flow_engine,identities,enabled,decision,terminal):
-    original=ready(flow_engine,identities);case=original['case_id'];proposal(flow_engine,identities,case)
-    accepted,_=outcome(flow_engine,identities,case,decision=decision)
+    from returnops_domain.lifecycle_schema import version, CURRENT
+    with flow_engine.connect() as connection:
+        modern_reject=decision=='REJECT' and version(connection)==CURRENT
+    component=COMPONENT
+    if modern_reject:
+        # Exact 0008 now proves a real accepted PASS before the actual private
+        # HUMAN REJECT entry. Exact 0007 retains its original fixture below.
+        from reject_helpers import ready as reject_ready, attempt, assert_rejected
+        from returnops_domain.reject_denial import COMPONENT as REJECT_COMPONENT
+        case,body=reject_ready(flow_engine,identities)
+        assert_rejected(flow_engine,case,body,attempt(flow_engine,identities,case,body))
+        component=REJECT_COMPONENT
+        with CustomerUnitOfWork(flow_engine,write=True) as uow:
+            uow.execute(t.authorities.insert().values(store_id=identities.people['founder']['store_id'],
+                component_id=component,purpose='NOTIFICATION',revision=1,enabled=True));uow.commit()
+    else:
+        original=ready(flow_engine,identities);case=original['case_id'];proposal(flow_engine,identities,case)
+        accepted,_=outcome(flow_engine,identities,case,decision=decision)
     frozen=rows(flow_engine,t.state)[0]
-    event,receipt=notify(flow_engine,identities,case,'FAILED')
+    event,receipt=notify(flow_engine,identities,case,'FAILED',component=component)
     assert receipt['status']=='NOTIFICATION_FAILED'
     first_work=event.claim.work_id
-    event,receipt=notify(flow_engine,identities,case,'PENDING')
+    event,receipt=notify(flow_engine,identities,case,'PENDING',component=component)
     assert receipt['status']=='NOTIFICATION_PENDING' and event.claim.work_id==first_work
-    event,receipt=notify(flow_engine,identities,case,'SENT')
+    event,receipt=notify(flow_engine,identities,case,'SENT',component=component)
     assert receipt['status']==terminal and event.claim.work_id==first_work
     state=rows(flow_engine,t.state)[0]
     assert (state['outcome'],state['notification_id'],state['notification_hash'])==(frozen['outcome'],frozen['notification_id'],frozen['notification_hash'])
     assert rows(flow_engine,t.effects)==[]
     assert not [r for r in rows(flow_engine,old.history) if r['kind']=='OPERATION']
     with CustomerUnitOfWork(flow_engine,write=True) as uow:
-        assert LifecycleGuards(COMPONENT).apply(uow,event,now())==receipt;uow.commit()
-    assert len(rows(flow_engine,t.events))==5
+        assert LifecycleGuards(component).apply(uow,event,now())==receipt;uow.commit()
+    # Modern REJECT adds the actual REVIEW_PASS receipt; all original outcome,
+    # FAILED -> PENDING -> SENT and replay assertions remain above.
+    assert len(rows(flow_engine,t.events))==(6 if modern_reject else 5)
 
 
 @pytest.mark.parametrize('field,value',[('notification_id','foreign_notification'),('outcome','RETURN_CREATED'),
