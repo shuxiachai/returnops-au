@@ -6,6 +6,7 @@ import pytest
 from sqlalchemy import delete,select,text,update
 from returnops_domain import customer_tables as old,lifecycle_tables as t,investigation_tables as inv
 from returnops_domain import founder_codec as finite
+from returnops_domain import preview_tables as preview
 from returnops_domain.audit import identifier
 from returnops_domain.customer_uow import CustomerUnitOfWork
 from returnops_domain.errors import AcceptanceOutcomeUnknown,FlowError
@@ -145,7 +146,11 @@ def test_group01_legacy_empty_or_real_manual_upgrade(flow_engine,identities,enab
         result=service(flow_engine,identities).accept(case,body,'legacy-manual-key','legacy_correlation')
         assert_pending(flow_engine,case,body,result)
     before=snapshot(flow_engine);migrate(flow_engine);migrate(flow_engine);after=snapshot(flow_engine)
-    assert {k:v for k,v in before.items() if k!='alembic_version'}=={k:v for k,v in after.items() if k!='alembic_version'}
+    added=set(preview.metadata.tables)
+    assert {k:v for k,v in before.items() if k!='alembic_version'}=={k:v for k,v in after.items() if k!='alembic_version' and k not in added}
+    assert set(after)-set(before)==added
+    assert all(after[name]==[] for name in added)
+    assert after['alembic_version']==[{'version_num':CURRENT}]
     assert readiness(flow_engine)
     assert not any(w['purpose']=='REVIEW' for w in rows(flow_engine,t.work))
     evidence(request.node.nodeid,before=before,after=after,legacy_mode=mode)
@@ -161,7 +166,11 @@ def test_groups01_02_real_legacy_upgrade_no_rewrites(flow_engine,identities,enab
     with CustomerUnitOfWork(flow_engine,write=True) as uow:assert installed(uow);uow.commit()
     migrate(flow_engine);migrate(flow_engine)
     after=snapshot(flow_engine)
-    assert {k:v for k,v in before.items() if k!='alembic_version'}=={k:v for k,v in after.items() if k!='alembic_version'}
+    added=set(preview.metadata.tables)
+    assert {k:v for k,v in before.items() if k!='alembic_version'}=={k:v for k,v in after.items() if k!='alembic_version' and k not in added}
+    assert set(after)-set(before)==added
+    assert all(after[name]==[] for name in added)
+    assert after['alembic_version']==[{'version_num':CURRENT}]
     assert readiness(flow_engine)
     accepted=attempt(flow_engine,case,version);assert accepted.status=='ACCEPTED'
     evidence(request.node.nodeid,before=before,after_upgrade=after,result=asdict(accepted),legacy_review=asdict(denied))
