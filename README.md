@@ -117,6 +117,99 @@ Its automated core ends after an approved simulated return and parcel-label
 outcome is stored and notified. It does not provide legal advice, move real
 money, modify a production order, or autonomously approve a remedy.
 
+## C1 offline grounding candidate — 2026-10-09
+
+[KAN-23](https://lucastaooo.atlassian.net/browse/KAN-23) /
+[Issue #58](https://github.com/shuxiachai/returnops-au/issues/58) is C's isolated
+retrieval/citation preparation increment (C1.01–C1.05; C Owner, A Reviewer).
+It starts from main `e7da2bb481af4e59078eadadb0b198eafbc8ea5a` and does not
+depend on merging the separate [C documentation PR #57](https://github.com/shuxiachai/returnops-au/pull/57).
+That PR's four checks passed at `737476d`; this is not evidence for the new code.
+
+| Material | Location |
+| --- | --- |
+| Two frozen C1 port implementations | [grounding.py](experiments/c1_grounding_candidate/grounding.py) |
+| Synthetic corpus, public development queries and raw-file manifest | [data](experiments/c1_grounding_candidate/data) |
+| JSON-only reproducible pilot / handoff output | [pilot.py](experiments/c1_grounding_candidate/pilot.py) |
+| Contract, integrity, conflict and negative tests | [test_grounding.py](experiments/c1_grounding_candidate/tests/test_grounding.py) |
+| Existing contract-CI discovery bridge | [test_c1_grounding_preparation.py](tests/contracts/test_c1_grounding_preparation.py) |
+
+This is **offline, synthetic-only, PENDING_HUMAN_REVIEW** preparation, not a
+reviewed runtime guidance corpus or legal advice. Synthetic
+`REVIEWED_CONSUMER_GUIDANCE` entries exercise that existing wire enum; neither
+the name nor a passing hash check certifies a human review. HTTPS/external and
+non-synthetic sources are rejected by this candidate loader. No A/B application
+module, wire schema, WBS allocation/dependency, packaging or workflow is changed;
+the application does not import this experiment. No DB, network, LLM, provider,
+case mutation, approval, or execution path is present.
+
+### Reproduce and hand off to A
+
+From a clean source checkout, activate a Python 3.12 virtual environment and
+install the existing locked dependencies (see [check setup](tools/checks/README.md)):
+
+```sh
+python -m pip install --require-hashes -r requirements-dev.lock
+python -m pip install --no-deps --no-build-isolation -e .
+python -m pip check
+python -B -m unittest discover -s experiments/c1_grounding_candidate/tests -p 'test_*.py' -v
+python -B -m unittest discover -s tests/contracts -p 'test_*.py' -v
+python -B -m experiments.c1_grounding_candidate.pilot
+```
+
+The pilot prints JSON to stdout, including raw denominators, per-query misses,
+known-conflict preservation, citation errors and data hashes. These are public
+development fixtures, not the 30 Gold cases, blind timing data, independent
+generalisation evidence, C2 accuracy, or Gate 2/B4 results. Do not tune or
+publish sealed Gold labels here. Remote checks and the precise reviewed source
+must be read from the implementation PR; local passes do not imply CI success.
+
+For an offline consumer, explicitly read the pinned corpus bytes and construct
+`GroundingCandidate.from_bytes(raw, top_k=2, clock=...)`, then call
+`retrieve(RetrievalRequest)` or `verify_citations(CitationVerificationRequest)`.
+The optional injected clock returns a valid RFC3339 UTC `Z` string; the default
+is the current UTC time. The class validates the **named** definitions in the
+unchanged [F.01 schemas](contracts/v1/schemas.json), never the permissive registry
+root. This source-checkout experiment is intentionally not in the runtime wheel.
+
+### Defined semantics and limits
+
+- Ranking uses the number of distinct matching case-folded word tokens of at
+  least two characters, excluding the small stopword set in `grounding.py`.
+  It reads passage content only; ties sort by passage ID. Category metadata
+  filters candidates; `UNCLEAR` searches all three supported categories and
+  `OUT_OF_SCOPE` returns typed `NO_MATCH`. There is no stemming or semantic search.
+- `top_k` limits ordinary ranked seeds. Every explicitly registered conflict
+  touched by **any** positive match in the relevant category, plus its transitive
+  counterparts, remains visible even beyond k (maximum 100 passages). A conflict
+  registered only for a different category is not asserted for this category.
+  This conservative register is not automatic semantic conflict detection; a
+  curator must register relevant categories and C2 assesses materiality. The
+  pilot separates strict ranked Recall@k from conflict-expanded return coverage.
+- Content hashes cover exact UTF-8 bytes; no trimming, newline replacement or
+  Unicode normalisation. Corpus generations are pinned; missing generations
+  raise `CORPUS_UNAVAILABLE`, not `NO_MATCH` or fallback to latest. Load corruption,
+  malformed requests and invalid clocks raise distinct safe component errors.
+  A future runtime adapter must map these to the existing ErrorEnvelope rather
+  than treating failure as an empty result or passing review.
+- Citation-check precedence is `NOT_FOUND` (passage/document identity),
+  `VERSION_MISMATCH`, `HASH_MISMATCH`, `LOCATION_MISMATCH`, then `VALID`.
+  Duplicate citation IDs are rejected; every input citation receives exactly
+  one check in input order. `source_version: null` is preserved, not repaired.
+- The Citation DTO contains no quoted excerpt. C1 verifies the stored passage
+  hash and citation metadata; it cannot check a separately invented excerpt.
+  `VALID` is **not** claim support, legal correctness, an approval or a statement
+  that the citation appeared in a prior retrieval. A must preserve the full
+  retrieval result/conflicts, enforce that exact membership and current
+  case/input/proposal bindings; C2 independently assesses support and risk.
+
+Formal F.01/corpus acceptance, human review of real source provenance, runtime
+integration and the original [C1 completion dependencies](docs/08-delivery-work-packages.md)
+remain open. C2 independent model review, C3 images, Gold sealing/evaluation and
+personal explanation are separate deliverables; this candidate does not close
+them or the whole KAN-23 story. Preparation is AI-assisted; no human review,
+personal understanding, contribution percentage or Gate acceptance is invented.
+
 ## Success measures
 
 - At least 0.85 issue-category macro-F1, with 0.90 as a stretch target.
