@@ -62,7 +62,9 @@ export function setStoredToken(token: string) {
 }
 
 export function isMockMode(): boolean {
-  return localStorage.getItem(MOCK_MODE_KEY) === 'true';
+  const item = localStorage.getItem(MOCK_MODE_KEY);
+  if (item === null) return true; // Default to Mock Mode on first load for zero-setup demo
+  return item === 'true';
 }
 
 export function setMockMode(enabled: boolean) {
@@ -108,10 +110,17 @@ async function request<T>(
       try {
         errEnvelope = await response.json();
       } catch {
-        // Not a JSON error
+        // Not a JSON error (e.g. Vite proxy 500 when backend is offline)
       }
 
-      const msg = errEnvelope?.error?.message || `HTTP ${response.status}: ${response.statusText}`;
+      let msg = errEnvelope?.error?.message;
+      if (!msg) {
+        if (response.status === 500) {
+          msg = `HTTP 500: Backend server unavailable at http://127.0.0.1:8000. Start the backend or switch to Mock Mode in the top navbar.`;
+        } else {
+          msg = `HTTP ${response.status}: ${response.statusText}`;
+        }
+      }
       const code = errEnvelope?.error?.code || `HTTP_${response.status}`;
       throw new ApiError(response.status, msg, code, correlationId, errEnvelope?.error?.details);
     }
