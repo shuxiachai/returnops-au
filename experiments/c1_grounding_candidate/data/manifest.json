@@ -1,0 +1,29 @@
+{
+  "format_version": 1,
+  "corpus_version": "synthetic-pilot-v1",
+  "pilot_version": "synthetic-pilot-v1",
+  "dataset_role": "PUBLIC_DEVELOPMENT_PILOT_NOT_GOLD",
+  "provenance_label": "AI_ASSISTED_WHOLLY_SYNTHETIC_OFFLINE_FIXTURES",
+  "is_synthetic": true,
+  "review_status": "PENDING_HUMAN_REVIEW",
+  "human_approval": false,
+  "provenance_notes": [
+    "All passage titles, source URIs, content and policy conditions are invented fixtures, not actual legal or consumer-guidance sources.",
+    "REVIEWED_CONSUMER_GUIDANCE is a frozen contract enum exercised by synthetic fixtures; no human review or approval is claimed.",
+    "accessed_on records local fixture preparation, not access to an external source. Source versions are invented fixture versions; null deliberately exercises an unavailable source version.",
+    "Public development queries were authored independently of the sealed Gold evaluation set. No Gold inputs or labels are included or used.",
+    "Expected retrieval relevance and citation outcomes are provisional development labels fixed before running the pilot, not formal evaluation evidence.",
+    "Hashes identify exact raw UTF-8 file bytes, including whitespace and the final newline; content_sha256 identifies exact decoded passage content encoded as UTF-8.",
+    "This packet provides no C1 acceptance, reviewed runtime corpus, legal correctness, claim support, C2 decision, B4 integration, Gate 2 result, member signature or formal performance claim."
+  ],
+  "files": {
+    "corpus.json": {
+      "sha256": "fdd42be5903f70912f14f87c061facd880f8c5e4bdd694c307ba650ffd78d102",
+      "role": "SYNTHETIC_CORPUS_FIXTURE"
+    },
+    "pilot_queries.json": {
+      "sha256": "d779e90b824b5bd315fea4907a9a1c63c2b520eda95248813d14c60ee73e3c30",
+      "role": "PUBLIC_DEVELOPMENT_QUERIES_AND_CITATION_FIXTURES_NOT_GOLD"
+    }
+  }
+}
