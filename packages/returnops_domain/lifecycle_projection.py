@@ -46,7 +46,26 @@ def project(uow, head, result):
                        for name in ('case_id','input_version','proposal_id','proposal_version','corpus_version'))):
             reject(uow)
         result['current_review'] = review
-    # This slice has no preview producer/store. A nonempty placeholder pointer
-    # cannot be interpreted as an executable preview.
     if state['preview_id'] is not None:
-        reject(uow)
+        from datetime import datetime, timezone
+        from .preview_sources import accepted_preview, source_target
+        preview = accepted_preview(uow, head, state['preview_id'])
+        if (preview['row']['input_version'] != head['input_version']
+                or preview['row']['generation'] != state['generation']
+                or preview['row']['proposal_record_id'] != state['proposal_record_id']
+                or preview['row']['review_record_id'] != state['review_record_id']):
+            reject(uow)
+        if head['status'] == 'AWAITING_APPROVAL':
+            _, exact = source_target(uow, head, state, expected_version=head['case_version'])
+            if exact != preview:
+                reject(uow)
+            if datetime.now(timezone.utc) < preview['row']['expires_at']:
+                result['action_preview'] = preview['body']
+        elif head['status'] == 'APPROVED':
+            from .approve_sources import accepted_approval
+            from .preview_profile import APPROVAL_COMPONENT
+            approved = accepted_approval(uow, head, state['approval_record_id'], APPROVAL_COMPONENT)
+            if approved['preview'] != preview or approved['event']['case_version'] != head['case_version']:
+                reject(uow)
+        else:
+            reject(uow)

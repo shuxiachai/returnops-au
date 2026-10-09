@@ -31,9 +31,15 @@ def check_seal(uow, seal):
     ):
         if one(uow, table, **{key:saved[key]}) != saved:
             reject(uow)
+    if seal.get('preview') is not None:
+        from .preview_tables import previews
+        for item in seal['preview']['chain']:
+            row = item['row']
+            if one(uow, previews, preview_id=row['preview_id']) != row:
+                reject(uow)
 
 
-def read_target(uow, head, state, request, component, *, original_state=None):
+def read_target(uow, head, state, request, component, *, original_state=None, consumer=None):
     initial = state if original_state is None else original_state
     if (component != COMPONENT or version(uow.connection) != CURRENT or initial is None or state is None
             or not initial['available'] or not state['available']
@@ -46,10 +52,14 @@ def read_target(uow, head, state, request, component, *, original_state=None):
     block = uow.execute(select(investigation.state.c.current_block_id).where(
         investigation.state.c.case_id == head['case_id'])).scalar_one_or_none()
     expected = request['expected_case_version']
+    from .preview_sources import source_target
+    _, preview = source_target(uow, head, initial, expected_version=expected, allow_consumed=consumer is not None)
+    if preview is not None and preview['row']['consuming_decision_record_id'] != consumer:
+        reject(uow)
     if (request.get('decision') != 'REJECT'
             or any(request.get(k) != packet[k] for k in ('proposal_id', 'proposal_version'))
-            or seal['event']['case_version'] != expected or head['current_failure_id'] is not None
-            or block is not None or any(initial[name] is not None for name in EMPTY_TARGETS)
+            or head['current_failure_id'] is not None
+            or block is not None or any(initial[name] is not None for name in EMPTY_TARGETS if name != 'preview_id')
             or initial['input_version'] != head['input_version']
             or any(state[name] != initial[name] for name in
                 ('input_version', 'generation', 'proposal_version', 'proposal_record_id', 'review_record_id'))):
@@ -81,6 +91,12 @@ def accepted_reject(uow, head, record_id, component):
     work = one(uow, t.work, work_id=binding['work_id'])
     event = one(uow, t.events, record_id=record_id)
     origin = sources.proof.origin(row)
+    from .preview_tables import previews
+    from .preview_sources import accepted_preview, consume_payload
+    consumed = uow.execute(select(previews.c.preview_id).where(
+        previews.c.consuming_decision_record_id == record_id)).scalar_one_or_none()
+    preview = None if consumed is None else accepted_preview(uow, head, consumed)
+    expected_payload = {'private_reject':True} if preview is None else consume_payload(preview['row'])
     review = accepted_review(uow, head, None, component,
         record_id=binding['target_record_id'], current=False)
     packet = review['proposal']['body']['packet']
@@ -114,7 +130,7 @@ def accepted_reject(uow, head, record_id, component):
             or any(body[k] != packet[k] for k in ('case_id', 'proposal_id', 'proposal_version'))
             or origin['actor'] != {'kind':'HUMAN', 'role':'FOUNDER', 'principal_id':body['principal_id']}
             or origin['event_type'] != 'FOUNDER_DECISION_ACCEPTED'
-            or origin['payload_hash'] != digest({'private_reject':True}, 'audit-payload/v1')
+            or origin['payload_hash'] != digest(expected_payload, 'audit-payload/v1')
             or body['decided_at'] != timestamp(event['accepted_at']) or origin['occurred_at'] != body['decided_at']
             or event['accepted_at'] != row['recorded_at'] or origin['case_version'] != claim.case_version
             or note_binding['target_record_id'] != record_id or note_binding['source_hash'] != note_row['content_sha256']
@@ -126,7 +142,7 @@ def accepted_reject(uow, head, record_id, component):
             or note['updated_at'] != timestamp(event['accepted_at'])
             or note_origin['actor'] != {'kind':'SERVICE', 'component_id':component}
             or note_origin['event_type'] != 'NOTIFICATION_REVISION_RECORDED'
-            or note_origin['payload_hash'] != digest({'private_reject':True}, 'audit-payload/v1')
+            or note_origin['payload_hash'] != digest(expected_payload, 'audit-payload/v1')
             or note_origin['correlation_id'] != origin['correlation_id']
             or note_origin['occurred_at'] != note['updated_at'] or note_origin['case_version'] != claim.case_version
             or event['event_kind'] != 'OUTCOME' or event['status'] != 'NOTIFICATION_PENDING'
@@ -138,12 +154,15 @@ def accepted_reject(uow, head, record_id, component):
             or event['pre_case_version'] != claim.case_version or event['case_version'] != claim.case_version + 1
             or event['pre_generation'] != claim.generation or event['generation'] != claim.generation
             or event['pre_input_version'] != claim.input_version or event['input_version'] != claim.input_version
-            or review['event']['case_version'] != claim.case_version
+            or (review['event']['case_version'] if preview is None else preview['row']['post_case_version']) != claim.case_version
             or review['event']['generation'] != claim.generation or review['event']['input_version'] != claim.input_version
             or note_work is None or note_work['component_id'] != component
             or note_work['store_id'] != head['store_id'] or note_work['owner_id'] != head['owner_principal_id']
             or note_work['input_version'] != claim.input_version or note_work['target_record_id'] is not None
             or not note_work['idempotency_key'] or note_work['created_at'] != event['accepted_at']):
+        reject(uow)
+    if preview is not None and (preview['review'] != review or preview['row']['consuming_decision_record_id'] != record_id
+            or preview['row']['consumed_at'] != event['accepted_at']):
         reject(uow)
     audits = [a for a in sources.proof.events if a['event_type'] == 'LIFECYCLE_EVENT_ACCEPTED'
         and a['correlation_id'] == event['event_id']]
@@ -155,4 +174,4 @@ def accepted_reject(uow, head, record_id, component):
         reject(uow)
     return dict(record=dict(row), body=body, binding=binding, work=work, event=event, review=review,
         notification_record=dict(note_row), notification=note, notification_binding=dict(note_binding),
-        notification_work=dict(note_work))
+        notification_work=dict(note_work), preview=preview)

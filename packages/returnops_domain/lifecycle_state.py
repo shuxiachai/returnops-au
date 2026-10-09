@@ -4,7 +4,7 @@ from . import customer_tables as old, lifecycle_tables as t
 from .errors import FlowError
 
 LEGACY_REVISIONS = {'0003_customer_flow', '0004_pre_case_audit', '0005_order_investigation', '0006_founder_reads'}
-from .lifecycle_schema import CURRENT as REVISION, LEGACY, version as schema_version
+from .lifecycle_schema import CURRENT as REVISION, REVIEW, LEGACY, version as schema_version
 MAX_VERSION = 9007199254740991
 
 
@@ -22,7 +22,7 @@ def installed(uow):
     revisions = uow.execute(text('SELECT version_num FROM alembic_version')).scalars().all()
     names = set(uow.execute(text('SELECT tablename FROM pg_tables WHERE schemaname=current_schema()')).scalars())
     present = set(t.metadata.tables) & names
-    if revisions in ([REVISION], [LEGACY]) and schema_version(uow.connection) in {REVISION, LEGACY}:
+    if revisions in ([REVISION], [REVIEW], [LEGACY]) and schema_version(uow.connection) in {REVISION, REVIEW, LEGACY}:
         return True
     if len(revisions) == 1 and revisions[0] in LEGACY_REVISIONS and not present:
         return False
@@ -92,6 +92,15 @@ def retain(uow, head, reason, redact):
     if not installed(uow):
         return
     invalidate(uow, head, retention=True)
+    if schema_version(uow.connection) == REVISION:
+        from .preview_tables import previews
+        uow.execute(update(previews).where(previews.c.case_id == head['case_id']).values(
+            body=None, available=False, removal_reason=reason))
+        # Preview/approval receipts can contain derivatives of any retained input.
+        facts = select(old.acceptances.c.acceptance_id).where(old.acceptances.c.resource_kind == 'CASE',
+            old.acceptances.c.resource_id == head['case_id'])
+        uow.execute(update(old.receipts).where(old.receipts.c.acceptance_id.in_(facts)).values(
+            body=None, available=False))
     # Future bundles/notification text may copy the source being removed.
     # Delete derivative bytes atomically but retain identity, digest and facts.
     records = select(old.history.c.record_id).where(old.history.c.case_id == head['case_id'],

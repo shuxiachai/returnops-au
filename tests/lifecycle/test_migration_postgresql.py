@@ -2,6 +2,8 @@ from hashlib import sha256
 import pytest
 from sqlalchemy import inspect, select, text
 from returnops_domain import lifecycle_tables as t
+from returnops_domain import preview_tables
+from returnops_domain.lifecycle_schema import CURRENT
 from returnops_domain.customer_uow import CustomerUnitOfWork
 from returnops_domain.errors import FlowError
 from returnops_domain.intake_processor import IntakeProcessor
@@ -24,11 +26,12 @@ def test_upgrade_real_0006_acceptance_to_empty_sidecars_repeat_preserves_every_o
     before=fingerprints(flow_engine)
     migrate(flow_engine);migrate(flow_engine)
     after=fingerprints(flow_engine)
-    assert {name:value for name,value in after.items() if name not in t.metadata.tables}==before
-    assert set(after)-set(before)==set(t.metadata.tables)
+    added = {**t.metadata.tables, **preview_tables.metadata.tables}
+    assert {name:value for name,value in after.items() if name not in added}==before
+    assert set(after)-set(before)==set(added)
     with flow_engine.connect() as connection:
-        assert connection.execute(text('SELECT version_num FROM alembic_version')).scalar_one()=='0008_review_escalation'
-        assert all(connection.execute(select(table)).first() is None for table in t.metadata.tables.values())
+        assert connection.execute(text('SELECT version_num FROM alembic_version')).scalar_one()==CURRENT
+        assert all(connection.execute(select(table)).first() is None for table in added.values())
     assert identities.flow().create({'original_message':'synthetic before 0007','order_reference':'SYN-1001'},'migration-key',identifier('corr')).body==original.body
 
 

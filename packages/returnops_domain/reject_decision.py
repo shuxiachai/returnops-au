@@ -97,7 +97,7 @@ class FounderRejectService:
         return receipt
 
     @staticmethod
-    def _append(uow, case_id, kind, body, actor, correlation, now):
+    def _append(uow, case_id, kind, body, actor, correlation, now, *, payload=None):
         finite.validate('FounderDecisionRecord' if kind == 'DECISION' else 'NotificationRecord', body)
         head = one(uow, old.case_heads, case_id=case_id)
         record_id = identifier('reject_source')
@@ -114,7 +114,7 @@ class FounderRejectService:
             history_sequence=head['history_sequence'] + 1))
         append_event(uow, case_id, actor=actor,
             event_type='FOUNDER_DECISION_ACCEPTED' if kind == 'DECISION' else 'NOTIFICATION_REVISION_RECORDED',
-            correlation_id=correlation, payload={'private_reject':True},
+            correlation_id=correlation, payload={'private_reject':True} if payload is None else payload,
             object_ids=[object_id], history_refs=[ref], now=now)
         return record_id, source_hash
 
@@ -128,6 +128,9 @@ class FounderRejectService:
             reject(uow)
         original_state = dict(state)
         source = read_target(uow, head, state, request, COMPONENT)
+        from .preview_sources import accepted_preview, consume_payload, consume
+        preview = None if state['preview_id'] is None else accepted_preview(uow, head, state['preview_id'])
+        payload = None if preview is None else consume_payload(preview['row'])
         now = self.clock()
         if now.utcoffset() is None:
             reject(uow)
@@ -140,16 +143,18 @@ class FounderRejectService:
             decision='REJECT', principal_id=actor.principal_id, reason=request['reason'],
             decided_at=timestamp(now), **{k:request[k] for k in ('proposal_id', 'proposal_version')})
         decision_id, decision_hash = self._append(uow, head['case_id'], 'DECISION', decision,
-            {'kind':'HUMAN', 'role':'FOUNDER', 'principal_id':actor.principal_id}, correlation, now)
+            {'kind':'HUMAN', 'role':'FOUNDER', 'principal_id':actor.principal_id}, correlation, now, payload=payload)
         uow.execute(t.sources.insert().values(record_id=decision_id, case_id=head['case_id'],
             **asdict(claim), source_hash=decision_hash, target_record_id=source['record']['record_id'], slot='PRIMARY'))
         note = dict(notification_id=identifier('reject_notification'), case_id=head['case_id'],
             case_version=head['case_version'], status='PENDING', outcome='REJECTED',
             message=MESSAGE, next_steps=[], attempt_count=0, updated_at=timestamp(now))
         note_id, note_hash = self._append(uow, head['case_id'], 'NOTIFICATION', note,
-            {'kind':'SERVICE', 'component_id':COMPONENT}, correlation, now)
+            {'kind':'SERVICE', 'component_id':COMPONENT}, correlation, now, payload=payload)
         uow.execute(t.sources.insert().values(record_id=note_id, case_id=head['case_id'], **asdict(claim),
             source_hash=note_hash, target_record_id=decision_id, slot='NOTIFICATION'))
+        if preview is not None:
+            consume(uow, preview, decision_id, now)
         event = self.guard.apply(uow, OutcomeAccepted(identifier('reject_event'), claim, decision_id, note_id), now)
         receipt = dict(case_id=head['case_id'], case_version=event['case_version'], decision_id=decision['decision_id'],
             decision='REJECT', accepted_at=timestamp(now), processing_status='ACCEPTED')
@@ -172,7 +177,7 @@ class FounderRejectService:
             h = self._same_authority(uow, actor, head, grant)
             s = current(uow, h)
             if (s is None or dict(s) != state_seal
-                    or read_target(uow, h, s, request, COMPONENT, original_state=original_state) != source
+                    or read_target(uow, h, s, request, COMPONENT, original_state=original_state, consumer=decision_id) != source
                     or accepted_reject(uow, h, decision_id, COMPONENT) != accepted):
                 reject(uow)
             # The costly source proofs must precede final current authorization
