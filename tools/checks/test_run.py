@@ -98,7 +98,7 @@ class RunnerTests(unittest.TestCase):
         ])
         self.assertEqual(steps[-3][1], [runner.sys.executable, "-B", "-m", "pytest", "tests/investigation", "-q"])
         self.assertEqual(steps[-2][1], [runner.sys.executable, "-B", "-m", "pytest", "tests/founder", "-q"])
-        self.assertEqual(steps[-1][1], [runner.sys.executable, "-B", "-m", "pytest", "tests/lifecycle", "-q"])
+        self.assertEqual(steps[-1][1], [runner.sys.executable, "-B", "-m", "pytest", "tests/lifecycle", "-q", "--tb=short", "-x"])
 
 if __name__ == "__main__":
     unittest.main()

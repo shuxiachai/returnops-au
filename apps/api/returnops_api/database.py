@@ -8,7 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from .settings import Settings
 
 
-EXPECTED_SCHEMA_REVISION = "0008_review_escalation"
+EXPECTED_SCHEMA_REVISION = "0009_preview_approval"
 
 
 def build_engine(settings: Settings) -> Engine:

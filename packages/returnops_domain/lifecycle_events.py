@@ -49,6 +49,13 @@ class PassReviewAccepted(SourceEvent):
 
 
 @dataclass(frozen=True, slots=True, repr=False)
+class ApprovalAccepted(SourceEvent):
+    """Private exact preview consumption; PRIMARY is the approval history."""
+    decision_record_id: str
+    preview_id: str
+
+
+@dataclass(frozen=True, slots=True, repr=False)
 class RevisionRequested(SourceEvent):
     pass
 
