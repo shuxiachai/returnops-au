@@ -6,6 +6,63 @@
 
 # ReturnOps AU
 
+## Current C handoff — 2026-10-09
+
+This dated update supersedes the **current-status wording**, not the original
+evidence, in the September notices above and below. Snapshot audited:
+[`e7da2bb`](https://github.com/shuxiachai/returnops-au/commit/e7da2bb481af4e59078eadadb0b198eafbc8ea5a).
+Jira remains the workflow record; this is a handoff and navigation guide, not a
+second completion board or a claim of personal/course acceptance.
+
+- **Adopted project changes:** PRs [#43](https://github.com/shuxiachai/returnops-au/pull/43),
+  [#45](https://github.com/shuxiachai/returnops-au/pull/45),
+  [#47](https://github.com/shuxiachai/returnops-au/pull/47),
+  [#49](https://github.com/shuxiachai/returnops-au/pull/49),
+  [#51](https://github.com/shuxiachai/returnops-au/pull/51) and
+  [#54](https://github.com/shuxiachai/returnops-au/pull/54) add fixed synthetic
+  proposals, private manual handling, controlled synthetic PASS/ESCALATE
+  acceptance, Founder revision and REJECT. These A-owned increments do not
+  implement C's real retrieval, independent Risk Reviewer or image analysis,
+  and do not establish whole A2.01 or delivery-gate acceptance.
+- **Technical evidence:** [main CI 37773655294](https://github.com/shuxiachai/returnops-au/actions/runs/37773655294)
+  passed for the snapshot above. [PR #56](https://github.com/shuxiachai/returnops-au/pull/56)
+  is still Draft at `892962278d278bb5b21b20d381bb3c37339dcc7b`. Its
+  [PR CI](https://github.com/shuxiachai/returnops-au/actions/runs/37877205117)
+  has a failing PostgreSQL schema-inventory assertion; later environment suites
+  did not execute. [Issue #55](https://github.com/shuxiachai/returnops-au/issues/55)
+  already records A's correction work. C must review the repaired exact source
+  and its complete checks, not reuse this failed candidate as acceptance evidence.
+- **Stage 1 files:** use [the adopted Stage 1 index](stage1/README.md),
+  [report v0.4](stage1/reports/v0.4/README.md),
+  [presentation archive](stage1/presentation/README.md), and
+  [C's contribution/interview worksheet](stage1/drafts/member-c-contribution-and-interview.md).
+  PR #40 moved these materials; old `docs/reports/` entries are compatibility
+  pointers. An archive or merge is not a new Canvas submission receipt.
+- **C review queue:** the original C model [PR #12](https://github.com/shuxiachai/returnops-au/pull/12)
+  is already merged. [PR #17](https://github.com/shuxiachai/returnops-au/pull/17)
+  remains open against `main` and currently reports a conflict; preserve its
+  September review/reproduction receipts while reconciling the new `stage1/`
+  paths. [PR #7](https://github.com/shuxiachai/returnops-au/pull/7) and
+  [PR #20](https://github.com/shuxiachai/returnops-au/pull/20) also remain open.
+  Do not blindly replay their old README/report/video snapshots over the adopted
+  files. This update neither merges nor closes those PRs and is not their review.
+
+| C's next delivery | Jira / scope | Next evidence, without changing frozen owners or S/F dependencies |
+|---|---|---|
+| Retrieval and citations — priority first | [KAN-23](https://lucastaooo.atlassian.net/browse/KAN-23), C1; current due date 11 October | Offline versioned corpus/manifest, typed output and deterministic passage/hash, invalid-citation and conflict tests. Formal integrated acceptance remains separate. |
+| Independent Risk Reviewer | [KAN-24](https://lucastaooo.atlassian.net/browse/KAN-24), C2 | All five typed outcomes, exact proposal/evidence binding, unsupported-claim/injection tests and no edit/approval/execution authority. A's synthetic result receiver does not complete this task. |
+| Evaluation | [KAN-25](https://lucastaooo.atlassian.net/browse/KAN-25), E.01–E.12 | Prepare offline label definitions, denominators and a separate pilot; preserve formal start/finish prerequisites. Seal initial 30-case Gold labels before A/B timing, keep the 20-case subset blind until both outputs are locked, and never publish Gold labels into the repo/runtime corpus. |
+| Image observations | [KAN-26](https://lucastaooo.atlassian.net/browse/KAN-26), C3 / selected OF-001 | Start the runtime work only after R.03/text-workflow prerequisite; preserve C3's F.04/F.07/C2.05/B1.03 finish dependencies. Deliver limited observations and injection/conflict tests, not approval or entitlement decisions. |
+| Evidence and non-author review | [KAN-22](https://lucastaooo.atlassian.net/browse/KAN-22), [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32), [KAN-33](https://lucastaooo.atlassian.net/browse/KAN-33) | Refresh exact-source links and use the [A1.03 acceptance sheet](docs/reviews/a103-acceptance-current.md). C's own explanation and genuine human review/acceptance require their own record, not an AI-authored assertion. |
+
+Offline C1.01/C2.01 and evaluation preparation do not require falsely declaring
+F.01 or Gate 1 accepted. The formal implementation/integration gates remain those
+in [frozen allocation](docs/07-frozen-work-allocation.md) and
+[work packages](docs/08-delivery-work-packages.md). No A/B implementation, owner,
+reviewer, estimate, deadline, Gold label or personal sign-off is changed here.
+This handoff was prepared with Codex assistance from the linked repository and
+live Jira records; it is not a new local PG17 reproduction or a runtime review.
+
 > **F.03 publication reference (2026-09-15; F.01 baseline `3dd1ff637693a826990eee5712cfb239a3c3da7b`):** [F03-C0.1](docs/18-f03-security-component.md) is delivered through [PR #15](https://github.com/shuxiachai/returnops-au/pull/15), tracked by [KAN-34](https://lucastaooo.atlassian.net/browse/KAN-34) in **In Review**. Read the PR body and its [GitHub Actions records](https://github.com/shuxiachai/returnops-au/actions) for the exact current source SHA and corresponding CI results. This notice supersedes earlier local/unpublished F.03 snapshots; preparation receipts and first-publication CI records remain historical evidence for their own versions. The component implements isolated JWT/current-session verification and role/resource authorization with synthetic tests; it is not wired to the health-only API, database or business workflow. Publication does not establish F.01/F.02/F.03 acceptance or C's personal review.
 
 > **Review handoff — 2026-09-17:** see the [current review entrance](#review-handoff--2026-09-17), including C's populated delivery/AI-use record and A's new report-integration receipt. The [September 16 handoff](#delivery-handoff--2026-09-16) remains a historical delivery snapshot; it is not a live status board or a main merge.
