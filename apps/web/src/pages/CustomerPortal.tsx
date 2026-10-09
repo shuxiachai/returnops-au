@@ -604,6 +604,13 @@ export const CustomerPortal: React.FC = () => {
               {/* ========================================================= */}
               {/* TARGETED CLARIFICATION SECTION (UC-01E)                   */}
               {/* ========================================================= */}
+              {clarifySuccessMsg && (
+                <div className="p-4 bg-emerald-100 border border-emerald-300 text-emerald-900 text-sm rounded-2xl flex items-center space-x-2 animate-fade-in shadow-xs">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-700 flex-shrink-0" />
+                  <span>{clarifySuccessMsg}</span>
+                </div>
+              )}
+
               {currentCase.clarification && currentCase.clarification.questions?.length > 0 && (
                 <div className="bg-amber-50/70 border-2 border-amber-300 rounded-2xl p-6 shadow-sm space-y-5">
                   <div className="flex items-start justify-between">
@@ -625,13 +632,6 @@ export const CustomerPortal: React.FC = () => {
                       </div>
                     </div>
                   </div>
-
-                  {clarifySuccessMsg && (
-                    <div className="p-3.5 bg-emerald-100 border border-emerald-300 text-emerald-900 text-xs rounded-xl flex items-center space-x-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-700 flex-shrink-0" />
-                      <span>{clarifySuccessMsg}</span>
-                    </div>
-                  )}
 
                   {clarifyErrorMsg && (
                     <div className="p-3.5 bg-rose-100 border border-rose-300 text-rose-900 text-xs rounded-xl flex items-center space-x-2">
