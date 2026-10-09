@@ -1,5 +1,9 @@
 # C：真实贡献、模型讲解与提交前核对
 
+> **2026-10-09 当前入口补录（保留以下历史）。** 原 C 模型 PR #12 已合并；下面 9 月记录中的“候选/待合并”限定属于当时的版本，不能作为当前分支状态。主分支已通过 PR #40 将本文件及 C 报告稿迁入 `stage1/drafts/`，报告与演示归档见 [Stage 1 索引](../README.md)。最新团队变动、C1/C2/C3/评测任务及待评审项见 [README 的 10 月 9 日交接](../../README.md#current-c-handoff--2026-10-09)。
+>
+> [PR #17](https://github.com/shuxiachai/returnops-au/pull/17) 的 `a3679456e1df78d6190e03933f2079d29206ceb7` 保存了 9 月 18–20 日 clean-Git、PG17 Compose 和 F.01 限定范围技术检查记录；这些是各自准确源码的历史证据，不是本次对 10 月 9 日 main 的重新复现。PR #17 仍待评审/路径冲突处理，不能把旧路径全文覆盖到迁移后的文件。下文个人复述、实际参与、日期与签字字段继续只接受真实记录；本次没有代填个人确认、贡献百分比或联合验收。当前 main 快照 `e7da2bb481af4e59078eadadb0b198eafbc8ea5a` 的 CI 通过也不替代这些个人证据。
+
 > **2026-09-17 交付事实与评审交接补录（MC-PER-0.2）。** C 负责并委托 AI 辅助完成的候选成果属于 C 的交付范围；下面补齐版本、交付内容、技术说明、AI 使用范围与已存在的整合回执，不把这些都留成空白。交付归属不等于未借助 AI 独立制作、本人已经讲解、评审通过或验收完成。补录日期不是虚构的个人阅读、会议或测试日期。新 commit 和检查结果以 [PR #12](https://github.com/shuxiachai/returnops-au/pull/12) 的本次发布记录为准；`15c136a` 是补录前的资料快照。
 
 > **历史入口：2026-09-16（MC-PER-0.1.1）。** B 已对 C `c9f205d` 留下[消费者边界 approval](https://github.com/shuxiachai/returnops-au/pull/12#pullrequestreview-5199940157)，不替代 A 的最终 review。C 的[六项报告反馈](../../docs/reviews/member-c-integration-followup-20260916.md)已由 A 在 B 的 PR #14 中作技术修订；[9 月 17 日处置回执](https://github.com/shuxiachai/returnops-au/blob/1b094289c219727d9e42e694ade6f13431c34c7b/docs/reviews/b-shared-model-followup-20260917.md)和下方固定版本链接取代“尚无整合回执”的旧状态，但不证明最终 PDF、共享 Google Doc 或个人确认已完成。
