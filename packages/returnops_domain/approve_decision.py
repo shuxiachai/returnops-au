@@ -15,6 +15,7 @@ from .lifecycle_state import current, reject
 from .manual_target import one
 from .approve_denial import COMPONENT, OPERATION, authorize, record_denial
 from .approve_sources import read_target, accepted_approval, check_seal
+from .pass_review_sources import accepted_review
 from .preview_sources import consume, consume_payload, current_policy
 from .wire import validate
 
@@ -164,6 +165,10 @@ class FounderApproveService:
             target = read_target(uow, h, s, request, COMPONENT, original_state=original_state, consumer=decision_id)
             if (target != accepted['preview'] or accepted_approval(uow, h, record_id, COMPONENT) != accepted
                     or current_policy(uow, h, target['row']) != preview_grant):
+                reject(uow)
+            # Historical approval proof does not re-read mutable original inputs.
+            # New acceptance needs an independent current-source proof as well.
+            if accepted_review(uow, h, current(uow, h), COMPONENT, current=True) != target['review']:
                 reject(uow)
             h = self._same_authority(uow, actor, head, grant)
             current_policy(uow, h, target['row'])

@@ -15,7 +15,7 @@ from returnops_domain.audit import append_event, identifier, timestamp
 from returnops_domain.customer_uow import CustomerUnitOfWork
 from returnops_domain.intake_processor import IntakeProcessor
 from returnops_domain.investigation_processor import InvestigationProcessor
-from returnops_domain.lifecycle_guards import LifecycleGuards, PURPOSES
+from returnops_domain.lifecycle_guards import LifecycleGuards
 from returnops_domain.lifecycle_events import ProposalAccepted, OutcomeAccepted, NotificationObserved
 
 COMPONENT = 'synthetic_lifecycle_producer'
@@ -50,9 +50,9 @@ def ready(engine, identities, *, reference='SYN-1001', key='lifecycle-create', e
     assert IntakeProcessor(engine).run_once()
     assert InvestigationProcessor(engine).run_once()
     with CustomerUnitOfWork(engine,write=True) as uow:
-        for purpose in PURPOSES.values():
-            if purpose=='REVIEW':
-                continue  # Controlled REVIEW has its own explicit test authority.
+        # The original fixture has exactly five purposes, including on 0007.
+        # Controlled REVIEW and APPROVAL use their own explicit test authorities.
+        for purpose in ('PROPOSAL','REVISION','OUTCOME','NOTIFICATION','EFFECT'):
             if not uow.execute(select(t.authorities).where(t.authorities.c.store_id==identities.people['customer_a']['store_id'],
                     t.authorities.c.component_id==COMPONENT,t.authorities.c.purpose==purpose)).first():
                 uow.execute(t.authorities.insert().values(store_id=identities.people['customer_a']['store_id'],
