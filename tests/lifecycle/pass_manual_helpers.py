@@ -130,3 +130,79 @@ def mutate_source(uow, mode):
         assert uow.execute(update(t.events).where(t.events.c.record_id == review).values(event_kind='REVIEW')).rowcount == 1
     else:
         retained_source_fault(uow, mode)
+
+
+def accepted_pass_manual(engine, identities, *, notification_grant=True):
+    """Real accepted no-preview prerequisites for existing notification tests.
+
+    Rehydrate the actual original Domain event and receipt after private HUMAN
+    acceptance. This never converts a legacy raw fixture into a modern source.
+    """
+    from returnops_domain.lifecycle_events import LifecycleClaim, OutcomeAccepted
+    case, body, action, at = ready(engine, identities, preview_mode='none')
+    assert not [row for row in rows(engine, t.authorities) if row['purpose'] == 'NOTIFICATION']
+    before = snapshot(engine)
+    result = attempt(engine, identities, case, body, at)
+    assert_manual(engine, case, body, result, before=before, action=action)
+    saved, = [row for row in case_rows(engine, t.events, case) if row['event_kind'] == 'OUTCOME']
+    work, = [row for row in case_rows(engine, t.work, case) if row['work_id'] == saved['work_id']]
+    note, = [row for row in case_rows(engine, t.sources, case)
+        if row['work_id'] == work['work_id'] and row['slot'] == 'NOTIFICATION']
+    claim = LifecycleClaim(work['work_id'], work['claim_id'], work['epoch'], work['claimed_case_version'],
+        work['input_version'], work['generation'], work['authority_revision'])
+    event = OutcomeAccepted(saved['event_id'], claim, saved['record_id'], note['record_id'])
+    if notification_grant:
+        provision_notification(engine, identities)
+    return case, event, dict(saved), COMPONENT
+
+
+def prove_pass_manual_target(uow, case, request):
+    """Prove the actual current source independently of the causal Founder."""
+    from returnops_domain.lifecycle_state import current
+    from returnops_domain.manual_target import read_target, one
+    from returnops_domain.pass_manual_sources import read_preview
+    head = one(uow, old.case_heads, case_id=case)
+    state = current(uow, head)
+    source = read_target(uow, head, state, request, COMPONENT)
+    assert source['event']['event_kind'] == 'REVIEW_PASS'
+    assert read_preview(uow, head, state, request['expected_case_version']) is None
+    return head, source
+
+
+def stage_pass_manual_event(uow, identities, case, request, at):
+    """TEST ONLY legal internal staging for the direct causal-actor guard.
+
+    A real retained PASS is mandatory. The production append routine supplies
+    the original HUMAN/SERVICE audits; one aware timestamp and the actual
+    OUTCOME claim bind both records. No state, review or target is fabricated.
+    The caller invokes LifecycleGuards.apply and must control the transaction.
+    """
+    from dataclasses import asdict
+    from returnops_domain.audit import identifier, timestamp
+    from returnops_domain.lifecycle_events import OutcomeAccepted
+    from returnops_domain.lifecycle_guards import LifecycleGuards
+    from returnops_domain.manual_decision import FounderDecisionService
+    from returnops_domain.pass_manual_sources import MESSAGE
+    head, source = prove_pass_manual_target(uow, case, request)
+    assert at.utcoffset() is not None and at >= source['event']['accepted_at']
+    guard = LifecycleGuards(COMPONENT, clock=lambda:at)
+    work = guard.prepare(uow, case, request['expected_case_version'], OutcomeAccepted, at)
+    claim = guard.claim(uow, work, at)
+    assert claim is not None
+    principal = identities.people['founder']['principal_id']
+    correlation = identifier('causal_manual')
+    decision = dict(decision_id=identifier('manual_decision'), case_id=case,
+        decision='MANUAL_HANDLING', principal_id=principal, reason=request['reason'],
+        decided_at=timestamp(at), proposal_id=request['proposal_id'], proposal_version=request['proposal_version'])
+    decision_id, decision_hash = FounderDecisionService._append(uow, case, 'DECISION', decision,
+        {'kind':'HUMAN', 'role':'FOUNDER', 'principal_id':principal}, correlation, at)
+    uow.execute(t.sources.insert().values(record_id=decision_id, case_id=case, **asdict(claim),
+        source_hash=decision_hash, target_record_id=source['record']['record_id'], slot='PRIMARY'))
+    note = dict(notification_id=identifier('manual_notification'), case_id=case,
+        case_version=head['case_version'], status='PENDING', outcome='MANUAL_HANDLED',
+        message=MESSAGE, next_steps=[], attempt_count=0, updated_at=timestamp(at))
+    note_id, note_hash = FounderDecisionService._append(uow, case, 'NOTIFICATION', note,
+        {'kind':'SERVICE', 'component_id':COMPONENT}, correlation, at)
+    uow.execute(t.sources.insert().values(record_id=note_id, case_id=case, **asdict(claim),
+        source_hash=note_hash, target_record_id=decision_id, slot='NOTIFICATION'))
+    return guard, OutcomeAccepted(identifier('causal_manual_event'), claim, decision_id, note_id)

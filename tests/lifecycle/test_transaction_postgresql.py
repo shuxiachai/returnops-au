@@ -93,18 +93,18 @@ def test_real_new_interpreter_reuses_saved_work_acceptance(flow_engine,identitie
 def test_supported_same_uow_notification_reclaim_invalidates_earlier_commit_proof(flow_engine,identities,enabled):
     from returnops_domain import founder_codec as finite
     from returnops_domain.lifecycle_events import NotificationObserved
-    from synthetic_sources import proposal,outcome
-    original=ready(flow_engine,identities);case=original['case_id'];proposal(flow_engine,identities,case);outcome(flow_engine,identities,case)
+    from pass_manual_helpers import accepted_pass_manual
+    case,_,_,component=accepted_pass_manual(flow_engine,identities)
     before_history=rows(flow_engine,old.history);before_events=rows(flow_engine,t.events)
     with CustomerUnitOfWork(flow_engine,write=True) as uow:
-        token=claim(uow,case,NotificationObserved);h=head(uow,case)
+        token=claim(uow,case,NotificationObserved,component=component);h=head(uow,case)
         state=uow.execute(select(t.state).where(t.state.c.case_id==case)).mappings().one()
         body=finite.decode_document(uow.execute(select(old.history_contents.c.body).where(
             old.history_contents.c.record_id==state['notification_record_id'])).scalar_one())
         body.update(status='FAILED',case_version=h['case_version'])
-        source=stage(uow,h,'NOTIFICATION',body,object_version=2)
+        source=stage(uow,h,'NOTIFICATION',body,object_version=2,actor={'kind':'SERVICE','component_id':component})
         bind_source(uow,source,token,target_record_id=state['outcome_record_id'])
-        guard=LifecycleGuards(COMPONENT)
+        guard=LifecycleGuards(component)
         guard.apply(uow,NotificationObserved(identifier('event'),token,source),now())
         replacement=guard.claim(uow,token.work_id,now())
         assert replacement.epoch==token.epoch+1
