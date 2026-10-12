@@ -448,7 +448,8 @@ def accepted_revision(engine,identities,case):
         h=head(uow,case);state=uow.execute(select(t.state).where(t.state.c.case_id==case)).mappings().one()
         proposal=uow.execute(select(old.history).where(old.history.c.record_id==state['proposal_record_id'])).mappings().one()
         guard=LifecycleGuards(synthetic)
-        work=guard.prepare(uow,case,h['case_version'],RevisionRequested,now());claim=guard.claim(uow,work,now())
+        at=now()
+        work=guard.prepare(uow,case,h['case_version'],RevisionRequested,at);claim=guard.claim(uow,work,at)
         if h['status']=='RISK_REVIEW':
             kind='REVIEW';body=material(kind,h,identities,proposal_record_id=proposal['record_id'])['content']
             packet=finite.decode_document(uow.execute(select(old.history_contents.c.body).where(
@@ -458,14 +459,14 @@ def accepted_revision(engine,identities,case):
         else:
             kind='DECISION';body=dict(decision_id='synthetic_revision_decision',case_id=case,decision='REQUEST_REVISION',
                 principal_id=identities.people['founder']['principal_id'],reason='Controlled synthetic revision request.',
-                decided_at=__import__('returnops_domain.audit',fromlist=['timestamp']).timestamp(now()),
+                decided_at=__import__('returnops_domain.audit',fromlist=['timestamp']).timestamp(at),
                 proposal_id=proposal['object_id'],proposal_version=proposal['object_version'])
-        source=stage(uow,h,kind,body)
+        source=stage(uow,h,kind,body,recorded_at=at)
         # This remains a direct-guard synthetic fixture, not FounderRevisionService.
         # Modern ESCALATED HUMAN decisions bind the actual accepted review.
         bind_source(uow,source,claim,target_record_id=state['review_record_id']
             if kind=='DECISION' and h['status']=='ESCALATED' else proposal['record_id'])
-        result=guard.apply(uow,RevisionRequested('synthetic_revision_event',claim,source),now());uow.commit()
+        result=guard.apply(uow,RevisionRequested('synthetic_revision_event',claim,source),at);uow.commit()
     return result
 
 

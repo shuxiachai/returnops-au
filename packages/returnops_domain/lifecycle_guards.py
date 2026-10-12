@@ -183,9 +183,10 @@ class LifecycleGuards:
             work = uow.execute(select(t.work).where(t.work.c.work_id == claim.work_id)).mappings().one_or_none()
             if work is None or work['purpose'] != purpose:
                 reject(uow)
-            head, state, grant = self._load(uow, work['case_id'], purpose,
-                initialize=type(event) is not PassReviewAccepted)
             schema_revision=schema_version(uow.connection)
+            head, state, grant = self._load(uow, work['case_id'], purpose,
+                initialize=not (type(event) is PassReviewAccepted
+                    or schema_revision == CURRENT and type(event) is RevisionRequested))
             event_kind = ('PROPOSAL_FAILED' if type(event) is ProposalFailed else
                           'REVIEW_PASS' if type(event) is PassReviewAccepted else purpose)
             fingerprint = digest({'kind':event_kind, **asdict(event)}, 'lifecycle-event/v1')
@@ -214,6 +215,25 @@ class LifecycleGuards:
                         if dict(g2)!=dict(grant) or h2['owner_principal_id']!=work['owner_id'] or h2['store_id']!=work['store_id']:
                             reject(uow)
                     uow.before_commit(replay_check)
+                elif (schema_revision == CURRENT and type(event) is RevisionRequested
+                        and original['kind'] == 'DECISION'):
+                    from .revision_sources import accepted_revision, check_seal, check_actor
+                    seal = accepted_revision(uow, head, event.record_id, self.component_id)
+                    if seal['event'] != dict(accepted) or seal['work'] != dict(work):
+                        reject(uow)
+                    def revision_replay_check():
+                        h, _, g = self._load(uow, work['case_id'], purpose, initialize=False)
+                        if dict(g) != dict(grant) or accepted_revision(uow, h, event.record_id, self.component_id) != seal:
+                            reject(uow)
+                        # Domain proves persisted HUMAN provenance and current
+                        # principal, not the outer service's browser session.
+                        check_actor(uow, h, seal)
+                        h, _, g = self._load(uow, work['case_id'], purpose, initialize=False)
+                        if (dict(g) != dict(grant) or h['owner_principal_id'] != work['owner_id']
+                                or h['store_id'] != work['store_id'] or schema_version(uow.connection) != schema_revision):
+                            reject(uow)
+                        check_seal(uow, seal)
+                    uow.before_commit(revision_replay_check)
                 elif type(event) is ApprovalAccepted:
                     from .approve_sources import accepted_approval, check_seal
                     seal = accepted_approval(uow, head, event.record_id, self.component_id)
@@ -413,10 +433,17 @@ class LifecycleGuards:
                 from .review_sources import accepted_review
             accepted_review(uow,h,state,self.component_id)
         elif work['purpose']=='REVISION' and revision_context is not None:
-            from .revision_sources import read_target
-            original_state, request, original_source = revision_context
-            if read_target(uow,h,state,request,self.component_id,original_state=original_state) != original_source:
+            from .revision_sources import read_target, read_preview, accepted_revision, check_current
+            context = revision_context
+            revision_seal = accepted_revision(uow, h, receipt['record_id'], self.component_id)
+            if (revision_seal['event'] != receipt
+                    or read_target(uow, h, state, context['request'], self.component_id,
+                        original_state=context['state'], consumer=context['consumer']) != context['source']
+                    or read_preview(uow, h, context['state'], context['request']['expected_case_version'],
+                        consumer=context['consumer']) != context['preview']
+                    or revision_seal.get('preview') != context['preview']):
                 reject(uow)
+            check_current(uow, h, context['state'], context['source'], self.component_id)
         elif work['purpose'] == 'APPROVAL':
             from .approve_sources import read_target, accepted_approval, check_seal
             from .preview_sources import current_policy
@@ -462,6 +489,15 @@ class LifecycleGuards:
         # Expensive source verification cannot outlive or replace this authority.
         h2,s2,g2 = self._load(uow,work['case_id'],work['purpose'])
         w2 = uow.execute(select(t.work).where(t.work.c.work_id == work['work_id'])).mappings().one_or_none()
+        if revision_context is not None:
+            from .revision_sources import check_seal, check_actor
+            check_actor(uow, h2, revision_seal)
+            check_seal(uow, revision_seal)
+            final_sources = [dict(item) for item in uow.execute(select(t.sources).where(
+                t.sources.c.work_id == work['work_id'], t.sources.c.epoch == claim.epoch)
+                .order_by(t.sources.c.slot)).mappings()]
+            if final_sources != sealed_sources:
+                reject(uow)
         if approval_context is not None:
             from .approve_sources import check_seal
             from .preview_sources import current_policy
@@ -566,16 +602,17 @@ class LifecycleGuards:
     def _revision(self, uow, head, state, sources, row, body, event):
         context = None
         if schema_version(uow.connection) == CURRENT and row['kind'] == 'DECISION':
-            if head['status'] == 'ESCALATED':
-                from .revision_sources import read_target
-                request = {**body, 'expected_case_version':head['case_version']}
-                seal = read_target(uow,head,state,request,self.component_id)
-                binding = uow.execute(select(t.sources).where(t.sources.c.record_id == row['record_id'])).mappings().one()
-                if binding['target_record_id'] != state['review_record_id']:
-                    reject(uow)
-                context = (dict(state), request, seal)
-            elif head['status'] == 'AWAITING_APPROVAL' and state['review_record_id'] is not None:
+            from .revision_sources import read_target, read_preview
+            # Every modern HUMAN revision needs an explicit accepted review
+            # family. Missing refs cannot fall through the old generic edge.
+            request = {**body, 'expected_case_version': head['case_version']}
+            seal = read_target(uow, head, state, request, self.component_id, consumer=row['record_id'])
+            preview = read_preview(uow, head, state, head['case_version'], consumer=row['record_id'])
+            binding = uow.execute(select(t.sources).where(t.sources.c.record_id == row['record_id'])).mappings().one()
+            if binding['target_record_id'] != state['review_record_id']:
                 reject(uow)
+            context = dict(state=dict(state), request=request, source=seal,
+                           preview=preview, consumer=row['record_id'])
         proposal, packet = self._current_proposal(uow,head,state,sources)
         if row['kind'] == 'REVIEW':
             value = body['review']

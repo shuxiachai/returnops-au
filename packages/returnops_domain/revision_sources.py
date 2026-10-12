@@ -1,6 +1,7 @@
-"""Retained accepted ESCALATE proof, including after current refs are cleared."""
+"""Dispatch revision proof by the durable review event, never by head status."""
 from dataclasses import asdict
 from sqlalchemy import select
+from . import customer_tables as old, founder_codec as finite
 from . import investigation_tables as investigation, lifecycle_tables as t
 from .audit import timestamp
 from .canonical import digest
@@ -11,7 +12,77 @@ from .manual_target import one
 from .review_sources import accepted_review
 
 
-def read_target(uow, head, state, request, component, *, original_state=None):
+def _review_kind(uow, record_id):
+    if record_id is None:
+        reject(uow)
+    event = one(uow, t.events, record_id=record_id)
+    if event['event_kind'] not in {'REVIEW', 'REVIEW_PASS'}:
+        reject(uow)
+    return event['event_kind']
+
+
+def read_target(uow, head, state, request, component, *, original_state=None, consumer=None):
+    initial = state if original_state is None else original_state
+    if initial is None or state is None:
+        reject(uow)
+    if _review_kind(uow, initial['review_record_id']) == 'REVIEW_PASS':
+        from .pass_revision_sources import read_target as read_pass_target
+        return read_pass_target(uow, head, state, request, component,
+            original_state=original_state, consumer=consumer)
+    return _read_escalate_target(uow, head, state, request, component, original_state=original_state)
+
+
+def read_preview(uow, head, state, expected_version, *, consumer=None):
+    if state is None:
+        reject(uow)
+    if _review_kind(uow, state['review_record_id']) == 'REVIEW_PASS':
+        from .pass_revision_sources import read_preview as read_pass_preview
+        return read_pass_preview(uow, head, state, expected_version, consumer=consumer)
+    if state['preview_id'] is not None:
+        reject(uow)
+    return None
+
+
+def check_current(uow, head, original_state, review, component):
+    """A historical revision proof cannot substitute for current raw sources."""
+    if _review_kind(uow, original_state['review_record_id']) == 'REVIEW_PASS':
+        from .pass_review_sources import accepted_review as verifier
+    else:
+        verifier = accepted_review
+    if verifier(uow, head, original_state, component, current=True) != review:
+        reject(uow)
+
+
+def check_seal(uow, seal):
+    """Recheck saved rows after expensive proof reads and fresh authority."""
+    for item in (seal, seal['review'], seal['review']['proposal']):
+        for table, key, name in ((old.history, 'record_id', 'record'),
+                (t.sources, 'record_id', 'binding'), (t.work, 'work_id', 'work'),
+                (t.events, 'record_id', 'event')):
+            saved = item[name]
+            if one(uow, table, **{key: saved[key]}) != saved:
+                reject(uow)
+        content = one(uow, old.history_contents, record_id=item['record']['record_id'])
+        if finite.decode_document(content['body']) != item['body']:
+            reject(uow)
+    if seal.get('preview') is not None:
+        from .preview_tables import previews
+        for item in seal['preview']['chain']:
+            row = item['row']
+            if one(uow, previews, preview_id=row['preview_id']) != row:
+                reject(uow)
+
+
+def check_actor(uow, head, seal):
+    """Fresh principal check after provenance reads; no session is fabricated."""
+    person = uow.execute(select(old.principals).where(
+        old.principals.c.principal_id == seal['body']['principal_id']).with_for_update()).mappings().one_or_none()
+    if (person is None or not person['enabled'] or person['role'] != 'FOUNDER'
+            or person['store_id'] != head['store_id']):
+        reject(uow, 'FORBIDDEN')
+
+
+def _read_escalate_target(uow, head, state, request, component, *, original_state=None):
     # The original references are server-derived before invalidation. Using them
     # with current=True deliberately repeats live input/order verification; a
     # historical current=False read alone would not verify retained raw inputs.
@@ -44,6 +115,14 @@ def read_target(uow, head, state, request, component, *, original_state=None):
 
 
 def accepted_revision(uow, head, record_id, component):
+    binding = one(uow, t.sources, record_id=record_id)
+    if _review_kind(uow, binding['target_record_id']) == 'REVIEW_PASS':
+        from .pass_revision_sources import accepted_revision as accepted_pass_revision
+        return accepted_pass_revision(uow, head, record_id, component)
+    return _accepted_escalate_revision(uow, head, record_id, component)
+
+
+def _accepted_escalate_revision(uow, head, record_id, component):
     """Verify the original durable revision fact without requiring current refs."""
     sources = Sources(uow, head, component)
     row, body = sources.read(record_id, {'DECISION'}, current_actor=False)
