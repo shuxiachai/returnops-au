@@ -55,7 +55,15 @@ once and clears the current preview pointer. Its new internal audit payload
 binds the consumed preview; old no-preview v1 audit/proof behavior remains.
 The original PASS receiver replay does not recreate or extend a preview.
 Existing ESCALATE revision/manual paths remain scoped as before.
-AWAITING_APPROVAL revision/manual handling remain unavailable.
+The [Issue 62 PASS revision extension](32-a201-founder-revision.md) now also
+prepares the existing private REQUEST_REVISION entry for AWAITING_APPROVAL.
+It accepts no preview or a fully proven valid/expired current preview, consumes
+only the exact tail and clears current proposal/review/preview/approval refs
+while stopping at POLICY_ASSESSMENT. It does not require PREVIEW or APPROVAL
+grants and does not produce an approval, execution intent, outcome or notice.
+AWAITING_APPROVAL manual handling remains unavailable. This extension's RVP
+cloud tests and independent review are separate from the earlier AP evidence;
+this text does not claim an executed PostgreSQL result.
 
 GET verifies preview source provenance and returns only a current unconsumed
 unexpired preview. It does not issue, replace or renew a preview. An approved

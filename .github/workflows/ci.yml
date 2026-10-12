@@ -91,6 +91,10 @@ jobs:
           python -m pip install --require-hashes -r requirements-dev.lock
           python -m pip install --no-deps --no-build-isolation -e .
           python -m pip check
+      - name: Check bounded PASS revision against isolated PostgreSQL schemas
+        env:
+          MANUAL_EVIDENCE_DIR: ${{ runner.temp }}/a201-pass-revision-focused-evidence
+        run: python -B -m pytest tests/lifecycle/test_founder_pass_revision_postgresql.py tests/lifecycle/test_founder_pass_revision_late_postgresql.py -q --tb=short -x
       - name: Migrate and check disposable PostgreSQL environment
         run: python -B tools/checks/run.py environment
       - name: Build runtime image and import installed packages outside app directory

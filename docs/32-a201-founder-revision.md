@@ -1,4 +1,82 @@
-# A2.01 private Founder revision of an accepted ESCALATE proposal
+# A2.01 private Founder revision of an accepted proposal
+
+## PASS extension candidate — 12 October 2026
+
+Technical tracking: [Issue 62](https://github.com/shuxiachai/returnops-au/issues/62),
+existing Jira [KAN-15](https://lucastaooo.atlassian.net/browse/KAN-15).
+The current bounded extension accepts an actual retained PASS or
+PASS_WITH_WARNING proposal at AWAITING_APPROVAL through the same private
+REQUEST_REVISION service. The explicit component start exception covers this
+implementation, independent technical review and Draft cloud CI; it does not
+authorize Ready/merge or establish original F.01, human C, joint, whole A2.01
+or Gate 1 acceptance. Owner A Jingbo Chai, designated human Reviewer C Yuwei
+Tao, S=F.01 and F=A1.03,F.03 remain fixed. This maps to FR-009/010/011,
+NFR-002/004/009 and UC-03/04 under the existing A model chain.
+
+No preview, valid preview, expiry equality and already expired preview are
+supported. An existing preview must be the current exact-version tail of a
+complete accepted chain, including every legitimate expired replacement. Only
+that tail is consumed by the new decision, with consumed_at equal to its
+recorded time and the REVISION event acceptance time. Its HUMAN audit binds
+the preview ID, body hash and original preview audit hash. An expired preview
+does not authorize approval, but does not prevent a request to revise. A time
+before preview issuance or a naive time is rejected.
+
+The frozen request, private composition and accept/recover signatures do not
+change. Preview identity is server-derived; callers cannot supply preview ID,
+scope, fingerprint, actor or risk outcome. Current HUMAN/F.03 and REVISION
+authority are required; PREVIEW/APPROVAL and historical producer permissions
+are not borrowed or required. No new grant, migration, default producer,
+public route, model invocation, approval, execution, outcome or notification
+is introduced. PASS-state MANUAL_HANDLING remains separate future work.
+
+Both the service and modern Domain HUMAN revision require a durable accepted
+review event: REVIEW chooses the existing ESCALATE proof; REVIEW_PASS chooses
+the full PASS proof. Missing review/state cannot enter the legacy generic
+path, and a failed verifier never falls back to the other family. The original
+REVISION target hash retains its existing fields. Exact claim version, full
+preview chain, unique consumer and audit prove the preview identity separately.
+
+The single fenced write transaction saves the decision, history/encoding,
+HUMAN audit, PRIMARY binding to the original review, optional preview
+consumption, REVISION acceptance, SERVICE audit and original receipt. It
+stops at POLICY_ASSESSMENT: case version and generation each increase once;
+input and proposal versions stay; current proposal/review/preview/approval
+refs clear. Other unfinished work is SUPERSEDED under the existing invalidate
+rules. Historical records and completed work remain, and no follow-up work
+or effect is produced.
+
+Commit checks prove the accepted revision and then repeat current retained
+input/order verification with server-saved original refs. They subsequently
+check current authority, the original claim/epoch/lease, head/state, bindings,
+events, preview seals and acceptance/receipt rows. Direct Domain calls prove
+persisted HUMAN provenance and the current principal/service capability;
+browser-session verification belongs to the private service. Domain accepted
+event replay also verifies the complete historical revision proof.
+
+Replay binds the original key and request fingerprint to the saved decision's
+proposal ID/version/reason, actor and exact event pre-version, and binds the
+receipt identity/version/time to that event and acceptance. It rechecks the
+saved acceptance and available receipt after expensive proof reads. Later
+generations do not invalidate a retained old fact; erasure does. UNKNOWN,
+fresh-authority denial audit and retention keep their existing boundaries.
+Safe rollback after new PASS facts exist must retain the new historical
+reader/recovery while disabling new admission; deleting facts or blindly
+reverting to the earlier runtime is not a safe rollback.
+
+Prepared cloud PostgreSQL coverage is RVP01–RVP08 in
+[the primary suite](../tests/lifecycle/test_founder_pass_revision_postgresql.py)
+and [the late-check and race suite](../tests/lifecycle/test_founder_pass_revision_late_postgresql.py):
+real six-path acceptance and multi-replacement chains; current-source and
+low-level negatives; preview/target validation; final authorities and original
+lease; exact replay, rollback, UNKNOWN and denial; two-backend observed fence
+races; retention/read projections; installed outside-checkout invocation and
+legacy regressions. Prepared or collected nodes are not passed tests. The
+local database/Docker pause remains in force; exact source and actual cloud
+execution evidence must be recorded separately. The older local counts below
+describe the original ESCALATE delivery only.
+
+## Original ESCALATE delivery record
 
 Owner A Jingbo Chai; designated human Reviewer C Yuwei Tao. Original S=F.01 and F=A1.03,F.03 remain unchanged. This component maps to existing Jira KAN-15 and technical Issue 48. The leader authorized the exact local implementation and dedicated synthetic PostgreSQL 0008 verification on 7 October 2026, with this component's limited F.01 start exception. It does not establish predecessor, member, joint, whole A2.01 or Gate 1 acceptance.
 
@@ -79,4 +157,4 @@ Failure and helper histories are retained at their actual layers. The original Q
 
 This is local verification of a private component. It is not cloud CI, a real C/model producer, publication or human acceptance. The original scope-specific Owner/C, predecessor and joint acceptance records remain pending within the inspected evidence scope; existing human records retain their original scope. Owner A Jingbo Chai, designated human Reviewer C Yuwei Tao, S = F.01 and F = A1.03, F.03 are unchanged. The limited start exception does not accept the whole A2.01 Story or Gate 1.
 
-No AWAITING_APPROVAL service variant, APPROVE/REJECT, real C/model producer, public POST/default producer, automatic next proposal, notification/provider send, source push, PR, Ready or merge is included. The original nine features and 89 WBS fields are unchanged. See [proposal manual baseline](31-a201-proposal-manual.md) and [lifecycle guards](25-a103-lifecycle-guards.md).
+That original ESCALATE delivery included no AWAITING_APPROVAL service variant, APPROVE/REJECT, real C/model producer, public POST/default producer, automatic next proposal, notification/provider send, source push, PR, Ready or merge. The PASS extension above supersedes only its AWAITING_APPROVAL revision limitation. The original nine features and 89 WBS fields are unchanged. See [proposal manual baseline](31-a201-proposal-manual.md) and [lifecycle guards](25-a103-lifecycle-guards.md).

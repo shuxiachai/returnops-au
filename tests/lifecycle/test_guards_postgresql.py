@@ -15,22 +15,53 @@ from synthetic_sources import COMPONENT, now, ready, proposal, outcome, notify, 
 
 @pytest.mark.parametrize('flow_engine',['0007_lifecycle_guards','head'],indirect=True)
 def test_proposal_then_same_input_revision_revokes_actual_old_claim_and_keeps_monotonic_version(flow_engine,identities,enabled):
-    original=ready(flow_engine,identities);case=original['case_id']
-    first,_=proposal(flow_engine,identities,case)
-    before=rows(flow_engine,old.case_heads)[0]
-    with CustomerUnitOfWork(flow_engine,write=True) as uow:
-        # Explicit later-A2 initial condition for the legal Founder revision
-        # edge; the component does not claim to produce a passing Risk review.
-        uow.execute(update(old.case_heads).where(old.case_heads.c.case_id==case).values(status='AWAITING_APPROVAL'))
-        revision=claim(uow,case,RevisionRequested)
-        # A second consumer is durably claimed against this same current target.
-        from returnops_domain.lifecycle_events import OutcomeAccepted
-        late=claim(uow,case,OutcomeAccepted)
-        h=head(uow,case);body=material('DECISION',h,identities)['content']
-        body.update(decision='REQUEST_REVISION');body.pop('approval_id',None)
-        source=stage(uow,h,'DECISION',body);bind_source(uow,source,revision,target_record_id=first.record_id)
-        event=RevisionRequested(identifier('event'),revision,source)
-        accepted=LifecycleGuards(COMPONENT).apply(uow,event,now());uow.commit()
+    from returnops_domain.lifecycle_schema import version, CURRENT
+    from returnops_domain.lifecycle_events import LifecycleClaim, OutcomeAccepted
+    with flow_engine.connect() as connection:
+        modern=version(connection)==CURRENT
+    revision_component=late_component=proposal_component=COMPONENT
+    if modern:
+        # Modern HUMAN revision has a full real fixed proposal/PASS predecessor;
+        # exact 0007 retains the original legacy fixture and assertions below.
+        from pass_revision_helpers import ready as pass_ready, attempt, assert_revised
+        from manual_helpers import provision_outcome
+        from returnops_domain.manual_denial import COMPONENT as MANUAL
+        from returnops_domain.revision_denial import COMPONENT as REVISION
+        from returnops_domain.proposal_processor import FixedProposalProcessor
+        from pass_review_helpers import build_positive
+        def stored_event(kind, event_type):
+            saved=next(r for r in rows(flow_engine,t.events) if r['event_kind']==kind)
+            work=next(r for r in rows(flow_engine,t.work) if r['work_id']==saved['work_id'])
+            token=LifecycleClaim(work['work_id'],work['claim_id'],work['epoch'],work['claimed_case_version'],
+                work['input_version'],work['generation'],work['authority_revision'])
+            return event_type(saved['event_id'],token,saved['record_id']),dict(saved),work['component_id']
+        case,request_body,action,at=pass_ready(flow_engine,identities,preview_mode='none')
+        first,_,proposal_component=stored_event('PROPOSAL',ProposalAccepted)
+        before=rows(flow_engine,old.case_heads)[0]
+        provision_outcome(flow_engine,identities)
+        with CustomerUnitOfWork(flow_engine,write=True) as uow:
+            late=claim(uow,case,OutcomeAccepted,component=MANUAL);uow.commit()
+        at=now()
+        assert_revised(flow_engine,case,request_body,attempt(flow_engine,identities,case,request_body,at),action=action)
+        event,accepted,revision_component=stored_event('REVISION',RevisionRequested)
+        revision=event.claim
+        late_component=MANUAL
+        assert revision_component==REVISION
+    else:
+        original=ready(flow_engine,identities);case=original['case_id']
+        first,_=proposal(flow_engine,identities,case)
+        before=rows(flow_engine,old.case_heads)[0]
+        with CustomerUnitOfWork(flow_engine,write=True) as uow:
+            # Explicit legacy later-A2 initial condition for the legal edge.
+            uow.execute(update(old.case_heads).where(old.case_heads.c.case_id==case).values(status='AWAITING_APPROVAL'))
+            revision=claim(uow,case,RevisionRequested)
+            # A second consumer is durably claimed against this same current target.
+            late=claim(uow,case,OutcomeAccepted)
+            h=head(uow,case);body=material('DECISION',h,identities)['content']
+            body.update(decision='REQUEST_REVISION');body.pop('approval_id',None)
+            source=stage(uow,h,'DECISION',body);bind_source(uow,source,revision,target_record_id=first.record_id)
+            event=RevisionRequested(identifier('event'),revision,source)
+            accepted=LifecycleGuards(COMPONENT).apply(uow,event,now());uow.commit()
     current=rows(flow_engine,old.case_heads)[0];state=rows(flow_engine,t.state)[0]
     assert current['input_version']==before['input_version'] and current['status']=='POLICY_ASSESSMENT'
     assert state['proposal_record_id'] is None and state['proposal_version']==1
@@ -45,18 +76,24 @@ def test_proposal_then_same_input_revision_revokes_actual_old_claim_and_keeps_mo
         late_source=stage(uow,h,'DECISION',body);bind_source(uow,late_source,late)
         from returnops_domain.lifecycle_events import OutcomeAccepted
         with pytest.raises(FlowError):
-            LifecycleGuards(COMPONENT).apply(uow,OutcomeAccepted(identifier('late_event'),late,late_source,'absent_notification'),now())
+            LifecycleGuards(late_component).apply(uow,OutcomeAccepted(identifier('late_event'),late,late_source,'absent_notification'),now())
         with pytest.raises(FlowError): uow.commit()
     assert len(rows(flow_engine,old.history))==history_count
     with CustomerUnitOfWork(flow_engine,write=True) as uow:
-        assert LifecycleGuards(COMPONENT).apply(uow,event,now())==accepted
+        assert LifecycleGuards(revision_component).apply(uow,event,now())==accepted
         uow.commit()
     # Clearing current references never permits the old source to be accepted again.
     with CustomerUnitOfWork(flow_engine,write=True) as uow:
         with pytest.raises(FlowError):
-            LifecycleGuards(COMPONENT).apply(uow,replace(first,event_id=identifier('different_event')),now())
+            LifecycleGuards(proposal_component).apply(uow,replace(first,event_id=identifier('different_event')),now())
         with pytest.raises(FlowError): uow.commit()
-    second,_=proposal(flow_engine,identities,case,version=2)
+    if modern:
+        processor=FixedProposalProcessor(flow_engine,build=build_positive)
+        assert processor.process(processor.prepare(case)).status=='ACCEPTED'
+        from types import SimpleNamespace
+        second=SimpleNamespace(record_id=rows(flow_engine,t.state)[0]['proposal_record_id'])
+    else:
+        second,_=proposal(flow_engine,identities,case,version=2)
     assert second.record_id!=first.record_id and rows(flow_engine,t.state)[0]['proposal_version']==2
     with CustomerUnitOfWork(flow_engine,write=False) as uow:
         assert verify_chain(uow,case);uow.commit()
