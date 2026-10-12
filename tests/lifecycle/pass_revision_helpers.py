@@ -1,5 +1,6 @@
 """TEST ONLY real PASS, preview and Founder revision acceptance fixtures."""
 from datetime import datetime, timedelta, timezone
+import json
 
 from sqlalchemy import select, update
 
@@ -9,7 +10,7 @@ from returnops_domain.preview_profile import COMPONENT as PREVIEW
 from returnops_domain.preview_tables import previews
 from returnops_domain.revision_denial import COMPONENT, OPERATION
 from approve_helpers import preview
-from manual_helpers import rows, now
+from manual_helpers import business as legacy_business, rows, now
 from pass_review_helpers import ControlledPassReviewer, ready_pass, receiver
 from revision_helpers import provision, service, mutate_authority
 from reject_helpers import mutate_source as retained_fault
@@ -17,6 +18,20 @@ from reject_helpers import mutate_source as retained_fault
 
 def case_rows(engine, table, case):
     return [row for row in rows(engine, table) if row['case_id'] == case]
+
+
+def business_snapshot(value):
+    """Keep every business row/field, ordering heads after audit exclusion.
+
+    The shared snapshot sorts full rows before its business projection removes
+    audit_head/audit_sequence. An allowed denial audit can therefore change two
+    heads' order without changing either business row. Sort the complete
+    remaining rows, preserving duplicates and every original business field.
+    """
+    projected = legacy_business(value)
+    projected[old.case_heads.name] = sorted(projected[old.case_heads.name],
+        key=lambda row:json.dumps(row, sort_keys=True))
+    return projected
 
 
 def provision_preview(engine, identities):

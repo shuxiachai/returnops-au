@@ -25,7 +25,7 @@ from returnops_domain.registry import TrustedRegistry
 from returnops_domain.revision_denial import COMPONENT, OPERATION
 from manual_helpers import business, evidence, rows, snapshot, now
 from pass_revision_helpers import (ready, attempt, service, provision, case_rows,
-    assert_revised, mutate_authority, mutate_source, mutate_preview)
+    assert_revised, mutate_authority, mutate_source, mutate_preview, business_snapshot)
 from test_manual_postgresql import observed, expire_human, UnknownCommit, installed_manual
 
 
@@ -244,7 +244,7 @@ def test_RVP03_current_preview_cannot_point_to_old_or_foreign_row(flow_engine, i
         uow.commit()
     before = snapshot(flow_engine)
     result = attempt(flow_engine, identities, case, body, at)
-    assert result.status == 'DENIED' and business(snapshot(flow_engine)) == business(before)
+    assert result.status == 'DENIED' and business_snapshot(snapshot(flow_engine)) == business_snapshot(before)
     evidence(request.node.nodeid, before=before, after=snapshot(flow_engine), result=asdict(result), intended_preview=action['preview_id'], injected_preview=wrong)
 
 
