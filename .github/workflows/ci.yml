@@ -61,7 +61,7 @@ jobs:
   api-environment:
     name: API and PostgreSQL environment
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 60
     env:
       # Disposable CI service credentials; never use these outside this job.
       DATABASE_URL: postgresql+psycopg://returnops_ci:ci_synthetic_only@localhost:5432/returnops_f02_ci
@@ -94,7 +94,7 @@ jobs:
       - name: Check bounded PASS revision against isolated PostgreSQL schemas
         env:
           MANUAL_EVIDENCE_DIR: ${{ runner.temp }}/a201-pass-revision-focused-evidence
-        run: python -B -m pytest tests/lifecycle/test_founder_pass_revision_postgresql.py tests/lifecycle/test_founder_pass_revision_late_postgresql.py -q --tb=short -x
+        run: python -B -m pytest tests/lifecycle/test_founder_pass_revision_postgresql.py tests/lifecycle/test_founder_pass_revision_late_postgresql.py tests/lifecycle/test_proposal_manual_postgresql.py::test_group12_same_input_revision_serial_orders tests/lifecycle/test_proposal_manual_postgresql.py::test_group12_revision_supersedes_actual_original_claim -q --tb=short -x
       - name: Migrate and check disposable PostgreSQL environment
         run: python -B tools/checks/run.py environment
       - name: Build runtime image and import installed packages outside app directory
