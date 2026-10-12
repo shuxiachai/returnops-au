@@ -1,0 +1,47 @@
+{
+  "format_version": 1,
+  "corpus_file": "corpus.json",
+  "corpus_sha256": "52ebe3e701e2bb9a684228ad39df8f82caf4e56499e681527c9a88735d771b0a",
+  "corpus_version": "accc-capture-20261012-v1",
+  "review": {
+    "status": "PENDING_EXACT_BYTES_REVIEW",
+    "author": "lulucas-tao",
+    "reviewer": null,
+    "reviewed_at": null,
+    "evidence_uri": null
+  },
+  "coverage": {
+    "issue_categories": [
+      "FAULTY_OR_QUALITY_ISSUE",
+      "WRONG_ITEM",
+      "CHANGE_OF_MIND"
+    ],
+    "conflicts_reviewed": false
+  },
+  "passages": [
+    {
+      "passage_id": "synthetic-sale-fault-rule",
+      "content_sha256": "810a018b518274193540e968cbc9e719347a3847c8ecfb23692c9c5083f7da04"
+    },
+    {
+      "passage_id": "accc-faulty-rights-limit",
+      "content_sha256": "08a06fba9d03834dcb934f8652f8d14ad13333f385229422ffabf34ba98d24a8"
+    },
+    {
+      "passage_id": "synthetic-wrong-item-comparison",
+      "content_sha256": "2c462785a4ea22d3721492d00386c2213f6d627d366802f535a3cd0b1a3cbe3f"
+    },
+    {
+      "passage_id": "accc-description-accuracy",
+      "content_sha256": "9c2c84c44301532a8c6e93fa0b9122ba29a279de8ed2cb1e4c1f1ab369bb9a65"
+    },
+    {
+      "passage_id": "synthetic-change-mind-offer",
+      "content_sha256": "f44657c66dfb438802414507323bafa60fa163d71073f51bd6b44c97b29e3ee8"
+    },
+    {
+      "passage_id": "accc-change-mind-no-general-refund",
+      "content_sha256": "ac85142d26ce5c0640064a013898469af43741d5f6c18510f39f7c4ae669ea34"
+    }
+  ]
+}

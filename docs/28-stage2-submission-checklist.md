@@ -1,5 +1,47 @@
 # Stage2 submission and contribution preparation
 
+## Live Canvas verification — 12 October 2026
+
+The following original sources were read in the signed-in course UI, not
+inferred from a teammate's progress estimate:
+
+- [Stage 2 Marking Criteria, pp1–2](https://canvas.sydney.edu.au/courses/74323/files/52834535?module_item_id=3133247):
+  confirms the 7/4/4/5 marks below, **Jira** collaboration, **1 November 2026
+  23:59 source deadline**, and **Week 13 Canvas-download/on-site deployment**.
+  This is a rubric, not awarded project marks. The contribution statement needs
+  group number, names/student IDs, four criterion-specific percentage rows each
+  totaling 100%, and actual tasks/deliverables. The note says absent statements
+  imply equal contribution; this is not permission to invent percentages.
+- [Project Description, pp1–2](https://canvas.sydney.edu.au/courses/74323/modules/items/3245780):
+  the Stage 1 architectural prototype should implement most models, demonstrate
+  LLM-enhanced perception/decision/interaction, reflect Agile experience and
+  justify advanced technology. Its older final-week wording is less specific
+  than the Stage 2 rubric's explicit date.
+- [Lab 2, p1](https://canvas.sydney.edu.au/courses/74323/modules/items/3133252):
+  at least three business AI roles; **each person individually implements at
+  least two core and one optional feature**. C1/C2/C3 remain C's fixed allocation;
+  evaluation/documentation is not a replacement for a missing feature.
+- [Lab 9 / Week 10, p1](https://canvas.sydney.edu.au/courses/74323/modules/items/3133259):
+  carry out a sprint review/retrospective, discuss achievements/pending work and
+  stakeholder feedback with the tutor, and refine Jira stories. It also introduces
+  the ELEC5620 AI Proxy / Campus Qwen with a separate connection guide and
+  key/VPN/OpenCode setup. This is an available course resource to investigate,
+  not evidence that our project is configured, that model access is approved,
+  or a requirement to replace the team's chosen provider. Do not commit keys.
+- [Assignments list](https://canvas.sydney.edu.au/courses/74323/assignments):
+  at this check it lists the midterm and two closed Stage 1 items, **no visible
+  Stage 2 upload item**. Upload types/limits, exact submission options and
+  timezone therefore remain unverified. Recheck the eventual final item and
+  teacher notices before packaging/submission; do not guess an assignment URL.
+
+The PDF viewer was readable, but this turn's rubric download did not complete.
+The SHA256 below remains the **5 October local-copy receipt**, not a newly
+computed hash of today's live PDF. No course PDF is added to the repository.
+This verification does not check any completion box, change WBS dependencies,
+submit coursework, assert personal explanation or authorize a merge.
+
+## Historical preparation — 5 October 2026
+
 Prepared 5 October 2026 from local primary course files. This is an implementation
 and submission checklist, not a new Stage1 report, a submitted contribution form
 or a claim of completed features. The original nine-feature allocation and89 WBS
