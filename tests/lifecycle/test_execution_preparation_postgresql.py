@@ -231,6 +231,7 @@ def test_EP_G3_G5_corrupt_or_missing_preparation_never_rebuilds(flow_engine,iden
     arguments,_=ready(flow_engine,identities); caller=service(flow_engine,identities)
     first=caller.prepare(**arguments); assert first.status=='PREPARED'
     row,=rows(flow_engine,preparations)
+    orphan=None
     with CustomerUnitOfWork(flow_engine,write=True) as uow:
         if remove=='sidecar': statement=delete(preparations).where(preparations.c.preparation_id==row['preparation_id'])
         elif remove=='history_body': statement=delete(old.history_contents).where(old.history_contents.c.record_id==row['first_operation_record_id'])
@@ -241,9 +242,24 @@ def test_EP_G3_G5_corrupt_or_missing_preparation_never_rebuilds(flow_engine,iden
         elif remove=='first_hash': statement=update(old.history).where(old.history.c.record_id==row['first_operation_record_id']).values(content_sha256='0'*64)
         else:
             original=dict(uow.execute(select(old.history).where(old.history.c.record_id==row['first_operation_record_id'])).mappings().one())
-            statement=old.history.insert().values(**{**original,'record_id':'orphan_operation_row','object_id':'orphan_operation',
-                'recorded_sequence':original['recorded_sequence']+1})
-        assert uow.execute(statement).rowcount==1; uow.commit()
+            orphan={**original,'record_id':'orphan_operation_row','object_id':'orphan_operation',
+                'recorded_sequence':original['recorded_sequence']+1}
+            assert uow.execute(select(old.history.c.record_id).where(
+                old.history.c.record_id==orphan['record_id'])).first() is None
+            statement=old.history.insert().values(**orphan).returning(*old.history.columns)
+        if orphan is None:
+            assert uow.execute(statement).rowcount==1
+        else:
+            assert dict(uow.execute(statement).mappings().one())==orphan
+        uow.commit()
+    if orphan is not None:
+        # A separately fenced connection proves committed identity, count and
+        # every column before the original rejection/recovery checks run.
+        with CustomerUnitOfWork(flow_engine,write=False) as verification:
+            persisted=list(verification.execute(select(old.history).where(
+                old.history.c.record_id==orphan['record_id'])).mappings())
+            assert len(persisted)==1 and dict(persisted[0])==orphan
+            verification.commit()
     result=unchanged(flow_engine,caller,arguments)
     before=snapshot(flow_engine); recovery=recovered(caller,arguments)
     assert recovery.status=='UNKNOWN' and snapshot(flow_engine)==before
