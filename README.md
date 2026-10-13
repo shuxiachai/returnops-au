@@ -10,6 +10,53 @@
 
 # ReturnOps AU
 
+## C follow-up after A review — 2026-10-11
+
+Latest verified main: [`d2e809d`](https://github.com/shuxiachai/returnops-au/commit/d2e809d1a127e0e38bab4111394752541ad6b8c6).
+This dated receipt supersedes pending/Draft wording in the October 9 and older
+snapshots below without deleting their historical evidence.
+
+| Delivery | Verified disposition | What this does not establish |
+| --- | --- | --- |
+| C handoff [PR #57](https://github.com/shuxiachai/returnops-au/pull/57) | A approved source `737476d`; merged as `988520b` on October 9; four PR/push checks passed | Personal explanation, whole KAN-22, or acceptance of PRs #7/#17/#20 |
+| C1 offline [PR #59](https://github.com/shuxiachai/returnops-au/pull/59) | A approved source `cdf3fb8`; merged as `cdfc3c1` on October 9; four PR/push checks passed; component/test bytes unchanged in current main | Real-source corpus approval, runtime integration, whole C1/F.01, C2/C3, or Gold evaluation |
+| A private preview/approval [PR #56](https://github.com/shuxiachai/returnops-au/pull/56) | Merged as `d2e809d` on October 9 under A's scoped merge exception; [main CI 37931297595](https://github.com/shuxiachai/returnops-au/actions/runs/37931297595) passed offline and API/PostgreSQL jobs | C's human signature, executable provider operations, whole A2.01, or Gate 1 acceptance |
+
+Review receipts: [A on #57](https://github.com/shuxiachai/returnops-au/pull/57#pullrequestreview-5468873223)
+and [A on #59](https://github.com/shuxiachai/returnops-au/pull/59#pullrequestreview-5469070196).
+A's non-blocking clarification is retained: the **original failed PR #56 run**
+passed its environment suite, failed storage, and skipped the later business
+suites/runtime-image validation. It is separate from the repaired, passing
+main run above; do not relabel that historical failure as a pass.
+
+### Next C handoff and review entrance
+
+- **KAN-23 remains the primary C work item; keep [Issue #58](https://github.com/shuxiachai/returnops-au/issues/58) open.**
+  The [C1 source-selection and integration review packet](docs/reviews/member-c-c1-source-review-20261011.md)
+  proposes a small, attributable source set and explicit review/admission checks.
+  It is preparation, not an approved runtime corpus or a new loader. A reviews
+  the selected context and exact final passage bytes before admission.
+- The [C technical follow-up on PR #56](docs/reviews/member-c-pr56-followup-20261011.md)
+  separates source inspection, locally rerun offline tests and remote PG17 CI.
+  It does not impersonate C's personal understanding or joint acceptance.
+- `VALID` still means exact citation identity/version/hash/location consistency,
+  not claim support or membership in an earlier retrieval. A retains the full
+  retrieval/conflicts and checks membership plus current case/input/proposal
+  bindings; C2 independently checks support and material risk.
+- C2 fixed five-outcome fixtures remain a next **offline preparation** option,
+  not a newly completed reviewer. C3 waits for R.03/text-workflow stability.
+  Gold label preparation/sealing remains governed by E.02–E.08; no completed
+  sealing or formal evaluation is claimed here.
+- PRs #7/#17/#20 remain separate open historical items. Preserve their useful
+  evidence and reconcile against `stage1/` before asking A for disposition;
+  these merges do not approve, close or safely rebase those PRs wholesale.
+- B owns [PR #60](https://github.com/shuxiachai/returnops-au/pull/60) fixes. C does
+  not alter frozen Risk/Proposal DTOs to accommodate frontend mock differences.
+
+No owner, deadline, estimate, wire schema, 89-row WBS field or personal sign-off
+is changed by this AI-assisted evidence update. Jira comments link actual
+delivery records; a merge alone is not a Done transition.
+
 ## Current C handoff — 2026-10-09
 
 This dated update supersedes the **current-status wording**, not the original
