@@ -6,7 +6,7 @@ from . import founder_codec as finite
 from .audit import timestamp
 from .canonical import digest
 from .lifecycle_events import LifecycleClaim, OutcomeAccepted
-from .lifecycle_schema import CURRENT, version
+from .lifecycle_schema import APPROVAL_VERSIONS, version
 from .lifecycle_sources import Sources
 from .lifecycle_state import reject
 from .manual_target import one
@@ -51,7 +51,7 @@ def read_preview(uow, head, state, expected_version, *, consumer=None):
 
 def read_target(uow, head, state, request, component, *, original_state=None, consumer=None):
     initial = state if original_state is None else original_state
-    if (component != COMPONENT or version(uow.connection) != CURRENT
+    if (component != COMPONENT or version(uow.connection) not in APPROVAL_VERSIONS
             or initial is None or state is None or not initial['available'] or not state['available']
             or initial['proposal_record_id'] is None or initial['review_record_id'] is None):
         reject(uow)
@@ -142,7 +142,7 @@ def accepted_manual(uow, head, record_id, component):
     Notification work can advance lawfully after acceptance. Its immutable
     original target locates it; replay never requires it to still be unclaimed.
     """
-    if component != COMPONENT or version(uow.connection) != CURRENT:
+    if component != COMPONENT or version(uow.connection) not in APPROVAL_VERSIONS:
         reject(uow)
     sources = Sources(uow, head, component)
     row, body = sources.read(record_id, {'DECISION'}, current_actor=False)

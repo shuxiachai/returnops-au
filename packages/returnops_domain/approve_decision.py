@@ -10,7 +10,7 @@ from .customer_uow import CustomerUnitOfWork
 from .errors import AcceptanceOutcomeUnknown, FlowError
 from .lifecycle_events import ApprovalAccepted
 from .lifecycle_guards import LifecycleGuards
-from .lifecycle_schema import CURRENT, version
+from .lifecycle_schema import APPROVAL_VERSIONS, version
 from .lifecycle_state import current, reject
 from .manual_target import one
 from .approve_denial import COMPONENT, OPERATION, authorize, record_denial
@@ -87,7 +87,7 @@ class FounderApproveService:
             check_seal(uow, seal)
             if (one(uow, old.acceptances, acceptance_id=fact['acceptance_id']) != dict(fact)
                     or one(uow, old.receipts, acceptance_id=fact['acceptance_id']) != original_receipt
-                    or version(uow.connection) != CURRENT):
+                    or version(uow.connection) not in APPROVAL_VERSIONS):
                 reject(uow)
         uow.before_commit(check)
         return receipt
@@ -175,7 +175,7 @@ class FounderApproveService:
             check_seal(uow, accepted)
             if (h['status'] != 'APPROVED' or h['case_version'] != event['case_version']
                     or h['input_version'] != head['input_version'] or dict(current(uow, h)) != saved_state
-                    or version(uow.connection) != CURRENT or accepted['work']['claim_id'] != claim.claim_id
+                    or version(uow.connection) not in APPROVAL_VERSIONS or accepted['work']['claim_id'] != claim.claim_id
                     or accepted['work']['epoch'] != claim.epoch or accepted['work']['authority_revision'] != claim.authority_revision
                     or accepted['execution']['state'] != 'PENDING' or accepted['execution']['epoch'] != 0
                     or one(uow, old.acceptances, acceptance_id=acceptance) != fact

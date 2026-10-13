@@ -15,7 +15,7 @@ from .canonical import digest
 from .approve_sources import accepted_approval, execution_identity
 from .errors import FlowError
 from .lifecycle_effects import fingerprint
-from .lifecycle_schema import CURRENT, version
+from .lifecycle_schema import APPROVAL_VERSIONS, version
 from .lifecycle_sources import Sources, authority
 from .lifecycle_state import current, reject
 from .manual_target import one
@@ -85,7 +85,7 @@ def authorize(uow, callback, case_id):
         reject(uow, 'FORBIDDEN')
     if callback(uow.connection, 'getFounderCase', case_id) != actor:
         reject(uow, 'UNAUTHENTICATED')
-    if version(uow.connection) != CURRENT:
+    if version(uow.connection) not in APPROVAL_VERSIONS:
         reject(uow)
     head = uow.execute(select(old.case_heads).where(old.case_heads.c.case_id == case_id)
                        .with_for_update()).mappings().one_or_none()

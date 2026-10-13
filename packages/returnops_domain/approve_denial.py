@@ -4,7 +4,7 @@ from . import customer_tables as old, lifecycle_tables as t
 from .audit import append_event, identifier
 from .customer_uow import CustomerUnitOfWork
 from .errors import AcceptanceOutcomeUnknown
-from .lifecycle_schema import CURRENT, version
+from .lifecycle_schema import APPROVAL_VERSIONS, version
 from .lifecycle_sources import authority
 from .lifecycle_state import reject
 from .preview_profile import APPROVAL_COMPONENT as COMPONENT
@@ -18,7 +18,7 @@ def authorize(uow, callback, case_id):
     current = callback(uow.connection, OPERATION, case_id)
     if current != actor:
         reject(uow, 'UNAUTHENTICATED')
-    if version(uow.connection) != CURRENT:
+    if version(uow.connection) not in APPROVAL_VERSIONS:
         reject(uow)
     head = uow.execute(select(old.case_heads).where(old.case_heads.c.case_id == case_id)
         .with_for_update()).mappings().one_or_none()

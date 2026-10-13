@@ -138,8 +138,8 @@ class FounderDecisionService:
         if not installed(uow):
             reject(uow)
         if 'proposal_id' in request:
-            from .lifecycle_schema import version,CURRENT
-            if version(uow.connection)!=CURRENT:
+            from .lifecycle_schema import version,APPROVAL_VERSIONS
+            if version(uow.connection)not in APPROVAL_VERSIONS:
                 reject(uow)
         if head['case_version'] != request['expected_case_version']:
             reject(uow, 'STALE_CASE_VERSION')
@@ -239,8 +239,8 @@ class FounderDecisionService:
                 check_actor(uow, final_head, accepted)
                 check_seal(uow, accepted)
                 note_work = accepted['notification_work']
-                from .lifecycle_schema import version, CURRENT
-                if (version(uow.connection) != CURRENT or note_work['state'] != 'PENDING'
+                from .lifecycle_schema import version, APPROVAL_VERSIONS
+                if (version(uow.connection) not in APPROVAL_VERSIONS or note_work['state'] != 'PENDING'
                         or note_work['epoch'] != 0 or note_work['work_id'] != accepted_state['notification_work_id']
                         or any(note_work[name] is not None for name in
                             ('claim_id', 'claimed_case_version', 'lease_expires_at', 'authority_revision'))
