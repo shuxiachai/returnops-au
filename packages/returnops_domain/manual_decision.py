@@ -18,6 +18,9 @@ from .lifecycle_guards import LifecycleGuards
 from .lifecycle_state import current, installed, reject
 from .manual_denial import COMPONENT, OPERATION, authorize, record_denial
 from .manual_target import read_target, one
+from .pass_manual_sources import (accepted_manual, read_preview, check_current,
+    check_actor, check_seal, MESSAGE)
+from .preview_sources import consume, consume_payload
 from .wire import validate
 
 
@@ -53,7 +56,7 @@ class FounderDecisionService:
         return idempotency.lookup(uow, actor, OPERATION, head['case_id'], key, fingerprint,
                                   check_resource=check), fingerprint
 
-    def _replay(self, uow, fact, actor, head, grant):
+    def _replay(self, uow, fact, actor, head, grant, request, key):
         _, receipt = idempotency.original_receipt(uow, fact)
         validate('DecisionReceipt', receipt, internal=True)
         if (receipt['case_id'] != head['case_id'] or receipt['decision'] != 'MANUAL_HANDLING'
@@ -72,26 +75,45 @@ class FounderDecisionService:
         from .lifecycle_sources import Sources
         _, decision=Sources(uow,head,COMPONENT).read(source['record_id'],{'DECISION'},current_actor=False)
         if 'proposal_id' in decision:
-            from .review_sources import accepted_review
-            binding=one(uow,t.sources,record_id=source['record_id'])
-            seal=accepted_review(uow,head,None,COMPONENT,record_id=binding['target_record_id'],current=False)
-            packet=seal['proposal']['body']['packet']
-            if (decision['decision_id']!=receipt['decision_id'] or decision['decision']!='MANUAL_HANDLING'
-                    or decision['principal_id']!=actor.principal_id
-                    or any(decision[k]!=packet[k] for k in ('proposal_id','proposal_version'))
-                    or event['pre_case_version']!=seal['event']['case_version']):
+            seal = accepted_manual(uow, head, source['record_id'], COMPONENT)
+            if (receipt['decision_id'] != seal['body']['decision_id']
+                    or receipt['case_version'] != seal['event']['case_version']
+                    or seal['body']['principal_id'] != actor.principal_id
+                    or any(seal['body'][name] != request.get(name) for name in
+                        ('decision', 'proposal_id', 'proposal_version', 'reason'))
+                    or seal['event']['pre_case_version'] != request['expected_case_version']
+                    or seal['event']['accepted_at'] != fact['accepted_at']
+                    or any(fact[name] != value for name, value in dict(principal_id=actor.principal_id,
+                        store_id=actor.store_id, method='POST', operation=OPERATION, target=head['case_id'],
+                        request_key=key, fingerprint=digest(request, 'founder-manual-request/v1'),
+                        resource_kind='CASE', resource_id=head['case_id'], response_status=200).items())):
                 reject(uow)
-        uow.before_commit(lambda: self._same_authority(uow, actor, head, grant))
+            fact_seal = dict(fact)
+            receipt_seal = one(uow, old.receipts, acceptance_id=fact['acceptance_id'])
+            def check():
+                h = self._same_authority(uow, actor, head, grant)
+                if accepted_manual(uow, h, source['record_id'], COMPONENT) != seal:
+                    reject(uow)
+                h = self._same_authority(uow, actor, head, grant)
+                check_actor(uow, h, seal)
+                check_seal(uow, seal)
+                if (one(uow, old.acceptances, acceptance_id=fact['acceptance_id']) != fact_seal
+                        or one(uow, old.receipts, acceptance_id=fact['acceptance_id']) != receipt_seal):
+                    reject(uow)
+            uow.before_commit(check)
+        else:
+            uow.before_commit(lambda: self._same_authority(uow, actor, head, grant))
         return receipt
 
     def _same_authority(self, uow, actor, head, grant):
         a, h, g = authorize(uow, self.authority, head['case_id'])
-        if a != actor or h['owner_principal_id'] != head['owner_principal_id'] or dict(g) != dict(grant):
+        if (a != actor or h['owner_principal_id'] != head['owner_principal_id']
+                or h['store_id'] != head['store_id'] or dict(g) != dict(grant)):
             reject(uow, 'FORBIDDEN')
         return h
 
     @staticmethod
-    def _append(uow, case_id, kind, body, actor, correlation, now):
+    def _append(uow, case_id, kind, body, actor, correlation, now, *, payload=None):
         finite.validate('FounderDecisionRecord' if kind == 'DECISION' else 'NotificationRecord', body)
         head = one(uow, old.case_heads, case_id=case_id)
         record_id = identifier('manual_source')
@@ -108,7 +130,7 @@ class FounderDecisionService:
             history_sequence=head['history_sequence'] + 1))
         append_event(uow, case_id, actor=actor,
             event_type='FOUNDER_DECISION_ACCEPTED' if kind == 'DECISION' else 'NOTIFICATION_REVISION_RECORDED',
-            correlation_id=correlation, payload={'private_manual':True},
+            correlation_id=correlation, payload={'private_manual':True} if payload is None else payload,
             object_ids=[object_id], history_refs=[ref], now=now)
         return record_id, source_hash
 
@@ -121,21 +143,25 @@ class FounderDecisionService:
                 reject(uow)
         if head['case_version'] != request['expected_case_version']:
             reject(uow, 'STALE_CASE_VERSION')
-        if head['status'] != 'ESCALATED':
+        if head['status'] not in ({'ESCALATED', 'AWAITING_APPROVAL'} if 'proposal_id' in request else {'ESCALATED'}):
             reject(uow)
         # Original input=1 intake/order failures may have no lifecycle sidecar.
         # Initialize only inside this authorized new-intent transaction; every
         # denial rolls this insertion back and GET/replay never initializes it.
-        state = current(uow, head, initialize=True)
-        excluded=('preview_id','approval_record_id','outcome_record_id','outcome')
+        state = current(uow, head, initialize='proposal_id' not in request)
+        excluded=('approval_record_id','outcome_record_id','outcome')
         if 'proposal_id' not in request:
-            excluded+=('proposal_record_id','review_record_id')
-        if not state['available'] or any(state[name] is not None for name in excluded):
+            excluded+=('proposal_record_id','review_record_id','preview_id')
+        if state is None or not state['available'] or any(state[name] is not None for name in excluded):
             reject(uow)
         original_state = dict(state)
         source = read_target(uow, head, state, request, COMPONENT)
+        preview = (read_preview(uow, head, state, request['expected_case_version'])
+                   if 'proposal_id' in request else None)
+        payload = None if preview is None else consume_payload(preview['row'])
         now = self.clock()
-        if now.utcoffset() is None:
+        if (now.utcoffset() is None or preview is not None and now < preview['row']['issued_at']
+                or 'proposal_id' in request and now < source['event']['accepted_at']):
             reject(uow)
         # Necessary OUTCOME work/claim is part of this one business transaction;
         # no capability is provisioned, and notification work stays unclaimed.
@@ -153,17 +179,19 @@ class FounderDecisionService:
             decision='MANUAL_HANDLING', principal_id=actor.principal_id, reason=request['reason'],
             decided_at=timestamp(now), **target_fields)
         decision_id, decision_hash = self._append(uow, head['case_id'], 'DECISION', decision,
-            {'kind':'HUMAN', 'role':'FOUNDER', 'principal_id':actor.principal_id}, correlation, now)
+            {'kind':'HUMAN', 'role':'FOUNDER', 'principal_id':actor.principal_id}, correlation, now, payload=payload)
         uow.execute(t.sources.insert().values(record_id=decision_id, case_id=head['case_id'],
             **asdict(claim), source_hash=decision_hash, target_record_id=source['record']['record_id'], slot='PRIMARY'))
         note = dict(notification_id=identifier('manual_notification'), case_id=head['case_id'],
             case_version=head['case_version'], status='PENDING', outcome='MANUAL_HANDLED',
-            message='Your request has been assigned for manual handling.', next_steps=[],
+            message=MESSAGE, next_steps=[],
             attempt_count=0, updated_at=timestamp(now))
         note_id, note_hash = self._append(uow, head['case_id'], 'NOTIFICATION', note,
-            {'kind':'SERVICE', 'component_id':COMPONENT}, correlation, now)
+            {'kind':'SERVICE', 'component_id':COMPONENT}, correlation, now, payload=payload)
         uow.execute(t.sources.insert().values(record_id=note_id, case_id=head['case_id'], **asdict(claim),
             source_hash=note_hash, target_record_id=decision_id, slot='NOTIFICATION'))
+        if preview is not None:
+            consume(uow, preview, decision_id, now)
         event = self.guard.apply(uow, OutcomeAccepted(identifier('manual_event'), claim, decision_id, note_id), now)
         receipt = dict(case_id=head['case_id'], case_version=event['case_version'], decision_id=decision['decision_id'],
             decision='MANUAL_HANDLING', accepted_at=timestamp(now), processing_status='ACCEPTED')
@@ -178,21 +206,47 @@ class FounderDecisionService:
         fact_seal = one(uow, old.acceptances, acceptance_id=acceptance)
         receipt_seal = one(uow, old.receipts, acceptance_id=acceptance)
         accepted_work = one(uow, t.work, work_id=work_id)
+        accepted = None
+        if 'proposal_id' in request:
+            accepted_head = one(uow, old.case_heads, case_id=head['case_id'])
+            accepted = accepted_manual(uow, accepted_head, decision_id, COMPONENT)
+            accepted_state = dict(current(uow, accepted_head))
         def check():
             h = self._same_authority(uow, actor, head, grant)
             s = current(uow, h)
+            if accepted is not None:
+                if (accepted_manual(uow, h, decision_id, COMPONENT) != accepted
+                        or s is None or dict(s) != accepted_state
+                        or read_preview(uow, h, original_state, request['expected_case_version'],
+                            consumer=decision_id) != accepted['preview']):
+                    reject(uow)
             if (h['status'] != 'NOTIFICATION_PENDING' or h['case_version'] != event['case_version']
                     or h['input_version'] != head['input_version'] or s is None
-                    or read_target(uow, h, s, request, COMPONENT, original_state=original_state) != source
+                    or read_target(uow, h, s, request, COMPONENT,
+                        original_state=original_state, consumer=decision_id) != source
                     or one(uow, old.acceptances, acceptance_id=acceptance) != fact_seal
                     or one(uow, old.receipts, acceptance_id=acceptance) != receipt_seal):
                 reject(uow)
+            if accepted is not None:
+                check_current(uow, h, original_state, source, COMPONENT)
             # Full retained-source reads can be expensive. Recheck BOTH actual
             # authorities and the original claim/lease after those reads, as
             # the final callback; never renew or borrow a replacement lease.
             if one(uow, t.work, work_id=work_id) != accepted_work:
                 reject(uow)
             final_head=self._same_authority(uow, actor, head, grant)
+            if accepted is not None:
+                check_actor(uow, final_head, accepted)
+                check_seal(uow, accepted)
+                note_work = accepted['notification_work']
+                from .lifecycle_schema import version, CURRENT
+                if (version(uow.connection) != CURRENT or note_work['state'] != 'PENDING'
+                        or note_work['epoch'] != 0 or note_work['work_id'] != accepted_state['notification_work_id']
+                        or any(note_work[name] is not None for name in
+                            ('claim_id', 'claimed_case_version', 'lease_expires_at', 'authority_revision'))
+                        or one(uow, old.acceptances, acceptance_id=acceptance) != fact_seal
+                        or one(uow, old.receipts, acceptance_id=acceptance) != receipt_seal):
+                    reject(uow)
             if (final_head['status']!='NOTIFICATION_PENDING' or final_head['case_version']!=event['case_version']
                     or final_head['input_version']!=head['input_version'] or dict(current(uow,final_head))!=dict(s)
                     or self.clock() >= original_lease or self.guard.clock() >= original_lease
@@ -214,7 +268,7 @@ class FounderDecisionService:
                 request = self._request(request)
                 validate('Id', correlation_id)
                 fact, fingerprint = self._lookup(uow, actor, head, request, original_key)
-                receipt = (self._replay(uow, fact, actor, head, grant) if fact is not None
+                receipt = (self._replay(uow, fact, actor, head, grant, request, original_key) if fact is not None
                     else self._new(uow, actor, head, grant, request, original_key, fingerprint, correlation_id))
                 uow.commit()
                 committed = True
@@ -247,7 +301,7 @@ class FounderDecisionService:
                     uow.before_commit(lambda: self._same_authority(uow, actor, head, grant))
                     uow.commit()
                     return ManualResult('UNKNOWN')
-                receipt = self._replay(uow, fact, actor, head, grant)
+                receipt = self._replay(uow, fact, actor, head, grant, request, original_key)
                 uow.commit()
             return ManualResult('ACCEPTED', receipt)
         except FlowError as error:
