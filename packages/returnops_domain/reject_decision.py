@@ -14,7 +14,7 @@ from .customer_uow import CustomerUnitOfWork
 from .errors import AcceptanceOutcomeUnknown, FlowError
 from .lifecycle_events import OutcomeAccepted
 from .lifecycle_guards import LifecycleGuards
-from .lifecycle_schema import version, CURRENT
+from .lifecycle_schema import version, APPROVAL_VERSIONS
 from .lifecycle_state import current, installed, reject
 from .manual_target import one
 from .reject_denial import COMPONENT, OPERATION, authorize, record_denial
@@ -90,7 +90,7 @@ class FounderRejectService:
             check_seal(uow, seal)
             if (one(uow, old.acceptances, acceptance_id=fact['acceptance_id']) != fact
                     or one(uow, old.receipts, acceptance_id=fact['acceptance_id']) != original_receipt
-                    or version(uow.connection) != CURRENT):
+                    or version(uow.connection) not in APPROVAL_VERSIONS):
                 reject(uow)
 
         uow.before_commit(check)
@@ -119,7 +119,7 @@ class FounderRejectService:
         return record_id, source_hash
 
     def _new(self, uow, actor, head, grant, request, key, fingerprint, correlation):
-        if not installed(uow) or version(uow.connection) != CURRENT:
+        if not installed(uow) or version(uow.connection) not in APPROVAL_VERSIONS:
             reject(uow)
         if head['case_version'] != request['expected_case_version']:
             reject(uow, 'STALE_CASE_VERSION')
@@ -187,7 +187,7 @@ class FounderRejectService:
                 t.sources.c.work_id == work_id, t.sources.c.epoch == claim.epoch).order_by(t.sources.c.slot)).mappings()]
             if (final_head['status'] != 'NOTIFICATION_PENDING' or final_head['case_version'] != event['case_version']
                     or final_head['input_version'] != head['input_version'] or dict(current(uow, final_head)) != state_seal
-                    or version(uow.connection) != CURRENT or actual_bindings != bindings_seal
+                    or version(uow.connection) not in APPROVAL_VERSIONS or actual_bindings != bindings_seal
                     or one(uow, t.work, work_id=work_id) != accepted['work']
                     or one(uow, t.work, work_id=state_seal['notification_work_id']) != accepted['notification_work']
                     or one(uow, t.events, record_id=decision_id) != event

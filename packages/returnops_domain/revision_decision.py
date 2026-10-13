@@ -120,8 +120,8 @@ class FounderRevisionService:
         return record_id, source_hash
 
     def _new(self, uow, actor, head, grant, request, key, fingerprint, correlation):
-        from .lifecycle_schema import version, CURRENT
-        if not installed(uow) or version(uow.connection) != CURRENT:
+        from .lifecycle_schema import version, APPROVAL_VERSIONS
+        if not installed(uow) or version(uow.connection) not in APPROVAL_VERSIONS:
             reject(uow)
         if head['case_version'] != request['expected_case_version']:
             reject(uow, 'STALE_CASE_VERSION')
@@ -197,7 +197,7 @@ class FounderRevisionService:
                     or final_head['input_version']!=head['input_version'] or dict(current(uow,final_head))!=dict(s)
                     or one(uow, old.acceptances, acceptance_id=acceptance) != fact_seal
                     or one(uow, old.receipts, acceptance_id=acceptance) != receipt_seal
-                    or version(uow.connection) != CURRENT
+                    or version(uow.connection) not in APPROVAL_VERSIONS
                     or self.clock() >= original_lease or self.guard.clock() >= original_lease
                     or accepted_work['claim_id'] != claim.claim_id or accepted_work['epoch'] != claim.epoch
                     or accepted_work['authority_revision'] != claim.authority_revision):

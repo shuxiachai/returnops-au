@@ -79,7 +79,8 @@ def test_0006_backfills_legacy_future_metadata_without_business_rewrites(flow_en
     migrate(flow_engine)
     migrate(flow_engine)
     after=business_fingerprints(flow_engine)
-    added = {**lifecycle.metadata.tables, **preview.metadata.tables}
+    from returnops_domain import execution_preparation_tables
+    added = {**lifecycle.metadata.tables, **preview.metadata.tables, **execution_preparation_tables.metadata.tables}
     assert {name:value for name,value in after.items() if name not in added} == before
     assert set(after)-set(before) == set(added)
     assert all(rows(flow_engine,table)==[] for table in added.values())

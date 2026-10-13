@@ -4,7 +4,7 @@ from . import customer_tables as old, lifecycle_tables as t
 from .errors import FlowError
 
 LEGACY_REVISIONS = {'0003_customer_flow', '0004_pre_case_audit', '0005_order_investigation', '0006_founder_reads'}
-from .lifecycle_schema import CURRENT as REVISION, REVIEW, LEGACY, version as schema_version
+from .lifecycle_schema import PREPARATION, APPROVAL, APPROVAL_VERSIONS, REVIEW, LEGACY, version as schema_version
 MAX_VERSION = 9007199254740991
 
 
@@ -22,7 +22,7 @@ def installed(uow):
     revisions = uow.execute(text('SELECT version_num FROM alembic_version')).scalars().all()
     names = set(uow.execute(text('SELECT tablename FROM pg_tables WHERE schemaname=current_schema()')).scalars())
     present = set(t.metadata.tables) & names
-    if revisions in ([REVISION], [REVIEW], [LEGACY]) and schema_version(uow.connection) in {REVISION, REVIEW, LEGACY}:
+    if revisions in ([PREPARATION], [APPROVAL], [REVIEW], [LEGACY]) and schema_version(uow.connection) in {PREPARATION, APPROVAL, REVIEW, LEGACY}:
         return True
     if len(revisions) == 1 and revisions[0] in LEGACY_REVISIONS and not present:
         return False
@@ -85,6 +85,11 @@ def invalidate(uow, head, *, input_version=None, retention=False, accepting_even
     uow.execute(update(t.work).where(*predicates).values(
             state='PAUSED' if retention else 'SUPERSEDED', epoch=t.work.c.epoch + 1,
             claim_id=None, lease_expires_at=None))
+    if schema_version(uow.connection) == PREPARATION:
+        from .execution_preparation_tables import preparations
+        uow.execute(update(preparations).where(preparations.c.case_id == head['case_id'],
+            preparations.c.state.in_(['PENDING', 'PAUSED'])).values(
+                state='PAUSED' if retention else 'SUPERSEDED'))
     return {**row, **values}
 
 
@@ -92,7 +97,7 @@ def retain(uow, head, reason, redact):
     if not installed(uow):
         return
     invalidate(uow, head, retention=True)
-    if schema_version(uow.connection) == REVISION:
+    if schema_version(uow.connection) in APPROVAL_VERSIONS:
         from .preview_tables import previews
         uow.execute(update(previews).where(previews.c.case_id == head['case_id']).values(
             body=None, available=False, removal_reason=reason))
