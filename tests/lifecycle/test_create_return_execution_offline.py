@@ -6,11 +6,11 @@ from sqlalchemy.schema import CreateTable
 from sqlalchemy.dialects import postgresql
 from returnops_api.private_return_execution import compose_private_return_execution
 from returnops_api.security.authentication import AuthConfig
-from returnops_domain.canonical import digest
-from returnops_domain.errors import AcceptanceOutcomeUnknown
+from returnops_domain.canonical import canonical_bytes, digest
+from returnops_domain.errors import AcceptanceOutcomeUnknown, FlowError
 from returnops_domain.core_return_mock import Ticket
 from returnops_domain.return_execution import ReturnExecutionService, ExecutionResult
-from returnops_domain.return_execution_sources import control_payload, accepted_payload, stable, verify_fact
+from returnops_domain.return_execution_sources import control_payload, accepted_payload, stable, verify_fact, ledger_payload
 from returnops_domain.return_execution_tables import controls, permissions, ledger, CONTROL_IDS, CONTROL_HASHES, CONTROL_NUMBERS
 from test_approval_admission_offline import command
 
@@ -40,6 +40,41 @@ def test_RE_G1_G10_independent_ledger_has_no_domain_fk_or_command_body_and_no_de
                for table in (controls, permissions, ledger) for column in table.columns)
     compiled = str(CreateTable(ledger).compile(dialect=postgresql.dialect()))
     assert 'FOREIGN KEY' not in compiled and 'UNIQUE (operation_id)' in compiled and 'PRIMARY KEY (effect_key)' in compiled
+
+
+@pytest.mark.parametrize('status', ['SUCCEEDED', 'FAILED'])
+def test_RE_G2_G7_ledger_metadata_keys_are_plain_strings_without_value_coercion(status):
+    expected = dict(effect_key='effect_original', store_id='store_original',
+        provider_id='provider-mock-return', config_id='core-return-sql-v1', config_hash='1' * 64,
+        operation_id='operation_original', dispatch_record_id='dispatch_original',
+        dispatch_binding_hash='2' * 64, operation_fingerprint='3' * 64,
+        provider_operation_id='mock_return_original', parcel_id='parcel_original', status=status,
+        provider_return_id='return_original' if status == 'SUCCEEDED' else None,
+        error_code=None if status == 'SUCCEEDED' else 'INTERNAL_ERROR',
+        accepted_at='2026-10-14T00:00:00.000000Z')
+    row = {**expected, 'accepted_at': datetime(2026, 10, 14, tzinfo=timezone.utc), 'fact_hash': '4' * 64}
+    before = dict(row)
+    # Use the real SQLAlchemy ledger metadata: its column keys are quoted_name
+    # str subclasses, while the unchanged typed codec admits exact str only.
+    raw_keys = {name: expected[name] for name in ledger.columns.keys() if name != 'fact_hash'}
+    assert set(raw_keys) == set(expected) and any(type(name) is not str for name in raw_keys)
+    with pytest.raises(FlowError) as rejected:
+        digest(raw_keys, 'core-return-fact/v1')
+    assert rejected.value.code == 'VALIDATION_ERROR'
+    payload = ledger_payload(row)
+    assert payload == expected and all(type(name) is str for name in payload)
+    assert canonical_bytes(payload, 'core-return-fact/v1') == canonical_bytes(expected, 'core-return-fact/v1')
+    assert digest(payload, 'core-return-fact/v1') == digest(expected, 'core-return-fact/v1')
+    assert row == before and row['accepted_at'] is before['accepted_at']
+    class UnsupportedString(str):
+        pass
+    for unsupported in (UnsupportedString('parcel_original'), object()):
+        changed = {**row, 'parcel_id': unsupported}
+        projected = ledger_payload(changed)
+        assert projected['parcel_id'] is unsupported and changed['parcel_id'] is unsupported
+        with pytest.raises(FlowError) as rejected:
+            digest(projected, 'core-return-fact/v1')
+        assert rejected.value.code == 'VALIDATION_ERROR'
 
 
 @pytest.mark.parametrize('entry', ['execute', 'query'])

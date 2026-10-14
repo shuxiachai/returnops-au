@@ -58,7 +58,7 @@ def dispatch_payload(row):
 
 
 def ledger_payload(row):
-    value = {name: row[name] for name in ledger.columns.keys() if name != 'fact_hash'}
+    value = {str(name): row[name] for name in ledger.columns.keys() if name != 'fact_hash'}
     value['accepted_at'] = timestamp(value['accepted_at'])
     return value
 
