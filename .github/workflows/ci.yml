@@ -61,8 +61,8 @@ jobs:
   api-environment:
     name: API and PostgreSQL environment
     runs-on: ubuntu-24.04
-    # Additional PASS manual coverage; no actual timeout preceded this capacity adjustment.
-    timeout-minutes: 75
+    # Both source/PR jobs hit 75 minutes; preserve full suites with measured PR pace plus 30% margin.
+    timeout-minutes: 170
     env:
       # Disposable CI service credentials; never use these outside this job.
       DATABASE_URL: postgresql+psycopg://returnops_ci:ci_synthetic_only@localhost:5432/returnops_f02_ci
