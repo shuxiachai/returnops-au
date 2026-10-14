@@ -5,6 +5,7 @@ from returnops_domain import founder_tables as f
 from returnops_domain import lifecycle_tables as lifecycle
 from returnops_domain import preview_tables as preview
 from returnops_domain import execution_preparation_tables as preparation
+from returnops_domain import return_execution_tables as execution
 from returnops_domain.retention import RetentionService
 from conftest import migrate
 from founder_helpers import business_fingerprints, founder, investigate, rows
@@ -21,7 +22,8 @@ def test_real_0005_upgrade_and_repeat_preserve_all_existing_business_bytes(flow_
     migrate(flow_engine)
     migrate(flow_engine)
     after = business_fingerprints(flow_engine)
-    added = {**lifecycle.metadata.tables, **preview.metadata.tables, **preparation.metadata.tables}
+    added = {**lifecycle.metadata.tables, **preview.metadata.tables, **preparation.metadata.tables,
+             **execution.metadata.tables}
     assert {name: value for name,value in after.items() if name not in added} == before
     assert set(after)-set(before) == set(added)
     assert all(rows(flow_engine,table)==[] for table in added.values())
@@ -30,5 +32,5 @@ def test_real_0005_upgrade_and_repeat_preserve_all_existing_business_bytes(flow_
     assert view['order_lookup_block']['status'] == 'CONFLICT'
     assert bool(view['statements']) is (not remove)
     with flow_engine.connect() as connection:
-        assert connection.execute(text('SELECT version_num FROM alembic_version')).scalar_one() == '0010_execution_preparation'
+        assert connection.execute(text('SELECT version_num FROM alembic_version')).scalar_one() == '0011_return_execution'
     assert business_fingerprints(flow_engine) == after
