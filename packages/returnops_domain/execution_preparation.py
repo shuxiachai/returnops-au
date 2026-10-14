@@ -12,7 +12,7 @@ from .approval_admission_sources import (ProofReads, AdmissionUncertain, authori
 from .execution_preparation_tables import preparations
 from .execution_preparation_sources import (identities, request_fingerprint, source_closure, discover,
     fresh_proof, operation, audit_payload, retained_proof, current_staged, expected_closure)
-from .lifecycle_schema import PREPARATION, version
+from .lifecycle_schema import PREPARATION_VERSIONS, EXECUTION, version
 from .lifecycle_state import reject
 from .manual_target import one
 from .preview_profile import APPROVAL_COMPONENT
@@ -94,7 +94,7 @@ class ExecutionPreparationService:
                 reads = ProofReads(uow)
                 validate('Id', case_id)
                 actor, head, grant = authorize(reads, self.authority, case_id)
-                if version(reads.connection) != PREPARATION:
+                if version(reads.connection) not in PREPARATION_VERSIONS:
                     reject(reads)
                 bounds = session_bounds(reads, actor)
                 if type(expected) is not int:
@@ -112,6 +112,12 @@ class ExecutionPreparationService:
                             reject(reads)
                         raise
 
+                def retained(reads, *args):
+                    if version(reads.connection) == EXECUTION:
+                        from .return_execution_sources import preparation_replay
+                        return preparation_replay(reads, *args)
+                    return retained_proof(reads, *args)
+
                 saved = discover(reads, work_id)
                 initial = self.clock(); check_session_time(initial, bounds)
                 fresh = saved is None and not recovery
@@ -124,7 +130,7 @@ class ExecutionPreparationService:
                     status = 'PREPARED'
                 else:
                     post_head = head; expected_rows = before; status = 'REPLAYED'
-                seal = None if saved is None else guarded(retained_proof, actor, post_head, expected,
+                seal = None if saved is None else guarded(retained, actor, post_head, expected,
                     work_id, original_key, candidate, saved)
                 if fresh:
                     guarded(current_staged, post_head, proof, seal)
@@ -139,13 +145,13 @@ class ExecutionPreparationService:
                         if h != post_head or (None if latest is None else dict(latest)) != (None if saved is None else dict(saved)):
                             reject(reads)
                         if latest is not None:
-                            checked = guarded(retained_proof, actor, h, expected, work_id, original_key, candidate, latest)
+                            checked = guarded(retained, actor, h, expected, work_id, original_key, candidate, latest)
                             if checked != seal:
                                 reject(reads)
                             if fresh:
                                 guarded(current_staged, h, proof, checked)
                         a, current_head, g = authorize(reads, self.authority, case_id)
-                        if a != actor or current_head != post_head or g != grant or version(reads.connection) != PREPARATION:
+                        if a != actor or current_head != post_head or g != grant or version(reads.connection) not in PREPARATION_VERSIONS:
                             reject(reads)
                         if source_closure(reads, case_id) != expected_rows:
                             reject(reads)
