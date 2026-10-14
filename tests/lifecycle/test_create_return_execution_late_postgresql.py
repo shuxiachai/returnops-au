@@ -2,6 +2,8 @@
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
 from datetime import datetime
+import json
+from threading import local
 from time import sleep, monotonic
 from uuid import uuid4
 import jwt
@@ -10,7 +12,7 @@ from sqlalchemy import select, text, update
 from returnops_domain import customer_tables as old, lifecycle_tables as life
 from returnops_domain.core_return_mock import CoreReturnMock, Ticket
 from returnops_domain.customer_uow import CustomerUnitOfWork
-from returnops_domain.errors import AcceptanceOutcomeUnknown
+from returnops_domain.errors import AcceptanceOutcomeUnknown, FlowError
 from returnops_domain.registry import TrustedRegistry
 from returnops_domain.retention import RetentionService
 from returnops_domain.return_execution_tables import controls, permissions, ledger
@@ -49,11 +51,85 @@ def unchanged_except_confirmation(before, after):
     assert len(after[old.audit.name]) == len(before[old.audit.name]) + 1
 
 
+def observe_actual_mock_guards(monkeypatch):
+    """Test-only T2 trace: original calls/values/errors; no extra DB/time reads."""
+    from returnops_domain import core_return_mock as mock, return_execution_sources as sources
+    observations = []
+    context = local()
+
+    def mark(stage, outcome, **values):
+        observations.append(dict(stage=stage, outcome=outcome, **values))
+
+    def stamp(value):
+        return value.isoformat() if isinstance(value, datetime) else None
+
+    def guard(module, name, capture=None):
+        original = getattr(module, name)
+        def observed(*args, **kwargs):
+            previous = getattr(context, 'stage', None)
+            context.stage = name
+            mark(name, 'enter')
+            try:
+                if capture is not None:
+                    capture(args)
+                value = original(*args, **kwargs)
+            except FlowError as error:
+                mark(name, 'FlowError', safe_code=error.code)
+                raise
+            else:
+                mark(name, 'ok')
+                return value
+            finally:
+                context.stage = previous
+        monkeypatch.setattr(module, name, observed)
+
+    def claim_bounds(args):
+        row = args[1]
+        mark('claim_current', 'bounds', dispatch_at=stamp(row['dispatch_at']),
+             dispatch_deadline=stamp(row['dispatch_deadline']))
+
+    def fact_bounds(args):
+        row, fact = args[1:3]
+        mark('verify_fact', 'bounds', accepted_at=stamp(fact['accepted_at']) if fact is not None else None,
+             dispatch_at=stamp(row['dispatch_at']), dispatch_deadline=stamp(row['dispatch_deadline']))
+
+    for name in ('authorize', 'control_identity', 'claim_current', 'continued_proof', 'verify_fact'):
+        capture = claim_bounds if name == 'claim_current' else fact_bounds if name == 'verify_fact' else None
+        guard(mock, name, capture)
+
+    def clock(module, label):
+        original = module.database_now
+        def observed(uow):
+            value = original(uow)
+            if getattr(context, 'stage', None) is not None:
+                mark(context.stage, 'existing_database_now', alias=label, value=stamp(value))
+            return value
+        monkeypatch.setattr(module, 'database_now', observed)
+    clock(mock, 'core_return_mock.database_now')
+    clock(sources, 'return_execution_sources.database_now')
+
+    def approval_bounds(args):
+        now, proof = args[:2]
+        preview = proof['approval']['preview']['row']
+        mark('check_time', 'bounds', now=stamp(now),
+             approval_at=stamp(proof['approval']['record']['recorded_at']),
+             preview_issued_at=stamp(preview['issued_at']), preview_expires_at=stamp(preview['expires_at']))
+
+    def session_dates(args):
+        now, bounds = args[:2]
+        mark('check_session_time', 'bounds', now=stamp(now),
+             issued_at=bounds[2], not_before=bounds[3], expires_at=bounds[4])
+    guard(sources, 'check_time', approval_bounds)
+    guard(sources, 'check_session_time', session_dates)
+    return observations
+
+
 @pytest.mark.parametrize('change', ['permission', 'session', 'retention'])
 @pytest.mark.parametrize('first', ['change', 'mock'])
 def test_RE_G7_actual_global_fence_orders_revocation_retention_against_effect(flow_engine, identities, enabled, request, monkeypatch, change, first):
     arguments, _ = ready(flow_engine, identities); caller = service(flow_engine, identities)
     ticket = reserve(caller, arguments)
+    observations = observe_actual_mock_guards(monkeypatch)
     def mutate():
         if change == 'session':
             TrustedRegistry(flow_engine).revoke_session(identities.sessions['founder']['session_id'])
@@ -66,12 +142,17 @@ def test_RE_G7_actual_global_fence_orders_revocation_retention_against_effect(fl
         return 'changed'
     results, overlap = _overlap_at_actual_fence(flow_engine, monkeypatch,
         dict(change=mutate, mock=lambda: CoreReturnMock(flow_engine).perform(ticket, caller.authority)), first=first)
+    diagnostic = dict(change=change, first=first, overlap=overlap, stages=observations,
+        mock_status=results['mock'].status, safe_code=results['mock'].safe_code)
+    diagnostic_text = json.dumps(diagnostic, sort_keys=True, separators=(',', ':'))
+    request.node.add_report_section('call', 'actual T2 guard diagnostic', diagnostic_text)
     assert results['change'] == 'changed'
-    assert results['mock'].status == ('FOUND' if first == 'mock' else 'DENIED')
+    assert results['mock'].status == ('FOUND' if first == 'mock' else 'DENIED'), diagnostic_text
     assert len(successes(flow_engine)) == (first == 'mock')
     assert control(flow_engine)['status'] == 'EXECUTING'
     evidence(request.node.nodeid, change=change, first=first, overlap=overlap,
-        mock_status=results['mock'].status, ledger=rows(flow_engine, ledger), after=snapshot(flow_engine))
+        mock_status=results['mock'].status, guard_diagnostic=diagnostic,
+        ledger=rows(flow_engine, ledger), after=snapshot(flow_engine))
 
 
 def test_RE_G7_actual_insert_db_clock_rejects_deadline_crossed_after_full_proof(flow_engine, identities, enabled, request, monkeypatch):
