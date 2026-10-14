@@ -10,8 +10,10 @@ LEGACY = '0007_lifecycle_guards'
 REVIEW = '0008_review_escalation'
 APPROVAL = '0009_preview_approval'
 PREPARATION = '0010_execution_preparation'
-CURRENT = PREPARATION
-APPROVAL_VERSIONS = frozenset({APPROVAL, PREPARATION})
+EXECUTION = '0011_return_execution'
+CURRENT = EXECUTION
+PREPARATION_VERSIONS = frozenset({PREPARATION, EXECUTION})
+APPROVAL_VERSIONS = frozenset({APPROVAL, *PREPARATION_VERSIONS})
 OLD_PURPOSES = ('PROPOSAL', 'REVISION', 'OUTCOME', 'NOTIFICATION', 'EFFECT')
 REVIEW_PURPOSES = OLD_PURPOSES + ('REVIEW',)
 CURRENT_PURPOSES = REVIEW_PURPOSES + ('APPROVAL', 'EXECUTION')
@@ -28,7 +30,7 @@ def _expected(purposes):
 
 def version(connection):
     revisions = connection.execute(text('SELECT version_num FROM alembic_version')).scalars().all()
-    if len(revisions) != 1 or revisions[0] not in {LEGACY, REVIEW, APPROVAL, PREPARATION}:
+    if len(revisions) != 1 or revisions[0] not in {LEGACY, REVIEW, *APPROVAL_VERSIONS}:
         return None
     names = set(connection.execute(text('SELECT tablename FROM pg_tables WHERE schemaname=current_schema()')).scalars())
     expected = {'alembic_version'}
@@ -38,8 +40,11 @@ def version(connection):
     if revisions[0] in APPROVAL_VERSIONS:
         from .preview_tables import metadata
         expected.update(metadata.tables)
-    if revisions[0] == PREPARATION:
+    if revisions[0] in PREPARATION_VERSIONS:
         from .execution_preparation_tables import metadata
+        expected.update(metadata.tables)
+    if revisions[0] == EXECUTION:
+        from .return_execution_tables import metadata
         expected.update(metadata.tables)
     if names != expected:
         return None
@@ -48,13 +53,18 @@ def version(connection):
         JOIN pg_namespace n ON n.oid=r.relnamespace
         WHERE n.nspname=current_schema() AND r.relname='lifecycle_work'
           AND c.conname='ck_lifecycle_work' AND c.contype='c'""")).mappings().all()
-    purposes = {LEGACY:OLD_PURPOSES, REVIEW:REVIEW_PURPOSES, APPROVAL:CURRENT_PURPOSES, PREPARATION:CURRENT_PURPOSES}[revisions[0]]
+    purposes = {LEGACY:OLD_PURPOSES, REVIEW:REVIEW_PURPOSES,
+                **{revision:CURRENT_PURPOSES for revision in APPROVAL_VERSIONS}}[revisions[0]]
     if len(rows) != 1 or not rows[0]['convalidated'] or rows[0]['expression'] != _expected(purposes):
         return None
     if revisions[0] in APPROVAL_VERSIONS and not _preview_descriptor(connection):
         return None
-    if revisions[0] == PREPARATION:
+    if revisions[0] in PREPARATION_VERSIONS:
         from .execution_preparation_schema import descriptor
+        if not descriptor(connection):
+            return None
+    if revisions[0] == EXECUTION:
+        from .return_execution_schema import descriptor
         if not descriptor(connection):
             return None
     return revisions[0]

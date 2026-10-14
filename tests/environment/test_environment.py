@@ -29,9 +29,10 @@ from returnops_api import database, main
 from returnops_api.settings import ConfigurationError, Settings, require_environment_database
 
 
-EXPECTED_REVISION = "0010_execution_preparation"
+EXPECTED_REVISION = "0011_return_execution"
 EXPECTED_TABLES = ['accepted_order_contents', 'accepted_order_projections', 'alembic_version', 'case_heads', 'case_investigation_state', 'case_records', 'customer_acceptances', 'customer_audit_events', 'customer_clarification_sets', 'customer_evidence', 'customer_evidence_contents', 'customer_history_contents', 'customer_history_cursors', 'customer_history_revisions', 'customer_history_snapshots', 'customer_intake_sessions', 'customer_intake_work', 'customer_principals', 'customer_processing_failures', 'customer_receipt_refs', 'customer_receipts', 'customer_scope_audit_events', 'customer_scope_audit_heads', 'customer_sessions', 'discarded_order_invocations', 'founder_history_encodings', 'founder_list_members', 'founder_read_cursors', 'founder_read_snapshots', 'investigation_clarification_inputs', 'investigation_inputs', 'investigation_policy_events', 'investigation_provider_grants', 'investigation_question_groups', 'investigation_services', 'investigation_work', 'order_lookup_blocks', 'order_lookup_contents', 'order_lookup_receipts', 'original_statement_contents', 'original_statement_records']
 EXPECTED_TABLES = sorted(EXPECTED_TABLES + ['case_lifecycle_state', 'lifecycle_authorities', 'lifecycle_work', 'lifecycle_source_bindings', 'lifecycle_event_receipts', 'lifecycle_effect_refs', 'lifecycle_action_previews', 'lifecycle_execution_preparations'])
+EXPECTED_TABLES = sorted(EXPECTED_TABLES + ['lifecycle_return_execution_controls', 'return_provider_permissions', 'core_mock_return_ledger'])
 SECRET = "environment-test-secret-do-not-log"
 STUB_URL = f"postgresql+psycopg://environment_user:{SECRET}@stub.invalid/environment"
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -147,6 +148,11 @@ def application_with_engine(
     monkeypatch.setattr(execution_preparation_schema, 'descriptor', lambda connection:
         engine.failure != 'preparation_descriptor' if isinstance(connection, DiagnosticConnection)
         else original_preparation(connection))
+    from returnops_domain import return_execution_schema
+    original_execution = return_execution_schema.descriptor
+    monkeypatch.setattr(return_execution_schema, 'descriptor', lambda connection:
+        engine.failure != 'execution_descriptor' if isinstance(connection, DiagnosticConnection)
+        else original_execution(connection))
     return main.create_app()
 
 
@@ -242,7 +248,7 @@ def test_readiness_rejects_invalid_revision_sets(
     assert engine.disposed
 
 
-@pytest.mark.parametrize("failure", ["connect", "probe", "revision", "preview_descriptor"])
+@pytest.mark.parametrize("failure", ["connect", "probe", "revision", "preview_descriptor", "preparation_descriptor", "execution_descriptor"])
 def test_database_failures_return_503_without_disclosing_configuration(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
