@@ -5,6 +5,7 @@ from . import customer_tables as old, founder_tables as founder, lifecycle_table
 from . import founder_codec as finite, preview_profile as policy
 from .audit import timestamp
 from .canonical import digest
+from .wire import validate
 from .approval_admission_sources import (authorize as approval_authorize, approval_receipt,
     restricted_bytes, session_bounds, check_session_time, check_time)
 from .approve_sources import accepted_approval, execution_identity
@@ -317,8 +318,8 @@ def project_result(fact):
     """Only retained-body-permitted Domain acceptance projects a full result."""
     if fact['status'] == 'FAILED':
         return None
-    return finite.validate('OperationResult', dict(type='CREATE_RETURN',
-        provider_return_id=fact['provider_return_id'], parcel_id=fact['parcel_id']))
+    return validate('OperationResult', dict(type='CREATE_RETURN',
+        provider_return_id=fact['provider_return_id'], parcel_id=fact['parcel_id']), internal=True)
 
 
 def preparation_replay(uow, actor, head, expected, work_id, original_key, candidate, preparation):

@@ -4,13 +4,14 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from sqlalchemy.schema import CreateTable
 from sqlalchemy.dialects import postgresql
+from returnops_domain import founder_codec as finite
 from returnops_api.private_return_execution import compose_private_return_execution
 from returnops_api.security.authentication import AuthConfig
 from returnops_domain.canonical import canonical_bytes, digest
 from returnops_domain.errors import AcceptanceOutcomeUnknown, FlowError
 from returnops_domain.core_return_mock import Ticket
 from returnops_domain.return_execution import ReturnExecutionService, ExecutionResult
-from returnops_domain.return_execution_sources import control_payload, accepted_payload, stable, verify_fact, ledger_payload
+from returnops_domain.return_execution_sources import control_payload, accepted_payload, stable, verify_fact, ledger_payload, project_result
 from returnops_domain.return_execution_tables import controls, permissions, ledger, CONTROL_IDS, CONTROL_HASHES, CONTROL_NUMBERS
 from test_approval_admission_offline import command
 
@@ -75,6 +76,32 @@ def test_RE_G2_G7_ledger_metadata_keys_are_plain_strings_without_value_coercion(
         with pytest.raises(FlowError) as rejected:
             digest(projected, 'core-return-fact/v1')
         assert rejected.value.code == 'VALIDATION_ERROR'
+
+
+def test_RE_G2_G9_result_projection_keeps_wire_result_and_finite_history_profiles_separate():
+    fact = dict(status='SUCCEEDED', provider_return_id='return_original', parcel_id='parcel_original')
+    before = dict(fact)
+    expected = dict(type='CREATE_RETURN', provider_return_id='return_original', parcel_id='parcel_original')
+    projected = project_result(fact)
+    assert projected == expected and projected is not fact and fact == before
+    projected['parcel_id'] = 'different_parcel'
+    assert fact == before and project_result(fact) == expected
+    assert project_result(dict(status='FAILED')) is None
+    # Do not expand the shared finite-history schema allowlist for this DTO.
+    with pytest.raises(FlowError) as rejected:
+        finite.validate('OperationResult', expected)
+    assert rejected.value.code == 'INTERNAL_ERROR'
+
+
+@pytest.mark.parametrize('field', ['provider_return_id', 'parcel_id'])
+def test_RE_G2_G9_result_projection_rejects_malformed_frozen_identifiers(field):
+    fact = dict(status='SUCCEEDED', provider_return_id='return_original', parcel_id='parcel_original')
+    for malformed in ('x', 'invalid identifier', 7):
+        changed = {**fact, field: malformed}
+        before = dict(changed)
+        with pytest.raises(FlowError) as rejected:
+            project_result(changed)
+        assert rejected.value.code == 'INTERNAL_ERROR' and changed == before
 
 
 @pytest.mark.parametrize('entry', ['execute', 'query'])
