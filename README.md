@@ -10,6 +10,22 @@
 
 # ReturnOps AU
 
+## Public access and project scope
+
+This is a synthetic-data course prototype. Use synthetic customer data and
+disposable test credentials only; do not supply real customer data or provider
+secrets. The actual logistics provider remains subject to tutor disposition and
+account access. Simulated results do not establish a live provider integration.
+
+This maintenance change limits branch-push CI to `main` while preserving all
+pull-request checks, and removes personal machine paths from selected current
+comments and context. Team authorship, assessment materials and review records
+remain intact. Retained history, branches and earlier evidence are not anonymized.
+
+Public visibility does not grant an open-source license or establish Stage 2
+completion, teammate/tutor acceptance, or production readiness. Dated evidence
+below retains its original scope.
+
 ## Current C handoff — 2026-10-09
 
 This dated update supersedes the **current-status wording**, not the original
