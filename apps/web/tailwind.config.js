@@ -6,6 +6,10 @@ export default {
   ],
   theme: {
     extend: {
+      zIndex: {
+        60: '60',
+        70: '70',
+      },
       colors: {
         brand: {
           50: '#f0f9ff',

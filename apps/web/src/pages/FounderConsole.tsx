@@ -21,6 +21,7 @@ import {
   listFounderCaseAudit,
   recordFounderDecision,
   getFounderAnalytics,
+  isMockMode,
   ApiError,
 } from '../api/client';
 import {
@@ -44,10 +45,12 @@ export const FounderConsole: React.FC = () => {
   const [activeSubTab, setActiveSubTab] = useState<'queue' | 'analytics'>('queue');
 
   // ---------------------------------------------------------
-  // Case Queue State
+  // Case Queue State & Pagination (UC-03 / Finding 6)
   // ---------------------------------------------------------
   const [cases, setCases] = useState<CaseSummary[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isLoadingCases, setIsLoadingCases] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [queueError, setQueueError] = useState<string | null>(null);
   const [searchFilter, setSearchFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -56,6 +59,7 @@ export const FounderConsole: React.FC = () => {
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [caseDetail, setCaseDetail] = useState<CaseView | null>(null);
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
+  const [auditError, setAuditError] = useState<string | null>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [detailTab, setDetailTab] = useState<'proposal' | 'order' | 'statements' | 'audit'>('proposal');
 
@@ -71,6 +75,7 @@ export const FounderConsole: React.FC = () => {
   // ---------------------------------------------------------
   const [analytics, setAnalytics] = useState<AnalyticsSnapshot | null>(null);
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
+  const [analyticsError, setAnalyticsError] = useState<string | null>(null);
 
   useEffect(() => {
     if (activeSubTab === 'queue') {
@@ -84,8 +89,9 @@ export const FounderConsole: React.FC = () => {
     setIsLoadingCases(true);
     setQueueError(null);
     try {
-      const data = await listFounderCases();
-      setCases(data);
+      const data = await listFounderCases(undefined, 20);
+      setCases(data.items);
+      setNextCursor(data.next_cursor || null);
     } catch (err: unknown) {
       setQueueError(err instanceof ApiError ? `[${err.code}] ${err.message}` : 'Failed to load case queue');
     } finally {
@@ -93,13 +99,33 @@ export const FounderConsole: React.FC = () => {
     }
   };
 
+  const loadMoreCases = async () => {
+    if (!nextCursor || isLoadingMore) return;
+    setIsLoadingMore(true);
+    try {
+      const data = await listFounderCases(nextCursor, 20);
+      setCases((prev) => [...prev, ...data.items]);
+      setNextCursor(data.next_cursor || null);
+    } catch (err: unknown) {
+      setQueueError(err instanceof ApiError ? `[${err.code}] ${err.message}` : 'Failed to load next page');
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  const handleStatusFilterChange = (newStatus: string) => {
+    setStatusFilter(newStatus);
+  };
+
   const loadAnalytics = async () => {
     setIsLoadingAnalytics(true);
+    setAnalyticsError(null);
     try {
       const data = await getFounderAnalytics();
       setAnalytics(data);
     } catch (err: unknown) {
-      console.error('Failed to load analytics', err);
+      setAnalyticsError(err instanceof ApiError ? `[${err.code}] ${err.message}` : 'Failed to load analytics');
+      setAnalytics(null);
     } finally {
       setIsLoadingAnalytics(false);
     }
@@ -109,16 +135,32 @@ export const FounderConsole: React.FC = () => {
     setSelectedCaseId(caseId);
     setIsLoadingDetail(true);
     setDetailTab('proposal');
+    setAuditError(null);
     try {
-      const [detailData, auditData] = await Promise.all([
+      const [detailResult, auditResult] = await Promise.allSettled([
         getFounderCase(caseId),
-        listFounderCaseAudit(caseId).catch(() => []),
+        listFounderCaseAudit(caseId),
       ]);
-      setCaseDetail(detailData);
-      setAuditEvents(auditData);
-    } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Failed to fetch case detail');
-      setSelectedCaseId(null);
+
+      if (detailResult.status === 'fulfilled') {
+        setCaseDetail(detailResult.value);
+      } else {
+        const err = detailResult.reason;
+        alert(err instanceof Error ? err.message : 'Failed to fetch case detail');
+        setSelectedCaseId(null);
+        return;
+      }
+
+      if (auditResult.status === 'fulfilled') {
+        setAuditEvents(auditResult.value);
+        setAuditError(null);
+      } else {
+        const err = auditResult.reason;
+        setAuditEvents([]);
+        setAuditError(
+          err instanceof ApiError ? `[${err.code}] ${err.message}` : 'Failed to fetch audit events'
+        );
+      }
     } finally {
       setIsLoadingDetail(false);
     }
@@ -279,7 +321,7 @@ export const FounderConsole: React.FC = () => {
             <div className="flex items-center space-x-2 w-full sm:w-auto">
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                onChange={(e) => handleStatusFilterChange(e.target.value)}
                 className="text-xs font-semibold px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-700 focus:ring-2 focus:ring-sky-500"
               >
                 <option value="ALL">All Statuses</option>
@@ -293,7 +335,7 @@ export const FounderConsole: React.FC = () => {
               </select>
 
               <button
-                onClick={loadCases}
+                onClick={() => loadCases(statusFilter)}
                 disabled={isLoadingCases}
                 className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors"
                 title="Refresh Queue"
@@ -380,6 +422,25 @@ export const FounderConsole: React.FC = () => {
                 )}
               </tbody>
             </table>
+
+            {/* Pagination Controls (Finding 6) */}
+            <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
+              <div>
+                Showing <strong className="text-slate-700">{cases.length}</strong> cases
+                {nextCursor ? ' (more records available in store)' : ' (all matching cases loaded)'}
+              </div>
+              {nextCursor && (
+                <button
+                  type="button"
+                  onClick={loadMoreCases}
+                  disabled={isLoadingMore}
+                  className="px-4 py-1.5 bg-white hover:bg-slate-100 disabled:opacity-50 text-sky-700 font-semibold border border-slate-300 rounded-lg flex items-center space-x-1.5 transition-colors shadow-xs"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isLoadingMore ? 'animate-spin' : ''}`} />
+                  <span>{isLoadingMore ? 'Loading Next Page...' : 'Load Next Page (Next Cursor)'}</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -489,13 +550,13 @@ export const FounderConsole: React.FC = () => {
                         <div>
                           <div className="text-slate-400 font-semibold uppercase">Proposed Outcome</div>
                           <div className="text-sm font-bold text-slate-900 mt-0.5">
-                            {caseDetail.current_proposal.outcome}
+                            {caseDetail.current_proposal.recommended_action || caseDetail.current_proposal.outcome || 'N/A'}
                           </div>
                         </div>
                         <div>
                           <div className="text-slate-400 font-semibold uppercase">Refund Amount</div>
                           <div className="text-sm font-bold text-slate-900 mt-0.5">
-                            {formatCurrency(caseDetail.current_proposal.refund_amount_cents)}
+                            {formatCurrency(caseDetail.current_proposal.refund_amount_cents ?? 0)}
                           </div>
                         </div>
                         <div>
@@ -507,7 +568,10 @@ export const FounderConsole: React.FC = () => {
                         <div>
                           <div className="text-slate-400 font-semibold uppercase">AI Confidence</div>
                           <div className="text-sm font-bold text-indigo-600 mt-0.5">
-                            {((caseDetail.current_proposal.confidence_score || 0) * 100).toFixed(0)}%
+                            {(() => {
+                              const conf = caseDetail.current_proposal.confidence ?? caseDetail.current_proposal.confidence_score;
+                              return conf !== undefined && conf !== null ? `${(conf * 100).toFixed(0)}%` : '—';
+                            })()}
                           </div>
                         </div>
                       </div>
@@ -541,10 +605,10 @@ export const FounderConsole: React.FC = () => {
                         </div>
                         <span
                           className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getRiskBadgeClass(
-                            caseDetail.current_review.risk_outcome
+                            caseDetail.current_review.outcome || caseDetail.current_review.risk_outcome || 'PASS'
                           )}`}
                         >
-                          {caseDetail.current_review.risk_outcome}
+                          {caseDetail.current_review.outcome || caseDetail.current_review.risk_outcome || 'PASS'}
                         </span>
                       </div>
 
@@ -552,25 +616,54 @@ export const FounderConsole: React.FC = () => {
                         <div>
                           <div className="text-slate-400 font-semibold uppercase">Risk Score</div>
                           <div className="text-sm font-bold text-slate-900 mt-0.5">
-                            {(caseDetail.current_review.risk_score * 100).toFixed(1)} / 100
+                            {caseDetail.current_review.risk_score !== undefined && caseDetail.current_review.risk_score !== null
+                              ? `${(caseDetail.current_review.risk_score * 100).toFixed(1)} / 100`
+                              : 'N/A'}
                           </div>
                         </div>
                         <div>
                           <div className="text-slate-400 font-semibold uppercase">Review Date</div>
                           <div className="text-xs text-slate-700 mt-1">
-                            {formatDate(caseDetail.current_review.evaluated_at)}
+                            {formatDate(caseDetail.current_review.reviewed_at || caseDetail.current_review.evaluated_at || '')}
                           </div>
                         </div>
                       </div>
 
-                      <div className="space-y-1">
-                        <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                          Reviewer Summary
+                      {caseDetail.current_review.summary && (
+                        <div className="space-y-1">
+                          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                            Reviewer Summary
+                          </div>
+                          <p className="text-xs bg-white p-3 rounded-xl border border-slate-200 text-slate-800 leading-relaxed">
+                            {caseDetail.current_review.summary}
+                          </p>
                         </div>
-                        <p className="text-xs bg-white p-3 rounded-xl border border-slate-200 text-slate-800 leading-relaxed">
-                          {caseDetail.current_review.summary}
-                        </p>
-                      </div>
+                      )}
+
+                      {caseDetail.current_review.findings && caseDetail.current_review.findings.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                            Risk Findings ({caseDetail.current_review.findings.length})
+                          </div>
+                          <div className="space-y-1.5">
+                            {caseDetail.current_review.findings.map((f, i) => (
+                              <div key={i} className="p-2.5 bg-white rounded-xl border border-slate-200 text-xs flex items-start space-x-2">
+                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                  f.severity === 'BLOCK' ? 'bg-rose-100 text-rose-800 border border-rose-300' :
+                                  f.severity === 'WARNING' ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+                                  'bg-slate-100 text-slate-700 border border-slate-200'
+                                }`}>
+                                  {f.severity}
+                                </span>
+                                <div className="flex-1">
+                                  <span className="font-mono font-semibold text-slate-800">{f.category || f.finding_id}: </span>
+                                  <span className="text-slate-700">{f.message}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       {caseDetail.current_review.policy_citations && (
                         <div>
@@ -614,7 +707,7 @@ export const FounderConsole: React.FC = () => {
                 </div>
               )}
 
-              {/* Tab: Order & Facts */}
+              {/* Tab: Order & Facts (Finding 2) */}
               {detailTab === 'order' && (
                 <div className="space-y-6">
                   {caseDetail.order_snapshot ? (
@@ -622,14 +715,21 @@ export const FounderConsole: React.FC = () => {
                       <div className="flex items-center justify-between pb-2 border-b border-slate-200">
                         <div>
                           <span className="font-mono font-bold text-slate-900 text-base">
-                            {caseDetail.order_snapshot.order_number}
+                            {caseDetail.order_snapshot.order_id || caseDetail.order_snapshot.order_number || 'UNKNOWN'}
                           </span>
                           <span className="text-xs text-slate-500 ml-2">
-                            Ordered: {formatDate(caseDetail.order_snapshot.order_date)}
+                            Ordered: {formatDate(caseDetail.order_snapshot.purchased_at || caseDetail.order_snapshot.order_date || '')}
                           </span>
                         </div>
                         <span className="text-sm font-bold text-slate-900">
-                          Total: {formatCurrency(caseDetail.order_snapshot.total_amount_cents)}
+                          {caseDetail.order_snapshot.currency || 'AUD'} Total:{' '}
+                          {formatCurrency(
+                            caseDetail.order_snapshot.total_amount_cents ??
+                            (caseDetail.order_snapshot.line_items || []).reduce(
+                              (acc, it) => acc + (it.unit_price_minor || 0) * (it.quantity || 1),
+                              0
+                            )
+                          )}
                         </span>
                       </div>
 
@@ -638,20 +738,40 @@ export const FounderConsole: React.FC = () => {
                           Purchased Items
                         </div>
                         <div className="divide-y divide-slate-200 bg-white rounded-xl border border-slate-200 overflow-hidden text-xs">
-                          {caseDetail.order_snapshot.items.map((item) => (
-                            <div key={item.item_id} className="p-3 flex items-center justify-between">
-                              <div>
-                                <span className="font-semibold text-slate-800">{item.product_name}</span>
-                                <span className="text-slate-400 font-mono ml-2">SKU: {item.sku}</span>
-                              </div>
-                              <div className="text-right">
-                                <div>Qty: {item.quantity}</div>
-                                <div className="font-bold text-slate-700">
-                                  {formatCurrency(item.unit_price_cents)}
+                          {(() => {
+                            const lineItems = caseDetail.order_snapshot.line_items;
+                            if (Array.isArray(lineItems) && lineItems.length > 0) {
+                              return lineItems.map((item) => (
+                                <div key={item.line_item_id} className="p-3 flex items-center justify-between">
+                                  <div>
+                                    <span className="font-semibold text-slate-800">{item.description}</span>
+                                    <span className="text-slate-400 font-mono ml-2">SKU: {item.sku}</span>
+                                  </div>
+                                  <div className="text-right">
+                                    <div>Qty: {item.quantity}</div>
+                                    <div className="font-bold text-slate-700">
+                                      {formatCurrency(item.unit_price_minor)}
+                                    </div>
+                                  </div>
+                                </div>
+                              ));
+                            }
+                            const legacyItems = caseDetail.order_snapshot.items || [];
+                            return legacyItems.map((item, idx) => (
+                              <div key={item.item_id || `item-${idx}`} className="p-3 flex items-center justify-between">
+                                <div>
+                                  <span className="font-semibold text-slate-800">{item.product_name}</span>
+                                  <span className="text-slate-400 font-mono ml-2">SKU: {item.sku}</span>
+                                </div>
+                                <div className="text-right">
+                                  <div>Qty: {item.quantity}</div>
+                                  <div className="font-bold text-slate-700">
+                                    {formatCurrency(item.unit_price_cents ?? 0)}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          ))}
+                            ));
+                          })()}
                         </div>
                       </div>
                     </div>
@@ -680,57 +800,90 @@ export const FounderConsole: React.FC = () => {
                 </div>
               )}
 
-              {/* Tab: Tamper-Evident Audit Chain */}
+              {/* Tab: Tamper-Evident Audit Chain (Finding 9) */}
               {detailTab === 'audit' && (
                 <div className="space-y-4">
-                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 text-xs flex items-center space-x-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                    <span>
-                      Cryptographic Audit Chain Integrity Validated: Every transition is bound by SHA-256 hash pointer.
-                    </span>
-                  </div>
-
-                  <div className="space-y-2.5">
-                    {auditEvents.map((evt, idx) => (
-                      <div
-                        key={evt.event_id || `evt-${idx}`}
-                        className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1.5 font-mono"
-                      >
-                        <div className="flex items-center justify-between text-slate-500">
-                          <span className="font-bold text-slate-800">
-                            #{evt.sequence ?? idx + 1} {evt.event_type}
-                          </span>
-                          <span>{formatDate(evt.occurred_at || evt.timestamp || '')}</span>
-                        </div>
-                        <div className="text-[11px] text-slate-600">
-                          Actor: <strong>{formatActor(evt.actor)}</strong>
-                        </div>
-                        <div className="text-[10px] text-slate-400 break-all">
-                          Curr Hash: {evt.event_hash || evt.current_hash || 'N/A'}
-                        </div>
-                        {(evt.previous_event_hash || evt.previous_hash) && (
-                          <div className="text-[10px] text-slate-400 break-all">
-                            Prev Hash: {evt.previous_event_hash || evt.previous_hash}
-                          </div>
-                        )}
+                  {auditError ? (
+                    <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center space-x-2">
+                      <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                      <div>
+                        <span className="font-semibold">Audit chain retrieval failed:</span> {auditError}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ) : auditEvents.length > 0 ? (
+                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 text-xs flex items-center space-x-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                      <span>
+                        Cryptographic Audit Chain Integrity Validated: Every transition is bound by SHA-256 hash pointer.
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-500 text-xs text-center">
+                      No audit events recorded for this case.
+                    </div>
+                  )}
+
+                  {!auditError && auditEvents.length > 0 && (
+                    <div className="space-y-2.5">
+                      {auditEvents.map((evt, idx) => (
+                        <div
+                          key={evt.event_id || `evt-${idx}`}
+                          className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1.5 font-mono"
+                        >
+                          <div className="flex items-center justify-between text-slate-500">
+                            <span className="font-bold text-slate-800">
+                              #{evt.sequence ?? idx + 1} {evt.event_type}
+                            </span>
+                            <span>{formatDate(evt.occurred_at || evt.timestamp || '')}</span>
+                          </div>
+                          <div className="text-[11px] text-slate-600">
+                            Actor: <strong>{formatActor(evt.actor)}</strong>
+                          </div>
+                          <div className="text-[10px] text-slate-400 break-all">
+                            Curr Hash: {evt.event_hash || evt.current_hash || 'N/A'}
+                          </div>
+                          {(evt.previous_event_hash || evt.previous_hash) && (
+                            <div className="text-[10px] text-slate-400 break-all">
+                              Prev Hash: {evt.previous_event_hash || evt.previous_hash}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
 
-            {/* Modal Footer: Governed Decision Controls (UC-04 / UC-03) */}
-            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 flex-shrink-0">
+            {/* Modal Footer: Governed Decision Controls (UC-04 / UC-03 / Findings 4 & 11) */}
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 flex-shrink-0">
               <div className="text-xs text-slate-500">
-                Governed Decision Controls · Approval Guard Active
+                {!isMockMode() ? (
+                  <span className="text-amber-700 font-semibold">
+                    Live Mode Notice: Decision recording (POST /v1/founder/decisions) is not yet deployed on backend main. Switch to Mock Mode to test decisions.
+                  </span>
+                ) : caseDetail.status === 'ESCALATED' ? (
+                  <span className="text-rose-600 font-semibold">
+                    Escalated Case: Direct approval blocked. Manual takeover or rejection required.
+                  </span>
+                ) : (
+                  <span>Governed Decision Controls · Approval Guard Active</span>
+                )}
               </div>
 
               <div className="flex items-center space-x-2">
                 <button
                   type="button"
+                  disabled={!isMockMode() || caseDetail.status === 'ESCALATED'}
                   onClick={() => handleOpenDecision('APPROVE')}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors shadow-xs flex items-center space-x-1"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition-colors shadow-xs flex items-center space-x-1"
+                  title={
+                    !isMockMode()
+                      ? 'Decision recording is not yet deployed in live mode'
+                      : caseDetail.status === 'ESCALATED'
+                      ? 'Approval is blocked for escalated cases'
+                      : 'Approve Return'
+                  }
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   <span>Approve Return (UC-04)</span>
@@ -738,16 +891,18 @@ export const FounderConsole: React.FC = () => {
 
                 <button
                   type="button"
+                  disabled={!isMockMode()}
                   onClick={() => handleOpenDecision('REQUEST_REVISION')}
-                  className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-colors shadow-xs"
+                  className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition-colors shadow-xs"
                 >
                   Request Revision
                 </button>
 
                 <button
                   type="button"
+                  disabled={!isMockMode()}
                   onClick={() => handleOpenDecision('REJECT')}
-                  className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-colors shadow-xs flex items-center space-x-1"
+                  className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition-colors shadow-xs flex items-center space-x-1"
                 >
                   <XCircle className="w-3.5 h-3.5" />
                   <span>Reject</span>
@@ -755,8 +910,9 @@ export const FounderConsole: React.FC = () => {
 
                 <button
                   type="button"
+                  disabled={!isMockMode()}
                   onClick={() => handleOpenDecision('MANUAL_HANDLING')}
-                  className="px-3 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-colors shadow-xs"
+                  className="px-3 py-2 bg-slate-600 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition-colors shadow-xs"
                 >
                   Manual Takeover
                 </button>
@@ -771,7 +927,7 @@ export const FounderConsole: React.FC = () => {
       {/* DECISION SUBMISSION CONFIRMATION MODAL (UC-04 / UC-03)    */}
       {/* ========================================================= */}
       {decisionModalOpen && caseDetail && (
-        <div className="fixed inset-0 z-60 overflow-y-auto bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[60] overflow-y-auto bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
               <h4 className="font-bold text-slate-900 text-sm">
@@ -847,6 +1003,22 @@ export const FounderConsole: React.FC = () => {
       {/* ========================================================= */}
       {activeSubTab === 'analytics' && (
         <div className="space-y-6 animate-fade-in">
+          {!isMockMode() && (
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-amber-900 text-xs flex items-center space-x-2">
+              <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0" />
+              <div>
+                <strong className="font-semibold">Live Mode Notice:</strong> Operations analytics (OF-006) backend endpoint is not yet deployed on backend main. Switch to Mock Mode (top navigation) to interact with complete operational throughput and latency statistics.
+              </div>
+            </div>
+          )}
+
+          {analyticsError && (
+            <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-800 text-xs flex items-center space-x-2">
+              <AlertTriangle className="w-5 h-5 text-rose-600 flex-shrink-0" />
+              <span>{analyticsError}</span>
+            </div>
+          )}
+
           {analytics ? (
             <div className="space-y-6">
               {/* KPI Cards */}

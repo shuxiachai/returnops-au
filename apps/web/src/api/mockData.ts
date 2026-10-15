@@ -32,6 +32,7 @@ export const MOCK_CUSTOMER_CASES: Record<string, CustomerCaseView> = {
         filename: 'parcel_package_label.jpg',
         media_type: 'image/jpeg',
         size_bytes: 482104,
+        byte_size: 482104,
         sha256: 'a1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef0',
         status: 'BOUND',
         description: 'Photo of the shipping box and garment tag',
@@ -69,7 +70,7 @@ export const MOCK_CUSTOMER_CASES: Record<string, CustomerCaseView> = {
     case_id: 'case_demo_002',
     case_version: 3,
     input_version: 2,
-    status: 'UNDER_INVESTIGATION',
+    status: 'RISK_REVIEW',
     created_at: new Date(Date.now() - 3600000 * 8).toISOString(),
     updated_at: new Date(Date.now() - 3600000 * 1).toISOString(),
     statements: [
@@ -83,10 +84,95 @@ export const MOCK_CUSTOMER_CASES: Record<string, CustomerCaseView> = {
         requested_outcome: 'REFUND',
       },
     ],
+    evidence: [
+      {
+        evidence_id: 'ev_demo_02',
+        filename: 'shattered_teapot.png',
+        media_type: 'image/png',
+        size_bytes: 1204890,
+        byte_size: 1204890,
+        sha256: 'b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef01a',
+        status: 'BOUND',
+        description: 'Photo showing broken ceramic parts inside packing paper',
+        created_at: new Date(Date.now() - 3600000 * 8).toISOString(),
+        content_path: '/v1/evidence/ev_demo_02/content',
+      },
+    ],
+  },
+  'case_demo_003': {
+    case_id: 'case_demo_003',
+    case_version: 4,
+    input_version: 1,
+    status: 'AWAITING_APPROVAL',
+    created_at: new Date(Date.now() - 3600000 * 12).toISOString(),
+    updated_at: new Date(Date.now() - 3600000 * 3).toISOString(),
+    statements: [
+      {
+        statement_id: 'stmt_orig_003',
+        kind: 'ORIGINAL',
+        raw_text: 'Changed my mind on the linen bedsheet set. Unopened in original packaging.',
+        submitted_at: new Date(Date.now() - 3600000 * 12).toISOString(),
+        order_reference: 'ORD-2026-7731',
+        requested_outcome: 'REFUND',
+      },
+    ],
     evidence: [],
+  },
+  'case_demo_004': {
+    case_id: 'case_demo_004',
+    case_version: 2,
+    input_version: 1,
+    status: 'ESCALATED',
+    created_at: new Date(Date.now() - 3600000 * 24).toISOString(),
+    updated_at: new Date(Date.now() - 3600000 * 18).toISOString(),
+    statements: [
+      {
+        statement_id: 'stmt_orig_004',
+        kind: 'ORIGINAL',
+        raw_text: 'Purchased 50 espresso units for office commercial project that was cancelled. Returning entire bulk order.',
+        submitted_at: new Date(Date.now() - 3600000 * 24).toISOString(),
+        order_reference: 'ORD-2026-6612',
+        requested_outcome: 'REFUND',
+      },
+    ],
+    evidence: [],
+  },
+  'case_demo_005': {
+    case_id: 'case_demo_005',
+    case_version: 5,
+    input_version: 1,
+    status: 'COMPLETED',
+    created_at: new Date(Date.now() - 3600000 * 48).toISOString(),
+    updated_at: new Date(Date.now() - 3600000 * 36).toISOString(),
+    statements: [
+      {
+        statement_id: 'stmt_orig_005',
+        kind: 'ORIGINAL',
+        raw_text: 'DeLonghi coffee machine element blew within 2 hours of unboxing; full electrical fault.',
+        submitted_at: new Date(Date.now() - 3600000 * 48).toISOString(),
+        order_reference: 'ORD-2026-5501',
+        requested_outcome: 'REFUND',
+        evidence_ids: ['ev_demo_05'],
+      },
+    ],
+    evidence: [
+      {
+        evidence_id: 'ev_demo_05',
+        filename: 'blown_circuit_photo.jpg',
+        media_type: 'image/jpeg',
+        size_bytes: 840120,
+        byte_size: 840120,
+        sha256: 'c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef01a2b',
+        status: 'BOUND',
+        description: 'Photo of the tripped circuit breaker and burned element',
+        created_at: new Date(Date.now() - 3600000 * 48).toISOString(),
+        content_path: '/v1/evidence/ev_demo_05/content',
+      },
+    ],
   },
 };
 
+// 25 synthetic cases to exercise limit=20 pagination and ensure 21st case is reachable
 export const MOCK_FOUNDER_SUMMARIES: CaseSummary[] = [
   {
     case_id: 'case_demo_001',
@@ -138,6 +224,20 @@ export const MOCK_FOUNDER_SUMMARIES: CaseSummary[] = [
     issue_category: 'FAULTY_OR_QUALITY_ISSUE',
     current_risk_outcome: 'PASS',
   },
+  ...Array.from({ length: 20 }, (_, i) => {
+    const num = String(i + 6).padStart(3, '0');
+    const caseId = `case_demo_${num}`;
+    return {
+      case_id: caseId,
+      case_version: 1,
+      input_version: 1,
+      status: (i % 2 === 0 ? 'UNDER_INVESTIGATION' : 'POLICY_ASSESSMENT') as any,
+      created_at: new Date(Date.now() - 3600000 * (50 + i * 2)).toISOString(),
+      updated_at: new Date(Date.now() - 3600000 * (40 + i * 2)).toISOString(),
+      issue_category: (i % 3 === 0 ? 'CHANGE_OF_MIND' : 'FAULTY_OR_QUALITY_ISSUE') as any,
+      current_risk_outcome: 'PASS' as const,
+    };
+  }),
 ];
 
 export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
@@ -154,14 +254,24 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
     order_snapshot: {
       order_id: 'ord_9042',
       order_number: 'ORD-2026-9042',
+      purchased_at: '2026-10-02T10:15:00Z',
       order_date: '2026-10-02T10:15:00Z',
       total_amount_cents: 14900,
       currency: 'AUD',
       status: 'DELIVERED',
+      line_items: [
+        {
+          line_item_id: 'item_101',
+          sku: 'AP-CASH-BLU-M',
+          description: 'Navy Blue Cashmere Crewneck (Size M)',
+          quantity: 1,
+          unit_price_minor: 14900,
+        },
+      ],
       items: [
         {
           item_id: 'item_101',
-          product_name: 'Navy Blue Cashmere Crewneck',
+          product_name: 'Navy Blue Cashmere Crewneck (Size M)',
           sku: 'AP-CASH-BLU-M',
           quantity: 1,
           unit_price_cents: 14900,
@@ -181,37 +291,25 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
     status: 'RISK_REVIEW',
     created_at: new Date(Date.now() - 3600000 * 8).toISOString(),
     updated_at: new Date(Date.now() - 3600000 * 1).toISOString(),
-    statements: [
-      {
-        statement_id: 'stmt_orig_002',
-        kind: 'ORIGINAL',
-        raw_text:
-          'The artisan teapot arrived completely shattered with a broken lid and cracked base.',
-        submitted_at: new Date(Date.now() - 3600000 * 8).toISOString(),
-        order_reference: 'ORD-2026-8819',
-        requested_outcome: 'REFUND',
-      },
-    ],
-    evidence: [
-      {
-        evidence_id: 'ev_demo_02',
-        filename: 'shattered_teapot.png',
-        media_type: 'image/png',
-        size_bytes: 1204890,
-        sha256: 'b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef01a',
-        status: 'BOUND',
-        description: 'Photo showing broken ceramic parts inside packing paper',
-        created_at: new Date(Date.now() - 3600000 * 8).toISOString(),
-        content_path: '/v1/evidence/ev_demo_02/content',
-      },
-    ],
+    statements: MOCK_CUSTOMER_CASES['case_demo_002'].statements,
+    evidence: MOCK_CUSTOMER_CASES['case_demo_002'].evidence,
     order_snapshot: {
       order_id: 'ord_8819',
       order_number: 'ORD-2026-8819',
+      purchased_at: '2026-10-04T14:30:00Z',
       order_date: '2026-10-04T14:30:00Z',
       total_amount_cents: 8900,
       currency: 'AUD',
       status: 'DELIVERED',
+      line_items: [
+        {
+          line_item_id: 'item_201',
+          sku: 'HM-POT-CEL-01',
+          description: 'Handcrafted Ceramic Teapot (Celadon)',
+          quantity: 1,
+          unit_price_minor: 8900,
+        },
+      ],
       items: [
         {
           item_id: 'item_201',
@@ -225,25 +323,47 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
     current_proposal: {
       proposal_id: 'prop_demo_002',
       proposal_version: 1,
+      recommended_action: 'PROPOSE_REFUND',
+      confidence: 0.94,
       outcome: 'REFUND',
+      confidence_score: 0.94,
       refund_amount_cents: 8900,
       return_label_required: false,
-      confidence_score: 0.94,
       rationale:
         'Product is unrepairable and shattered glassware/ceramic presents safety hazard. Australian Consumer Law statutory guarantee entitles full refund without return under safety policy §4.2.',
       created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
     },
     current_review: {
       review_id: 'rev_demo_002',
+      outcome: 'PASS_WITH_WARNING',
       risk_outcome: 'PASS_WITH_WARNING',
       risk_score: 0.18,
+      reviewed_at: new Date(Date.now() - 3600000 * 1).toISOString(),
+      evaluated_at: new Date(Date.now() - 3600000 * 1).toISOString(),
       summary:
         'Low fraud probability. Delivery within 5 days, customer has 0 prior return history. Recommend instant refund authorisation.',
+      findings: [
+        {
+          finding_id: 'find_02a',
+          category: 'SUPPORT',
+          severity: 'INFO',
+          message: 'Shattered ceramics in transit meet statutory ACL failure threshold.',
+          citation_ids: ['ACL s54'],
+          evidence_ids: ['ev_demo_02'],
+        },
+        {
+          finding_id: 'find_02b',
+          category: 'SCOPE',
+          severity: 'WARNING',
+          message: 'Zero prior return history on customer record; waiver granted under safety policy.',
+          citation_ids: ['Merchant Policy §4.2'],
+          evidence_ids: [],
+        },
+      ],
       policy_citations: [
         'ACL Section 54 (Acceptable Quality)',
         'Merchant Policy §4.2 (Damaged in Transit / Safety Exclusion)',
       ],
-      evaluated_at: new Date(Date.now() - 3600000 * 1).toISOString(),
     },
   },
   'case_demo_003': {
@@ -253,25 +373,25 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
     status: 'AWAITING_APPROVAL',
     created_at: new Date(Date.now() - 3600000 * 12).toISOString(),
     updated_at: new Date(Date.now() - 3600000 * 3).toISOString(),
-    statements: [
-      {
-        statement_id: 'stmt_orig_003',
-        kind: 'ORIGINAL',
-        raw_text:
-          'Changed my mind on the linen bedsheet set. Unopened in original packaging.',
-        submitted_at: new Date(Date.now() - 3600000 * 12).toISOString(),
-        order_reference: 'ORD-2026-7731',
-        requested_outcome: 'REFUND',
-      },
-    ],
+    statements: MOCK_CUSTOMER_CASES['case_demo_003'].statements,
     evidence: [],
     order_snapshot: {
       order_id: 'ord_7731',
       order_number: 'ORD-2026-7731',
+      purchased_at: '2026-09-28T16:00:00Z',
       order_date: '2026-09-28T16:00:00Z',
       total_amount_cents: 22000,
       currency: 'AUD',
       status: 'DELIVERED',
+      line_items: [
+        {
+          line_item_id: 'item_301',
+          sku: 'LN-SHT-QN-OAT',
+          description: 'French Linen Sheet Set (Queen, Oatmeal)',
+          quantity: 1,
+          unit_price_minor: 22000,
+        },
+      ],
       items: [
         {
           item_id: 'item_301',
@@ -285,22 +405,36 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
     current_proposal: {
       proposal_id: 'prop_demo_003',
       proposal_version: 1,
+      recommended_action: 'PROPOSE_REFUND',
+      confidence: 0.96,
       outcome: 'REFUND',
+      confidence_score: 0.96,
       refund_amount_cents: 22000,
       return_label_required: true,
-      confidence_score: 0.96,
       rationale:
         '30-day change of mind policy applies. Return shipping label required for return to Melbourne distribution hub.',
       created_at: new Date(Date.now() - 3600000 * 4).toISOString(),
     },
     current_review: {
       review_id: 'rev_demo_003',
+      outcome: 'PASS',
       risk_outcome: 'PASS',
       risk_score: 0.05,
+      reviewed_at: new Date(Date.now() - 3600000 * 3).toISOString(),
+      evaluated_at: new Date(Date.now() - 3600000 * 3).toISOString(),
       summary:
         'Unopened standard item within 30-day return window. Authorize Australia Post return consignment.',
+      findings: [
+        {
+          finding_id: 'find_03',
+          category: 'SUPPORT',
+          severity: 'INFO',
+          message: 'Claim within 30-day return policy window.',
+          citation_ids: ['Store Policy §2.1'],
+          evidence_ids: [],
+        },
+      ],
       policy_citations: ['Store Policy §2.1 (30-day Change of Mind)'],
-      evaluated_at: new Date(Date.now() - 3600000 * 3).toISOString(),
     },
     action_preview: {
       preview_id: 'prev_demo_003',
@@ -317,12 +451,163 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
       },
     },
   },
+  'case_demo_004': {
+    case_id: 'case_demo_004',
+    case_version: 2,
+    input_version: 1,
+    status: 'ESCALATED',
+    created_at: new Date(Date.now() - 3600000 * 24).toISOString(),
+    updated_at: new Date(Date.now() - 3600000 * 18).toISOString(),
+    statements: MOCK_CUSTOMER_CASES['case_demo_004'].statements,
+    evidence: [],
+    order_snapshot: {
+      order_id: 'ord_6612',
+      order_number: 'ORD-2026-6612',
+      purchased_at: '2026-09-15T09:00:00Z',
+      order_date: '2026-09-15T09:00:00Z',
+      total_amount_cents: 2450000,
+      currency: 'AUD',
+      status: 'DELIVERED',
+      line_items: [
+        {
+          line_item_id: 'item_401',
+          sku: 'CM-DELONGHI-EC680',
+          description: 'Commercial Bulk Espresso Machine Lot (50 units)',
+          quantity: 50,
+          unit_price_minor: 49000,
+        },
+      ],
+      items: [
+        {
+          item_id: 'item_401',
+          product_name: 'Commercial Bulk Espresso Machine Lot (50 units)',
+          sku: 'CM-DELONGHI-EC680',
+          quantity: 50,
+          unit_price_cents: 49000,
+        },
+      ],
+    },
+    current_proposal: {
+      proposal_id: 'prop_demo_004',
+      proposal_version: 1,
+      recommended_action: 'REFER_FOR_MANUAL_HANDLING',
+      confidence: 0.88,
+      outcome: 'REFER_FOR_MANUAL_HANDLING',
+      confidence_score: 0.88,
+      rationale:
+        'Customer indicates 50 commercial units returned due to commercial project cancellation; exceeds retail consumer protection scope.',
+      created_at: new Date(Date.now() - 3600000 * 20).toISOString(),
+    },
+    current_review: {
+      review_id: 'rev_demo_004',
+      outcome: 'ESCALATE',
+      risk_outcome: 'ESCALATE',
+      risk_score: 0.92,
+      reviewed_at: new Date(Date.now() - 3600000 * 19).toISOString(),
+      evaluated_at: new Date(Date.now() - 3600000 * 19).toISOString(),
+      summary:
+        'Severe business risk. Bulk commercial order exceeds standard retail consumer terms. Direct approval is blocked; manual takeover or rejection required.',
+      findings: [
+        {
+          finding_id: 'find_04a',
+          category: 'SCOPE',
+          severity: 'BLOCK',
+          message: 'Bulk order volume (50 units) exceeds consumer threshold under Store Terms §1.4.',
+          citation_ids: ['Store Policy §1.4 (Commercial Exclusions)'],
+          evidence_ids: [],
+        },
+        {
+          finding_id: 'find_04b',
+          category: 'AUTHORITY',
+          severity: 'BLOCK',
+          message: 'Total return claim ($24,500.00) exceeds autonomous refund limit ($500.00). Direct automated approval blocked.',
+          citation_ids: ['Operations Guard §3.1'],
+          evidence_ids: [],
+        },
+      ],
+      policy_citations: [
+        'Store Policy §1.4 (Commercial Exclusions)',
+        'Operations Guard §3.1 (Autonomous Approval Ceiling)',
+      ],
+    },
+  },
+  'case_demo_005': {
+    case_id: 'case_demo_005',
+    case_version: 5,
+    input_version: 1,
+    status: 'COMPLETED',
+    created_at: new Date(Date.now() - 3600000 * 48).toISOString(),
+    updated_at: new Date(Date.now() - 3600000 * 36).toISOString(),
+    statements: MOCK_CUSTOMER_CASES['case_demo_005'].statements,
+    evidence: MOCK_CUSTOMER_CASES['case_demo_005'].evidence,
+    order_snapshot: {
+      order_id: 'ord_5501',
+      order_number: 'ORD-2026-5501',
+      purchased_at: '2026-09-10T11:20:00Z',
+      order_date: '2026-09-10T11:20:00Z',
+      total_amount_cents: 69900,
+      currency: 'AUD',
+      status: 'DELIVERED',
+      line_items: [
+        {
+          line_item_id: 'item_501',
+          sku: 'DELONGHI-SPEC-01',
+          description: 'DeLonghi La Specialista Espresso Machine',
+          quantity: 1,
+          unit_price_minor: 69900,
+        },
+      ],
+      items: [
+        {
+          item_id: 'item_501',
+          product_name: 'DeLonghi La Specialista Espresso Machine',
+          sku: 'DELONGHI-SPEC-01',
+          quantity: 1,
+          unit_price_cents: 69900,
+        },
+      ],
+    },
+    current_proposal: {
+      proposal_id: 'prop_demo_005',
+      proposal_version: 1,
+      recommended_action: 'PROPOSE_REFUND',
+      confidence: 0.99,
+      outcome: 'REFUND',
+      confidence_score: 0.99,
+      refund_amount_cents: 69900,
+      return_label_required: false,
+      rationale:
+        'Catastrophic electrical element failure within 2 hours of receipt constitutes major failure under ACL Section 54. Full refund completed.',
+      created_at: new Date(Date.now() - 3600000 * 44).toISOString(),
+    },
+    current_review: {
+      review_id: 'rev_demo_005',
+      outcome: 'PASS',
+      risk_outcome: 'PASS',
+      risk_score: 0.02,
+      reviewed_at: new Date(Date.now() - 3600000 * 43).toISOString(),
+      evaluated_at: new Date(Date.now() - 3600000 * 43).toISOString(),
+      summary:
+        'Full photographic proof verified. Complete statutory compliance and ledger closure.',
+      findings: [
+        {
+          finding_id: 'find_05',
+          category: 'SUPPORT',
+          severity: 'INFO',
+          message: 'Customer provided clear image evidence of burned element and invoice.',
+          citation_ids: ['ACL s54'],
+          evidence_ids: ['ev_demo_05'],
+        },
+      ],
+      policy_citations: ['ACL Section 54 (Acceptable Quality)'],
+    },
+  },
 };
 
 export const MOCK_AUDIT_EVENTS: Record<string, AuditEvent[]> = {
   'case_demo_001': [
     {
-      event_id: 'evt_001',
+      event_id: 'evt_001_1',
       sequence: 1,
       event_type: 'CASE_CREATED',
       actor: {
@@ -339,7 +624,7 @@ export const MOCK_AUDIT_EVENTS: Record<string, AuditEvent[]> = {
       payload: { original_message_length: 147, order_reference: 'ORD-2026-9042' },
     },
     {
-      event_id: 'evt_002',
+      event_id: 'evt_001_2',
       sequence: 2,
       event_type: 'EVIDENCE_BOUND',
       actor: {
@@ -356,7 +641,7 @@ export const MOCK_AUDIT_EVENTS: Record<string, AuditEvent[]> = {
       payload: { evidence_id: 'ev_demo_01', filename: 'parcel_package_label.jpg' },
     },
     {
-      event_id: 'evt_003',
+      event_id: 'evt_001_3',
       sequence: 3,
       event_type: 'INTAKE_ASSESSMENT_COMPLETED',
       actor: {
@@ -374,6 +659,144 @@ export const MOCK_AUDIT_EVENTS: Record<string, AuditEvent[]> = {
         question_count: 2,
         question_set_id: 'qset_demo_001',
       },
+    },
+  ],
+  'case_demo_002': [
+    {
+      event_id: 'evt_002_1',
+      sequence: 1,
+      event_type: 'CASE_CREATED',
+      actor: { kind: 'HUMAN', role: 'CUSTOMER', principal_id: 'customer_demo_two' },
+      occurred_at: new Date(Date.now() - 3600000 * 8).toISOString(),
+      previous_event_hash: '0000000000000000000000000000000000000000000000000000000000000000',
+      event_hash: '1111111111111111111111111111111111111111111111111111111111111111',
+      payload: { order_reference: 'ORD-2026-8819' },
+    },
+    {
+      event_id: 'evt_002_2',
+      sequence: 2,
+      event_type: 'RISK_REVIEW_COMPLETED',
+      actor: { kind: 'SERVICE', component_id: 'risk-reviewer-c' },
+      occurred_at: new Date(Date.now() - 3600000 * 1).toISOString(),
+      previous_event_hash: '1111111111111111111111111111111111111111111111111111111111111111',
+      event_hash: '2222222222222222222222222222222222222222222222222222222222222222',
+      payload: { outcome: 'PASS_WITH_WARNING' },
+    },
+  ],
+  'case_demo_003': [
+    {
+      event_id: 'evt_003_1',
+      sequence: 1,
+      event_type: 'CASE_CREATED',
+      actor: { kind: 'HUMAN', role: 'CUSTOMER', principal_id: 'customer_demo_three' },
+      occurred_at: new Date(Date.now() - 3600000 * 12).toISOString(),
+      previous_event_hash: '0000000000000000000000000000000000000000000000000000000000000000',
+      event_hash: '3333333333333333333333333333333333333333333333333333333333333333',
+      payload: { order_reference: 'ORD-2026-7731' },
+    },
+    {
+      event_id: 'evt_003_2',
+      sequence: 2,
+      event_type: 'ASSESSMENT_PROPOSAL_GENERATED',
+      actor: { kind: 'SERVICE', component_id: 'returns-assessment-agent' },
+      occurred_at: new Date(Date.now() - 3600000 * 4).toISOString(),
+      previous_event_hash: '3333333333333333333333333333333333333333333333333333333333333333',
+      event_hash: '4444444444444444444444444444444444444444444444444444444444444444',
+      payload: { recommended_action: 'PROPOSE_REFUND', confidence: 0.96 },
+    },
+    {
+      event_id: 'evt_003_3',
+      sequence: 3,
+      event_type: 'RISK_REVIEW_COMPLETED',
+      actor: { kind: 'SERVICE', component_id: 'risk-reviewer-c' },
+      occurred_at: new Date(Date.now() - 3600000 * 3).toISOString(),
+      previous_event_hash: '4444444444444444444444444444444444444444444444444444444444444444',
+      event_hash: '5555555555555555555555555555555555555555555555555555555555555555',
+      payload: { outcome: 'PASS', score: 0.05 },
+    },
+    {
+      event_id: 'evt_003_4',
+      sequence: 4,
+      event_type: 'APPROVAL_PREVIEW_GENERATED',
+      actor: { kind: 'SERVICE', component_id: 'operations-service' },
+      occurred_at: new Date(Date.now() - 3600000 * 3).toISOString(),
+      previous_event_hash: '5555555555555555555555555555555555555555555555555555555555555555',
+      event_hash: '6666666666666666666666666666666666666666666666666666666666666666',
+      payload: { preview_id: 'prev_demo_003', scope_fingerprint: 'fp_scope_98124' },
+    },
+  ],
+  'case_demo_004': [
+    {
+      event_id: 'evt_004_1',
+      sequence: 1,
+      event_type: 'CASE_CREATED',
+      actor: { kind: 'HUMAN', role: 'CUSTOMER', principal_id: 'customer_demo_four' },
+      occurred_at: new Date(Date.now() - 3600000 * 24).toISOString(),
+      previous_event_hash: '0000000000000000000000000000000000000000000000000000000000000000',
+      event_hash: '7777777777777777777777777777777777777777777777777777777777777777',
+      payload: { order_reference: 'ORD-2026-6612', amount_cents: 2450000 },
+    },
+    {
+      event_id: 'evt_004_2',
+      sequence: 2,
+      event_type: 'RISK_REVIEW_ESCALATED',
+      actor: { kind: 'SERVICE', component_id: 'risk-reviewer-c' },
+      occurred_at: new Date(Date.now() - 3600000 * 19).toISOString(),
+      previous_event_hash: '7777777777777777777777777777777777777777777777777777777777777777',
+      event_hash: '8888888888888888888888888888888888888888888888888888888888888888',
+      payload: { outcome: 'ESCALATE', reason: 'Commercial bulk order exceeds authority' },
+    },
+  ],
+  'case_demo_005': [
+    {
+      event_id: 'evt_005_1',
+      sequence: 1,
+      event_type: 'CASE_CREATED',
+      actor: { kind: 'HUMAN', role: 'CUSTOMER', principal_id: 'customer_demo_five' },
+      occurred_at: new Date(Date.now() - 3600000 * 48).toISOString(),
+      previous_event_hash: '0000000000000000000000000000000000000000000000000000000000000000',
+      event_hash: '9999999999999999999999999999999999999999999999999999999999999999',
+      payload: { order_reference: 'ORD-2026-5501' },
+    },
+    {
+      event_id: 'evt_005_2',
+      sequence: 2,
+      event_type: 'EVIDENCE_BOUND',
+      actor: { kind: 'HUMAN', role: 'CUSTOMER', principal_id: 'customer_demo_five' },
+      occurred_at: new Date(Date.now() - 3600000 * 48).toISOString(),
+      previous_event_hash: '9999999999999999999999999999999999999999999999999999999999999999',
+      event_hash: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      payload: { evidence_id: 'ev_demo_05', filename: 'blown_circuit_photo.jpg' },
+    },
+    {
+      event_id: 'evt_005_3',
+      sequence: 3,
+      event_type: 'FOUNDER_APPROVED',
+      actor: { kind: 'HUMAN', role: 'FOUNDER', principal_id: 'founder_demo' },
+      occurred_at: new Date(Date.now() - 3600000 * 40).toISOString(),
+      previous_event_hash: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      event_hash: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+      payload: { rationale: 'Approved statutory warranty refund for dangerous element failure.' },
+    },
+    {
+      event_id: 'evt_005_4',
+      sequence: 4,
+      event_type: 'REFUND_DISPATCHED',
+      actor: { kind: 'SERVICE', component_id: 'operations-service' },
+      occurred_at: new Date(Date.now() - 3600000 * 38).toISOString(),
+      previous_event_hash: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+      event_hash: 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
+      payload: { amount_cents: 69900, payment_method: 'VISA_DEBIT' },
+    },
+    {
+      event_id: 'evt_005_5',
+      sequence: 5,
+      event_type: 'CASE_COMPLETED',
+      actor: { kind: 'SERVICE', component_id: 'coordinator-agent' },
+      occurred_at: new Date(Date.now() - 3600000 * 36).toISOString(),
+      previous_event_hash: 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
+      event_hash: 'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd',
+      payload: { final_status: 'COMPLETED' },
     },
   ],
 };

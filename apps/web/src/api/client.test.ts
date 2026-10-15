@@ -100,10 +100,10 @@ describe('client', () => {
 
     it('lists founder case summaries in mock mode', async () => {
       const summaries = await listFounderCases();
-      expect(summaries.length).toBeGreaterThanOrEqual(3);
-      expect(summaries.some((c) => c.case_id === 'case_demo_001')).toBe(true);
-      expect(summaries.some((c) => c.case_id === 'case_demo_002')).toBe(true);
-      expect(summaries.some((c) => c.case_id === 'case_demo_003')).toBe(true);
+      expect(summaries.items.length).toBeGreaterThanOrEqual(3);
+      expect(summaries.items.some((c) => c.case_id === 'case_demo_001')).toBe(true);
+      expect(summaries.items.some((c) => c.case_id === 'case_demo_002')).toBe(true);
+      expect(summaries.items.some((c) => c.case_id === 'case_demo_003')).toBe(true);
     });
 
     it('retrieves detailed founder case view with facts and proposals', async () => {

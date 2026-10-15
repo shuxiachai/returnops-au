@@ -82,7 +82,8 @@ export function setActiveRole(role: 'CUSTOMER' | 'FOUNDER') {
 async function request<T>(
   path: string,
   options: RequestInit = {},
-  requireIdempotency = false
+  requireIdempotency = false,
+  idempotencyKey?: string
 ): Promise<T> {
   const headers = new Headers(options.headers || {});
   const token = getStoredToken();
@@ -91,7 +92,9 @@ async function request<T>(
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  if (requireIdempotency && !headers.has('Idempotency-Key')) {
+  if (idempotencyKey) {
+    headers.set('Idempotency-Key', idempotencyKey);
+  } else if (requireIdempotency && !headers.has('Idempotency-Key')) {
     headers.set('Idempotency-Key', generateIdempotencyKey());
   }
 
@@ -157,7 +160,11 @@ export async function getSession(): Promise<SessionPrincipal> {
   return request<SessionPrincipal>('/v1/session');
 }
 
-export async function stageEvidence(file: File, description?: string): Promise<EvidenceAttachment> {
+export async function stageEvidence(
+  file: File,
+  description?: string,
+  idempotencyKey?: string
+): Promise<EvidenceAttachment> {
   if (isMockMode()) {
     const evidenceId = 'ev_' + Date.now().toString(36);
     return {
@@ -181,7 +188,7 @@ export async function stageEvidence(file: File, description?: string): Promise<E
   }
 
   const headers = new Headers();
-  headers.set('Idempotency-Key', generateIdempotencyKey('ev_idem'));
+  headers.set('Idempotency-Key', idempotencyKey || generateIdempotencyKey('ev_idem'));
   const token = getStoredToken();
   if (token) headers.set('Authorization', `Bearer ${token}`);
 
@@ -218,7 +225,54 @@ export function getEvidenceContentUrl(evidenceId: string): string {
   return `${BASE_URL}/v1/evidence/${encodeURIComponent(evidenceId)}/content`;
 }
 
-export async function createCase(req: CreateCaseRequest): Promise<CustomerCaseView> {
+export async function downloadEvidence(evidenceId: string, fallbackFilename = 'evidence.bin'): Promise<void> {
+  if (isMockMode()) {
+    const blob = new Blob([`Mock evidence binary content for ${evidenceId}`], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fallbackFilename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return;
+  }
+
+  const token = getStoredToken();
+  const headers = new Headers();
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  const res = await fetch(`${BASE_URL}/v1/evidence/${encodeURIComponent(evidenceId)}/content`, {
+    headers,
+  });
+
+  if (!res.ok) {
+    let errEnv: ErrorEnvelope | null = null;
+    try {
+      errEnv = await res.json();
+    } catch {
+      // ignore
+    }
+    const code = errEnv?.error?.code || `HTTP_${res.status}`;
+    const msg = errEnv?.error?.message || `Failed to download evidence (HTTP ${res.status}: ${res.statusText})`;
+    throw new ApiError(res.status, msg, code);
+  }
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fallbackFilename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export async function createCase(req: CreateCaseRequest, idempotencyKey?: string): Promise<CustomerCaseView> {
   if (isMockMode()) {
     const newCaseId = 'case_demo_' + Math.floor(100 + Math.random() * 900);
     const newCase: CustomerCaseView = {
@@ -272,7 +326,8 @@ export async function createCase(req: CreateCaseRequest): Promise<CustomerCaseVi
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(req),
     },
-    true
+    true,
+    idempotencyKey
   );
 }
 
@@ -320,7 +375,8 @@ export async function listCustomerCaseHistory(
 
 export async function submitClarification(
   caseId: string,
-  req: ClarificationRequest
+  req: ClarificationRequest,
+  idempotencyKey?: string
 ): Promise<CustomerCaseView> {
   const wirePayload: ClarificationRequest = {
     expected_case_version: req.expected_case_version,
@@ -357,7 +413,8 @@ export async function submitClarification(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(wirePayload),
     },
-    true
+    true,
+    idempotencyKey
   );
 }
 
@@ -365,16 +422,28 @@ export async function submitClarification(
 // Founder API (UC-04, UC-03, UC-05 & OF-006)
 // -------------------------------------------------------------
 
-export async function listFounderCases(cursor?: string, limit = 20): Promise<CaseSummary[]> {
+export async function listFounderCases(cursor?: string, limit = 20): Promise<CaseList> {
   if (isMockMode()) {
-    return MOCK_FOUNDER_SUMMARIES;
+    const all = MOCK_FOUNDER_SUMMARIES;
+    const startIdx = cursor ? parseInt(cursor, 10) || 0 : 0;
+    const items = all.slice(startIdx, startIdx + limit);
+    const next_cursor = startIdx + limit < all.length ? String(startIdx + limit) : undefined;
+    return {
+      items,
+      next_cursor,
+    };
   }
   const params = new URLSearchParams();
   if (cursor) params.set('cursor', cursor);
   params.set('limit', limit.toString());
   const res = await request<CaseList | CaseSummary[]>(`/v1/founder/cases?${params.toString()}`);
-  if (Array.isArray(res)) return res;
-  return res.items || [];
+  if (Array.isArray(res)) {
+    return { items: res, next_cursor: undefined };
+  }
+  return {
+    items: res.items || [],
+    next_cursor: res.next_cursor || undefined,
+  };
 }
 
 export async function getFounderCase(caseId: string): Promise<CaseView> {
@@ -455,14 +524,11 @@ export async function recordFounderDecision(
     };
   }
 
-  return request<DecisionReceipt>(
-    `/v1/founder/cases/${encodeURIComponent(caseId)}/decisions`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(req),
-    },
-    true
+  // Gate Founder capabilities that have no runtime endpoint on current backend main
+  throw new ApiError(
+    501,
+    'Founder decision recording (POST /v1/founder/cases/{id}/decisions) is a planned contract not yet registered in current live backend. Please switch to Mock Mode in the top navbar to interactively demonstrate governed decisions.',
+    'NOT_IMPLEMENTED'
   );
 }
 
@@ -470,5 +536,10 @@ export async function getFounderAnalytics(): Promise<AnalyticsSnapshot> {
   if (isMockMode()) {
     return MOCK_ANALYTICS;
   }
-  return request<AnalyticsSnapshot>('/v1/founder/analytics');
+  // Gate Founder capabilities that have no runtime endpoint on current backend main
+  throw new ApiError(
+    501,
+    'Founder analytics aggregation (GET /v1/founder/analytics) is a planned contract not yet registered in current live backend. Please switch to Mock Mode in the top navbar to view simulated analytics.',
+    'NOT_IMPLEMENTED'
+  );
 }

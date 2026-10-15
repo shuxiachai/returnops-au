@@ -178,36 +178,79 @@ export interface CaseList {
 export interface ProposalDetail {
   proposal_id: string;
   proposal_version: number;
-  outcome: string;
+  input_version?: number;
+  case_id?: string;
+  recommended_action?: string;
+  confidence?: number;
+  rationale?: string;
+  created_at: string;
+  cost_responsibility_note?: string;
+  conditions?: string[];
+  alternatives?: string[];
+  // Backward compatibility aliases
+  outcome?: string;
   refund_amount_cents?: number;
   return_label_required?: boolean;
   confidence_score?: number;
-  rationale?: string;
-  created_at: string;
+}
+
+export interface RiskFinding {
+  finding_id: string;
+  category: string;
+  severity: 'INFO' | 'WARNING' | 'BLOCK';
+  message: string;
+  citation_ids?: string[];
+  evidence_ids?: string[];
 }
 
 export interface RiskReviewDetail {
   review_id: string;
-  risk_outcome: RiskOutcome;
-  risk_score: number;
-  summary: string;
+  case_id?: string;
+  proposal_id?: string;
+  proposal_version?: number;
+  input_version?: number;
+  corpus_version?: string;
+  outcome?: RiskOutcome;
+  findings?: RiskFinding[];
+  reviewed_at?: string;
+  revision_requests?: string[];
+  questions?: ClarificationQuestion[];
+  // Backward compatibility aliases
+  risk_outcome?: RiskOutcome;
+  risk_score?: number;
+  summary?: string;
   policy_citations?: string[];
-  evaluated_at: string;
+  evaluated_at?: string;
+}
+
+export interface LineItem {
+  line_item_id: string;
+  sku: string;
+  description: string;
+  quantity: number;
+  unit_price_minor: number;
 }
 
 export interface OrderSnapshot {
+  snapshot_id?: string;
   order_id: string;
-  order_number: string;
-  order_date: string;
-  total_amount_cents: number;
+  provider_id?: string;
+  snapshot_version?: number;
+  purchased_at: string;
   currency: string;
-  status: string;
-  items: Array<{
-    item_id: string;
-    product_name: string;
+  line_items: LineItem[];
+  retrieved_at?: string;
+  // Backward compatibility aliases
+  order_number?: string;
+  order_date?: string;
+  total_amount_cents?: number;
+  status?: string;
+  items?: Array<{
+    item_id?: string;
+    product_name?: string;
     sku: string;
     quantity: number;
-    unit_price_cents: number;
+    unit_price_cents?: number;
   }>;
 }
 
