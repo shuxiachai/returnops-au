@@ -14,13 +14,15 @@ This document specifies the deterministic demonstration fixtures, automated UI r
 
 The frontend operates strictly as an untrusted client in Kruchten's 4+1 package decomposition (P01), delegating domain state transitions, statutory policy evaluations, and cryptographic audit recording to the backend gateway (P02) and core domain (P04). It supports transparent dual-mode execution:
 1. **Offline Mock Mode (Default)**: Zero-setup deterministic demo fixtures for resilient live presentation without external network dependency.
-2. **Live API Mode**: Connected via Vite reverse proxy to FastAPI (`http://127.0.0.1:8000/v1`) and the campus GPU cluster model service (`campus-qwen`).
+2. **Live API Mode**: Reads are issued against the configured API base URL (`VITE_API_BASE_URL`; empty prefix by default, so requests go through the Vite dev-server proxy to the FastAPI gateway). Only operations that actually exist on current backend `main` are served. Founder decision recording (`POST /v1/founder/cases/{id}/decisions`) and Founder analytics (`GET /v1/founder/analytics`) are **planned** contracts with no registered runtime endpoint, so the live client refuses them with an explicit `501 NOT_IMPLEMENTED` gate and both UI surfaces disable the action and instruct the operator to switch to Mock Mode.
+
+> **Current implementation status (must stay accurate).** The frontend is a mock-first prototype: the deterministic fixture store backs every screen. Live reads are implemented for the operations listed in the root `README.md`; live writes beyond case creation and staged uploads are gated as above. This document does not claim a complete live backend integration.
 
 ---
 
 ## 2. Deterministic Demo Fixtures Map
 
-The offline mock store in `apps/web/src/api/mockData.ts` provides 5 curated lifecycle cases designed to exhibit all major statutory and governance branches:
+The offline mock store in `apps/web/src/api/mockData.ts` provides 5 curated lifecycle cases (`case_demo_001`–`005`) that exhibit all major statutory and governance branches, plus 20 generated summary rows (`case_demo_006`–`025`) so that queue pagination and the page-size boundary can be demonstrated.
 
 | Case ID | Status | Category | Statutory Grounding & Risk | Key Interactive Feature |
 |---|---|---|---|---|
@@ -63,8 +65,8 @@ The offline mock store in `apps/web/src/api/mockData.ts` provides 5 curated life
   1. Review queue table; filter by status `AWAITING_APPROVAL`.
   2. Click **Inspect** on `case_demo_003`.
   3. Cycle through modal tabs:
-     - **AI Proposal & Risk Review**: Show autonomous Assessment Proposal and Member C's independent Risk Review (`PASS`).
-     - **Order & Facts Projection**: Inspect original items ($220.00 French Linen Sheet Set) and carrier details.
+     - **AI Proposal & Risk Review**: Show the Assessment Proposal (`recommended_action: PROPOSE_REFUND`, `confidence: 0.96`, refund amount `$220.00`, rationale) and Member C's independent Risk Review (`outcome: PASS`, findings, `reviewed_at`).
+     - **Order & Facts Projection**: Inspect the contract-shaped `OrderSnapshot` — `order_id ord_7731`, `purchased_at`, `snapshot_version: 1`, and its single `line_item` (`French Linen Sheet Set (Queen, Oatmeal)`, SKU `LN-SHT-QN-OAT`, `unit_price_minor: 22000`). This tab renders **only** fields the contract actually carries; it does not display carrier or order-total fields that the snapshot does not contain.
      - **Tamper-Evident Audit Chain**: Display the SHA-256 hash pointer link ensuring immutable event history.
   4. Click **Approve Return (UC-04)** in footer.
   5. Enter mandatory governance rationale: *"Verified unopened goods within 30-day change of mind window."*
@@ -92,12 +94,17 @@ cd returnops-au/apps/web
 npm test
 ```
 
-### Test Coverage Summary (47 Automated Tests Passing):
+### Test Coverage Summary (63 Automated Tests Passing Across 8 Suites):
 1. **`src/utils/formatters.test.ts` (19 tests)**: Australian dollar formatting (`$AUD`), en-AU medium date formatting, status badge classes across all 16 `CaseStatus` states, 5 risk badges, issue categories, and safe polymorphic `ActorProvenance` rendering.
 2. **`src/utils/idempotency.test.ts` (2 tests)**: RFC idempotency key generation conforming to `^[A-Za-z0-9._:-]{8,128}$` and uniqueness guarantees.
-3. **`src/api/client.test.ts` (15 tests)**: Dual-mode toggle persistence in `localStorage`, default mock mode fallback, offline intake creation, clarification version increments, founder case retrieval, tamper-evident audit queries, governed decision execution, and `ApiError` envelope parsing.
-4. **`src/pages/CustomerPortal.test.tsx` (6 tests)**: `UC-01` intake form validation, 30-character boundary check, instant receipt card generation, `UC-01E` clarification question rendering, multi-field answer submission with HTTP 202 acceptance, and non-existent case error alert.
-5. **`src/pages/FounderConsole.test.tsx` (5 tests)**: `UC-03` queue rendering, status dropdown filtering, `UC-05` multi-tab deep inspection (Proposal, Order, Statements, Audit Hash Chain), `UC-04` double Approval Guard parameter execution, and `OF-006` analytics snapshot calculations.
+3. **`src/api/client.test.ts` (21 tests)**: Dual-mode toggle persistence in `localStorage`, default mock mode fallback, offline intake creation, clarification version increments, founder case retrieval, tamper-evident audit queries, governed decision execution, and `ApiError` envelope parsing. It also pins the live wire contract with a mocked `fetch`: lost-response retry reuses the original idempotency key, `409 IDEMPOTENCY_KEY_REUSED` surfaces as an error, protected evidence download sends `Authorization: Bearer` with no token in the URL, clarification `evidence_ids` reach the wire, and the not-yet-deployed Founder endpoints return the `501` gate.
+4. **`src/pages/CustomerPortal.test.tsx` (7 tests)**: `UC-01` intake form validation, 30-character boundary check, instant receipt card generation, submission blocked while a selected evidence file is unstaged, `UC-01E` clarification question rendering, multi-field answer submission with HTTP 202 acceptance, and non-existent case error alert.
+5. **`src/pages/CustomerPortal.download.test.tsx` (2 tests)**: Protected evidence download renders the `403 FORBIDDEN` failure state to the customer, and the authorised path calls the download API with the exact evidence id/filename.
+6. **`src/pages/CustomerPortal.idempotency.test.tsx` (2 tests)**: After a lost response, retrying an unchanged payload re-sends the original idempotency key, while a materially changed payload never silently reuses it.
+7. **`src/pages/FounderConsole.test.tsx` (7 tests)**: `UC-03` queue rendering, status dropdown filtering, `UC-05` multi-tab deep inspection (Proposal, Order, Statements, Audit Hash Chain), `UC-04` double Approval Guard parameter execution, `OF-006` analytics snapshot calculations, next-cursor pagination up to the 21st case, and reachability of all four governed decisions.
+8. **`src/pages/FounderConsole.failure.test.tsx` (3 tests)**: A strictly contract-shaped `OrderSnapshot` (no legacy aliases) renders without crashing or emitting `NaN`, an audit-chain retrieval failure shows its own error state instead of the validated banner, and live mode disables Approve and shows the "not yet deployed" notices.
+
+Every one of these suites runs in the CI `web-frontend` job (`.github/workflows/ci.yml`) after `npm ci`, `tsc --noEmit` and `vite build`.
 
 ---
 

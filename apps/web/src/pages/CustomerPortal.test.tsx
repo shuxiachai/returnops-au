@@ -127,4 +127,41 @@ describe('CustomerPortal (UC-01 & UC-01E)', () => {
       expect(screen.getByText(/NOT_FOUND: Case case_does_not_exist_999 not found/i)).toBeInTheDocument();
     });
   });
+
+  it('blocks case submission while a selected evidence file is unstaged (Finding 7)', async () => {
+    render(<CustomerPortal />);
+
+    const textarea = screen.getByPlaceholderText(/Tell us what happened with your purchase/i);
+    fireEvent.change(textarea, {
+      target: { value: 'My parcel arrived crushed and the item inside is damaged.' },
+    });
+
+    const submitBtn = screen.getByRole('button', { name: /Submit Return Request/i });
+    // With a valid statement and no files, submission is allowed.
+    expect(submitBtn).not.toBeDisabled();
+
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['dummy image bytes'], 'receipt.png', { type: 'image/png' });
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    // The unstaged file must be listed before submission is attempted.
+    expect(await screen.findByText('receipt.png')).toBeInTheDocument();
+
+    // Submission stays blocked and the reason is visible to the customer.
+    expect(screen.getByRole('button', { name: /Submit Return Request/i })).toBeDisabled();
+    expect(
+      screen.getByText(/Please stage or remove all selected evidence files before submitting/i)
+    ).toBeInTheDocument();
+
+    // Even a forced click must not lodge the case.
+    fireEvent.click(screen.getByRole('button', { name: /Submit Return Request/i }));
+    await waitFor(() => {
+      expect(screen.queryByText('Return Request Submitted Successfully!')).not.toBeInTheDocument();
+    });
+
+    // Removing the unstaged file unblocks submission.
+    fireEvent.click(screen.getByRole('button', { name: /Remove receipt\.png/i }));
+    expect(screen.queryByText('receipt.png')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Submit Return Request/i })).not.toBeDisabled();
+  });
 });

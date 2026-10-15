@@ -252,13 +252,12 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
     evidence: MOCK_CUSTOMER_CASES['case_demo_001'].evidence,
     clarification: MOCK_CUSTOMER_CASES['case_demo_001'].clarification,
     order_snapshot: {
+      snapshot_id: 'snap_demo_001',
       order_id: 'ord_9042',
-      order_number: 'ORD-2026-9042',
+      provider_id: 'provider_mock_au',
+      snapshot_version: 1,
       purchased_at: '2026-10-02T10:15:00Z',
-      order_date: '2026-10-02T10:15:00Z',
-      total_amount_cents: 14900,
       currency: 'AUD',
-      status: 'DELIVERED',
       line_items: [
         {
           line_item_id: 'item_101',
@@ -268,15 +267,7 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
           unit_price_minor: 14900,
         },
       ],
-      items: [
-        {
-          item_id: 'item_101',
-          product_name: 'Navy Blue Cashmere Crewneck (Size M)',
-          sku: 'AP-CASH-BLU-M',
-          quantity: 1,
-          unit_price_cents: 14900,
-        },
-      ],
+      retrieved_at: '2026-10-02T10:16:00Z',
     },
     facts: {
       reported_issue: 'WRONG_ITEM',
@@ -294,13 +285,12 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
     statements: MOCK_CUSTOMER_CASES['case_demo_002'].statements,
     evidence: MOCK_CUSTOMER_CASES['case_demo_002'].evidence,
     order_snapshot: {
+      snapshot_id: 'snap_demo_002',
       order_id: 'ord_8819',
-      order_number: 'ORD-2026-8819',
+      provider_id: 'provider_mock_au',
+      snapshot_version: 1,
       purchased_at: '2026-10-04T14:30:00Z',
-      order_date: '2026-10-04T14:30:00Z',
-      total_amount_cents: 8900,
       currency: 'AUD',
-      status: 'DELIVERED',
       line_items: [
         {
           line_item_id: 'item_201',
@@ -310,23 +300,13 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
           unit_price_minor: 8900,
         },
       ],
-      items: [
-        {
-          item_id: 'item_201',
-          product_name: 'Handcrafted Ceramic Teapot (Celadon)',
-          sku: 'HM-POT-CEL-01',
-          quantity: 1,
-          unit_price_cents: 8900,
-        },
-      ],
+      retrieved_at: '2026-10-04T14:31:00Z',
     },
     current_proposal: {
       proposal_id: 'prop_demo_002',
       proposal_version: 1,
       recommended_action: 'PROPOSE_REFUND',
       confidence: 0.94,
-      outcome: 'REFUND',
-      confidence_score: 0.94,
       refund_amount_cents: 8900,
       return_label_required: false,
       rationale:
@@ -336,10 +316,8 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
     current_review: {
       review_id: 'rev_demo_002',
       outcome: 'PASS_WITH_WARNING',
-      risk_outcome: 'PASS_WITH_WARNING',
       risk_score: 0.18,
       reviewed_at: new Date(Date.now() - 3600000 * 1).toISOString(),
-      evaluated_at: new Date(Date.now() - 3600000 * 1).toISOString(),
       summary:
         'Low fraud probability. Delivery within 5 days, customer has 0 prior return history. Recommend instant refund authorisation.',
       findings: [
@@ -376,13 +354,12 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
     statements: MOCK_CUSTOMER_CASES['case_demo_003'].statements,
     evidence: [],
     order_snapshot: {
+      snapshot_id: 'snap_demo_003',
       order_id: 'ord_7731',
-      order_number: 'ORD-2026-7731',
+      provider_id: 'provider_mock_au',
+      snapshot_version: 1,
       purchased_at: '2026-09-28T16:00:00Z',
-      order_date: '2026-09-28T16:00:00Z',
-      total_amount_cents: 22000,
       currency: 'AUD',
-      status: 'DELIVERED',
       line_items: [
         {
           line_item_id: 'item_301',
@@ -392,23 +369,13 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
           unit_price_minor: 22000,
         },
       ],
-      items: [
-        {
-          item_id: 'item_301',
-          product_name: 'French Linen Sheet Set (Queen, Oatmeal)',
-          sku: 'LN-SHT-QN-OAT',
-          quantity: 1,
-          unit_price_cents: 22000,
-        },
-      ],
+      retrieved_at: '2026-09-28T16:01:00Z',
     },
     current_proposal: {
       proposal_id: 'prop_demo_003',
       proposal_version: 1,
       recommended_action: 'PROPOSE_REFUND',
       confidence: 0.96,
-      outcome: 'REFUND',
-      confidence_score: 0.96,
       refund_amount_cents: 22000,
       return_label_required: true,
       rationale:
@@ -418,10 +385,8 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
     current_review: {
       review_id: 'rev_demo_003',
       outcome: 'PASS',
-      risk_outcome: 'PASS',
       risk_score: 0.05,
       reviewed_at: new Date(Date.now() - 3600000 * 3).toISOString(),
-      evaluated_at: new Date(Date.now() - 3600000 * 3).toISOString(),
       summary:
         'Unopened standard item within 30-day return window. Authorize Australia Post return consignment.',
       findings: [
@@ -461,13 +426,12 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
     statements: MOCK_CUSTOMER_CASES['case_demo_004'].statements,
     evidence: [],
     order_snapshot: {
+      snapshot_id: 'snap_demo_004',
       order_id: 'ord_6612',
-      order_number: 'ORD-2026-6612',
+      provider_id: 'provider_mock_au',
+      snapshot_version: 1,
       purchased_at: '2026-09-15T09:00:00Z',
-      order_date: '2026-09-15T09:00:00Z',
-      total_amount_cents: 2450000,
       currency: 'AUD',
-      status: 'DELIVERED',
       line_items: [
         {
           line_item_id: 'item_401',
@@ -477,23 +441,13 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
           unit_price_minor: 49000,
         },
       ],
-      items: [
-        {
-          item_id: 'item_401',
-          product_name: 'Commercial Bulk Espresso Machine Lot (50 units)',
-          sku: 'CM-DELONGHI-EC680',
-          quantity: 50,
-          unit_price_cents: 49000,
-        },
-      ],
+      retrieved_at: '2026-09-15T09:01:00Z',
     },
     current_proposal: {
       proposal_id: 'prop_demo_004',
       proposal_version: 1,
       recommended_action: 'REFER_FOR_MANUAL_HANDLING',
       confidence: 0.88,
-      outcome: 'REFER_FOR_MANUAL_HANDLING',
-      confidence_score: 0.88,
       rationale:
         'Customer indicates 50 commercial units returned due to commercial project cancellation; exceeds retail consumer protection scope.',
       created_at: new Date(Date.now() - 3600000 * 20).toISOString(),
@@ -501,10 +455,8 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
     current_review: {
       review_id: 'rev_demo_004',
       outcome: 'ESCALATE',
-      risk_outcome: 'ESCALATE',
       risk_score: 0.92,
       reviewed_at: new Date(Date.now() - 3600000 * 19).toISOString(),
-      evaluated_at: new Date(Date.now() - 3600000 * 19).toISOString(),
       summary:
         'Severe business risk. Bulk commercial order exceeds standard retail consumer terms. Direct approval is blocked; manual takeover or rejection required.',
       findings: [
@@ -541,13 +493,12 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
     statements: MOCK_CUSTOMER_CASES['case_demo_005'].statements,
     evidence: MOCK_CUSTOMER_CASES['case_demo_005'].evidence,
     order_snapshot: {
+      snapshot_id: 'snap_demo_005',
       order_id: 'ord_5501',
-      order_number: 'ORD-2026-5501',
+      provider_id: 'provider_mock_au',
+      snapshot_version: 1,
       purchased_at: '2026-09-10T11:20:00Z',
-      order_date: '2026-09-10T11:20:00Z',
-      total_amount_cents: 69900,
       currency: 'AUD',
-      status: 'DELIVERED',
       line_items: [
         {
           line_item_id: 'item_501',
@@ -557,23 +508,13 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
           unit_price_minor: 69900,
         },
       ],
-      items: [
-        {
-          item_id: 'item_501',
-          product_name: 'DeLonghi La Specialista Espresso Machine',
-          sku: 'DELONGHI-SPEC-01',
-          quantity: 1,
-          unit_price_cents: 69900,
-        },
-      ],
+      retrieved_at: '2026-09-10T11:21:00Z',
     },
     current_proposal: {
       proposal_id: 'prop_demo_005',
       proposal_version: 1,
       recommended_action: 'PROPOSE_REFUND',
       confidence: 0.99,
-      outcome: 'REFUND',
-      confidence_score: 0.99,
       refund_amount_cents: 69900,
       return_label_required: false,
       rationale:
@@ -583,10 +524,8 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
     current_review: {
       review_id: 'rev_demo_005',
       outcome: 'PASS',
-      risk_outcome: 'PASS',
       risk_score: 0.02,
       reviewed_at: new Date(Date.now() - 3600000 * 43).toISOString(),
-      evaluated_at: new Date(Date.now() - 3600000 * 43).toISOString(),
       summary:
         'Full photographic proof verified. Complete statutory compliance and ledger closure.',
       findings: [

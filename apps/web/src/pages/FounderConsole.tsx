@@ -281,23 +281,23 @@ export const FounderConsole: React.FC = () => {
         <div className="space-y-6">
           {/* Quick Metrics Bar */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
-              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Queue Total</div>
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Cases Loaded</div>
               <div className="text-2xl font-bold text-slate-900 mt-1">{cases.length}</div>
             </div>
-            <div className="bg-white p-4 rounded-2xl border border-purple-200 shadow-xs">
+            <div className="bg-white p-4 rounded-2xl border border-purple-200 shadow-sm">
               <div className="text-xs font-semibold text-purple-700 uppercase tracking-wider">Awaiting Approval</div>
               <div className="text-2xl font-bold text-purple-900 mt-1">
                 {cases.filter((c) => c.status === 'AWAITING_APPROVAL').length}
               </div>
             </div>
-            <div className="bg-white p-4 rounded-2xl border border-indigo-200 shadow-xs">
+            <div className="bg-white p-4 rounded-2xl border border-indigo-200 shadow-sm">
               <div className="text-xs font-semibold text-indigo-700 uppercase tracking-wider">Risk Review</div>
               <div className="text-2xl font-bold text-indigo-900 mt-1">
                 {cases.filter((c) => c.status === 'RISK_REVIEW').length}
               </div>
             </div>
-            <div className="bg-white p-4 rounded-2xl border border-rose-200 shadow-xs">
+            <div className="bg-white p-4 rounded-2xl border border-rose-200 shadow-sm">
               <div className="text-xs font-semibold text-rose-700 uppercase tracking-wider">Escalated / Blocked</div>
               <div className="text-2xl font-bold text-rose-900 mt-1">
                 {cases.filter((c) => c.status === 'ESCALATED').length}
@@ -335,7 +335,7 @@ export const FounderConsole: React.FC = () => {
               </select>
 
               <button
-                onClick={() => loadCases(statusFilter)}
+                onClick={() => loadCases()}
                 disabled={isLoadingCases}
                 className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors"
                 title="Refresh Queue"
@@ -426,15 +426,19 @@ export const FounderConsole: React.FC = () => {
             {/* Pagination Controls (Finding 6) */}
             <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
               <div>
-                Showing <strong className="text-slate-700">{cases.length}</strong> cases
-                {nextCursor ? ' (more records available in store)' : ' (all matching cases loaded)'}
+                Showing <strong className="text-slate-700">{filteredCases.length}</strong> of{' '}
+                <strong className="text-slate-700">{cases.length}</strong> loaded case(s)
+                {(statusFilter !== 'ALL' || searchFilter.trim().length > 0) && ' matching the active filter'}
+                {nextCursor
+                  ? ' · more records available in store (load the next page to search them)'
+                  : ' · all cases loaded'}
               </div>
               {nextCursor && (
                 <button
                   type="button"
                   onClick={loadMoreCases}
                   disabled={isLoadingMore}
-                  className="px-4 py-1.5 bg-white hover:bg-slate-100 disabled:opacity-50 text-sky-700 font-semibold border border-slate-300 rounded-lg flex items-center space-x-1.5 transition-colors shadow-xs"
+                  className="px-4 py-1.5 bg-white hover:bg-slate-100 disabled:opacity-50 text-sky-700 font-semibold border border-slate-300 rounded-lg flex items-center space-x-1.5 transition-colors shadow-sm"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${isLoadingMore ? 'animate-spin' : ''}`} />
                   <span>{isLoadingMore ? 'Loading Next Page...' : 'Load Next Page (Next Cursor)'}</span>
@@ -556,7 +560,10 @@ export const FounderConsole: React.FC = () => {
                         <div>
                           <div className="text-slate-400 font-semibold uppercase">Refund Amount</div>
                           <div className="text-sm font-bold text-slate-900 mt-0.5">
-                            {formatCurrency(caseDetail.current_proposal.refund_amount_cents ?? 0)}
+                            {caseDetail.current_proposal.refund_amount_cents !== undefined &&
+                            caseDetail.current_proposal.refund_amount_cents !== null
+                              ? formatCurrency(caseDetail.current_proposal.refund_amount_cents)
+                              : '—'}
                           </div>
                         </div>
                         <div>
@@ -569,8 +576,10 @@ export const FounderConsole: React.FC = () => {
                           <div className="text-slate-400 font-semibold uppercase">AI Confidence</div>
                           <div className="text-sm font-bold text-indigo-600 mt-0.5">
                             {(() => {
-                              const conf = caseDetail.current_proposal.confidence ?? caseDetail.current_proposal.confidence_score;
-                              return conf !== undefined && conf !== null ? `${(conf * 100).toFixed(0)}%` : '—';
+                              const conf = caseDetail.current_proposal.confidence;
+                              return typeof conf === 'number' && Number.isFinite(conf)
+                                ? `${(conf * 100).toFixed(0)}%`
+                                : '—';
                             })()}
                           </div>
                         </div>
@@ -605,10 +614,10 @@ export const FounderConsole: React.FC = () => {
                         </div>
                         <span
                           className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getRiskBadgeClass(
-                            caseDetail.current_review.outcome || caseDetail.current_review.risk_outcome || 'PASS'
+                            caseDetail.current_review.outcome || 'PASS'
                           )}`}
                         >
-                          {caseDetail.current_review.outcome || caseDetail.current_review.risk_outcome || 'PASS'}
+                          {caseDetail.current_review.outcome || '—'}
                         </span>
                       </div>
 
@@ -624,7 +633,7 @@ export const FounderConsole: React.FC = () => {
                         <div>
                           <div className="text-slate-400 font-semibold uppercase">Review Date</div>
                           <div className="text-xs text-slate-700 mt-1">
-                            {formatDate(caseDetail.current_review.reviewed_at || caseDetail.current_review.evaluated_at || '')}
+                            {formatDate(caseDetail.current_review.reviewed_at || '')}
                           </div>
                         </div>
                       </div>
@@ -711,70 +720,69 @@ export const FounderConsole: React.FC = () => {
               {detailTab === 'order' && (
                 <div className="space-y-6">
                   {caseDetail.order_snapshot ? (
-                    <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-4">
-                      <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-                        <div>
-                          <span className="font-mono font-bold text-slate-900 text-base">
-                            {caseDetail.order_snapshot.order_id || caseDetail.order_snapshot.order_number || 'UNKNOWN'}
-                          </span>
-                          <span className="text-xs text-slate-500 ml-2">
-                            Ordered: {formatDate(caseDetail.order_snapshot.purchased_at || caseDetail.order_snapshot.order_date || '')}
-                          </span>
-                        </div>
-                        <span className="text-sm font-bold text-slate-900">
-                          {caseDetail.order_snapshot.currency || 'AUD'} Total:{' '}
-                          {formatCurrency(
-                            caseDetail.order_snapshot.total_amount_cents ??
-                            (caseDetail.order_snapshot.line_items || []).reduce(
-                              (acc, it) => acc + (it.unit_price_minor || 0) * (it.quantity || 1),
-                              0
-                            )
-                          )}
-                        </span>
-                      </div>
+                    (() => {
+                      // Render only the contract-shaped OrderSnapshot (Finding 2):
+                      // snapshot_id / order_id / provider_id / snapshot_version /
+                      // purchased_at / currency / line_items / retrieved_at.
+                      const order = caseDetail.order_snapshot;
+                      const lineItems = Array.isArray(order.line_items) ? order.line_items : [];
+                      const totalMinor = lineItems.reduce(
+                        (acc, item) =>
+                          acc +
+                          (Number.isFinite(item.unit_price_minor) ? item.unit_price_minor : 0) *
+                            (Number.isFinite(item.quantity) ? item.quantity : 0),
+                        0
+                      );
+                      return (
+                        <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-4">
+                          <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+                            <div>
+                              <span className="font-mono font-bold text-slate-900 text-base">{order.order_id}</span>
+                              <span className="text-xs text-slate-500 ml-2">
+                                Ordered: {order.purchased_at ? formatDate(order.purchased_at) : '—'}
+                              </span>
+                              {order.snapshot_version !== undefined && (
+                                <span className="text-xs text-slate-400 ml-2 font-mono">
+                                  snapshot v{order.snapshot_version}
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-sm font-bold text-slate-900">
+                              {order.currency || 'AUD'} Total:{' '}
+                              {lineItems.length > 0 ? formatCurrency(totalMinor) : '—'}
+                            </span>
+                          </div>
 
-                      <div className="space-y-2">
-                        <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                          Purchased Items
-                        </div>
-                        <div className="divide-y divide-slate-200 bg-white rounded-xl border border-slate-200 overflow-hidden text-xs">
-                          {(() => {
-                            const lineItems = caseDetail.order_snapshot.line_items;
-                            if (Array.isArray(lineItems) && lineItems.length > 0) {
-                              return lineItems.map((item) => (
-                                <div key={item.line_item_id} className="p-3 flex items-center justify-between">
-                                  <div>
-                                    <span className="font-semibold text-slate-800">{item.description}</span>
-                                    <span className="text-slate-400 font-mono ml-2">SKU: {item.sku}</span>
-                                  </div>
-                                  <div className="text-right">
-                                    <div>Qty: {item.quantity}</div>
-                                    <div className="font-bold text-slate-700">
-                                      {formatCurrency(item.unit_price_minor)}
+                          <div className="space-y-2">
+                            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                              Purchased Items ({lineItems.length})
+                            </div>
+                            <div className="divide-y divide-slate-200 bg-white rounded-xl border border-slate-200 overflow-hidden text-xs">
+                              {lineItems.length > 0 ? (
+                                lineItems.map((item) => (
+                                  <div key={item.line_item_id} className="p-3 flex items-center justify-between">
+                                    <div>
+                                      <span className="font-semibold text-slate-800">{item.description}</span>
+                                      <span className="text-slate-400 font-mono ml-2">SKU: {item.sku}</span>
+                                    </div>
+                                    <div className="text-right">
+                                      <div>Qty: {item.quantity}</div>
+                                      <div className="font-bold text-slate-700">
+                                        {formatCurrency(item.unit_price_minor)}
+                                      </div>
                                     </div>
                                   </div>
+                                ))
+                              ) : (
+                                <div className="p-3 text-slate-400">
+                                  No line items recorded on this order snapshot.
                                 </div>
-                              ));
-                            }
-                            const legacyItems = caseDetail.order_snapshot.items || [];
-                            return legacyItems.map((item, idx) => (
-                              <div key={item.item_id || `item-${idx}`} className="p-3 flex items-center justify-between">
-                                <div>
-                                  <span className="font-semibold text-slate-800">{item.product_name}</span>
-                                  <span className="text-slate-400 font-mono ml-2">SKU: {item.sku}</span>
-                                </div>
-                                <div className="text-right">
-                                  <div>Qty: {item.quantity}</div>
-                                  <div className="font-bold text-slate-700">
-                                    {formatCurrency(item.unit_price_cents ?? 0)}
-                                  </div>
-                                </div>
-                              </div>
-                            ));
-                          })()}
+                              )}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
+                      );
+                    })()
                   ) : (
                     <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 text-center text-xs text-slate-400">
                       No order snapshot projected for this case.
@@ -876,7 +884,7 @@ export const FounderConsole: React.FC = () => {
                   type="button"
                   disabled={!isMockMode() || caseDetail.status === 'ESCALATED'}
                   onClick={() => handleOpenDecision('APPROVE')}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition-colors shadow-xs flex items-center space-x-1"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition-colors shadow-sm flex items-center space-x-1"
                   title={
                     !isMockMode()
                       ? 'Decision recording is not yet deployed in live mode'
@@ -893,7 +901,7 @@ export const FounderConsole: React.FC = () => {
                   type="button"
                   disabled={!isMockMode()}
                   onClick={() => handleOpenDecision('REQUEST_REVISION')}
-                  className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition-colors shadow-xs"
+                  className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition-colors shadow-sm"
                 >
                   Request Revision
                 </button>
@@ -902,7 +910,7 @@ export const FounderConsole: React.FC = () => {
                   type="button"
                   disabled={!isMockMode()}
                   onClick={() => handleOpenDecision('REJECT')}
-                  className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition-colors shadow-xs flex items-center space-x-1"
+                  className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition-colors shadow-sm flex items-center space-x-1"
                 >
                   <XCircle className="w-3.5 h-3.5" />
                   <span>Reject</span>
@@ -912,7 +920,7 @@ export const FounderConsole: React.FC = () => {
                   type="button"
                   disabled={!isMockMode()}
                   onClick={() => handleOpenDecision('MANUAL_HANDLING')}
-                  className="px-3 py-2 bg-slate-600 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition-colors shadow-xs"
+                  className="px-3 py-2 bg-slate-600 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition-colors shadow-sm"
                 >
                   Manual Takeover
                 </button>
@@ -927,7 +935,7 @@ export const FounderConsole: React.FC = () => {
       {/* DECISION SUBMISSION CONFIRMATION MODAL (UC-04 / UC-03)    */}
       {/* ========================================================= */}
       {decisionModalOpen && caseDetail && (
-        <div className="fixed inset-0 z-[60] overflow-y-auto bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[60] overflow-y-auto bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
               <h4 className="font-bold text-slate-900 text-sm">
@@ -1023,7 +1031,7 @@ export const FounderConsole: React.FC = () => {
             <div className="space-y-6">
               {/* KPI Cards */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                   <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Total Case Volume
                   </div>
@@ -1032,7 +1040,7 @@ export const FounderConsole: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                   <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Unreviewed Cases
                   </div>
@@ -1041,7 +1049,7 @@ export const FounderConsole: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                   <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     p50 Median Latency
                   </div>
@@ -1052,7 +1060,7 @@ export const FounderConsole: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                   <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     p95 Latency SLA
                   </div>

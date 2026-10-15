@@ -16,9 +16,13 @@ The frontend strictly acts as an untrusted client consuming the authoritative ba
 2. **Idempotency & Optimistic Concurrency**:
    - Every write operation attaches an `Idempotency-Key` header adhering to `^[A-Za-z0-9._:-]{8,128}`.
    - Clarifications and Founder decisions enforce `expected_case_version` optimistic locking to avoid lost updates.
-3. **Dual Operation Mode (Live API & Mock Mode)**:
-   - **Live API Mode**: Communicates with the FastAPI backend at `http://127.0.0.1:8000` via Vite development proxy (`/v1`).
-   - **Mock Data Mode**: Built-in rich synthetic domain datasets for instant demonstration even when PostgreSQL/API is offline.
+3. **Execution Modes — Mock, Implemented Live Reads, and Planned Writes**:
+   - **Mock Data Mode (default)**: built-in synthetic domain datasets back every screen, so the whole demo runs with no PostgreSQL, no API and no network access.
+   - **Live reads — implemented**: with Mock Mode disabled, the client calls the real FastAPI gateway through the Vite dev proxy (`/v1` → `http://127.0.0.1:8000`). Live reads that exist today are `GET /v1/founder/cases` (cursor-paginated), `GET /v1/founder/cases/{id}`, `GET /v1/founder/cases/{id}/audit`, `GET /v1/cases/{id}`, and protected evidence download (`GET /v1/evidence/{id}/content`), which sends `Authorization: Bearer …` and never places the token in the URL.
+   - **Live writes — implemented**: `POST /v1/cases` (intake), staged evidence upload (`POST /v1/evidence`) and `POST /v1/cases/{id}/clarifications`. Every write carries an `Idempotency-Key`; the key for one customer intent is minted once, reused on retry while the payload is unchanged, and replaced when the payload materially changes. A `409 IDEMPOTENCY_KEY_REUSED` response is surfaced to the operator rather than silently swallowed.
+   - **Live writes — planned, not yet registered on backend `main`**: `POST /v1/founder/cases/{id}/decisions` (Founder decisions) and `GET /v1/founder/analytics` (Operations Analytics). The client deliberately refuses these with `501 NOT_IMPLEMENTED`; the Founder Console disables **Approve** and shows a "not yet deployed" notice. Mock Mode stays the demonstration path for governed decisions and analytics.
+
+> **Delivery keys and evidence.** The delivery key recorded for this work is `B2.05` / `KAN-20`, also fulfilling `B1.05` and `B3.03`, as written up in [`docs/35 — Interactive Demo Walkthrough`](../../docs/35-b205-interactive-demo-walkthrough.md). That record is **not** a verified Jira board state, and this repository does not maintain a duplicate status board: Member A owns Jira and must confirm the actual Jira-to-technical mapping and supply the linked GitHub Issue for this delivery.
 
 ---
 
@@ -38,12 +42,12 @@ The frontend strictly acts as an untrusted client consuming the authoritative ba
 ## 3. Getting Started
 
 ### Prerequisites
-- Node.js >= 18 (Tested on Node v24.21.0, npm 11.13.0)
+- Node.js as declared in `package.json` `engines`: `^22.22.2 || ^24.15.0 || >=26.0.0` (npm >= 10). CI runs this job on Node 24.
 
 ### Installation
 ```bash
 cd apps/web
-npm install
+npm ci          # locked install (package-lock.json is tracked)
 ```
 
 ### Development Server
@@ -53,12 +57,14 @@ npm run dev
 The app will be accessible at: `http://localhost:5173`.  
 Vite automatically proxies `/v1` requests to `http://127.0.0.1:8000`.
 
-### Type Checking & Build
+### Type Checking, Tests & Build
 ```bash
 npm run type-check   # Verifies TypeScript without emission
+npm test             # Runs the Vitest + React Testing Library regression suite
 npm run build        # Compiles production bundle to dist/
 npm run preview      # Serves production build locally
 ```
+All three checks (`type-check`, `test`, `build`) run in the CI `web-frontend` job in [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
 
 ---
 

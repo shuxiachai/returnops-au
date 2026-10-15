@@ -66,7 +66,7 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
     fireEvent.click(orderTabBtn);
 
     await waitFor(() => {
-      expect(screen.getByText('ORD-2026-9042')).toBeInTheDocument();
+      expect(screen.getByText('ord_9042')).toBeInTheDocument();
       expect(screen.getByText(/Navy Blue Cashmere Crewneck/i)).toBeInTheDocument();
     });
 
@@ -150,5 +150,64 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
     // Status breakdown chart should be displayed
     expect(screen.getByText('Case Status Distribution')).toBeInTheDocument();
     expect(screen.getByText('Risk Review Outcome Distribution')).toBeInTheDocument();
+  });
+
+  it('loads the next queue page so the twenty-first case is reachable (Finding 6)', async () => {
+    render(<FounderConsole />);
+
+    await waitFor(() => {
+      expect(screen.getByText('case_demo_001')).toBeInTheDocument();
+    });
+
+    // The first page holds 20 of the 25 synthetic cases.
+    expect(screen.queryByText('case_demo_021')).not.toBeInTheDocument();
+
+    const nextPageBtn = screen.getByRole('button', { name: /Load Next Page \(Next Cursor\)/i });
+    fireEvent.click(nextPageBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText('case_demo_021')).toBeInTheDocument();
+    });
+    // The cursor is exhausted once the final page is loaded.
+    expect(screen.queryByRole('button', { name: /Load Next Page \(Next Cursor\)/i })).not.toBeInTheDocument();
+  });
+
+  it('makes all four Founder decision confirmations reachable (Finding 3)', async () => {
+    render(<FounderConsole />);
+
+    await waitFor(() => {
+      expect(screen.getByText('case_demo_001')).toBeInTheDocument();
+    });
+
+    // Narrow the queue to the awaiting-approval case so the decision controls are live.
+    fireEvent.change(screen.getByPlaceholderText(/Filter by Case ID or Category/i), {
+      target: { value: 'case_demo_003' },
+    });
+    fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
+
+    const decisions: Array<[RegExp, string]> = [
+      [/Approve Return \(UC-04\)/i, 'APPROVE'],
+      [/^Request Revision$/i, 'REQUEST_REVISION'],
+      [/^Reject$/i, 'REJECT'],
+      [/^Manual Takeover$/i, 'MANUAL_HANDLING'],
+    ];
+
+    for (const [buttonName, decision] of decisions) {
+      const control = await screen.findByRole('button', { name: buttonName });
+      expect(control).toBeEnabled();
+      fireEvent.click(control);
+
+      // The confirmation overlay and its rationale/confirm controls must be reachable.
+      expect(await screen.findByText(`Confirm Founder Decision: ${decision}`)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Record & Execute/i })).toBeEnabled();
+      expect(
+        screen.getByPlaceholderText(/Record justification for statutory audit/i)
+      ).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: /^Cancel$/i }));
+      await waitFor(() => {
+        expect(screen.queryByText(`Confirm Founder Decision: ${decision}`)).not.toBeInTheDocument();
+      });
+    }
   });
 });

@@ -48,7 +48,7 @@ export const CustomerPortal: React.FC = () => {
   const [orderReference, setOrderReference] = useState('');
   const [requestedOutcome, setRequestedOutcome] = useState<RequestedOutcome>('REFUND');
   const [selectedFiles, setSelectedFiles] = useState<
-    Array<{ file: File; description: string; staged?: StagedEvidence; uploading?: boolean }>
+    Array<{ file: File; description: string; staged?: StagedEvidence; uploading?: boolean; idempotencyKey: string }>
   >([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -68,7 +68,7 @@ export const CustomerPortal: React.FC = () => {
   // Clarification form & attachment state (UC-01E / Finding 8)
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [clarificationFiles, setClarificationFiles] = useState<
-    Array<{ file: File; description: string; staged?: StagedEvidence; uploading?: boolean }>
+    Array<{ file: File; description: string; staged?: StagedEvidence; uploading?: boolean; idempotencyKey: string }>
   >([]);
   const [isSubmittingClarify, setIsSubmittingClarify] = useState(false);
   const [clarifySuccessMsg, setClarifySuccessMsg] = useState<string | null>(null);
@@ -120,6 +120,9 @@ export const CustomerPortal: React.FC = () => {
     const newFiles = Array.from(e.target.files).map((f) => ({
       file: f,
       description: '',
+      // Binding the key at selection time means a lost-response retry of the
+      // same file intent reuses the original key (Finding 1).
+      idempotencyKey: generateIdempotencyKey('ev_idem'),
     }));
     setSelectedFiles((prev) => [...prev, ...newFiles]);
   };
@@ -133,7 +136,7 @@ export const CustomerPortal: React.FC = () => {
     setSelectedFiles(updated);
 
     try {
-      const staged = await stageEvidence(item.file, item.description || undefined);
+      const staged = await stageEvidence(item.file, item.description || undefined, item.idempotencyKey);
       updated[index].staged = staged;
       updated[index].uploading = false;
       setSelectedFiles([...updated]);
@@ -216,6 +219,8 @@ export const CustomerPortal: React.FC = () => {
     const newFiles = Array.from(e.target.files).map((f) => ({
       file: f,
       description: '',
+      // Same identity handling as UC-01 uploads (Finding 1).
+      idempotencyKey: generateIdempotencyKey('ev_idem'),
     }));
     setClarificationFiles((prev) => [...prev, ...newFiles]);
   };
@@ -229,7 +234,7 @@ export const CustomerPortal: React.FC = () => {
     setClarificationFiles(updated);
 
     try {
-      const staged = await stageEvidence(item.file, item.description || undefined);
+      const staged = await stageEvidence(item.file, item.description || undefined, item.idempotencyKey);
       updated[index].staged = staged;
       updated[index].uploading = false;
       setClarificationFiles([...updated]);
@@ -572,6 +577,7 @@ export const CustomerPortal: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => handleRemoveFile(idx)}
+                            aria-label={`Remove ${item.file.name}`}
                             className="text-slate-400 hover:text-rose-600 p-1"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -734,7 +740,7 @@ export const CustomerPortal: React.FC = () => {
               {/* TARGETED CLARIFICATION SECTION (UC-01E)                   */}
               {/* ========================================================= */}
               {clarifySuccessMsg && (
-                <div className="p-4 bg-emerald-100 border border-emerald-300 text-emerald-900 text-sm rounded-2xl flex items-center space-x-2 animate-fade-in shadow-xs">
+                <div className="p-4 bg-emerald-100 border border-emerald-300 text-emerald-900 text-sm rounded-2xl flex items-center space-x-2 animate-fade-in shadow-sm">
                   <CheckCircle2 className="w-5 h-5 text-emerald-700 flex-shrink-0" />
                   <span>{clarifySuccessMsg}</span>
                 </div>
@@ -771,7 +777,7 @@ export const CustomerPortal: React.FC = () => {
 
                   <form onSubmit={handleSubmitClarification} className="space-y-4">
                     {currentCase.clarification.questions.map((q, idx) => (
-                      <div key={q.question_id} className="bg-white p-4 rounded-xl border border-amber-200 shadow-xs space-y-2">
+                      <div key={q.question_id} className="bg-white p-4 rounded-xl border border-amber-200 shadow-sm space-y-2">
                         <div className="flex items-start justify-between">
                           <label className="text-sm font-semibold text-slate-900">
                             Question {idx + 1}: {q.text}
@@ -802,7 +808,7 @@ export const CustomerPortal: React.FC = () => {
                     ))}
 
                     {/* Supplementary Evidence Attachment for Clarification (UC-01E / Finding 8) */}
-                    <div className="bg-white p-4 rounded-xl border border-amber-200 shadow-xs space-y-3">
+                    <div className="bg-white p-4 rounded-xl border border-amber-200 shadow-sm space-y-3">
                       <div className="flex items-center justify-between">
                         <div>
                           <label className="text-xs font-bold text-slate-900 flex items-center space-x-1">
@@ -858,6 +864,7 @@ export const CustomerPortal: React.FC = () => {
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveClarificationFile(idx)}
+                                  aria-label={`Remove ${item.file.name}`}
                                   className="text-slate-400 hover:text-rose-600 p-1"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
