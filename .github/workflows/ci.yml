@@ -3,6 +3,7 @@ name: F.02 checks
 on:
   pull_request:
   push:
+    branches: [main]
 
 permissions:
   contents: read
