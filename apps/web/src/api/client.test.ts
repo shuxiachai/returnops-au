@@ -162,6 +162,9 @@ describe('client', () => {
       expect(receipt.case_id).toBe('case_demo_002');
       expect(receipt.decision).toBe('REJECT');
       expect(receipt.processing_status).toBe('ACCEPTED');
+      // Only a governed APPROVE may mint an approval record, so a REJECT
+      // receipt must not carry one at all.
+      expect(receipt).not.toHaveProperty('approval_id');
     });
 
     it('fetches operations analytics snapshot with throughput and latency', async () => {

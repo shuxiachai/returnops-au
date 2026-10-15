@@ -187,11 +187,11 @@ export interface ProposalDetail {
   cost_responsibility_note?: string;
   conditions?: string[];
   alternatives?: string[];
-  // Backward compatibility aliases
-  outcome?: string;
+  // Frontend-only demo extensions. The v1 DecisionPacket carries no refund
+  // amount and no label-required flag, so a live response leaves these
+  // undefined and the projection renders an em dash instead.
   refund_amount_cents?: number;
   return_label_required?: boolean;
-  confidence_score?: number;
 }
 
 export interface RiskFinding {
@@ -215,12 +215,11 @@ export interface RiskReviewDetail {
   reviewed_at?: string;
   revision_requests?: string[];
   questions?: ClarificationQuestion[];
-  // Backward compatibility aliases
-  risk_outcome?: RiskOutcome;
+  // Frontend-only demo extensions. The v1 RiskReview contract carries none of
+  // these; a live response leaves them undefined.
   risk_score?: number;
   summary?: string;
   policy_citations?: string[];
-  evaluated_at?: string;
 }
 
 export interface LineItem {

@@ -520,7 +520,12 @@ export async function recordFounderDecision(
       decision: req.decision,
       accepted_at: new Date().toISOString(),
       processing_status: 'ACCEPTED',
-      approval_id: req.decision === 'APPROVE' ? 'appr_' + Date.now().toString(36) : undefined,
+      // The v1 DecisionReceipt declares approval_id as optional and only a
+      // governed APPROVE mints an approval record, so the key is absent rather
+      // than present-but-undefined for every other decision.
+      ...(req.decision === 'APPROVE'
+        ? { approval_id: 'appr_' + Date.now().toString(36) }
+        : {}),
     };
   }
 

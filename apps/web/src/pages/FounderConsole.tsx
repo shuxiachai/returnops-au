@@ -554,7 +554,7 @@ export const FounderConsole: React.FC = () => {
                         <div>
                           <div className="text-slate-400 font-semibold uppercase">Proposed Outcome</div>
                           <div className="text-sm font-bold text-slate-900 mt-0.5">
-                            {caseDetail.current_proposal.recommended_action || caseDetail.current_proposal.outcome || 'N/A'}
+                            {caseDetail.current_proposal.recommended_action || 'N/A'}
                           </div>
                         </div>
                         <div>
@@ -995,7 +995,7 @@ export const FounderConsole: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmittingDecision}
+                  disabled={isSubmittingDecision || decisionReason.trim().length === 0}
                   className="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold transition-colors shadow-sm disabled:opacity-50"
                 >
                   {isSubmittingDecision ? 'Submitting...' : 'Record & Execute'}

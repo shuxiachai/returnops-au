@@ -199,16 +199,47 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
 
       // The confirmation overlay and its rationale/confirm controls must be reachable.
       expect(await screen.findByText(`Confirm Founder Decision: ${decision}`)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Record & Execute/i })).toBeEnabled();
-      expect(
-        screen.getByPlaceholderText(/Record justification for statutory audit/i)
-      ).toBeInTheDocument();
+      const confirm = screen.getByRole('button', { name: /Record & Execute/i });
+      const rationale = screen.getByPlaceholderText(/Record justification for statutory audit/i);
+      expect(rationale).toBeInTheDocument();
+
+      // Rationale is mandatory: an empty justification cannot confirm a decision.
+      expect(confirm).toBeDisabled();
+      fireEvent.change(rationale, { target: { value: 'Scripted governance rationale.' } });
+      expect(confirm).toBeEnabled();
 
       fireEvent.click(screen.getByRole('button', { name: /^Cancel$/i }));
       await waitFor(() => {
         expect(screen.queryByText(`Confirm Founder Decision: ${decision}`)).not.toBeInTheDocument();
       });
     }
+  });
+
+  it('refuses to confirm a decision without a governance rationale (Finding 12)', async () => {
+    render(<FounderConsole />);
+
+    await waitFor(() => {
+      expect(screen.getByText('case_demo_003')).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByPlaceholderText(/Filter by Case ID or Category/i), {
+      target: { value: 'case_demo_003' },
+    });
+    fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /Approve Return \(UC-04\)/i }));
+
+    const confirm = await screen.findByRole('button', { name: /Record & Execute/i });
+    expect(confirm).toBeDisabled();
+
+    // Even a forced click must leave the confirmation open and record nothing.
+    fireEvent.click(confirm);
+    expect(screen.getByText(/Confirm Founder Decision: APPROVE/i)).toBeInTheDocument();
+
+    // A blank or whitespace-only justification is not a rationale.
+    fireEvent.change(screen.getByPlaceholderText(/Record justification for statutory audit/i), {
+      target: { value: '   ' },
+    });
+    expect(confirm).toBeDisabled();
   });
 
   it('inspects the escalated case and blocks direct approval with the documented outcomes (Finding 11)', async () => {
