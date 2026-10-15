@@ -1,0 +1,135 @@
+{
+  "format_version": 1,
+  "corpus_version": "accc-capture-20261012-v1",
+  "is_synthetic": false,
+  "review_status": "PENDING_HUMAN_REVIEW",
+  "passages": [
+    {
+      "issue_categories": [
+        "FAULTY_OR_QUALITY_ISSUE"
+      ],
+      "passage": {
+        "passage_id": "synthetic-sale-fault-rule",
+        "document_id": "synthetic-store-capture-v1",
+        "source_type": "STORE_POLICY",
+        "title": "SYNTHETIC store policy: deliberately conflicting faulty-sale fixture",
+        "source_uri": "urn:returnops:synthetic:store-policy:20261012",
+        "accessed_on": "2026-10-12",
+        "source_version": "synthetic-store-v1",
+        "corpus_version": "accc-capture-20261012-v1",
+        "location": "synthetic rule 1 (invalid policy for conflict exercise)",
+        "content": "SYNTHETIC CONFLICT FIXTURE ONLY. The fictional store refuses every refund or replacement for a faulty sale item, regardless of consumer guarantees. This intentionally problematic invented rule is not an adopted shop policy and must be surfaced to independent Risk Review.",
+        "content_sha256": "810a018b518274193540e968cbc9e719347a3847c8ecfb23692c9c5083f7da04",
+        "is_synthetic": true
+      }
+    },
+    {
+      "issue_categories": [
+        "FAULTY_OR_QUALITY_ISSUE"
+      ],
+      "passage": {
+        "passage_id": "accc-faulty-rights-limit",
+        "document_id": "accc-repair-replace-refund-cancel",
+        "source_type": "REVIEWED_CONSUMER_GUIDANCE",
+        "title": "ACCC: Repair, replace, refund, cancel (short excerpt; pending exact-byte review)",
+        "source_uri": "https://www.accc.gov.au/consumers/problem-with-a-product-or-service-you-bought/repair-replace-refund-cancel",
+        "accessed_on": "2026-10-12",
+        "source_version": null,
+        "corpus_version": "accc-capture-20261012-v1",
+        "location": "Consumer rights when buying products and services > Rights when consumer guarantees aren’t met",
+        "content": "Businesses can’t take away a consumer's right to a refund or replacement for faulty products or services.",
+        "content_sha256": "08a06fba9d03834dcb934f8652f8d14ad13333f385229422ffabf34ba98d24a8",
+        "is_synthetic": false
+      }
+    },
+    {
+      "issue_categories": [
+        "WRONG_ITEM"
+      ],
+      "passage": {
+        "passage_id": "synthetic-wrong-item-comparison",
+        "document_id": "synthetic-store-capture-v1",
+        "source_type": "STORE_POLICY",
+        "title": "SYNTHETIC store policy: wrong-item fact comparison",
+        "source_uri": "urn:returnops:synthetic:store-policy:20261012",
+        "accessed_on": "2026-10-12",
+        "source_version": "synthetic-store-v1",
+        "corpus_version": "accc-capture-20261012-v1",
+        "location": "synthetic rule 2",
+        "content": "SYNTHETIC STORE POLICY FIXTURE. Compare the ordered product and original description with the delivered item and the customer's account. Request material missing evidence before drawing a conclusion. A retrieved description rule does not itself prove that this case contains a wrong item.",
+        "content_sha256": "2c462785a4ea22d3721492d00386c2213f6d627d366802f535a3cd0b1a3cbe3f",
+        "is_synthetic": true
+      }
+    },
+    {
+      "issue_categories": [
+        "WRONG_ITEM"
+      ],
+      "passage": {
+        "passage_id": "accc-description-accuracy",
+        "document_id": "accc-consumer-rights-and-guarantees",
+        "source_type": "REVIEWED_CONSUMER_GUIDANCE",
+        "title": "ACCC: Consumer rights and guarantees (short excerpt; pending exact-byte review)",
+        "source_uri": "https://www.accc.gov.au/consumers/buying-products-and-services/consumer-rights-and-guarantees",
+        "accessed_on": "2026-10-12",
+        "source_version": null,
+        "corpus_version": "accc-capture-20261012-v1",
+        "location": "Products and consumer rights > Matches description",
+        "content": "Any description of a product by a business must be accurate, whether written or spoken.",
+        "content_sha256": "9c2c84c44301532a8c6e93fa0b9122ba29a279de8ed2cb1e4c1f1ab369bb9a65",
+        "is_synthetic": false
+      }
+    },
+    {
+      "issue_categories": [
+        "CHANGE_OF_MIND"
+      ],
+      "passage": {
+        "passage_id": "synthetic-change-mind-offer",
+        "document_id": "synthetic-store-capture-v1",
+        "source_type": "STORE_POLICY",
+        "title": "SYNTHETIC store policy: change-of-mind courtesy example",
+        "source_uri": "urn:returnops:synthetic:store-policy:20261012",
+        "accessed_on": "2026-10-12",
+        "source_version": "synthetic-store-v1",
+        "corpus_version": "accc-capture-20261012-v1",
+        "location": "synthetic rule 3",
+        "content": "SYNTHETIC STORE POLICY FIXTURE. This imaginary store offers coupon credit for an unopened, unused change-of-mind product requested within twentyone days. These invented conditions are for this courtesy offer only, not a rule excluding faulty-product consumer guarantees.",
+        "content_sha256": "f44657c66dfb438802414507323bafa60fa163d71073f51bd6b44c97b29e3ee8",
+        "is_synthetic": true
+      }
+    },
+    {
+      "issue_categories": [
+        "CHANGE_OF_MIND"
+      ],
+      "passage": {
+        "passage_id": "accc-change-mind-no-general-refund",
+        "document_id": "accc-contacting-business",
+        "source_type": "REVIEWED_CONSUMER_GUIDANCE",
+        "title": "ACCC: Contacting a business to fix a problem (short excerpt; pending exact-byte review)",
+        "source_uri": "https://www.accc.gov.au/consumers/problem-with-a-product-or-service-you-bought/contacting-a-business-to-fix-a-problem",
+        "accessed_on": "2026-10-12",
+        "source_version": null,
+        "corpus_version": "accc-capture-20261012-v1",
+        "location": "Contacting a business about consumer rights and guarantees > A business puts conditions on when it will provide any remedies for problems",
+        "content": "Under consumer law, businesses don’t have to offer refunds and replacements for changes of mind.",
+        "content_sha256": "ac85142d26ce5c0640064a013898469af43741d5f6c18510f39f7c4ae669ea34",
+        "is_synthetic": false
+      }
+    }
+  ],
+  "conflicts": [
+    {
+      "conflict_id": "synthetic-fault-sale-exclusion-conflict",
+      "passage_ids": [
+        "synthetic-sale-fault-rule",
+        "accc-faulty-rights-limit"
+      ],
+      "issue_categories": [
+        "FAULTY_OR_QUALITY_ISSUE"
+      ],
+      "message": "Pending source/context review: the deliberately invented store fixture categorically excludes faulty sale items, while the ACCC excerpt states that consumer rights cannot be removed. Preserve both; independent Risk Review must assess applicability, qualifications and evidence. This registration is not a legal determination or an approval."
+    }
+  ]
+}

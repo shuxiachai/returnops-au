@@ -10,6 +10,62 @@
 
 # ReturnOps AU
 
+## Current C implementation and Canvas check — 2026-10-12
+
+This dated notice supersedes older *current-status* wording below; it does not
+rewrite historical evidence or declare any feature accepted. Main was checked
+at [`72ffd04`](https://github.com/shuxiachai/returnops-au/commit/72ffd043dbd400b7ae81c3b1d23085ae0be1743b),
+including merged [PR #63](https://github.com/shuxiachai/returnops-au/pull/63)
+(A's accepted-PASS revision path). The earlier “main at PR #56” snapshot is no
+longer current. A's next private manual-handling increment is
+[Issue #64](https://github.com/shuxiachai/returnops-au/issues/64), not C-owned code.
+
+**Course requirement, not an achieved mark:** the live Canvas Stage 2 rubric
+was read on 12 October: implementation **7**, AI capabilities **4**, Agile **4**,
+advanced technologies **5**, total **20**. It explicitly requires **Jira**, source
+submission by **1 November 2026, 23:59**, and a **Week 13 demonstration deployed
+on site from source downloaded from Canvas**. The PDF does not specify timezone;
+the current Assignments list exposes no Stage 2 upload item, so file extensions,
+size limits and submission options remain unverified. Use the
+[dated source/requirements checklist](docs/28-stage2-submission-checklist.md).
+Each member still implements two core features and one selected optional;
+documentation and offline tests alone do not satisfy that implementation rule.
+
+### C's bounded implementation increments
+
+| Work | Review entrance and current boundary |
+| --- | --- |
+| **C1 / KAN-23 — primary** | [Issue #58](https://github.com/shuxiachai/returnops-au/issues/58): [exact-byte admission loader](experiments/c1_grounding_candidate/admission.py), [pending ACCC capture](experiments/c1_grounding_candidate/candidates/accc-20261012/README.md), [negative/admission tests](tests/contracts/test_c1_corpus_admission.py). External trusted manifest pin, non-author exact-byte review, category/source/conflict coverage and immutable snapshots; no runtime wiring. |
+| C2 / KAN-24 — isolated preparation | [Issue #66](https://github.com/shuxiachai/returnops-au/issues/66): separate Risk prompt/invocation, five typed outcomes, exact retained-input checks, conflict preservation and fail-closed stub tests. Live provider/data-flow approval, semantic evaluation and A integration remain separate. |
+| E.01/E.09 / KAN-25 — small offline preparation | [Issue #67](https://github.com/shuxiachai/returnops-au/issues/67): draft label/denominator definitions and synthetic scorer accounting; no Gold access, sealing, timed runs or B4 performance claim. |
+| C3 / KAN-26 — gated future work | Product-image observations remain required, but runtime implementation waits for R.03/text stability and the original F.04/F.07/C2.05/B1.03 finish dependencies. Do not count an upload UI as image analysis. |
+
+[A's PR #61 source-selection review](https://github.com/shuxiachai/returnops-au/pull/61#pullrequestreview-5486256534)
+permits the next capture only. It is **not** approval of the new passage bytes,
+coverage or loader. The candidate manifest deliberately stays
+`PENDING_EXACT_BYTES_REVIEW`; even its correct hash must not admit it. A must
+review sufficient context, exact bytes, category/conflict mapping and the loader
+before a trusted integration configuration can pin an approved manifest.
+Hash validity is not review authenticity, claim support or legal correctness.
+
+Run the new C1 checks with the existing locked Python 3.12 environment:
+
+```sh
+python -B -m unittest discover -s tests/contracts -p 'test_c1_corpus_admission.py' -v
+python -B tools/checks/run.py offline --baseline-ref origin/main
+```
+
+The original synthetic `GroundingCandidate`/pilot below is unchanged. The new
+`ReviewedGroundingCandidate.from_directory` is a separate, source-checkout-only
+candidate; it has no network, DB, model, approval or execution capability. Its
+file-descriptor protections require POSIX (macOS/Linux, including Linux Docker);
+unsupported filesystems fail closed instead of silently weakening validation.
+Formal C1/C2 acceptance, Gate 1/2, real LLM evidence, full B1/B4 evaluation,
+Canvas-package rehearsal and actual per-criterion member contribution records
+remain open. No owner, WBS S/F, deadline or Jira Done transition is implied.
+These increments were prepared with Codex assistance; each PR records its own
+exact source and tests, and A remains non-author reviewer/integrator.
+
 ## Current C handoff — 2026-10-09
 
 This dated update supersedes the **current-status wording**, not the original
