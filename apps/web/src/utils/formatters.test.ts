@@ -7,7 +7,7 @@ import {
   formatCategory,
   formatActor,
 } from './formatters';
-import { ActorProvenance } from '../types/domain';
+import { ActorProvenance, CaseStatus } from '../types/domain';
 
 describe('formatters', () => {
   describe('formatCurrency', () => {
@@ -24,15 +24,24 @@ describe('formatters', () => {
   });
 
   describe('formatDate', () => {
-    it('returns em-dash for empty or invalid dates', () => {
+    it('returns em-dash for empty, undefined and unparseable dates', () => {
       expect(formatDate('')).toBe('—');
       expect(formatDate(undefined)).toBe('—');
+      // `new Date('not-a-date')` yields Invalid Date rather than throwing.
+      expect(formatDate('not-a-date')).toBe('—');
     });
 
-    it('formats ISO dates accurately in en-AU format', () => {
-      const formatted = formatDate('2026-10-09T14:30:00Z');
-      expect(formatted).toBeTruthy();
-      expect(formatted).not.toBe('—');
+    it('formats ISO timestamps with en-AU medium date and short time', () => {
+      const iso = '2026-10-09T14:30:00Z';
+      const expected = new Date(iso).toLocaleString('en-AU', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      });
+
+      expect(formatDate(iso)).toBe(expected);
+      // Structural assertion so the check cannot pass on an empty string, while
+      // staying independent of the machine's local timezone.
+      expect(formatDate(iso)).toMatch(/^\d{1,2} [A-Z][a-z]{2} \d{4}, \d{1,2}:\d{2} (am|pm)$/);
     });
   });
 
@@ -55,6 +64,38 @@ describe('formatters', () => {
     it('returns purple badge classes for awaiting approval and risk review', () => {
       const cls = getStatusBadgeClass('AWAITING_APPROVAL');
       expect(cls).toContain('purple');
+    });
+
+    it('maps every one of the sixteen CaseStatus values to its expected badge family (Finding 12)', () => {
+      // Exhaustive on purpose: the shared switch has sixteen domain branches, so a
+      // partial spot-check of four inputs does not evidence full status coverage.
+      const expected: Record<CaseStatus, string> = {
+        SUBMITTED: 'blue',
+        AWAITING_INFORMATION: 'amber',
+        UNDER_INVESTIGATION: 'indigo',
+        POLICY_ASSESSMENT: 'indigo',
+        RISK_REVIEW: 'purple',
+        AWAITING_APPROVAL: 'purple',
+        APPROVED: 'emerald',
+        ACTION_IN_PROGRESS: 'cyan',
+        ACTION_FAILED: 'red',
+        RECONCILING: 'cyan',
+        ESCALATED: 'red',
+        NOTIFICATION_PENDING: 'cyan',
+        NOTIFICATION_FAILED: 'red',
+        COMPLETED: 'emerald',
+        REJECTED: 'rose',
+        MANUAL_HANDLED: 'slate',
+      };
+
+      const statuses = Object.keys(expected) as CaseStatus[];
+      expect(statuses).toHaveLength(16);
+      for (const status of statuses) {
+        expect(getStatusBadgeClass(status)).toContain(expected[status]);
+      }
+
+      // The unknown-state fallback sits outside the sixteen-state domain map.
+      expect(getStatusBadgeClass(undefined)).toContain('gray');
     });
   });
 

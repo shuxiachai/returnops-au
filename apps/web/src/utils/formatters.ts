@@ -2,14 +2,17 @@ import { CaseStatus, RiskOutcome, IssueCategory, ActorProvenance } from '../type
 
 export function formatDate(isoStr?: string): string {
   if (!isoStr) return '—';
+  const d = new Date(isoStr);
+  // `new Date('garbage')` does not throw, it yields an Invalid Date that would
+  // otherwise render as the literal string "Invalid Date".
+  if (Number.isNaN(d.getTime())) return '—';
   try {
-    const d = new Date(isoStr);
     return d.toLocaleString('en-AU', {
       dateStyle: 'medium',
       timeStyle: 'short',
     });
   } catch {
-    return isoStr;
+    return '—';
   }
 }
 

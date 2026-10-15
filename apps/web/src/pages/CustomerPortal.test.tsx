@@ -164,4 +164,23 @@ describe('CustomerPortal (UC-01 & UC-01E)', () => {
     expect(screen.queryByText('receipt.png')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Submit Return Request/i })).not.toBeDisabled();
   });
+
+  it('reports the 12,000-character intake bound as advisory rather than enforced (Finding 12)', () => {
+    render(<CustomerPortal />);
+
+    const textarea = screen.getByPlaceholderText(
+      /Tell us what happened with your purchase/i
+    ) as HTMLTextAreaElement;
+
+    // Exactly at the documented capacity the counter reads 12,000 / 12,000.
+    fireEvent.change(textarea, { target: { value: 'a'.repeat(12000) } });
+    expect(screen.getByText('12000 / 12,000 chars')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Submit Return Request/i })).not.toBeDisabled();
+
+    // One character past the bound, the counter keeps counting: the bound is a
+    // display affordance here, not a client-side rejection rule.
+    fireEvent.change(textarea, { target: { value: 'a'.repeat(12001) } });
+    expect(screen.getByText('12001 / 12,000 chars')).toBeInTheDocument();
+    expect(textarea).not.toHaveAttribute('maxlength');
+  });
 });

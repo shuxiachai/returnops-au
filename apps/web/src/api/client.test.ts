@@ -301,6 +301,67 @@ describe('client', () => {
       expect(sentBodies[0]?.evidence_ids).toEqual(['ev_clarify_receipt']);
     });
 
+    it('treats a 202 clarification admission as success and surfaces a 409 version conflict (Finding 12)', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => jsonResponse(202, { case_id: 'case_demo_001', case_version: 3 }))
+      );
+
+      await expect(
+        submitClarification('case_demo_001', {
+          expected_case_version: 2,
+          question_set_id: 'qset_demo_001',
+          answers: [{ question_id: 'q_01', text: 'Box arrived crushed.' }],
+          evidence_ids: [],
+        })
+      ).resolves.toMatchObject({ case_id: 'case_demo_001', case_version: 3 });
+
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () =>
+          jsonResponse(409, {
+            error: { code: 'VERSION_CONFLICT', message: 'expected_case_version is stale' },
+          })
+        )
+      );
+
+      await expect(
+        submitClarification('case_demo_001', {
+          expected_case_version: 2,
+          question_set_id: 'qset_demo_001',
+          answers: [{ question_id: 'q_01', text: 'Box arrived crushed.' }],
+          evidence_ids: [],
+        })
+      ).rejects.toMatchObject({ status: 409, code: 'VERSION_CONFLICT' });
+    });
+
+    it('sends the caller-supplied idempotency key on evidence uploads as well as intake (Finding 1)', async () => {
+      const seen: Array<{ url: string; key: string | null }> = [];
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (url: string, init: RequestInit = {}) => {
+          seen.push({ url: String(url), key: new Headers(init.headers).get('Idempotency-Key') });
+          return jsonResponse(201, {
+            evidence_id: 'ev_upload_01',
+            filename: 'receipt.png',
+            media_type: 'image/png',
+            size_bytes: 12,
+            sha256: 'sha256_upload_01',
+            created_at: '2026-10-09T12:00:00Z',
+            status: 'STAGED',
+          });
+        })
+      );
+
+      const file = new File(['fake image content'], 'receipt.png', { type: 'image/png' });
+      await stageEvidence(file, 'Invoice receipt', 'ev_idem_upload_01');
+      await createCase({ original_message: 'Lost response retry' }, 'ev_idem_upload_01');
+
+      expect(seen.map((call) => call.key)).toEqual(['ev_idem_upload_01', 'ev_idem_upload_01']);
+      expect(seen[0]?.url).toContain('/v1/evidence');
+      expect(seen[1]?.url).toContain('/v1/cases');
+    });
+
     it('gates undeployed Founder decision and analytics endpoints with an explicit 501', async () => {
       await expect(
         recordFounderDecision('case_demo_001', {
