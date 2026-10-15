@@ -10,6 +10,80 @@
 
 # ReturnOps AU
 
+## C draft review handoff — 2026-10-15
+
+This **dependent draft** adds a nine-test rehearsal, this README notice and
+[review/validation evidence](docs/reviews/c-local-handoff-20261015.md), based on
+main `a0f7fb884dfbc478c82fffc5912934cb8c0deda2`. It preserves dated evidence below.
+Main has now adopted [PR #76](https://github.com/shuxiachai/returnops-au/pull/76)
+(private core mock return execution/recovery); that is not the complete
+return/label/notification chain. [PR #78](https://github.com/shuxiachai/returnops-au/pull/78)
+is still a default-disabled HTTP preparation draft. No A/B runtime code or
+workflow configuration is changed by this C rehearsal.
+
+**Do not merge or run this draft as a standalone implementation.** It does not
+include the implementation files already under review in
+[#68](https://github.com/shuxiachai/returnops-au/pull/68) (`af44d6e`),
+[#69](https://github.com/shuxiachai/returnops-au/pull/69) (`2ac0442`) and
+[#70](https://github.com/shuxiachai/returnops-au/pull/70) (`7c6739f`). At this
+snapshot all three still await A's review. Their earlier checks do not certify
+this draft. A fresh checkout of this draft alone lacks the C1/C2 imports used by
+the new tests. Review the dependencies first; use the isolated reconstruction
+instructions in the review record for preliminary local feedback, then rerun on
+the actual integrated source after the dependencies are adopted.
+The new [C handoff rehearsal](tests/contracts/test_c_handoff_rehearsal.py)
+composes the existing candidates using synthetic, non-Gold inputs and a stub
+Risk transport. It does not register an application route or activate a model.
+
+### Run locally before requesting another cloud check
+
+First reconstruct the composite source as described in the
+[review record](docs/reviews/c-local-handoff-20261015.md#reproduce-in-an-isolated-checkout).
+Use an isolated Python 3.12 environment and the locked Node 24 model tools;
+one-time installation and the additional offline CI steps are documented in
+[the check entry points](tools/checks/README.md) and
+[the existing workflow](.github/workflows/ci.yml). After installing once:
+
+```sh
+python -B tools/checks/run.py offline --baseline-ref a0f7fb884dfbc478c82fffc5912934cb8c0deda2
+python -B -m unittest discover -s tests/contracts -p 'test_c_handoff_rehearsal.py' -v
+python -B -m pytest tests/security -q -p no:cacheprovider
+```
+
+The recorded **212 contract tests passed on a local composite**, not this
+standalone draft: main `a0f7fb8` plus 13 exact dependency files from #68/#69/#70
+and this new nine-test file. The [receipt](docs/reviews/c-local-handoff-20261015.json)
+records that historical source and its limits. No new PG17, live-model or gate
+acceptance is claimed. Raw logs are retained locally; the published receipt is
+a summary, not a substitute for a reviewer's independent rerun.
+
+These commands do not push or dispatch Actions. Keep the exact source inventory,
+command outputs, failures and any skipped scope with the local receipt; a local
+pass is not a remote required check. Do not disable checks or bypass protection.
+Coordinate one reviewed upload after local results, rather than repeated trial
+pushes. PostgreSQL checks require an explicitly owned disposable PG17 database;
+the offline commands are not a substitute for them.
+
+**macOS note:** the current attachment worker intentionally supports resource
+isolation on Linux/Windows only (`evidence_validation._apply_limits`). Native
+macOS attachment-parser failures must not be hidden or fixed by removing those
+limits. Run that suite in a task-owned local Linux container, retaining its
+separate result; a native C subset pass alone is not the entire offline CI job.
+
+| C work remaining | Required next evidence / dependency |
+| --- | --- |
+| C1 / KAN-23 | A must review exact corpus bytes, context, coverage and loader, then supply an independently trusted manifest pin. PR #61 approved capture only; the pending corpus must continue to fail admission. |
+| C2 / KAN-24 | Approved shared model transport/input rules, actual separate Risk invocation and semantic/adversarial pilot evidence; A owns authoritative state checks and runtime wiring. Stub passes are not model-quality results. |
+| Joint R.02 → R.03 | Complete fixed-proposal return, label, notification and audit chain first; then A1.08 and the real C1/C2 pilot. This rehearsal does not satisfy either gate. |
+| Evaluation / KAN-25 | Seal C's initial 30-case Gold labels before reading timed answers; A/B lock blind baseline outputs before review/arbitration/freeze and scoring. No Gold labels enter runtime/repo fixtures. |
+| C3 / KAN-26 | R.03 text path first, then authorized image observations with failure/injection tests; upload support alone is not image analysis. |
+
+Project completion also still needs B's reviewed real-API frontend, A3/B3/C3
+selected optional capabilities, clean deployment, demo and genuine contribution/
+submission evidence. No Jira status or human acceptance is implied by this draft
+update. See the unchanged [allocation](docs/07-frozen-work-allocation.md) and
+[delivery gates](docs/08-delivery-work-packages.md).
+
 ## Current C handoff — 2026-10-09
 
 This dated update supersedes the **current-status wording**, not the original
