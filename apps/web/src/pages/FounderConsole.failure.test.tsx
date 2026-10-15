@@ -128,6 +128,17 @@ describe('FounderConsole failure and live-mode paths', () => {
     expect(screen.getAllByText('PASS').length).toBeGreaterThan(0);
     expect(screen.getByText('Contract-shaped finding.')).toBeInTheDocument();
 
+    // The demo-only extension fields are absent from a contract-shaped response,
+    // so those tiles degrade to a placeholder instead of fabricating a value:
+    // no "Australia Post"/"Waived" claim, an "N/A" risk score, "—" for the
+    // refund amount and confidence, and no summary or citation block at all.
+    expect(screen.queryByText(/Yes \(Australia Post\)/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/No \(Waived\)/)).not.toBeInTheDocument();
+    expect(screen.getAllByText('N/A').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Reviewer Summary/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Statutory & Policy Citations/)).not.toBeInTheDocument();
+
     // Order uses line_items / unit_price_minor and computes the total.
     fireEvent.click(screen.getByRole('button', { name: /Order & Facts Projection/i }));
     expect(await screen.findByText('ord_contract_1')).toBeInTheDocument();

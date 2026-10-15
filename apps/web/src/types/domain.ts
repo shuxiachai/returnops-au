@@ -88,8 +88,6 @@ export interface EvidenceAttachment {
   content_path?: string;
   description?: string;
   case_id?: string;
-  // Backward compatibility alias for UI
-  byte_size?: number;
 }
 
 export type StagedEvidence = EvidenceAttachment;
@@ -187,9 +185,10 @@ export interface ProposalDetail {
   cost_responsibility_note?: string;
   conditions?: string[];
   alternatives?: string[];
-  // Frontend-only demo extensions. The v1 DecisionPacket carries no refund
+  // Frontend-only demo extensions: the v1 DecisionPacket carries no refund
   // amount and no label-required flag, so a live response leaves these
-  // undefined and the projection renders an em dash instead.
+  // undefined and those tiles fall back to a placeholder ("—") rather than a
+  // fabricated value.
   refund_amount_cents?: number;
   return_label_required?: boolean;
 }
@@ -215,8 +214,11 @@ export interface RiskReviewDetail {
   reviewed_at?: string;
   revision_requests?: string[];
   questions?: ClarificationQuestion[];
-  // Frontend-only demo extensions. The v1 RiskReview contract carries none of
-  // these; a live response leaves them undefined.
+  // Frontend-only demo extensions: the v1 RiskReview contract carries none of
+  // these, so a live response leaves them undefined, the risk-score tile shows
+  // "N/A", and the summary/citation blocks do not render at all. The contract's
+  // citation data lives elsewhere (DecisionPacket.citations and
+  // RiskFinding.citation_ids, the latter already present in the mock findings).
   risk_score?: number;
   summary?: string;
   policy_citations?: string[];
@@ -239,18 +241,6 @@ export interface OrderSnapshot {
   currency: string;
   line_items: LineItem[];
   retrieved_at?: string;
-  // Backward compatibility aliases
-  order_number?: string;
-  order_date?: string;
-  total_amount_cents?: number;
-  status?: string;
-  items?: Array<{
-    item_id?: string;
-    product_name?: string;
-    sku: string;
-    quantity: number;
-    unit_price_cents?: number;
-  }>;
 }
 
 export interface ActionPreview {
@@ -359,10 +349,6 @@ export interface AuditEvent {
     case_version?: number;
   }>;
   payload?: Record<string, unknown>;
-  // Fallbacks for mock/UI compatibility
-  timestamp?: string;
-  previous_hash?: string | null;
-  current_hash?: string;
 }
 
 export interface AuditPage {

@@ -971,7 +971,7 @@ export const CustomerPortal: React.FC = () => {
                         <div className="truncate mr-2">
                           <div className="font-semibold text-slate-800 truncate">{ev.filename}</div>
                           <div className="text-[11px] text-slate-400 font-mono">
-                            {ev.media_type} · {(((ev.size_bytes ?? ev.byte_size) || 0) / 1024).toFixed(1)} KB
+                            {ev.media_type} · {((ev.size_bytes || 0) / 1024).toFixed(1)} KB
                           </div>
                         </div>
                         <button

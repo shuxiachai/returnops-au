@@ -172,7 +172,6 @@ export async function stageEvidence(
       filename: file.name,
       media_type: file.type || 'application/octet-stream',
       size_bytes: file.size,
-      byte_size: file.size,
       sha256: 'mock_sha256_' + Date.now(),
       status: 'STAGED',
       description: description || undefined,
@@ -215,10 +214,7 @@ export async function stageEvidence(
   }
 
   const data = await res.json();
-  return {
-    ...data,
-    byte_size: data.size_bytes,
-  };
+  return data;
 }
 
 export function getEvidenceContentUrl(evidenceId: string): string {
@@ -298,7 +294,6 @@ export async function createCase(req: CreateCaseRequest, idempotencyKey?: string
         filename: `uploaded_evidence_${idx + 1}.png`,
         media_type: 'image/png',
         size_bytes: 245000,
-        byte_size: 245000,
         status: 'BOUND' as const,
         created_at: new Date().toISOString(),
         content_path: `/v1/evidence/${id}/content`,

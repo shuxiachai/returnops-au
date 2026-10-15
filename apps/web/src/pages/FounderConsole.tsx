@@ -569,7 +569,11 @@ export const FounderConsole: React.FC = () => {
                         <div>
                           <div className="text-slate-400 font-semibold uppercase">Return Label Required</div>
                           <div className="text-sm font-bold text-slate-900 mt-0.5">
-                            {caseDetail.current_proposal.return_label_required ? 'Yes (Australia Post)' : 'No (Waived)'}
+                            {caseDetail.current_proposal.return_label_required === undefined
+                              ? '—'
+                              : caseDetail.current_proposal.return_label_required
+                                ? 'Yes (Australia Post)'
+                                : 'No (Waived)'}
                           </div>
                         </div>
                         <div>
@@ -842,17 +846,17 @@ export const FounderConsole: React.FC = () => {
                             <span className="font-bold text-slate-800">
                               #{evt.sequence ?? idx + 1} {evt.event_type}
                             </span>
-                            <span>{formatDate(evt.occurred_at || evt.timestamp || '')}</span>
+                            <span>{formatDate(evt.occurred_at || '')}</span>
                           </div>
                           <div className="text-[11px] text-slate-600">
                             Actor: <strong>{formatActor(evt.actor)}</strong>
                           </div>
                           <div className="text-[10px] text-slate-400 break-all">
-                            Curr Hash: {evt.event_hash || evt.current_hash || 'N/A'}
+                            Curr Hash: {evt.event_hash || 'N/A'}
                           </div>
-                          {(evt.previous_event_hash || evt.previous_hash) && (
+                          {evt.previous_event_hash && (
                             <div className="text-[10px] text-slate-400 break-all">
-                              Prev Hash: {evt.previous_event_hash || evt.previous_hash}
+                              Prev Hash: {evt.previous_event_hash}
                             </div>
                           )}
                         </div>

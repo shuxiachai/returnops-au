@@ -215,7 +215,7 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
     }
   });
 
-  it('refuses to confirm a decision without a governance rationale (Finding 12)', async () => {
+  it('refuses to confirm a decision without a governance rationale', async () => {
     render(<FounderConsole />);
 
     await waitFor(() => {

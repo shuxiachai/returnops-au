@@ -26,7 +26,6 @@ describe('CustomerPortal clarification evidence binding (Finding 8)', () => {
       filename: 'barcode.png',
       media_type: 'image/png',
       size_bytes: 12,
-      byte_size: 12,
       sha256: 'd4e5f67890123456789abcdef0123456789abcdef0123456789abcdef012345',
       status: 'STAGED',
       created_at: '2026-10-15T00:00:00Z',
