@@ -210,4 +210,53 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
       });
     }
   });
+
+  it('inspects the escalated case and blocks direct approval with the documented outcomes (Finding 11)', async () => {
+    render(<FounderConsole />);
+
+    await waitFor(() => {
+      expect(screen.getByText('case_demo_001')).toBeInTheDocument();
+    });
+
+    // Narrow the queue so the escalated summary row is the only inspectable case.
+    fireEvent.change(screen.getByPlaceholderText(/Filter by Case ID or Category/i), {
+      target: { value: 'case_demo_004' },
+    });
+    fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
+
+    // The advertised escalated case must resolve to a real detail view, not a 404.
+    expect(
+      await screen.findByText(/Escalated Case: Direct approval blocked/i)
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Approve Return \(UC-04\)/i })).toBeDisabled();
+
+    // Manual handling and rejection remain the documented available outcomes.
+    expect(screen.getByRole('button', { name: /Manual Takeover/i })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /^Reject$/i })).toBeEnabled();
+  });
+
+  it('shows the completed lifecycle audit history for case_demo_005 (Finding 11)', async () => {
+    render(<FounderConsole />);
+
+    await waitFor(() => {
+      expect(screen.getByText('case_demo_001')).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByPlaceholderText(/Filter by Case ID or Category/i), {
+      target: { value: 'case_demo_005' },
+    });
+    fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /Tamper-Evident Audit Chain/i })
+    );
+
+    expect(
+      await screen.findByText(/Cryptographic Audit Chain Integrity Validated/i)
+    ).toBeInTheDocument();
+    // The whole closure of the demo case must be present, not just a summary row.
+    expect(screen.getByText(/#5 CASE_COMPLETED/i)).toBeInTheDocument();
+    expect(screen.getByText(/#3 FOUNDER_APPROVED/i)).toBeInTheDocument();
+    expect(screen.getByText(/#4 REFUND_DISPATCHED/i)).toBeInTheDocument();
+  });
 });
