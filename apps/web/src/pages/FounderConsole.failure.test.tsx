@@ -88,6 +88,18 @@ const CONTRACT_SHAPED_VIEW: CaseView = {
       },
     ],
   },
+  // The v1 ActionPreview carries only preview_id / scope / scope_fingerprint,
+  // so a contract-shaped preview has no operation_type or details.
+  action_preview: {
+    preview_id: 'prev_contract',
+    scope_fingerprint: 'fp_contract_shape',
+    scope: {
+      case_id: 'case_contract_shape',
+      input_version: 1,
+      proposal_id: 'prop_contract',
+      proposal_version: 1,
+    },
+  },
 };
 
 const CONTRACT_SUMMARY = {
@@ -130,14 +142,28 @@ describe('FounderConsole failure and live-mode paths', () => {
 
     // The demo-only extension fields are absent from a contract-shaped response,
     // so those tiles degrade to a placeholder instead of fabricating a value:
-    // no "Australia Post"/"Waived" claim, an "N/A" risk score, "—" for the
-    // refund amount and confidence, and no summary or citation block at all.
-    expect(screen.queryByText(/Yes \(Australia Post\)/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/No \(Waived\)/)).not.toBeInTheDocument();
-    expect(screen.getAllByText('N/A').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('—').length).toBeGreaterThan(0);
+    // no "Australia Post"/"Waived" claim, an "N/A" risk score, and "—" for the
+    // refund amount and return-label flag (confidence stays a real 50%) — no
+    // summary or citation block at all. Anchor each assertion to its own tile so
+    // an unrelated "—"/"N/A" elsewhere on the page cannot satisfy it.
+    const tile = (label: string) => {
+      const element = screen.getByText(label).parentElement;
+      if (!element) throw new Error(`no tile for ${label}`);
+      return element;
+    };
+
+    expect(tile('Refund Amount')).toHaveTextContent('—');
+    expect(tile('Return Label Required')).toHaveTextContent('—');
+    expect(tile('Risk Score')).toHaveTextContent('N/A');
+    expect(tile('Return Label Required')).not.toHaveTextContent(/Waived|Australia Post/);
     expect(screen.queryByText(/Reviewer Summary/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Statutory & Policy Citations/)).not.toBeInTheDocument();
+
+    // The contract-shaped Action Preview renders, but must not invent an
+    // operation type or parameter map the contract never carried.
+    expect(screen.getByText(/Governed Execution Preview/)).toBeInTheDocument();
+    expect(tile('Operation Type:')).toHaveTextContent(/^Operation Type:$/);
+    expect(screen.queryByText(/GENERATE_RETURN_CONSIGNMENT/)).not.toBeInTheDocument();
 
     // Order uses line_items / unit_price_minor and computes the total.
     fireEvent.click(screen.getByRole('button', { name: /Order & Facts Projection/i }));

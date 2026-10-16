@@ -247,6 +247,9 @@ export interface ActionPreview {
   preview_id: string;
   scope_fingerprint: string;
   scope: Record<string, unknown>;
+  // Frontend-only demo extensions: the v1 ActionPreview carries no operation
+  // type or parameter map, so a live response leaves these undefined and the
+  // preview rows render with no fabricated operation or parameters.
   operation_type?: string;
   details?: Record<string, unknown>;
 }
