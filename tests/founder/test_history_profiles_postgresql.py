@@ -79,9 +79,14 @@ def test_0006_backfills_legacy_future_metadata_without_business_rewrites(flow_en
     migrate(flow_engine)
     migrate(flow_engine)
     after=business_fingerprints(flow_engine)
-    from returnops_domain import execution_preparation_tables, return_execution_tables
+    from returnops_domain import execution_preparation_tables, return_execution_tables, label_execution_tables
+    label_added = label_execution_tables.metadata.tables
+    assert set(label_added) == {
+        'core_mock_label_ledger', 'label_provider_permissions',
+        'lifecycle_label_artifact_work', 'lifecycle_label_execution_controls',
+    }
     added = {**lifecycle.metadata.tables, **preview.metadata.tables, **execution_preparation_tables.metadata.tables,
-             **return_execution_tables.metadata.tables}
+             **return_execution_tables.metadata.tables, **label_added}
     assert {name:value for name,value in after.items() if name not in added} == before
     assert set(after)-set(before) == set(added)
     assert all(rows(flow_engine,table)==[] for table in added.values())

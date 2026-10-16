@@ -14,7 +14,7 @@ from .execution_preparation_sources import (identities, request_fingerprint, ope
 from .execution_preparation_tables import preparations
 from .founder_integrity import CaseProof, read_revision
 from .lifecycle_effects import fingerprint
-from .lifecycle_schema import EXECUTION, version
+from .lifecycle_schema import EXECUTION, EXECUTION_VERSIONS, LABEL, version
 from .lifecycle_sources import Sources, authority
 from .lifecycle_state import current, reject
 from .manual_target import one
@@ -88,7 +88,7 @@ def provider_permission(uow, head, *, create):
 
 
 def authorize(uow, callback, case_id, *, create):
-    if version(uow.connection) != EXECUTION:
+    if version(uow.connection) not in EXECUTION_VERSIONS:
         reject(uow)
     actor = callback(uow.connection, 'getSession')
     if actor.role != 'FOUNDER':
@@ -111,7 +111,7 @@ def preparation_root(uow, actor, head, row, original_key):
     Used only by the explicit 0011 reader below. Old strict_preparation still
     requires its one-operation/no-effect/head-state invariants for old readers.
     """
-    if version(uow.connection) != EXECUTION:
+    if version(uow.connection) not in EXECUTION_VERSIONS:
         reject(uow)
     work_id = row['approval_execution_work_id']; stable_ids = identities(work_id)
     if (row['case_id'] != head['case_id'] or any(row[name] != value for name, value in stable_ids.items())
@@ -165,6 +165,13 @@ def control_identity(uow, actor, head, row, original_key):
 
 
 def continued_proof(uow, actor, head, row, original_key, *, creating=False):
+    if version(uow.connection) == LABEL:
+        from .execution_chain_sources import return_continuation
+        return return_continuation(uow, actor, head, row, original_key, creating=creating)
+    return _continued0011(uow, actor, head, row, original_key, creating=creating)
+
+
+def _continued0011(uow, actor, head, row, original_key, *, creating=False):
     """Complete exact N1 root + two/three N2 revisions, or retained identity only."""
     control_identity(uow, actor, head, row, original_key)
     existing_fact = uow.execute(select(ledger).where(ledger.c.effect_key == row['effect_key'])).mappings().one_or_none()

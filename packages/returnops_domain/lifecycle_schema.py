@@ -11,8 +11,10 @@ REVIEW = '0008_review_escalation'
 APPROVAL = '0009_preview_approval'
 PREPARATION = '0010_execution_preparation'
 EXECUTION = '0011_return_execution'
-CURRENT = EXECUTION
-PREPARATION_VERSIONS = frozenset({PREPARATION, EXECUTION})
+LABEL = '0012_label_execution'
+CURRENT = LABEL
+EXECUTION_VERSIONS = frozenset({EXECUTION, LABEL})
+PREPARATION_VERSIONS = frozenset({PREPARATION, *EXECUTION_VERSIONS})
 APPROVAL_VERSIONS = frozenset({APPROVAL, *PREPARATION_VERSIONS})
 OLD_PURPOSES = ('PROPOSAL', 'REVISION', 'OUTCOME', 'NOTIFICATION', 'EFFECT')
 REVIEW_PURPOSES = OLD_PURPOSES + ('REVIEW',)
@@ -43,8 +45,11 @@ def version(connection):
     if revisions[0] in PREPARATION_VERSIONS:
         from .execution_preparation_tables import metadata
         expected.update(metadata.tables)
-    if revisions[0] == EXECUTION:
+    if revisions[0] in EXECUTION_VERSIONS:
         from .return_execution_tables import metadata
+        expected.update(metadata.tables)
+    if revisions[0] == LABEL:
+        from .label_execution_tables import metadata
         expected.update(metadata.tables)
     if names != expected:
         return None
@@ -63,8 +68,12 @@ def version(connection):
         from .execution_preparation_schema import descriptor
         if not descriptor(connection):
             return None
-    if revisions[0] == EXECUTION:
+    if revisions[0] in EXECUTION_VERSIONS:
         from .return_execution_schema import descriptor
+        if not descriptor(connection):
+            return None
+    if revisions[0] == LABEL:
+        from .label_execution_schema import descriptor
         if not descriptor(connection):
             return None
     return revisions[0]

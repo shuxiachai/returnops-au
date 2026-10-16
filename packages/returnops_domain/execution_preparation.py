@@ -12,7 +12,7 @@ from .approval_admission_sources import (ProofReads, AdmissionUncertain, authori
 from .execution_preparation_tables import preparations
 from .execution_preparation_sources import (identities, request_fingerprint, source_closure, discover,
     fresh_proof, operation, audit_payload, retained_proof, current_staged, expected_closure)
-from .lifecycle_schema import PREPARATION_VERSIONS, EXECUTION, version
+from .lifecycle_schema import PREPARATION_VERSIONS, EXECUTION_VERSIONS, version
 from .lifecycle_state import reject
 from .manual_target import one
 from .preview_profile import APPROVAL_COMPONENT
@@ -113,7 +113,7 @@ class ExecutionPreparationService:
                         raise
 
                 def retained(reads, *args):
-                    if version(reads.connection) == EXECUTION:
+                    if version(reads.connection) in EXECUTION_VERSIONS:
                         from .return_execution_sources import preparation_replay
                         return preparation_replay(reads, *args)
                     return retained_proof(reads, *args)

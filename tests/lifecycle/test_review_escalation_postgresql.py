@@ -146,8 +146,13 @@ def test_group01_legacy_empty_or_real_manual_upgrade(flow_engine,identities,enab
         result=service(flow_engine,identities).accept(case,body,'legacy-manual-key','legacy_correlation')
         assert_pending(flow_engine,case,body,result)
     before=snapshot(flow_engine);migrate(flow_engine);migrate(flow_engine);after=snapshot(flow_engine)
-    from returnops_domain import execution_preparation_tables, return_execution_tables
-    added=set(preview.metadata.tables) | set(execution_preparation_tables.metadata.tables) | set(return_execution_tables.metadata.tables)
+    from returnops_domain import execution_preparation_tables, return_execution_tables, label_execution_tables
+    label_added = label_execution_tables.metadata.tables
+    assert set(label_added) == {
+        'core_mock_label_ledger', 'label_provider_permissions',
+        'lifecycle_label_artifact_work', 'lifecycle_label_execution_controls',
+    }
+    added=set(preview.metadata.tables) | set(execution_preparation_tables.metadata.tables) | set(return_execution_tables.metadata.tables) | set(label_added)
     assert {k:v for k,v in before.items() if k!='alembic_version'}=={k:v for k,v in after.items() if k!='alembic_version' and k not in added}
     assert set(after)-set(before)==added
     assert all(after[name]==[] for name in added)
@@ -167,8 +172,13 @@ def test_groups01_02_real_legacy_upgrade_no_rewrites(flow_engine,identities,enab
     with CustomerUnitOfWork(flow_engine,write=True) as uow:assert installed(uow);uow.commit()
     migrate(flow_engine);migrate(flow_engine)
     after=snapshot(flow_engine)
-    from returnops_domain import execution_preparation_tables, return_execution_tables
-    added=set(preview.metadata.tables) | set(execution_preparation_tables.metadata.tables) | set(return_execution_tables.metadata.tables)
+    from returnops_domain import execution_preparation_tables, return_execution_tables, label_execution_tables
+    label_added = label_execution_tables.metadata.tables
+    assert set(label_added) == {
+        'core_mock_label_ledger', 'label_provider_permissions',
+        'lifecycle_label_artifact_work', 'lifecycle_label_execution_controls',
+    }
+    added=set(preview.metadata.tables) | set(execution_preparation_tables.metadata.tables) | set(return_execution_tables.metadata.tables) | set(label_added)
     assert {k:v for k,v in before.items() if k!='alembic_version'}=={k:v for k,v in after.items() if k!='alembic_version' and k not in added}
     assert set(after)-set(before)==added
     assert all(after[name]==[] for name in added)
