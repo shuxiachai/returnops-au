@@ -163,6 +163,7 @@ describe('FounderConsole failure and live-mode paths', () => {
     // operation type or parameter map the contract never carried.
     expect(screen.getByText(/Governed Execution Preview/)).toBeInTheDocument();
     expect(tile('Operation Type:')).toHaveTextContent(/^Operation Type:$/);
+    expect(tile('Parameters:')).toHaveTextContent(/^Parameters:$/);
     expect(screen.queryByText(/GENERATE_RETURN_CONSIGNMENT/)).not.toBeInTheDocument();
 
     // Order uses line_items / unit_price_minor and computes the total.
