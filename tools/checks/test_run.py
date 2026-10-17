@@ -79,5 +79,26 @@ class RunnerTests(unittest.TestCase):
         self.assertNotIn("--baseline-ref", skipped[1][1])
 
 
+    def test_offline_selects_the_order_component_alongside_all_existing_groups(self):
+        steps = runner.build_steps("offline", baseline_ref="verified-base")
+        self.assertEqual([label for label, _ in steps], [
+            "contract artifacts", "document/model references", "model-checker regressions",
+            "check-runner regressions", "Mermaid grammar", "synthetic order provider",
+        ])
+        selected = [command for label, command in steps if label == "synthetic order provider"]
+        self.assertEqual(selected, [[runner.sys.executable, "-B", "-m", "pytest", "tests/orders", "-q"]])
+
+    def test_environment_selects_investigation_and_founder_after_all_existing_groups(self):
+        steps = runner.build_steps("environment")
+        self.assertEqual([label for label, _ in steps], [
+            "upgrade the configured test database", "report installed migration",
+            "API/PostgreSQL environment tests", "initial-record PostgreSQL storage tests",
+            "customer HTTP, concurrency and retention tests", "order investigation PostgreSQL and real TCP tests",
+            "Founder read PostgreSQL and real TCP tests", "Lifecycle guard PostgreSQL component tests",
+        ])
+        self.assertEqual(steps[-3][1], [runner.sys.executable, "-B", "-m", "pytest", "tests/investigation", "-q"])
+        self.assertEqual(steps[-2][1], [runner.sys.executable, "-B", "-m", "pytest", "tests/founder", "-q"])
+        self.assertEqual(steps[-1][1], [runner.sys.executable, "-B", "-m", "pytest", "tests/lifecycle", "-q", "--tb=short", "-x"])
+
 if __name__ == "__main__":
     unittest.main()

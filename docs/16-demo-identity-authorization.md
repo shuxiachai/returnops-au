@@ -1,5 +1,7 @@
 # F.03：演示身份与资源授权设计候选
 
+> **2026-09-09 后续：**已按用户授权实现 [F03-C0.1 独立组件及合成测试](18-f03-security-component.md)，仍为本地未提交候选。下方 F03-D0.2 的“未实现”描述保留为设计发布时记录；当前仅身份/权限组件已实现，没有 HTTP/数据库/业务集成或人审验收，S=F.01、F=F.02 不变。
+
 > **rc.5 发布定位（2026-09-07）：**本版交付至 [PR #11](https://github.com/shuxiachai/returnops-au/pull/11)，由包含本说明的实际提交定位。PR 中记录准确 source SHA、CI run 与评审状态；C 复现使用该准确 SHA，不能使用旧 `57d86fe` 或浮动分支。下文“未发布/本地准备”、旧测试和旧哈希是发布前历史；当前提交以 Git 文件内容及 `docs/reviews/rc5-publication-artifacts-20260907.json` 为准。发布不等于 F.01/F.02 接受、B/C 本人审阅/复现或课程提交，Jira 未由此同步。
 
 > 版本：F03-D0.2，2026-09-07；**准备文档，未实现、未集成、未验收**。Owner A，Reviewer C；B 确认浏览器消费和错误反馈。沿用 [WBS](08-delivery-work-packages.md) 的 **S=F.01、F=F.02**；本稿不解除开始依赖，不新增 WBS 主项或猜测 Jira key。

@@ -1,0 +1,611 @@
+{
+  "schema_version": 1,
+  "source_repository": "https://github.com/shuxiachai/returnops-au",
+  "source_commit": "12863e0583876200214925df3985c57479762f7f",
+  "source_tree": "077672e0c312d256f4bf91ef56952f1675eb4a0f",
+  "layout_date": "2026-10-05",
+  "timezone": "Australia/Sydney",
+  "notes": [
+    "All 60 report snapshot mode/type/blob entries are unchanged.",
+    "Five draft bodies differ only in the 107 explicitly rebased relative link destinations.",
+    "Original snapshot metadata paths and hashes are historical source-layout evidence; this map provides the current locations.",
+    "Compatibility pages are links, not HTTP redirects. Historical GitHub commit URLs are unchanged."
+  ],
+  "paths": [
+    {
+      "source_path": "docs/reports/stage1-cloud-v04/README.md",
+      "current_path": "stage1/reports/v0.4/README.md",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "ea551e603a82efb1428afefe2dde18d83d8cc06a",
+      "current_blob": "ea551e603a82efb1428afefe2dde18d83d8cc06a",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-v04/assets/figure-01.png",
+      "current_path": "stage1/reports/v0.4/assets/figure-01.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "6ee628765ae43f683bcd676e71384deccdb048fe",
+      "current_blob": "6ee628765ae43f683bcd676e71384deccdb048fe",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-v04/assets/figure-02.png",
+      "current_path": "stage1/reports/v0.4/assets/figure-02.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "04cf9097c3e989c18c97db07cc1fdc5d5a98ad45",
+      "current_blob": "04cf9097c3e989c18c97db07cc1fdc5d5a98ad45",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-v04/assets/figure-03.png",
+      "current_path": "stage1/reports/v0.4/assets/figure-03.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "49f10a5faa4c2857a25785aefd47a2e401dec494",
+      "current_blob": "49f10a5faa4c2857a25785aefd47a2e401dec494",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-v04/assets/figure-04.png",
+      "current_path": "stage1/reports/v0.4/assets/figure-04.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "db12a0c2de636f571c7518ec5a55211b3a7b8ce3",
+      "current_blob": "db12a0c2de636f571c7518ec5a55211b3a7b8ce3",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-v04/assets/figure-05.png",
+      "current_path": "stage1/reports/v0.4/assets/figure-05.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "99692600b3c55cfca4f33c5db4b5c72bbefa1f35",
+      "current_blob": "99692600b3c55cfca4f33c5db4b5c72bbefa1f35",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-v04/assets/figure-06.png",
+      "current_path": "stage1/reports/v0.4/assets/figure-06.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "cbaf1d49b5806360f84e1fc89ee4b1b6151ad2d2",
+      "current_blob": "cbaf1d49b5806360f84e1fc89ee4b1b6151ad2d2",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-v04/assets/figure-07.png",
+      "current_path": "stage1/reports/v0.4/assets/figure-07.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "4e210b94af6ee1a9504d9bdd3cad2bd2b3129f4a",
+      "current_blob": "4e210b94af6ee1a9504d9bdd3cad2bd2b3129f4a",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-v04/assets/figure-08.png",
+      "current_path": "stage1/reports/v0.4/assets/figure-08.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "f48050c953c66a45c154c75d16577b3c950280fb",
+      "current_blob": "f48050c953c66a45c154c75d16577b3c950280fb",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-v04/assets/figure-09.png",
+      "current_path": "stage1/reports/v0.4/assets/figure-09.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "b25a77a5a996f4672d36ce3fef167aff1bda1087",
+      "current_blob": "b25a77a5a996f4672d36ce3fef167aff1bda1087",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-v04/assets/figure-10.png",
+      "current_path": "stage1/reports/v0.4/assets/figure-10.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "0644be0e385d098c19835780892550b347aebe58",
+      "current_blob": "0644be0e385d098c19835780892550b347aebe58",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-v04/assets/figure-11.png",
+      "current_path": "stage1/reports/v0.4/assets/figure-11.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "ab37605fadd855c702d3ecacab4446b715702bf9",
+      "current_blob": "ab37605fadd855c702d3ecacab4446b715702bf9",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-v04/assets/figure-12.png",
+      "current_path": "stage1/reports/v0.4/assets/figure-12.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "186d490be0ac84e4e08a0d319fa49a99a44ab6dd",
+      "current_blob": "186d490be0ac84e4e08a0d319fa49a99a44ab6dd",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-v04/assets/figure-13.png",
+      "current_path": "stage1/reports/v0.4/assets/figure-13.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "1b904411021386c0dd359a0123a779c0e0e1c61e",
+      "current_blob": "1b904411021386c0dd359a0123a779c0e0e1c61e",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-v04/assets/figure-14.png",
+      "current_path": "stage1/reports/v0.4/assets/figure-14.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "55a6f397f08ad7d1169f989a1b5fcc5bea18c2e5",
+      "current_blob": "55a6f397f08ad7d1169f989a1b5fcc5bea18c2e5",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-v04/assets/figure-15.png",
+      "current_path": "stage1/reports/v0.4/assets/figure-15.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "9194af817695099627375ef661d3905ce7583449",
+      "current_blob": "9194af817695099627375ef661d3905ce7583449",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-v04/assets/figure-16.png",
+      "current_path": "stage1/reports/v0.4/assets/figure-16.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "8d56f83e4b409a41a98174bccedd8a389939a19d",
+      "current_blob": "8d56f83e4b409a41a98174bccedd8a389939a19d",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-v04/assets/figure-17.png",
+      "current_path": "stage1/reports/v0.4/assets/figure-17.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "d8153bcbc9ef106df147d9f91f0795a384b4521f",
+      "current_blob": "d8153bcbc9ef106df147d9f91f0795a384b4521f",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-v04/assets/figure-18.png",
+      "current_path": "stage1/reports/v0.4/assets/figure-18.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "0f9b410f9c6657897e883c3205aaf9c9127fa281",
+      "current_blob": "0f9b410f9c6657897e883c3205aaf9c9127fa281",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-v04/assets/figure-19.png",
+      "current_path": "stage1/reports/v0.4/assets/figure-19.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "7ac5ac37d557af7955a024cb696f677050c92108",
+      "current_blob": "7ac5ac37d557af7955a024cb696f677050c92108",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-v04/assets/figure-20.png",
+      "current_path": "stage1/reports/v0.4/assets/figure-20.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "11c704f92d115395fbd4e4d5e525c98911b78e41",
+      "current_blob": "11c704f92d115395fbd4e4d5e525c98911b78e41",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-v04/assets/figure-21.png",
+      "current_path": "stage1/reports/v0.4/assets/figure-21.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "ed34c56689a831ebae3ea56b56607c065b533445",
+      "current_blob": "ed34c56689a831ebae3ea56b56607c065b533445",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-v04/assets/figure-22.png",
+      "current_path": "stage1/reports/v0.4/assets/figure-22.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "449ee90b368576d0b0c333b21a5ee325e5437feb",
+      "current_blob": "449ee90b368576d0b0c333b21a5ee325e5437feb",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-v04/assets/figure-23.png",
+      "current_path": "stage1/reports/v0.4/assets/figure-23.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "741c1c3d0e37d664a67a48aa7fe4ce8fa03125ec",
+      "current_blob": "741c1c3d0e37d664a67a48aa7fe4ce8fa03125ec",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-v04/assets/figure-24.png",
+      "current_path": "stage1/reports/v0.4/assets/figure-24.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "047816f20e66d90ab1b27a79dcfbc85bab23228c",
+      "current_blob": "047816f20e66d90ab1b27a79dcfbc85bab23228c",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-v04/assets/figure-25.png",
+      "current_path": "stage1/reports/v0.4/assets/figure-25.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "68e396d51da9d67bb41d5f75a288052d488d922f",
+      "current_blob": "68e396d51da9d67bb41d5f75a288052d488d922f",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-v04/report.md",
+      "current_path": "stage1/reports/v0.4/report.md",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "4d89769460dcd715f5945bd69d4ccf6a9827f35b",
+      "current_blob": "4d89769460dcd715f5945bd69d4ccf6a9827f35b",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-v04/source-metadata.json",
+      "current_path": "stage1/reports/v0.4/source-metadata.json",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "e493c2bb3286df23446eda418cabbdd69ee654bd",
+      "current_blob": "e493c2bb3286df23446eda418cabbdd69ee654bd",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-v04/stage1-report.docx",
+      "current_path": "stage1/reports/v0.4/stage1-report.docx",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "ff04c5c649759da8fbc1b39056180e30c8cfc2c5",
+      "current_blob": "ff04c5c649759da8fbc1b39056180e30c8cfc2c5",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-v04/stage1-report.pdf",
+      "current_path": "stage1/reports/v0.4/stage1-report.pdf",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "92c1c9b1b809d709f6fee5c267978cf839a56b0e",
+      "current_blob": "92c1c9b1b809d709f6fee5c267978cf839a56b0e",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-snapshot/README.md",
+      "current_path": "stage1/reports/v0.3/README.md",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "f7874d2e14f52166849fc602cc9d51dc01eb4516",
+      "current_blob": "f7874d2e14f52166849fc602cc9d51dc01eb4516",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-snapshot/ReturnOps-AU-Stage1.docx",
+      "current_path": "stage1/reports/v0.3/ReturnOps-AU-Stage1.docx",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "3a87d0e4096d50a87fe1466653fc420db07fbdec",
+      "current_blob": "3a87d0e4096d50a87fe1466653fc420db07fbdec",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-snapshot/ReturnOps-AU-Stage1.pdf",
+      "current_path": "stage1/reports/v0.3/ReturnOps-AU-Stage1.pdf",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "4da7b37784f8f94b1a099edd5e66b30000d04705",
+      "current_blob": "4da7b37784f8f94b1a099edd5e66b30000d04705",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-snapshot/assets/figure-01.png",
+      "current_path": "stage1/reports/v0.3/assets/figure-01.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "6ee628765ae43f683bcd676e71384deccdb048fe",
+      "current_blob": "6ee628765ae43f683bcd676e71384deccdb048fe",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-snapshot/assets/figure-02.png",
+      "current_path": "stage1/reports/v0.3/assets/figure-02.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "90c9408f95eca4317f26be333ad653d38469098a",
+      "current_blob": "90c9408f95eca4317f26be333ad653d38469098a",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-snapshot/assets/figure-03.png",
+      "current_path": "stage1/reports/v0.3/assets/figure-03.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "49f10a5faa4c2857a25785aefd47a2e401dec494",
+      "current_blob": "49f10a5faa4c2857a25785aefd47a2e401dec494",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-snapshot/assets/figure-04.png",
+      "current_path": "stage1/reports/v0.3/assets/figure-04.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "db12a0c2de636f571c7518ec5a55211b3a7b8ce3",
+      "current_blob": "db12a0c2de636f571c7518ec5a55211b3a7b8ce3",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-snapshot/assets/figure-05.png",
+      "current_path": "stage1/reports/v0.3/assets/figure-05.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "99692600b3c55cfca4f33c5db4b5c72bbefa1f35",
+      "current_blob": "99692600b3c55cfca4f33c5db4b5c72bbefa1f35",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-snapshot/assets/figure-06.png",
+      "current_path": "stage1/reports/v0.3/assets/figure-06.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "e873161a64bbc824198bcee5491aa26ed68ab3d5",
+      "current_blob": "e873161a64bbc824198bcee5491aa26ed68ab3d5",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-snapshot/assets/figure-07.png",
+      "current_path": "stage1/reports/v0.3/assets/figure-07.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "3ae883465fa6b6b908d6bae2b2d4cb72a81d37ee",
+      "current_blob": "3ae883465fa6b6b908d6bae2b2d4cb72a81d37ee",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-snapshot/assets/figure-08.png",
+      "current_path": "stage1/reports/v0.3/assets/figure-08.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "f48050c953c66a45c154c75d16577b3c950280fb",
+      "current_blob": "f48050c953c66a45c154c75d16577b3c950280fb",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-snapshot/assets/figure-09.png",
+      "current_path": "stage1/reports/v0.3/assets/figure-09.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "b25a77a5a996f4672d36ce3fef167aff1bda1087",
+      "current_blob": "b25a77a5a996f4672d36ce3fef167aff1bda1087",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-snapshot/assets/figure-10.png",
+      "current_path": "stage1/reports/v0.3/assets/figure-10.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "aa2e2bb0ccf187a6902481054cf180ff5230c080",
+      "current_blob": "aa2e2bb0ccf187a6902481054cf180ff5230c080",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-snapshot/assets/figure-11.png",
+      "current_path": "stage1/reports/v0.3/assets/figure-11.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "ab37605fadd855c702d3ecacab4446b715702bf9",
+      "current_blob": "ab37605fadd855c702d3ecacab4446b715702bf9",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-snapshot/assets/figure-12.png",
+      "current_path": "stage1/reports/v0.3/assets/figure-12.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "186d490be0ac84e4e08a0d319fa49a99a44ab6dd",
+      "current_blob": "186d490be0ac84e4e08a0d319fa49a99a44ab6dd",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-snapshot/assets/figure-13.png",
+      "current_path": "stage1/reports/v0.3/assets/figure-13.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "1b904411021386c0dd359a0123a779c0e0e1c61e",
+      "current_blob": "1b904411021386c0dd359a0123a779c0e0e1c61e",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-snapshot/assets/figure-14.png",
+      "current_path": "stage1/reports/v0.3/assets/figure-14.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "bbda73398411d0c7aa9e0ee2358d7eaa6a6097b1",
+      "current_blob": "bbda73398411d0c7aa9e0ee2358d7eaa6a6097b1",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-snapshot/assets/figure-15.png",
+      "current_path": "stage1/reports/v0.3/assets/figure-15.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "9194af817695099627375ef661d3905ce7583449",
+      "current_blob": "9194af817695099627375ef661d3905ce7583449",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-snapshot/assets/figure-16.png",
+      "current_path": "stage1/reports/v0.3/assets/figure-16.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "7bf18d14c010dc47d553b046c156713a3b86440f",
+      "current_blob": "7bf18d14c010dc47d553b046c156713a3b86440f",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-snapshot/assets/figure-17.png",
+      "current_path": "stage1/reports/v0.3/assets/figure-17.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "90343b51c53cec0b657a9c8b88e3dec680cf4a7c",
+      "current_blob": "90343b51c53cec0b657a9c8b88e3dec680cf4a7c",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-snapshot/assets/figure-18.png",
+      "current_path": "stage1/reports/v0.3/assets/figure-18.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "0c4e6d3335a302eeb58766d19d01b1f23603c5db",
+      "current_blob": "0c4e6d3335a302eeb58766d19d01b1f23603c5db",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-snapshot/assets/figure-19.png",
+      "current_path": "stage1/reports/v0.3/assets/figure-19.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "1f5a751fcb07013046070b3c8dd61dfd314f0306",
+      "current_blob": "1f5a751fcb07013046070b3c8dd61dfd314f0306",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-snapshot/assets/figure-20.png",
+      "current_path": "stage1/reports/v0.3/assets/figure-20.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "3eb387a74ae459bc5a791fcd41139be71d7008b3",
+      "current_blob": "3eb387a74ae459bc5a791fcd41139be71d7008b3",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-snapshot/assets/figure-21.png",
+      "current_path": "stage1/reports/v0.3/assets/figure-21.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "3152c34a1ddeacf5dd9811b5c42b4431c3c6024b",
+      "current_blob": "3152c34a1ddeacf5dd9811b5c42b4431c3c6024b",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-snapshot/assets/figure-22.png",
+      "current_path": "stage1/reports/v0.3/assets/figure-22.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "75b5216ca979628b4377316b04fbdcda911d27bd",
+      "current_blob": "75b5216ca979628b4377316b04fbdcda911d27bd",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-snapshot/assets/figure-23.png",
+      "current_path": "stage1/reports/v0.3/assets/figure-23.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "758fb2f6c85f056a2a1eb72435917c6d75ff6654",
+      "current_blob": "758fb2f6c85f056a2a1eb72435917c6d75ff6654",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-snapshot/assets/figure-24.png",
+      "current_path": "stage1/reports/v0.3/assets/figure-24.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "e625a0ec69a835414d483a0fcb0c231182fee14f",
+      "current_blob": "e625a0ec69a835414d483a0fcb0c231182fee14f",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-snapshot/assets/figure-25.png",
+      "current_path": "stage1/reports/v0.3/assets/figure-25.png",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "6cb24d4809b85135ecadda5c8762d0dbcd7f5053",
+      "current_blob": "6cb24d4809b85135ecadda5c8762d0dbcd7f5053",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-snapshot/report.md",
+      "current_path": "stage1/reports/v0.3/report.md",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "8f003e9bc5e11100deec0e1231d43aeeb5c88d21",
+      "current_blob": "8f003e9bc5e11100deec0e1231d43aeeb5c88d21",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/stage1-cloud-snapshot/source-metadata.json",
+      "current_path": "stage1/reports/v0.3/source-metadata.json",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "fe5ca1936c64a590898f12f4115c67bb4adbb470",
+      "current_blob": "fe5ca1936c64a590898f12f4115c67bb4adbb470",
+      "content_policy": "exact original blob"
+    },
+    {
+      "source_path": "docs/reports/member-a-stage1-draft.md",
+      "current_path": "stage1/drafts/member-a-stage1-draft.md",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "8d6410feddbf9ea42d98bd9cc0c933195527481f",
+      "current_blob": "8a27156b16756d9042045c793983022930bb9fd8",
+      "content_policy": "relative link destinations only",
+      "docs_link_rebases": 22,
+      "snapshot_entry_rebases": 0
+    },
+    {
+      "source_path": "docs/reports/member-b-stage1-draft.md",
+      "current_path": "stage1/drafts/member-b-stage1-draft.md",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "795c943d15bf44b3fcbfcc3ad4859e79db08536e",
+      "current_blob": "9ddb8e6101c0f3e308f98ad41337f50a5a743579",
+      "content_policy": "relative link destinations only",
+      "docs_link_rebases": 5,
+      "snapshot_entry_rebases": 0
+    },
+    {
+      "source_path": "docs/reports/member-c-contribution-and-interview.md",
+      "current_path": "stage1/drafts/member-c-contribution-and-interview.md",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "6d1011baa55533a9b7e738a01defad5cb520e6a8",
+      "current_blob": "e994c579ea9a2889b2076b3ca66544fbf995f3a9",
+      "content_policy": "relative link destinations only",
+      "docs_link_rebases": 16,
+      "snapshot_entry_rebases": 0
+    },
+    {
+      "source_path": "docs/reports/member-c-stage1-draft.md",
+      "current_path": "stage1/drafts/member-c-stage1-draft.md",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "f1e22fcd8636ecec8afe9141178aa145d6bbde53",
+      "current_blob": "c12a6f7954683ff1ec37852f35ed581db04b1554",
+      "content_policy": "relative link destinations only",
+      "docs_link_rebases": 19,
+      "snapshot_entry_rebases": 0
+    },
+    {
+      "source_path": "docs/reports/stage-1-team-report.md",
+      "current_path": "stage1/drafts/stage-1-team-report.md",
+      "mode": "100644",
+      "type": "blob",
+      "source_blob": "7b57722945fbe03619e5720fcd190c089c386f40",
+      "current_blob": "8001485f0e8a72948ac85b1bdb1db4f97ad277d0",
+      "content_policy": "relative link destinations only",
+      "docs_link_rebases": 43,
+      "snapshot_entry_rebases": 2
+    }
+  ]
+}

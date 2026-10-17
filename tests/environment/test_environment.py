@@ -29,7 +29,10 @@ from returnops_api import database, main
 from returnops_api.settings import ConfigurationError, Settings, require_environment_database
 
 
-EXPECTED_REVISION = "0001_environment"
+EXPECTED_REVISION = "0011_return_execution"
+EXPECTED_TABLES = ['accepted_order_contents', 'accepted_order_projections', 'alembic_version', 'case_heads', 'case_investigation_state', 'case_records', 'customer_acceptances', 'customer_audit_events', 'customer_clarification_sets', 'customer_evidence', 'customer_evidence_contents', 'customer_history_contents', 'customer_history_cursors', 'customer_history_revisions', 'customer_history_snapshots', 'customer_intake_sessions', 'customer_intake_work', 'customer_principals', 'customer_processing_failures', 'customer_receipt_refs', 'customer_receipts', 'customer_scope_audit_events', 'customer_scope_audit_heads', 'customer_sessions', 'discarded_order_invocations', 'founder_history_encodings', 'founder_list_members', 'founder_read_cursors', 'founder_read_snapshots', 'investigation_clarification_inputs', 'investigation_inputs', 'investigation_policy_events', 'investigation_provider_grants', 'investigation_question_groups', 'investigation_services', 'investigation_work', 'order_lookup_blocks', 'order_lookup_contents', 'order_lookup_receipts', 'original_statement_contents', 'original_statement_records']
+EXPECTED_TABLES = sorted(EXPECTED_TABLES + ['case_lifecycle_state', 'lifecycle_authorities', 'lifecycle_work', 'lifecycle_source_bindings', 'lifecycle_event_receipts', 'lifecycle_effect_refs', 'lifecycle_action_previews', 'lifecycle_execution_preparations'])
+EXPECTED_TABLES = sorted(EXPECTED_TABLES + ['lifecycle_return_execution_controls', 'return_provider_permissions', 'core_mock_return_ledger'])
 SECRET = "environment-test-secret-do-not-log"
 STUB_URL = f"postgresql+psycopg://environment_user:{SECRET}@stub.invalid/environment"
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -62,6 +65,9 @@ class QueryResult:
     def scalars(self) -> ScalarValues:
         return ScalarValues(self.values)
 
+    def mappings(self):
+        return ScalarValues(self.values)
+
     def all(self) -> list[tuple[Any]]:
         return [(value,) for value in self.values]
 
@@ -91,6 +97,11 @@ class DiagnosticConnection:
             if self.engine.failure == "revision":
                 raise SQLAlchemyError(f"Version query failed: {STUB_URL}")
             return QueryResult(list(self.engine.revisions))
+        if 'PG_TABLES' in sql:
+            return QueryResult(EXPECTED_TABLES)
+        if 'PG_CONSTRAINT' in sql:
+            from returnops_domain.lifecycle_schema import _expected,CURRENT_PURPOSES
+            return QueryResult([dict(expression=_expected(CURRENT_PURPOSES),convalidated=True)])
         assert sql == "SELECT 1", f"Unexpected health query: {sql}"
         if self.engine.failure == "probe":
             raise SQLAlchemyError(f"Probe query failed: {STUB_URL}")
@@ -124,6 +135,24 @@ def application_with_engine(
 ) -> Any:
     monkeypatch.setenv("DATABASE_URL", STUB_URL)
     monkeypatch.setattr(main, "build_engine", lambda settings: engine)
+    # These existing HTTP diagnostics use a query double, not SQLAlchemy
+    # catalog reflection. Real descriptor/DDL acceptance is tested in the
+    # isolated PostgreSQL suite, including counterfeit CHECK/FK/UNIQUE cases.
+    from returnops_domain import lifecycle_schema
+    original_descriptor = lifecycle_schema._preview_descriptor
+    monkeypatch.setattr(lifecycle_schema, '_preview_descriptor', lambda connection:
+        engine.failure != 'preview_descriptor' if isinstance(connection, DiagnosticConnection)
+        else original_descriptor(connection))
+    from returnops_domain import execution_preparation_schema
+    original_preparation = execution_preparation_schema.descriptor
+    monkeypatch.setattr(execution_preparation_schema, 'descriptor', lambda connection:
+        engine.failure != 'preparation_descriptor' if isinstance(connection, DiagnosticConnection)
+        else original_preparation(connection))
+    from returnops_domain import return_execution_schema
+    original_execution = return_execution_schema.descriptor
+    monkeypatch.setattr(return_execution_schema, 'descriptor', lambda connection:
+        engine.failure != 'execution_descriptor' if isinstance(connection, DiagnosticConnection)
+        else original_execution(connection))
     return main.create_app()
 
 
@@ -204,7 +233,7 @@ def test_readiness_accepts_only_the_expected_single_revision(
 
 @pytest.mark.parametrize(
     "revisions",
-    [(), ("0000_old",), ("9999_unexpected",), (EXPECTED_REVISION, "0000_other")],
+    [(), ("0001_environment",), ("9999_unexpected",), (EXPECTED_REVISION, "0000_other")],
     ids=["unversioned", "old", "unexpected", "multiple-heads"],
 )
 def test_readiness_rejects_invalid_revision_sets(
@@ -219,7 +248,7 @@ def test_readiness_rejects_invalid_revision_sets(
     assert engine.disposed
 
 
-@pytest.mark.parametrize("failure", ["connect", "probe", "revision"])
+@pytest.mark.parametrize("failure", ["connect", "probe", "revision", "preview_descriptor", "preparation_descriptor", "execution_descriptor"])
 def test_database_failures_return_503_without_disclosing_configuration(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
@@ -238,14 +267,20 @@ def test_database_failures_return_503_without_disclosing_configuration(
     assert engine.disposed
 
 
-def test_environment_app_exposes_no_docs_or_business_routes(
+def test_environment_app_has_only_frozen_customer_and_founder_reads_and_no_identity_issuer(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     app = application_with_engine(monkeypatch, DiagnosticEngine())
-    assert {route.path for route in app.routes} == {"/health/live", "/health/ready"}
+    assert {route.path for route in app.routes} == {"/health/live", "/health/ready", "/v1/session", "/v1/evidence",
+        "/v1/evidence/{evidence_id}/content", "/v1/cases", "/v1/cases/{case_id}",
+        "/v1/cases/{case_id}/history", "/v1/cases/{case_id}/clarifications",
+        "/v1/founder/cases", "/v1/founder/cases/{case_id}",
+        "/v1/founder/cases/{case_id}/history", "/v1/founder/cases/{case_id}/audit"}
     with TestClient(app) as client:
-        for path in ("/docs", "/redoc", "/openapi.json", "/v1/cases", "/v1/session"):
+        for path in ("/docs", "/redoc", "/openapi.json", "/v1/login", "/v1/founder/analytics"):
             assert client.get(path).status_code == 404
+        assert client.get("/v1/session").status_code == 503  # no configured key/default identity
+        assert client.get("/v1/founder/cases").status_code == 503
 
 
 @pytest.fixture
@@ -340,23 +375,19 @@ def test_real_application_readiness(real_database_url: SecretStr) -> None:
 
 
 @pytest.mark.database
-def test_repeat_upgrade_head_preserves_the_environment_only_schema(
+def test_repeat_upgrade_head_preserves_the_exact_initial_record_schema(
     real_database_url: SecretStr, real_engine: Engine,
 ) -> None:
     # The URL fixture enforces the dedicated database name before Alembic runs.
     # Initial empty-database migration is a separate startup check. Here both
     # invocations deliberately repeat upgrade on that already-initialised DB.
-    assert sorted(inspect(real_engine).get_table_names(schema="public")) == [
-        "alembic_version"
-    ], "Refusing migration checks against a database containing business tables"
+    assert sorted(inspect(real_engine).get_table_names(schema="public")) == EXPECTED_TABLES, "Refusing migration checks against an unexpected schema"
     assert database.readiness(real_engine), "Migrate the dedicated environment DB first"
     configuration = Config(str(REPOSITORY_ROOT / "alembic.ini"))
     for _ in range(2):
         command.upgrade(configuration, "head")
         assert database.readiness(real_engine)
-        assert sorted(inspect(real_engine).get_table_names(schema="public")) == [
-            "alembic_version"
-        ]
+        assert sorted(inspect(real_engine).get_table_names(schema="public")) == EXPECTED_TABLES
 
 
 @pytest.mark.database

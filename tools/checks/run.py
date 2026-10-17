@@ -31,12 +31,18 @@ def build_steps(
             ("model-checker regressions", python + ["-m", "unittest", "discover", "-s", "tools/model-checks", "-p", "test_*.py", "-v"]),
             ("check-runner regressions", python + ["-m", "unittest", "discover", "-s", "tools/checks", "-p", "test_*.py", "-v"]),
             ("Mermaid grammar", ["node", "tools/model-checks/check-mermaid.mjs"]),
+            ("synthetic order provider", python + ["-m", "pytest", "tests/orders", "-q"]),
         ]
     if mode == "environment":
         return [
             ("upgrade the configured test database", python + ["-m", "alembic", "upgrade", "head"]),
             ("report installed migration", python + ["-m", "alembic", "current"]),
             ("API/PostgreSQL environment tests", python + ["-m", "pytest", "tests/environment", "-q"]),
+            ("initial-record PostgreSQL storage tests", python + ["-m", "pytest", "tests/storage", "-q"]),
+            ("customer HTTP, concurrency and retention tests", python + ["-m", "pytest", "tests/customer", "-q"]),
+            ("order investigation PostgreSQL and real TCP tests", python + ["-m", "pytest", "tests/investigation", "-q"]),
+            ("Founder read PostgreSQL and real TCP tests", python + ["-m", "pytest", "tests/founder", "-q"]),
+            ("Lifecycle guard PostgreSQL component tests", python + ["-m", "pytest", "tests/lifecycle", "-q", "--tb=short", "-x"]),
         ]
     raise ValueError(f"Unknown check group: {mode}")
 

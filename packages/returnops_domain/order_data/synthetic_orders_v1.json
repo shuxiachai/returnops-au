@@ -1,0 +1,154 @@
+{
+  "is_synthetic": true,
+  "format_version": 1,
+  "dataset_version": "synthetic-orders-v1",
+  "provider_id": "synthetic_commerce",
+  "provider_version": "mock-orders-v1",
+  "orders": [
+    {
+      "store_id": "synthetic_au_store",
+      "owner_principal_id": "synthetic_customer_a",
+      "order_reference": "SYN-1001",
+      "snapshot": {
+        "snapshot_id": "synthetic_snapshot_1001",
+        "order_id": "synthetic_order_1001",
+        "provider_id": "synthetic_commerce",
+        "snapshot_version": 1,
+        "purchased_at": "2026-09-01T00:00:00Z",
+        "currency": "AUD",
+        "retrieved_at": "2026-09-20T00:00:00Z",
+        "line_items": [
+          {
+            "line_item_id": "synthetic_line_1001",
+            "sku": "SYN-SKU-1001",
+            "description": "Explicitly synthetic demonstration item",
+            "quantity": 1,
+            "unit_price_minor": 4900
+          }
+        ]
+      }
+    },
+    {
+      "store_id": "synthetic_au_store",
+      "owner_principal_id": "synthetic_customer_a",
+      "order_reference": "SYN-1002",
+      "snapshot": {
+        "snapshot_id": "synthetic_snapshot_1002",
+        "order_id": "synthetic_order_1002",
+        "provider_id": "synthetic_commerce",
+        "snapshot_version": 1,
+        "purchased_at": "2026-09-01T00:00:00Z",
+        "currency": "AUD",
+        "retrieved_at": "2026-09-20T00:00:00Z",
+        "line_items": [
+          {
+            "line_item_id": "synthetic_line_1002",
+            "sku": "SYN-SKU-1002",
+            "description": "Explicitly synthetic demonstration item",
+            "quantity": 2,
+            "unit_price_minor": 1299
+          },
+          {
+            "line_item_id": "synthetic_line_1002_extra",
+            "sku": "SYN-SKU-EXTRA",
+            "description": "Second synthetic demonstration item",
+            "quantity": 1,
+            "unit_price_minor": 0
+          }
+        ]
+      }
+    },
+    {
+      "store_id": "synthetic_au_store",
+      "owner_principal_id": "synthetic_customer_b",
+      "order_reference": "SYN-1003",
+      "snapshot": {
+        "snapshot_id": "synthetic_snapshot_1003",
+        "order_id": "synthetic_order_1003",
+        "provider_id": "synthetic_commerce",
+        "snapshot_version": 1,
+        "purchased_at": "2026-09-01T00:00:00Z",
+        "currency": "AUD",
+        "retrieved_at": "2026-09-20T00:00:00Z",
+        "line_items": [
+          {
+            "line_item_id": "synthetic_line_1003",
+            "sku": "SYN-SKU-1003",
+            "description": "Explicitly synthetic demonstration item",
+            "quantity": 1,
+            "unit_price_minor": 2500
+          }
+        ]
+      }
+    },
+    {
+      "store_id": "synthetic_other_store",
+      "owner_principal_id": "synthetic_customer_a",
+      "order_reference": "SYN-1004",
+      "snapshot": {
+        "snapshot_id": "synthetic_snapshot_1004",
+        "order_id": "synthetic_order_1004",
+        "provider_id": "synthetic_commerce",
+        "snapshot_version": 1,
+        "purchased_at": "2026-09-01T00:00:00Z",
+        "currency": "AUD",
+        "retrieved_at": "2026-09-20T00:00:00Z",
+        "line_items": [
+          {
+            "line_item_id": "synthetic_line_1004",
+            "sku": "SYN-SKU-1004",
+            "description": "Explicitly synthetic demonstration item",
+            "quantity": 1,
+            "unit_price_minor": 999
+          }
+        ]
+      }
+    },
+    {
+      "store_id": "synthetic_au_store",
+      "owner_principal_id": "synthetic_customer_a",
+      "order_reference": "SYN-CONFLICT",
+      "snapshot": {
+        "snapshot_id": "synthetic_snapshot_1005",
+        "order_id": "synthetic_order_1005",
+        "provider_id": "synthetic_commerce",
+        "snapshot_version": 1,
+        "purchased_at": "2026-09-01T00:00:00Z",
+        "currency": "AUD",
+        "retrieved_at": "2026-09-20T00:00:00Z",
+        "line_items": [
+          {
+            "line_item_id": "synthetic_line_1005",
+            "sku": "SYN-SKU-1005",
+            "description": "Explicitly synthetic demonstration item",
+            "quantity": 1,
+            "unit_price_minor": 700
+          }
+        ]
+      }
+    },
+    {
+      "store_id": "synthetic_au_store",
+      "owner_principal_id": "synthetic_customer_a",
+      "order_reference": "SYN-CONFLICT",
+      "snapshot": {
+        "snapshot_id": "synthetic_snapshot_1006",
+        "order_id": "synthetic_order_1006",
+        "provider_id": "synthetic_commerce",
+        "snapshot_version": 1,
+        "purchased_at": "2026-09-01T00:00:00Z",
+        "currency": "AUD",
+        "retrieved_at": "2026-09-20T00:00:00Z",
+        "line_items": [
+          {
+            "line_item_id": "synthetic_line_1006",
+            "sku": "SYN-SKU-1006",
+            "description": "Explicitly synthetic demonstration item",
+            "quantity": 1,
+            "unit_price_minor": 800
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "schema_version": 2,
+  "checked_on_local_date": "2026-10-17",
+  "timezone": "Australia/Sydney",
+  "ppt": {
+    "drive_file_id": "1oE-d_TP1XjoBB7gYHby2aZRRSqM9tBBB",
+    "drive_url": "https://docs.google.com/presentation/d/1oE-d_TP1XjoBB7gYHby2aZRRSqM9tBBB/edit",
+    "source_name": "ReturnOps_Stage1_Video.pptx",
+    "drive_size_bytes": 60493,
+    "drive_modified_time": "2026-09-22T08:53:27.525Z",
+    "current_metadata_read": "successful; source ID, size and modified time match retained source record",
+    "user_confirmed_final": true,
+    "user_confirmation": "Google drive中的ppt就是实际的最终版本的ppt",
+    "archive_path": "stage1/presentation/ReturnOps_Stage1_Video.pptx",
+    "sha256": "ffc710f5cf2e9c71ed6c433cae2cd5bced7a6c8afaaca74ac672629df2cc484b",
+    "archive_size_bytes": 60493,
+    "bytes_provenance": "Preserved 2026-09-26 Drive-source copy; fresh 2026-10-17 Drive download is byte-identical, so no binary replacement was needed",
+    "retained_source_reference": "tmp/stage2-entry-20260926/submission-reference/ReturnOps_Stage1_Video.pptx",
+    "raw_materialization_this_task": "successful fresh download; SHA256 and size match the archived PPT",
+    "canvas_uploaded_bytes_independently_verified": false
+  },
+  "speaker_script": {
+    "drive_file_id": "1wum-DFCBYcmXA8seB770K_n2R4qxWb7t",
+    "drive_url": "https://docs.google.com/document/d/1wum-DFCBYcmXA8seB770K_n2R4qxWb7t/edit",
+    "source_name": "ReturnOps_Stage1_ABC_Script.docx",
+    "drive_size_bytes": 40046,
+    "drive_modified_time": "2026-09-22T09:30:07.699Z",
+    "current_metadata_read": "successful",
+    "raw_materialization_this_task": "successful fresh download; original DOCX bytes preserved without re-saving",
+    "archive_path": "stage1/presentation/ReturnOps_Stage1_ABC_Script.docx",
+    "archive_size_bytes": 40046,
+    "sha256": "00006f8132537aa502ff7e2ec1ab65dba1a93bc6c40a6867ce9a6dd142bc1da1",
+    "english_narration_words": 560,
+    "narration_sections": 9,
+    "timing_scope": "7:40 rehearsal target, not measured video duration; the DOCX English narration supersedes the longer PPT speaker notes",
+    "validation": "ZIP integrity and all XML entries parsed; narration extracted and compared. Local PDF render inspected on all 14 pages: English narration readable, but renderer lacks correct CJK glyphs. This preview is not published; the unmodified source DOCX retains its Chinese text."
+  },
+  "report_comparison": {
+    "drive_file_id": "1xvGO8EA_yZwWj1It3UM7AKDFEoQjsj5eJJXbCz4bcnc",
+    "drive_modified_time": "2026-10-04T04:51:10.445Z",
+    "archive_path": "stage1/reports/v0.4/stage1-report.pdf",
+    "archive_sha256": "106fc78f77ece62c096c8733d8339bdfe15fe78db6699c3b09fe9ea014b3bca3",
+    "attachment_sha256": "106fc78f77ece62c096c8733d8339bdfe15fe78db6699c3b09fe9ea014b3bca3",
+    "fresh_export_sha256": "da9678c898d4c38a92c3ec3adddf35fa8f7ce1bf1791a77b8cd5209e3ce72c78",
+    "comparison": "All 55 pages have identical extracted text, page dimensions, decoded content streams and embedded image bytes. Renderer metadata changed from Skia/PDF m156 to m157. Existing archive retained; fresh export is not claimed byte-identical."
+  },
+  "older_attachment_comparison": {
+    "source_commit": "a62740166fb6d480fc57edc5256625cb2c3f0b1e",
+    "pull_request": "https://github.com/shuxiachai/returnops-au/pull/20",
+    "ppt_sha256": "b56cb683aae7e2a64820e1d84a58d9b106505e3a44993ebd77913e4496344ecd",
+    "script_sha256": "24c74950caef220b1678ead4e34f3131408a5e59017973786f3f67343ca1fd9a",
+    "script_english_narration_words": 858,
+    "disposition": "Both supplied attachments exactly match the old PR20 files, not current Drive. Do not replay their obsolete directory over the adopted Stage1 archive. Original bytes remain recoverable from the cited Git commit."
+  },
+  "historical_verification": {
+    "checked_on_local_date": "2026-10-05",
+    "record_url": "https://github.com/shuxiachai/returnops-au/blob/17042b4164a0be878c7a0684cf532217ebeb77ee/stage1/presentation/source-metadata.json",
+    "summary": "Drive metadata matched retained PPT/script sources; both raw retrievals returned HTTP 403. Only the retained PPT was archived; the script was a Drive link. Fresh retrieval on 17 October supersedes the access limitation without rewriting this earlier evidence."
+  },
+  "submission_status": "User confirmed Stage 1 submission; no independent Canvas receipt or uploaded byte comparison in this task",
+  "video_scope": "PPT filename contains Video; actual recorded video remains managed by the user"
+}
