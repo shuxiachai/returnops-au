@@ -63,7 +63,9 @@ TN / all negative cases. Unavailable outcomes are separately counted and get
 neither TP nor TN credit; these named metrics are not mislabeled as a complete
 conventional confusion matrix. `required_field_id_coverage` checks IDs only,
 **not** field correctness or the project's mandatory-information recall target.
-The scorer does not score citations, recommendations, fabrication or latency.
+The scorer does not score citations, recommendations or fabrication. Proposal
+latency arithmetic is provided separately below; it is not the adapter's wall
+time and does not establish the authenticity of a timing event.
 
 Usage covers expected cases only, including valid failed observations. It reports
 known subtotals and unknown counts; a total is null if any expected case lacks
@@ -133,6 +135,57 @@ blocking code or force an adapter that refuses cancellation to stop. Those
 limitations do not authorize substituting a real provider into this stub-only
 preparation. Future live transport, rate/cost provenance, true B1/B4, pilot and
 formal freeze still require separate implementation and review under E.09/R.03.
+
+## Proposal-latency accounting — independent preparation, 17 October
+
+[`summarize_stub_proposal_latency`](latency.py) is a pure accounting function
+for public synthetic event records. It does not call an adapter, take a timer,
+read runtime telemetry or claim a real performance result. Trace: E.01/E.09,
+NFR-005/NFR-008 and the proposal interval in docs/00 and docs/07.
+
+Call it with `data_role=DATA_ROLE`, a unique `expected_case_ids` list and
+`observations`. Each observation has exactly these fields:
+
+```json
+{
+  "case_id": "public-invented-latency-example",
+  "status": "REVIEW_READY",
+  "accepted_complete_at": "2026-10-17T00:00:00Z",
+  "stored_review_ready_at": "2026-10-17T00:00:20Z",
+  "excluded_waits": [
+    {"kind": "HUMAN", "start_at": "2026-10-17T00:00:05Z", "end_at": "2026-10-17T00:00:10Z"}
+  ]
+}
+```
+
+This invented example has a 20-second wall interval and a 15-second proposal
+interval. The input is a fixture, not a recorded project run. UTC `Z` timestamps
+accept seconds or 1–6 fractional digits. Only `HUMAN` or `PHYSICAL` waits are
+excluded, and overlapping/adjacent waits are merged before subtraction. Model,
+network and retry work cannot be labelled as excludable machine waits. The
+function cannot detect a caller dishonestly labelling machine time as human;
+real event provenance and exclusion classification still need review.
+
+`FAILED` requires both timestamps null and an empty waits list; its lack of a
+sample is not zero latency. Missing, duplicate and invalid rows likewise remain
+in the all-expected denominator. Extra/unidentifiable rows are listed separately.
+All rows use a 2 MiB JSON budget, with at most 100 expected IDs/observations and
+100 wait intervals per observation; these are technical rehearsal bounds, not
+an expansion of the frozen 30-case study.
+
+The report includes dispositions, per-case wall/excluded/proposal intervals,
+available sample count/coverage and **conditional** p50/p95. Percentiles use
+linear-inclusive/type-7 interpolation, rounded half-even to microseconds,
+independent of the caller's decimal settings. An empty sample produces null;
+a single sample produces its own value. Neither low p95 on the available
+subset nor a zero-duration sample certifies the `<120 s` target or a gate.
+
+**A confirmation before real use:** approve these proposed measurement details
+and supply trusted accepted-complete-input, stored-review-ready-proposal and
+human/physical-wait events from the same run. This fixture shape is not a new
+shared API contract. The module must not replace F.06's authoritative metric
+definitions, a real B1/B4 adapter, R.03 or E.12. No labels or timed answers are
+collected here.
 
 ## Reproduce offline checks
 
