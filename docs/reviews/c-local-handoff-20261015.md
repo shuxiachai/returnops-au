@@ -5,6 +5,51 @@ Tracking: [KAN-23](https://lucastaooo.atlassian.net/browse/KAN-23) (C1),
 [KAN-25](https://lucastaooo.atlassian.net/browse/KAN-25) is related evaluation
 preparation, not formal evaluation completion.
 
+## 17 October follow-up — updated reconstruction, historical receipt retained
+
+This branch now includes main
+`17042b4164a0be878c7a0684cf532217ebeb77ee` via merge `da8e7e6`.
+PR #80 changed public-scope/path comments and branch-push CI selection, not the
+business runtime. Both its README notice and the earlier C handoff are retained.
+The JSON receipt below remains **15 October evidence**, not a claim that its
+212-test run covered today's source.
+
+For today's composite review, keep the same five files from #68 at `af44d6e`
+and four from #69 at `2ac0442`. Replace the four-file #70 restore block below
+with this **six-file** block at the new exact E.09 candidate:
+
+```sh
+git fetch origin pull/70/head
+git cat-file -e 51dbfa0d5d896ad82a2ebaea77aa2de40c681d27^{commit}
+git restore --source 51dbfa0d5d896ad82a2ebaea77aa2de40c681d27 -- \
+  experiments/evaluation_candidate/README.md \
+  experiments/evaluation_candidate/__init__.py \
+  experiments/evaluation_candidate/scoring.py \
+  experiments/evaluation_candidate/runner.py \
+  tests/contracts/test_evaluation_preparation.py \
+  tests/contracts/test_evaluation_runner.py
+```
+
+Use a clean disposable worktree as described below, not a teammate's checkout.
+The composite now contains **15 dependency files**, not 13. For the offline
+baseline comparison use `17042b4164a0be878c7a0684cf532217ebeb77ee`; the original
+`a0f7fb8` commands and hashes below remain historical. The runner introduces no
+live transport, Gold data or API wiring. This Draft still cannot be imported as
+a standalone C1/C2 implementation and still awaits dependency adoption plus
+non-author review. The source update does not satisfy R.02/R.03 or any Done gate.
+
+Local verification on 17 October passed: 226 contract tests (including the
+29 evaluation tests and the nine handoff tests), 6/6 static groups,
+12 checker regressions, seven check-runner regressions, 14 Mermaid blocks,
+64 synthetic-order tests, 244 security tests and 36 records tests. `pip check`
+also passed. This used locked Python 3.12.7 and Node 24, with source snapshots
+and full logs retained locally. No source changed during the recorded runs.
+The standalone #70 source at `51dbfa0` separately passed 157 contract tests;
+its lower total correctly excludes #68/#69 and this handoff's additional tests.
+Neither run includes PG17, supported-Linux attachment checks, installed-wheel
+probes, actual AI, Gold performance or human acceptance. Older Linux and CI
+receipts remain valid only for their own earlier source and are not re-labelled.
+
 ## Review boundary
 
 **Draft: do not merge before its dependencies are reviewed and integrated.**

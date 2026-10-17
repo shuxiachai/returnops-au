@@ -10,6 +10,63 @@
 
 # ReturnOps AU
 
+## C follow-up — 2026-10-17
+
+The latest checked main is
+[`17042b4`](https://github.com/shuxiachai/returnops-au/commit/17042b4164a0be878c7a0684cf532217ebeb77ee).
+This C handoff branch now includes that main revision, preserving the public
+scope notice and CI-budget maintenance from
+[PR #80](https://github.com/shuxiachai/returnops-au/pull/80). There is no new
+business-runtime implementation in that maintenance merge. Older dated notices
+below describe their original snapshots, not today's completion status.
+
+- **C review queue:** [#68](https://github.com/shuxiachai/returnops-au/pull/68),
+  [#69](https://github.com/shuxiachai/returnops-au/pull/69) and
+  [#70](https://github.com/shuxiachai/returnops-au/pull/70) still await A's review;
+  [#79](https://github.com/shuxiachai/returnops-au/pull/79) remains a dependent
+  Draft, not a standalone or merge-ready implementation.
+- **New C work:** #70 adds a bounded synthetic adapter runner alongside the
+  existing scorer: immutable input snapshots, case-ID binding, one invocation
+  per case, timeout/error accounting and unknown usage retained as null. Its
+  tests use public invented fixtures only; no Gold labels, timed answers,
+  production credentials or live-model results are introduced.
+- **Local verification:** 29 focused evaluation tests pass. The updated
+  composite (this handoff plus exact #68/#69/#70 dependency files) passes
+  226 contract tests, 6/6 static groups, 244 security and 36 records tests.
+  The [updated reconstruction and scope](docs/reviews/c-local-handoff-20261015.md)
+  distinguish this composite from #70's separate 157-test source checkout.
+  These are local offline results, not cloud CI or PG17/live-model evidence.
+- **A/B updates:** B has pushed further fixes to
+  [#60](https://github.com/shuxiachai/returnops-au/pull/60); it is not merged.
+  [C's route-collision feedback](https://github.com/shuxiachai/returnops-au/pull/78#issuecomment-6210008364)
+  on A's #78 remains unanswered at this check. Neither fact establishes C's
+  runtime integration or a completed shared gate.
+
+### What must happen next
+
+1. A reviews the exact C1 corpus/loader and supplies an independently trusted
+   admission pin. Pending source bytes must remain rejected until that review.
+2. Agree the model/provider and allowed input flow; implement and test a real
+   independent Risk invocation. A supplies trusted retained sources, current
+   state checks and orchestration; C supplies retrieval/risk components.
+3. Complete the fixed-proposal safety chain (R.02), then the actual three-role
+   pilot (R.03). Do not replace either gate with synthetic runner results.
+4. Complete the sealed 30-case Gold / 20-case blind timing protocol, review and
+   arbitration before freezing and running the formal B1/B4 comparison.
+5. After the stable text path, implement C3 image observations and their
+   uncertainty/injection/conflict tests; finish clean reproduction, demo and
+   genuine contribution/acceptance records.
+
+**Planning estimate for C's Stage 2 work: about 60% remains (rough range
+55–65%).** This estimates remaining implementation, integration, evaluation and
+delivery effort, not course marks, actual authorship share, elapsed hours or a
+percentage derived from passing tests/PR counts. C1 has substantial offline
+implementation, C2 has a stub-tested boundary, evaluation has preparation only,
+and C3 plus the shared runtime/acceptance evidence remain outstanding. One
+runner increment does not make those delivery obligations complete. Jira is
+still the workflow record; this dated handoff does not change card states or
+declare any item Done.
+
 ## C draft review handoff — 2026-10-15
 
 This **dependent draft** adds a nine-test rehearsal, this README notice and
