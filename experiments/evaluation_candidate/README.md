@@ -10,8 +10,10 @@ Traceability: FR-002/006/007/008, NFR-001/005/009, AH-08, UC-02 and
 The [fixed evaluation protocol](../../docs/00-project-definition-v1.md),
 [allocation](../../docs/07-frozen-work-allocation.md) and
 [E.01/E.09 dependencies](../../docs/08-delivery-work-packages.md) remain authoritative.
-This code performs no model, adapter, network, database or operation call. It is
-not included in the runtime wheel. It does not implement a complete evaluation
+The scorer performs no model, adapter, network, database or operation call.
+The runner described below invokes only an explicitly supplied synthetic test
+adapter; no real adapter or network client is supplied. Neither module is
+included in the runtime wheel. They do not implement a complete live evaluation
 runner, real B1/B4, C2, Gate 2 or formal scoring. No Gold inputs, labels, timed
 answers, sealing receipt, contribution percentage or personal sign-off was
 created/read by this preparation. No model performance result is asserted.
@@ -73,10 +75,71 @@ Decimal-string costs have no implied currency or price estimate: a future real
 run must record currency, rate source/version and actual usage. An empty run has
 null ratios and totals, not success or zero-cost evidence.
 
+## Bounded adapter rehearsal — 17 October 2026 follow-up
+
+[`run_stub_cases`](runner.py) supplies the missing offline invocation-to-scorer
+step of E.09. It accepts only the same explicit synthetic data role and stub
+configuration names as the scorer, plus a trusted cooperative async adapter.
+There is no network/model adapter, credential discovery, application import,
+operation port or new dependency. It is **not** the complete B1/B4 runner.
+
+Each case is exactly `{"case_id": "...", "input": {...}}`. All cases are
+validated before any invocation: unique nonblank IDs, plain JSON values, at
+most 100 cases and a 2 MiB budget for the whole input manifest. This is a
+technical development-fixture limit, not an expansion of the 30-case Gold plan.
+An immutable `StubInvocation` contains only configuration, case ID, input JSON
+and timeout. The API has no expectations argument; expected outcomes are held
+separately by the caller and passed to the scorer only afterwards. This
+separation and a caller-declared data-role string cannot prove that arbitrary
+input contains no hidden label or that a Python adapter has no external access.
+Only reviewed public invented fixtures and local stubs belong in this module.
+
+- Execute in supplied order, once per case, with no retry or skipped failure.
+- Each valid adapter reply has the existing scorer observation shape and must
+  bind to that invocation's case ID. Snapshot it before accounting; a reply
+  cannot credit another case or change after being returned.
+- Exception/timeout becomes a `FAILED` observation with unknown usage (`null`),
+  not a safe negative or an invented zero-cost result. Later cases still run.
+- Invalid output becomes a sanitised `{case_id: ...}` sentinel, which the
+  existing scorer counts as `INVALID`. Keep the per-case diagnostic code; no
+  raw exception or invalid adapter payload is retained in the report.
+- A valid `FAILED` reply retains its supplied usage. B1 replies containing
+  retrieval are invalid. Denominators remain those of the separate expectations.
+- Caller cancellation propagates and stops the batch; it is not a successful
+  partial report. A swallowed deadline cannot turn a late result into success.
+
+Usage in an async test or development function:
+
+```python
+from experiments.evaluation_candidate import DATA_ROLE, score_stub_run
+from experiments.evaluation_candidate.runner import run_stub_cases
+
+# local_stub is a reviewed async StubInvocation -> observation callable.
+# public_cases and public_expectations are separately held invented fixtures.
+batch = await run_stub_cases(
+    configuration="B4_OFFLINE_STUB", data_role=DATA_ROLE,
+    cases=public_cases, adapter=local_stub, timeout_seconds=1,
+)
+report = score_stub_run(
+    configuration=batch["configuration"], data_role=DATA_ROLE,
+    expectations=public_expectations, observations=batch["observations"],
+)
+```
+
+`case_results` carries sanitized dispositions/error codes; `observations` is
+the scorer input. The runner makes no model-quality, semantic correctness or
+end-to-end latency claim. `asyncio` cannot sandbox a Python callable, interrupt
+blocking code or force an adapter that refuses cancellation to stop. Those
+limitations do not authorize substituting a real provider into this stub-only
+preparation. Future live transport, rate/cost provenance, true B1/B4, pilot and
+formal freeze still require separate implementation and review under E.09/R.03.
+
+## Reproduce offline checks
+
 Run from the source checkout with the existing locked Python 3.12 environment:
 
 ```bash
-python -B -m unittest discover -s tests/contracts -p 'test_evaluation_preparation.py' -v
+python -B -m unittest discover -s tests/contracts -p 'test_evaluation*.py' -v
 ```
 
 Tests use openly synthetic in-memory expectations; they are correctness tests
