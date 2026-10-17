@@ -25,25 +25,29 @@ below describe their original snapshots, not today's completion status.
   [#70](https://github.com/shuxiachai/returnops-au/pull/70) still await A's review;
   [#79](https://github.com/shuxiachai/returnops-au/pull/79) remains a dependent
   Draft, not a standalone or merge-ready implementation.
-- **New C work:** #70 at `4986274` adds quality-judgment accounting and paired
-  B1/B4 evidence-consistency validation to the existing synthetic runner/scorer
-  and proposal-latency module. It covers fixed-class Macro-F1, field/component
-  correctness, follow-ups, citations, fabrication and recommendation accounting;
-  semantic judgments must be supplied and bound to exact output bytes. Missing
-  evidence stays unknown. Pair checks pin inputs, model/settings, source and
-  artifact/output bytes; consistency is not proof of an actual model run.
-  [C's component README](https://github.com/shuxiachai/returnops-au/blob/4986274794cef734c09d0364f1e26c5dbb240cea/experiments/evaluation_candidate/README.md)
-  contains the APIs, formulas, tests and blank private-timing format. No Gold
-  labels, timed answers or live-model results are introduced.
-- **Independent-PR local verification:** #70 now passes 88 focused evaluation
-  tests within 216 contract tests. The earlier unchanged #69 at `cfda3a1`
+- **New C work:** #70 at `db45f5f` adds two usable local commands: a single-command
+  synthetic evidence bundle and a human-time record validator/statistics tool.
+  The former runs both fixture adapters and preserves raw results, output-bound
+  quality evidence, failure counts, source/config hashes and separate creation
+  metadata. The latter computes A/B/pooled active-time median/Q1/Q3/IQR, checks
+  order, pauses, duplicates, overlap and missing records, and never fabricates
+  human work. Unknown evidence remains unknown; neither command claims a real
+  model result or gate. The earlier quality/pair arithmetic remains included.
+  [C's component README](https://github.com/shuxiachai/returnops-au/blob/db45f5f1228598e406d02c10953ed11a2f345cdf/experiments/evaluation_candidate/README.md)
+  gives the exact commands, public example, formulas and private-data boundaries.
+- **Independent-PR local verification:** #70 now passes 135 focused evaluation
+  tests within 263 contract tests (47 new tests). The earlier unchanged #69 at `cfda3a1`
   passed 29 focused Risk tests within 157 contract tests, including the caller
   cancellation correction. Both individual checks also passed 6/6 static
   groups, 244 security and 36 records tests. Counts overlap; do not add them.
   The [reconstruction and evidence](docs/reviews/c-local-handoff-20261015.md)
   separate individual PR source from dependency-composite checks and retain
-  historical results. The separate 21-file dependency reconstruction passed
-  288 contract tests (including the 88 evaluation tests) and the same remaining
+  historical results. A separate clean clone of `db45f5f` ran both commands with
+  Python `-S` (no site-packages); repeated bundles had the same content ID, all
+  13 file entries/permissions were checked, timing sample results matched, and
+  the checkout remained clean. That verifies these two commands, not the whole
+  deployed system. The separate 26-file dependency reconstruction passed 335
+  contract tests (including those 135 evaluation tests) and the same remaining
   local suites. No cloud CI or PG17/live-model result is implied.
 - **Scheduling:** [C has asked A/B for two Sydney-time windows on 18–19 October](https://github.com/shuxiachai/returnops-au/pull/79#issuecomment-6231875735).
   Lucas confirmed availability on both days; A/B responses and the final booking
@@ -87,8 +91,8 @@ These are handoff questions, not a new task board or changes to WBS ownership.
 **Earlier planning estimate, retained as history:** about 60% remaining
 (55–65%) was a coarse implementation/integration/evaluation/delivery estimate,
 not measured completion, marks, authorship or elapsed time. Do not reuse it as a
-fresh measured percentage or reduce it by counting tests. The quality/pair tools
-and timing preparation above are now implemented; the five concrete next steps
+fresh measured percentage or reduce it by counting tests. The quality/pair tools,
+offline evidence command and timing validator above are now implemented; the five concrete next steps
 still need their real inputs and acceptance. C1 has offline implementation, C2
 has a stub-tested boundary, evaluation has executable preparation, and C3 plus
 runtime/formal/human evidence remain outstanding. Jira remains the workflow

@@ -8,7 +8,7 @@ preparation, not formal evaluation completion.
 ## Latest 17 October follow-up — independent preparation and A decisions
 
 The latest reconstruction uses the same main `17042b4` and the following
-**21 dependency files**. Use a clean disposable worktree, not a teammate's
+**26 dependency files**. Use a clean disposable worktree, not a teammate's
 checkout. Fetch the PR refs, verify the full commits exist, then restore only
 these paths with `git restore --worktree --source <full SHA> -- <paths>`:
 
@@ -16,7 +16,7 @@ these paths with `git restore --worktree --source <full SHA> -- <paths>`:
 | --- | --- |
 | #68 `af44d6e02cf479e94b695ee85a8b823540974bf7` | `experiments/c1_grounding_candidate/admission.py`; its `candidates/accc-20261012/README.md`, `admission-manifest.json`, `corpus.json`; `tests/contracts/test_c1_corpus_admission.py` |
 | #69 `cfda3a1d7b96e5cd973faff30739f11c57fe0850` | `experiments/c2_risk_candidate/README.md`, `__init__.py`, `reviewer.py`; `tests/contracts/test_c2_risk_preparation.py` |
-| #70 `4986274794cef734c09d0364f1e26c5dbb240cea` | `experiments/evaluation_candidate/README.md`, `__init__.py`, `scoring.py`, `runner.py`, `latency.py`, `quality.py`, `reproducibility.py`; `tests/contracts/test_evaluation_preparation.py`, `test_evaluation_runner.py`, `test_evaluation_latency.py`, `test_evaluation_quality.py`, `test_evaluation_reproducibility.py` |
+| #70 `db45f5f1228598e406d02c10953ed11a2f345cdf` | `experiments/evaluation_candidate/README.md`, `__init__.py`, `scoring.py`, `runner.py`, `latency.py`, `quality.py`, `reproducibility.py`, `evidence.py`, `human_timing.py`, `data/human_timing_example.json`; `tests/contracts/test_evaluation_preparation.py`, `test_evaluation_runner.py`, `test_evaluation_latency.py`, `test_evaluation_quality.py`, `test_evaluation_reproducibility.py`, `test_evaluation_evidence.py`, `test_evaluation_human_timing.py` |
 
 ### Current isolated reconstruction
 
@@ -28,7 +28,7 @@ they do not merge their branches or approve their content.
 git fetch origin pull/68/head pull/69/head pull/70/head
 git cat-file -e af44d6e02cf479e94b695ee85a8b823540974bf7^{commit}
 git cat-file -e cfda3a1d7b96e5cd973faff30739f11c57fe0850^{commit}
-git cat-file -e 4986274794cef734c09d0364f1e26c5dbb240cea^{commit}
+git cat-file -e db45f5f1228598e406d02c10953ed11a2f345cdf^{commit}
 c_review_dir=$(mktemp -d "${TMPDIR:-/tmp}/returnops-c-review.XXXXXX")
 git worktree add --detach "$c_review_dir/repo" HEAD
 cd "$c_review_dir/repo"
@@ -43,7 +43,7 @@ git restore --worktree --source cfda3a1d7b96e5cd973faff30739f11c57fe0850 -- \
   experiments/c2_risk_candidate/__init__.py \
   experiments/c2_risk_candidate/reviewer.py \
   tests/contracts/test_c2_risk_preparation.py
-git restore --worktree --source 4986274794cef734c09d0364f1e26c5dbb240cea -- \
+git restore --worktree --source db45f5f1228598e406d02c10953ed11a2f345cdf -- \
   experiments/evaluation_candidate/README.md \
   experiments/evaluation_candidate/__init__.py \
   experiments/evaluation_candidate/scoring.py \
@@ -51,11 +51,16 @@ git restore --worktree --source 4986274794cef734c09d0364f1e26c5dbb240cea -- \
   experiments/evaluation_candidate/latency.py \
   experiments/evaluation_candidate/quality.py \
   experiments/evaluation_candidate/reproducibility.py \
+  experiments/evaluation_candidate/evidence.py \
+  experiments/evaluation_candidate/human_timing.py \
+  experiments/evaluation_candidate/data/human_timing_example.json \
   tests/contracts/test_evaluation_preparation.py \
   tests/contracts/test_evaluation_runner.py \
   tests/contracts/test_evaluation_latency.py \
   tests/contracts/test_evaluation_quality.py \
-  tests/contracts/test_evaluation_reproducibility.py
+  tests/contracts/test_evaluation_reproducibility.py \
+  tests/contracts/test_evaluation_evidence.py \
+  tests/contracts/test_evaluation_human_timing.py
 python -B tools/checks/run.py offline --baseline-ref 17042b4164a0be878c7a0684cf532217ebeb77ee
 python -B -m pytest tests/security -q -p no:cacheprovider
 python -B -m pytest tests/storage/test_records.py -q -p no:cacheprovider
@@ -66,7 +71,59 @@ If reusing an existing environment, ensure its imports resolve to this review
 checkout (root, `apps/api`, `packages`), not an older editable installation.
 Do not commit the dependency overlays as part of this handoff PR.
 
-### Current quality/pair increment — source and verification
+### Current runnable-evidence/timing increment — independent completion
+
+#70 `db45f5f` adds the two commands documented in
+[C's component README](https://github.com/shuxiachai/returnops-au/blob/db45f5f1228598e406d02c10953ed11a2f345cdf/experiments/evaluation_candidate/README.md).
+The 13-file offline bundle executes both fixed toy adapters, retains their
+actual structured results and binds rich quality evidence to the same input and
+risk output. Judgments are fixed before invocation; failures cannot inherit
+successful quality output. Synthetic latency remains separately labelled, not
+observed execution time. Hashes and creation time are not a seal or acceptance.
+
+The separate timing CLI validates explicitly imported local records, subtracts
+the union of permitted waits and reports A/B/pooled median, Q1, Q3 and IQR with
+coverage. Missing/invalid/failed/duplicate cases stay in the denominator; failed
+partial time is not a completed sample. Only invented public records were used.
+Real A/B actions, private records, answers, independent locks and Gold review
+remain subject to the original E.01–E.08 sequence, not this tool's availability.
+
+Independent AI-assisted review corrected an incomplete claim-inventory
+declaration in a toy fixture; every material toy assertion now has a fixed
+judgment entry, with unknown judgments retained. New regressions cover this,
+annotation/output mismatch, retained success data after failure, exclusive
+publication, byte hashes, invalid imports and timing overlap/order/math.
+
+Individual #70 verification: **135 evaluation tests within 263 contract tests**,
+including 20 evidence and 27 timing tests; six static groups, 12 checker/seven
+tool regressions, 14 Mermaid blocks, 64 synthetic-order, 244 security and 36
+records tests passed. Receipt `oct17-e09-6hqsnljg` records parent `4986274` plus
+six file hashes during 09:11:17–09:11:32 UTC. After the README result paragraph,
+the final unchanged-source rerun `oct17-e09-hcv00v91` passed all four commands;
+its six delta hashes match `db45f5f`. No C1/C2 overlays were used in this run.
+
+A separate clean local clone of exact `db45f5f` then ran both commands with
+Python 3.12.7 **`-S`**, no site-packages or dependency overlays. At
+09:13:05–09:13:06 UTC, two generated bundles had identical content ID
+`41a38d41b51782cbb2db143bd9fef12da4aebb51bd783a531e2c0492210a948c`
+and manifest SHA-256
+`018a819ea7ccc0d44fbf522b933c8544fafdea7a1183e3675402d933164533e8`.
+The check independently verified all file hashes, 13-file inventory, private
+permissions, exact source hashes and clean checkout before/after. The public
+timing example reproduced A median/IQR `120/60`, B `150/60`, pooled `135/75`
+seconds; these are invented arithmetic fixtures, not measured human results.
+This clean-clone proof covers these two commands only, not PG17 deployment,
+live adapters, R.02/R.03, formal evaluation or A's acceptance.
+
+The **26-file dependency reconstruction** also passed **335 contract tests**
+(including the 135 evaluation, 29 Risk and nine handoff tests), six static
+groups and the same remaining local suites. Receipt `oct17-composite-nmpuefvb`
+records exact source/overlay hashes and unchanged files during that run. This
+count paragraph was added afterwards; final-source verification accompanies the
+PR update. #79 still requires the stated candidate overlays and remains Draft;
+these results do not make it standalone or merge-ready.
+
+### Earlier quality/pair increment — historical source and verification
 
 #70 at `4986274` adds pure accounting over supplied, exact-output-bound semantic
 judgments and a paired synthetic evidence consistency validator. No caller's
