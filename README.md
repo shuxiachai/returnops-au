@@ -25,17 +25,19 @@ below describe their original snapshots, not today's completion status.
   [#70](https://github.com/shuxiachai/returnops-au/pull/70) still await A's review;
   [#79](https://github.com/shuxiachai/returnops-au/pull/79) remains a dependent
   Draft, not a standalone or merge-ready implementation.
-- **New C work:** #70 adds a bounded synthetic adapter runner alongside the
-  existing scorer: immutable input snapshots, case-ID binding, one invocation
-  per case, timeout/error accounting and unknown usage retained as null. Its
-  tests use public invented fixtures only; no Gold labels, timed answers,
-  production credentials or live-model results are introduced.
-- **Local verification:** 29 focused evaluation tests pass. The updated
-  composite (this handoff plus exact #68/#69/#70 dependency files) passes
-  226 contract tests, 6/6 static groups, 244 security and 36 records tests.
-  The [updated reconstruction and scope](docs/reviews/c-local-handoff-20261015.md)
-  distinguish this composite from #70's separate 157-test source checkout.
-  These are local offline results, not cloud CI or PG17/live-model evidence.
+- **New C work:** #70 at `6bc62d6` adds proposal-latency accounting to the
+  existing bounded synthetic runner/scorer: UTC event validation, human/physical
+  wait-union subtraction, deterministic p50/p95 and explicit missing/failure
+  denominators. #69 at `cfda3a1` fixes Risk caller cancellation being suppressed
+  by a transport and mistaken for a completed review. Both use invented local
+  fixtures; no Gold labels, timed answers or live-model results are introduced.
+- **Independent-PR local verification:** #70 passes 44 focused evaluation tests
+  within 172 contract tests; #69 passes 29 focused Risk tests within 157
+  contract tests. Both also pass 6/6 static groups, 244 security and 36 records
+  tests. These counts are overlapping suites, not numbers to add together.
+  The [reconstruction and evidence](docs/reviews/c-local-handoff-20261015.md)
+  separate individual PR source from dependency-composite checks and retain
+  historical results. No cloud CI or PG17/live-model result is implied.
 - **A/B updates:** B has pushed further fixes to
   [#60](https://github.com/shuxiachai/returnops-au/pull/60); it is not merged.
   [C's route-collision feedback](https://github.com/shuxiachai/returnops-au/pull/78#issuecomment-6210008364)
@@ -57,13 +59,27 @@ below describe their original snapshots, not today's completion status.
    uncertainty/injection/conflict tests; finish clean reproduction, demo and
    genuine contribution/acceptance records.
 
+### A decision checklist — reply on the existing PRs
+
+C's independent preparation above is ready for review. The following requires
+A's actual decision or integration output; no reply is treated as approval.
+These are handoff questions, not a new task board or changes to WBS ownership.
+
+| Priority / review entrance | What A should provide | C's next action after that evidence |
+| --- | --- | --- |
+| 1. C1 / [#68](https://github.com/shuxiachai/returnops-au/pull/68), KAN-23 | Review the three-category passages/context and conflict coverage; identify required additions or approve final exact corpus bytes with a non-author review link. Then supply a separately trusted final manifest pin through integration configuration. The current pending inventory hashes are not approval pins; #61 approved capture only. | Make requested source revisions, preserve pending rejection until authentic exact-byte approval, then rerun admission/retrieval and hand off the admitted version. |
+| 2. C2 / [#69](https://github.com/shuxiachai/returnops-au/pull/69), KAN-24 | Confirm provider/model, allowed input fields/data flow, shared async transport and deadline/usage sources; supply trusted retained packet/retrieval inputs and the post-await current-version acceptance point. Do not post credentials in GitHub. | Implement/verify the separately invoked Risk adapter against the agreed transport, run adversarial pilot checks and provide five-outcome/failure routing evidence. |
+| 3. E.01/E.09 / [#70](https://github.com/shuxiachai/returnops-au/pull/70), KAN-25 | Approve or correct field/label definitions, metric denominators and latency interpolation/exclusion details. Identify trusted start/ready/wait event fields; a stub adapter timer is not proposal latency. Agree private Gold storage/access and A/B blind-timing arrangement. | After E.01 and the original dependencies, prepare the 30 inputs/20-case subset and seal initial labels before reading any timed answer; release only non-label receipts/inputs, then follow review/arbitration/freeze order. |
+| 4. Integrated source / [#78](https://github.com/shuxiachai/returnops-au/pull/78) and this [#79](https://github.com/shuxiachai/returnops-au/pull/79) | Reply to the route-collision finding; provide the exact integrated commit and R.02 fixed-proposal safety-chain evidence/entry point once ready. Agree the order for adopting #68/#69/#70 before #79. | Reproduce the approved source, verify real C1/C2 handoffs and then run the actual R.03 pilot once A1.08 and all original conditions hold. Keep #79 Draft meanwhile. |
+| 5. C3 / KAN-26 | After R.03, provide the accepted text-pilot record and authorized attachment-reference/model-input boundary, with the original F.04/F.07 conditions. | Implement image observations, uncertainty/conflict/injection tests and integrated demonstration; ordinary upload remains separate from image analysis. |
+
 **Planning estimate for C's Stage 2 work: about 60% remains (rough range
 55–65%).** This estimates remaining implementation, integration, evaluation and
 delivery effort, not course marks, actual authorship share, elapsed hours or a
 percentage derived from passing tests/PR counts. C1 has substantial offline
 implementation, C2 has a stub-tested boundary, evaluation has preparation only,
 and C3 plus the shared runtime/acceptance evidence remain outstanding. One
-runner increment does not make those delivery obligations complete. Jira is
+runner or reliability increment does not make those delivery obligations complete. Jira is
 still the workflow record; this dated handoff does not change card states or
 declare any item Done.
 
@@ -95,14 +111,14 @@ Risk transport. It does not register an application route or activate a model.
 ### Run locally before requesting another cloud check
 
 First reconstruct the composite source as described in the
-[review record](docs/reviews/c-local-handoff-20261015.md#reproduce-in-an-isolated-checkout).
+[current review record](docs/reviews/c-local-handoff-20261015.md#current-isolated-reconstruction).
 Use an isolated Python 3.12 environment and the locked Node 24 model tools;
 one-time installation and the additional offline CI steps are documented in
 [the check entry points](tools/checks/README.md) and
 [the existing workflow](.github/workflows/ci.yml). After installing once:
 
 ```sh
-python -B tools/checks/run.py offline --baseline-ref a0f7fb884dfbc478c82fffc5912934cb8c0deda2
+python -B tools/checks/run.py offline --baseline-ref 17042b4164a0be878c7a0684cf532217ebeb77ee
 python -B -m unittest discover -s tests/contracts -p 'test_c_handoff_rehearsal.py' -v
 python -B -m pytest tests/security -q -p no:cacheprovider
 ```

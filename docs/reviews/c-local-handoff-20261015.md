@@ -5,7 +5,99 @@ Tracking: [KAN-23](https://lucastaooo.atlassian.net/browse/KAN-23) (C1),
 [KAN-25](https://lucastaooo.atlassian.net/browse/KAN-25) is related evaluation
 preparation, not formal evaluation completion.
 
-## 17 October follow-up — updated reconstruction, historical receipt retained
+## Latest 17 October follow-up — independent preparation and A decisions
+
+The latest reconstruction uses the same main `17042b4` and the following
+**17 dependency files**. Use a clean disposable worktree, not a teammate's
+checkout. Fetch the PR refs, verify the full commits exist, then restore only
+these paths with `git restore --worktree --source <full SHA> -- <paths>`:
+
+| PR / exact source | Paths (all required) |
+| --- | --- |
+| #68 `af44d6e02cf479e94b695ee85a8b823540974bf7` | `experiments/c1_grounding_candidate/admission.py`; its `candidates/accc-20261012/README.md`, `admission-manifest.json`, `corpus.json`; `tests/contracts/test_c1_corpus_admission.py` |
+| #69 `cfda3a1d7b96e5cd973faff30739f11c57fe0850` | `experiments/c2_risk_candidate/README.md`, `__init__.py`, `reviewer.py`; `tests/contracts/test_c2_risk_preparation.py` |
+| #70 `6bc62d6e91cb0ff9b4102b4eab45ac0f682b93c5` | `experiments/evaluation_candidate/README.md`, `__init__.py`, `scoring.py`, `runner.py`, `latency.py`; `tests/contracts/test_evaluation_preparation.py`, `test_evaluation_runner.py`, `test_evaluation_latency.py` |
+
+### Current isolated reconstruction
+
+Start in a checkout of this handoff commit. The following preserves that checkout
+and creates a separate directory. These commands restore candidates for testing;
+they do not merge their branches or approve their content.
+
+```sh
+git fetch origin pull/68/head pull/69/head pull/70/head
+git cat-file -e af44d6e02cf479e94b695ee85a8b823540974bf7^{commit}
+git cat-file -e cfda3a1d7b96e5cd973faff30739f11c57fe0850^{commit}
+git cat-file -e 6bc62d6e91cb0ff9b4102b4eab45ac0f682b93c5^{commit}
+c_review_dir=$(mktemp -d "${TMPDIR:-/tmp}/returnops-c-review.XXXXXX")
+git worktree add --detach "$c_review_dir/repo" HEAD
+cd "$c_review_dir/repo"
+git restore --worktree --source af44d6e02cf479e94b695ee85a8b823540974bf7 -- \
+  experiments/c1_grounding_candidate/admission.py \
+  experiments/c1_grounding_candidate/candidates/accc-20261012/README.md \
+  experiments/c1_grounding_candidate/candidates/accc-20261012/admission-manifest.json \
+  experiments/c1_grounding_candidate/candidates/accc-20261012/corpus.json \
+  tests/contracts/test_c1_corpus_admission.py
+git restore --worktree --source cfda3a1d7b96e5cd973faff30739f11c57fe0850 -- \
+  experiments/c2_risk_candidate/README.md \
+  experiments/c2_risk_candidate/__init__.py \
+  experiments/c2_risk_candidate/reviewer.py \
+  tests/contracts/test_c2_risk_preparation.py
+git restore --worktree --source 6bc62d6e91cb0ff9b4102b4eab45ac0f682b93c5 -- \
+  experiments/evaluation_candidate/README.md \
+  experiments/evaluation_candidate/__init__.py \
+  experiments/evaluation_candidate/scoring.py \
+  experiments/evaluation_candidate/runner.py \
+  experiments/evaluation_candidate/latency.py \
+  tests/contracts/test_evaluation_preparation.py \
+  tests/contracts/test_evaluation_runner.py \
+  tests/contracts/test_evaluation_latency.py
+python -B tools/checks/run.py offline --baseline-ref 17042b4164a0be878c7a0684cf532217ebeb77ee
+python -B -m pytest tests/security -q -p no:cacheprovider
+python -B -m pytest tests/storage/test_records.py -q -p no:cacheprovider
+```
+
+Use the locked Python/Node setup in [tools/checks](../../tools/checks/README.md).
+If reusing an existing environment, ensure its imports resolve to this review
+checkout (root, `apps/api`, `packages`), not an older editable installation.
+Do not commit the dependency overlays as part of this handoff PR.
+
+#69 now preserves external cancellation even when a cooperative transport
+swallows it; it cannot become PASS or an ordinary model failure. #70 adds
+synthetic proposal-latency arithmetic with wait-union exclusion and p50/p95.
+An independent AI-assisted review found an ambient Decimal-context precision
+problem; the final code uses context-independent integer half-even arithmetic
+and a regression test. This review is not A's non-author acceptance.
+
+Each individual PR was verified on its own exact source plus the committed
+three-file delta, using the locked Python 3.12.7/Node 24 environment:
+
+- #69: 29 focused Risk tests within 157 contract tests.
+- #70: 44 focused evaluation tests within 172 contract tests.
+- Both: `pip check`, 6/6 static groups, 12 checker and 7 tool regressions,
+  14 Mermaid blocks, 64 synthetic-order, 244 security and 36 records tests.
+
+The exact local receipts are `oct17-c2-6qikeq3c` and `oct17-e09-lao6bqij`,
+both at 08:21:37–08:21:51 UTC on 17 October; source hashes were unchanged
+during testing. The focused counts are included in contract totals. These are
+not PG17, Linux attachment, installed-wheel, cloud CI, real model, Gold, runtime
+gate or human acceptance evidence. No required check is bypassed by `[skip ci]`.
+
+The reconstructed composite separately passed **244 contract tests** (including
+44 evaluation, 29 Risk and nine handoff tests), all six static groups and the
+same other suites listed above. The `oct17-composite-yuo5b9aw` receipt records
+08:23:16–08:23:32 UTC, exact 17-file overlays and unchanged source during that
+run; this explanatory paragraph was added afterwards. An additional final
+source/documentation rerun is retained with the published PR evidence.
+
+The [README A decision checklist](../../README.md#a-decision-checklist--reply-on-the-existing-prs)
+identifies exact corpus approval, model/retained-input handoff, measurement and
+private Gold protocol decisions, R.02/R.03 evidence and the later C3 boundary.
+Pending corpus remains rejected. This PR still does not duplicate dependencies
+or run standalone; keep it Draft until adoption and integrated-source reruns.
+The earlier same-day and 15 October receipts below retain their historical scope.
+
+## Earlier 17 October follow-up — historical reconstruction and receipt
 
 This branch now includes main
 `17042b4164a0be878c7a0684cf532217ebeb77ee` via merge `da8e7e6`.
@@ -50,7 +142,7 @@ Neither run includes PG17, supported-Linux attachment checks, installed-wheel
 probes, actual AI, Gold performance or human acceptance. Older Linux and CI
 receipts remain valid only for their own earlier source and are not re-labelled.
 
-## Review boundary
+## Historical 15 October review boundary
 
 **Draft: do not merge before its dependencies are reviewed and integrated.**
 This change publishes only README/review evidence and
@@ -112,7 +204,12 @@ Publication uses a `[skip ci]` commit to conserve the requested Actions budget;
 skipped or pending required checks are not passing checks and must not be
 bypassed for a merge. No workflow or protection setting is changed.
 
-## Reproduce in an isolated checkout
+## Historical 15 October reproduction only
+
+**The commands below deliberately retain the old 13-file/212-test snapshot.**
+For today's 17-file/244-test source, use the
+[current reconstruction](#current-isolated-reconstruction) above, not this
+historical restore list or baseline.
 
 Start from a checkout of **this handoff commit** with a clean index. Do not
 overlay candidate files onto another member's working directory. The following
