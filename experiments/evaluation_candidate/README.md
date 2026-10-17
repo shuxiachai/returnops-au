@@ -11,7 +11,125 @@ The [fixed evaluation protocol](../../docs/00-project-definition-v1.md),
 [allocation](../../docs/07-frozen-work-allocation.md) and
 [E.01/E.09 dependencies](../../docs/08-delivery-work-packages.md) remain authoritative.
 
-**C's latest completed increment — 17 October:** quality-judgment accounting,
+## Latest independent increment — runnable evidence and human-time accounting
+
+C has added a single-command public synthetic evidence bundle and a separate
+local human-time import/statistics command. Both reuse the existing accounting
+modules; neither invokes a real model, reads Gold, authenticates a person or
+completes a delivery gate. The commands and boundaries are below. This is C's
+independently implementable tooling, not a substitute for E.01 agreement,
+E.02 sealing, actual A/B timed work, R.03 integration or E.12 formal evaluation.
+
+Local verification: **135 evaluation tests within 263 contract tests** pass,
+including 20 evidence-command and 27 human-timing tests. The locked local run
+also passed six static groups, 12 checker/seven tool tests, 14 Mermaid blocks,
+64 synthetic-order, 244 security and 36 records tests. Counts overlap.
+Receipt `oct17-e09-6hqsnljg` records parent `4986274` plus six exact file hashes,
+unchanged during 09:11:17–09:11:32 UTC on 17 October. This results paragraph was
+added afterwards; final-source verification is retained with the PR. Independent
+AI-assisted review corrected a toy fixture's initially incomplete claim inventory
+and added a regression; that review is not A's acceptance. No cloud Actions,
+live model, database, Gold or actual human timing was used.
+
+### Run the complete offline evidence rehearsal
+
+From a Git source checkout, with Python 3.12 and Git available, on macOS/Linux:
+
+```bash
+scratch="$(mktemp -d)"
+scratch="$(cd "$scratch" && pwd -P)"
+python -B -m experiments.evaluation_candidate.evidence --output-dir "$scratch/evidence"
+```
+
+Keep output **outside the checkout**. The destination must be new; its parent
+must already exist, and all path components must be physical directories,
+not symlinks. The second line resolves macOS temporary-directory aliases.
+The command uses only Python stdlib, the tracked evaluation modules and local
+read-only Git commands. It needs no application installation, `.env`, provider
+key, database, corpus download or network access. It does not replace the
+repository's existing `python tools/checks/run.py offline` test entrypoint.
+
+The fixed five invented cases cover an available response, unknown semantic
+judgments, adapter failure, conflicting sources and malformed output. Both
+stub configurations actually call `run_stub_cases`. Quality evidence comes
+from the **same invocation**, bound to input/risk/rich-output hashes; a failed
+or invalid runner result cannot be filled with a separate successful example.
+Predefined fixture annotations are bound before execution. Changing output
+does not automatically rebind the old positive judgments. These controls test
+consistency, not truth or the real multi-agent architecture.
+
+The new directory contains 13 JSON files: inputs and fixture expectations;
+source/environment manifests; B1/B4 raw structured runner outputs; bound quality
+evidence; explicitly synthetic latency events; losslessly encoded paired
+manifests; metric/error summaries; a reproducible-content manifest; actual
+creation metadata; and a file-hash index. `manifest.json`'s `content_id` identifies
+the deterministic content for the same exact source, environment and working-tree
+state. `creation.json` records actual bundle creation time separately; it is
+excluded from that ID and is **not a seal**. `index.json` hashes every other file.
+Source identity includes actual module hashes and whether they match Git HEAD;
+a dirty source is disclosed, not silently described as a clean commit.
+
+Intentional failures remain in all five-case denominators. Unknown tokens,
+costs and semantic judgments remain unknown, not zero. Latency is declared
+fixture arithmetic, **not observed proposal or model latency**. Different B1/B4
+toy outputs do not establish an improvement in real performance. Publication
+uses a private staging directory and atomic no-replace rename on macOS/Linux;
+existing destinations are never overwritten. A supported atomic primitive is
+required; there is no unsafe overwrite fallback. No permission-sandbox,
+crash-durability, human-review or acceptance claim is made.
+
+### Validate and summarize human-time records locally
+
+The checked-in example is explicitly invented, not a record of A/B working:
+
+```bash
+# Reuse the external scratch directory above, or create a new one first.
+python -B -m experiments.evaluation_candidate.human_timing \
+  --input experiments/evaluation_candidate/data/human_timing_example.json \
+  --output "$scratch/human-time-example.json"
+```
+
+Its expected active seconds are A `[60, 120, 180]` and B `[90, 150, 210]`.
+Median/IQR are A `120/60`, B `150/60`, pooled `135/75`; pooled Q1/Q3 are
+`97.5/172.5`. The two overlapping invented waits for B's last case are removed
+once as a 30-second union, not twice. These numbers verify arithmetic only.
+Example input metadata hashes the compact three-ID list; the corpus marker
+hashes the literal bytes `PUBLIC_SYNTHETIC_TIMING_EXAMPLE_NO_CORPUS`.
+Neither marker identifies an admitted corpus or the formal study input set.
+
+[`human_timing.py`](human_timing.py)'s docstring defines the exact import schema.
+It requires two distinct fixed A/B permutations of the same 2–100 unique IDs,
+source-version/hash references and explicit per-case timestamps/status/pauses.
+The bounds (2 MiB, at most 400 rows, 100 pauses per row, a 24-hour case interval)
+are technical import limits, **not new course requirements**. The same-operator
+wall-overlap and chronological-order checks are conservative validation rules;
+they do not claim A has accepted a new timing protocol. A and B may work
+concurrently with each other.
+
+Active time includes reading, checking, thinking and writing. Only recorded
+customer/provider/Founder/physical waits are excluded by interval union; there
+is no generic break exemption. Break handling still needs E.01 agreement.
+Missing, duplicate, malformed and failed cases stay in the expected denominator
+of `N` per operator / `2N` pooled. Measured failed partial time is retained but
+never mixed into completed-case quartiles. Empty statistics are null, not zero.
+Median/Q1/Q3/IQR use inclusive Type-7 interpolation with microsecond half-even
+rounding, sample count and coverage. Extra rows and unknown IDs remain visible.
+
+For a future authorised import, place records and output in approved **private
+storage outside this public checkout**, select `PRIVATE_STUDENT_TIMING_RECORDS`
+and explicitly provide `--input` and a new `--output` path. The command refuses
+existing output, symlinks/nonregular input, duplicate JSON keys, NaN and oversized
+data; it creates a 0600 report and prints no record contents. Reports retain IDs,
+counts, pins and derived statistics, not pause reasons or timestamps. Declared
+pins are not authenticated against external files. The schema accepts neither
+answers nor Gold. It verifies no identity, participation, blindness, seal,
+source approval, answer quality, omissions or E.08 acceptance; those require
+the original private records and review sequence. Do not publish real timing
+input/output simply because this program can process it.
+
+## Earlier 17 October increment — historical verification
+
+Quality-judgment accounting,
 paired B1/B4 evidence-consistency validation, their 44 new regression tests,
 and the blank private-timing record format below are implemented. All **88
 evaluation tests** pass within **216 contract tests** on this individual PR
