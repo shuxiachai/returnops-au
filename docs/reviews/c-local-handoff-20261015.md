@@ -8,7 +8,7 @@ preparation, not formal evaluation completion.
 ## Latest 17 October follow-up — independent preparation and A decisions
 
 The latest reconstruction uses the same main `17042b4` and the following
-**17 dependency files**. Use a clean disposable worktree, not a teammate's
+**21 dependency files**. Use a clean disposable worktree, not a teammate's
 checkout. Fetch the PR refs, verify the full commits exist, then restore only
 these paths with `git restore --worktree --source <full SHA> -- <paths>`:
 
@@ -16,7 +16,7 @@ these paths with `git restore --worktree --source <full SHA> -- <paths>`:
 | --- | --- |
 | #68 `af44d6e02cf479e94b695ee85a8b823540974bf7` | `experiments/c1_grounding_candidate/admission.py`; its `candidates/accc-20261012/README.md`, `admission-manifest.json`, `corpus.json`; `tests/contracts/test_c1_corpus_admission.py` |
 | #69 `cfda3a1d7b96e5cd973faff30739f11c57fe0850` | `experiments/c2_risk_candidate/README.md`, `__init__.py`, `reviewer.py`; `tests/contracts/test_c2_risk_preparation.py` |
-| #70 `6bc62d6e91cb0ff9b4102b4eab45ac0f682b93c5` | `experiments/evaluation_candidate/README.md`, `__init__.py`, `scoring.py`, `runner.py`, `latency.py`; `tests/contracts/test_evaluation_preparation.py`, `test_evaluation_runner.py`, `test_evaluation_latency.py` |
+| #70 `4986274794cef734c09d0364f1e26c5dbb240cea` | `experiments/evaluation_candidate/README.md`, `__init__.py`, `scoring.py`, `runner.py`, `latency.py`, `quality.py`, `reproducibility.py`; `tests/contracts/test_evaluation_preparation.py`, `test_evaluation_runner.py`, `test_evaluation_latency.py`, `test_evaluation_quality.py`, `test_evaluation_reproducibility.py` |
 
 ### Current isolated reconstruction
 
@@ -28,7 +28,7 @@ they do not merge their branches or approve their content.
 git fetch origin pull/68/head pull/69/head pull/70/head
 git cat-file -e af44d6e02cf479e94b695ee85a8b823540974bf7^{commit}
 git cat-file -e cfda3a1d7b96e5cd973faff30739f11c57fe0850^{commit}
-git cat-file -e 6bc62d6e91cb0ff9b4102b4eab45ac0f682b93c5^{commit}
+git cat-file -e 4986274794cef734c09d0364f1e26c5dbb240cea^{commit}
 c_review_dir=$(mktemp -d "${TMPDIR:-/tmp}/returnops-c-review.XXXXXX")
 git worktree add --detach "$c_review_dir/repo" HEAD
 cd "$c_review_dir/repo"
@@ -43,15 +43,19 @@ git restore --worktree --source cfda3a1d7b96e5cd973faff30739f11c57fe0850 -- \
   experiments/c2_risk_candidate/__init__.py \
   experiments/c2_risk_candidate/reviewer.py \
   tests/contracts/test_c2_risk_preparation.py
-git restore --worktree --source 6bc62d6e91cb0ff9b4102b4eab45ac0f682b93c5 -- \
+git restore --worktree --source 4986274794cef734c09d0364f1e26c5dbb240cea -- \
   experiments/evaluation_candidate/README.md \
   experiments/evaluation_candidate/__init__.py \
   experiments/evaluation_candidate/scoring.py \
   experiments/evaluation_candidate/runner.py \
   experiments/evaluation_candidate/latency.py \
+  experiments/evaluation_candidate/quality.py \
+  experiments/evaluation_candidate/reproducibility.py \
   tests/contracts/test_evaluation_preparation.py \
   tests/contracts/test_evaluation_runner.py \
-  tests/contracts/test_evaluation_latency.py
+  tests/contracts/test_evaluation_latency.py \
+  tests/contracts/test_evaluation_quality.py \
+  tests/contracts/test_evaluation_reproducibility.py
 python -B tools/checks/run.py offline --baseline-ref 17042b4164a0be878c7a0684cf532217ebeb77ee
 python -B -m pytest tests/security -q -p no:cacheprovider
 python -B -m pytest tests/storage/test_records.py -q -p no:cacheprovider
@@ -62,7 +66,46 @@ If reusing an existing environment, ensure its imports resolve to this review
 checkout (root, `apps/api`, `packages`), not an older editable installation.
 Do not commit the dependency overlays as part of this handoff PR.
 
-#69 now preserves external cancellation even when a cooperative transport
+### Current quality/pair increment — source and verification
+
+#70 at `4986274` adds pure accounting over supplied, exact-output-bound semantic
+judgments and a paired synthetic evidence consistency validator. No caller's
+judgment, hash, matching manifest or declared model is treated as authenticated
+review, historical freeze, actual execution or acceptance. Independent
+AI-assisted review found that the first paired validator rejected a runner's
+valid FAILED observation when its adapter error code was also retained. The
+final implementation and actual-runner regression preserve both pieces of
+evidence. This code review is not A's acceptance.
+
+The individual #70 source passed **88 evaluation tests within 216 contract
+tests**, six static groups, 12 checker/seven tool regressions, 14 Mermaid blocks,
+64 synthetic-order, 244 security and 36 records tests. Initial receipt
+`oct17-e09-e2l5er98` records parent `6bc62d6` plus five file hashes, unchanged
+during the 08:48:00–08:48:14 UTC run. Final documentation/source rerun
+`oct17-e09-5ionikd_` also passed all four commands with unchanged source; its
+five hashes match the committed `4986274` tree. No C1/C2 overlays were used for
+that individual-PR verification. The new 44 tests are included, not additive.
+
+[C's timing request](https://github.com/shuxiachai/returnops-au/pull/79#issuecomment-6231875735)
+asks A/B for 18–19 October Sydney availability. Lucas confirmed both days;
+A/B responses and an actual booking are pending. The component README holds a
+blank private record format and the original seal/blind/lock/review ordering.
+No real Gold labels, timing answers, seal, human action or signature is created.
+
+The exact 21-file composite separately passed **288 contract tests**, including
+the 88 evaluation, 29 Risk and nine handoff tests, plus the same six static
+groups and other suites listed above. Receipt `oct17-composite-p5vjyvwz` records
+the unchanged source/overlay hashes; this count paragraph was added afterwards
+and the final source/documentation rerun is retained with the PR publication.
+It remains a reconstruction, not standalone #79 or adopted runtime. No PG17,
+real LLM, formal performance, Gate, Jira Done or merge is implied.
+
+### Earlier same-day 17-file increment — historical source and results
+
+The following describes #69 `cfda3a1` and #70 `6bc62d6`, before the quality/pair
+addition above; its 17-file counts and receipts remain historical evidence.
+
+#69 preserves external cancellation even when a cooperative transport
 swallows it; it cannot become PASS or an ordinary model failure. #70 adds
 synthetic proposal-latency arithmetic with wait-union exclusion and p50/p95.
 An independent AI-assisted review found an ambient Decimal-context precision
@@ -207,7 +250,7 @@ bypassed for a merge. No workflow or protection setting is changed.
 ## Historical 15 October reproduction only
 
 **The commands below deliberately retain the old 13-file/212-test snapshot.**
-For today's 17-file/244-test source, use the
+For the latest exact-source reconstruction, use the
 [current reconstruction](#current-isolated-reconstruction) above, not this
 historical restore list or baseline.
 

@@ -25,19 +25,30 @@ below describe their original snapshots, not today's completion status.
   [#70](https://github.com/shuxiachai/returnops-au/pull/70) still await A's review;
   [#79](https://github.com/shuxiachai/returnops-au/pull/79) remains a dependent
   Draft, not a standalone or merge-ready implementation.
-- **New C work:** #70 at `6bc62d6` adds proposal-latency accounting to the
-  existing bounded synthetic runner/scorer: UTC event validation, human/physical
-  wait-union subtraction, deterministic p50/p95 and explicit missing/failure
-  denominators. #69 at `cfda3a1` fixes Risk caller cancellation being suppressed
-  by a transport and mistaken for a completed review. Both use invented local
-  fixtures; no Gold labels, timed answers or live-model results are introduced.
-- **Independent-PR local verification:** #70 passes 44 focused evaluation tests
-  within 172 contract tests; #69 passes 29 focused Risk tests within 157
-  contract tests. Both also pass 6/6 static groups, 244 security and 36 records
-  tests. These counts are overlapping suites, not numbers to add together.
+- **New C work:** #70 at `4986274` adds quality-judgment accounting and paired
+  B1/B4 evidence-consistency validation to the existing synthetic runner/scorer
+  and proposal-latency module. It covers fixed-class Macro-F1, field/component
+  correctness, follow-ups, citations, fabrication and recommendation accounting;
+  semantic judgments must be supplied and bound to exact output bytes. Missing
+  evidence stays unknown. Pair checks pin inputs, model/settings, source and
+  artifact/output bytes; consistency is not proof of an actual model run.
+  [C's component README](https://github.com/shuxiachai/returnops-au/blob/4986274794cef734c09d0364f1e26c5dbb240cea/experiments/evaluation_candidate/README.md)
+  contains the APIs, formulas, tests and blank private-timing format. No Gold
+  labels, timed answers or live-model results are introduced.
+- **Independent-PR local verification:** #70 now passes 88 focused evaluation
+  tests within 216 contract tests. The earlier unchanged #69 at `cfda3a1`
+  passed 29 focused Risk tests within 157 contract tests, including the caller
+  cancellation correction. Both individual checks also passed 6/6 static
+  groups, 244 security and 36 records tests. Counts overlap; do not add them.
   The [reconstruction and evidence](docs/reviews/c-local-handoff-20261015.md)
   separate individual PR source from dependency-composite checks and retain
-  historical results. No cloud CI or PG17/live-model result is implied.
+  historical results. The separate 21-file dependency reconstruction passed
+  288 contract tests (including the 88 evaluation tests) and the same remaining
+  local suites. No cloud CI or PG17/live-model result is implied.
+- **Scheduling:** [C has asked A/B for two Sydney-time windows on 18–19 October](https://github.com/shuxiachai/returnops-au/pull/79#issuecomment-6231875735).
+  Lucas confirmed availability on both days; A/B responses and the final booking
+  remain pending. Independent 20-case timing and a proposed 45–60 minute joint
+  troubleshooting session are separate activities, not completed acceptance.
 - **A/B updates:** B has pushed further fixes to
   [#60](https://github.com/shuxiachai/returnops-au/pull/60); it is not merged.
   [C's route-collision feedback](https://github.com/shuxiachai/returnops-au/pull/78#issuecomment-6210008364)
@@ -73,15 +84,15 @@ These are handoff questions, not a new task board or changes to WBS ownership.
 | 4. Integrated source / [#78](https://github.com/shuxiachai/returnops-au/pull/78) and this [#79](https://github.com/shuxiachai/returnops-au/pull/79) | Reply to the route-collision finding; provide the exact integrated commit and R.02 fixed-proposal safety-chain evidence/entry point once ready. Agree the order for adopting #68/#69/#70 before #79. | Reproduce the approved source, verify real C1/C2 handoffs and then run the actual R.03 pilot once A1.08 and all original conditions hold. Keep #79 Draft meanwhile. |
 | 5. C3 / KAN-26 | After R.03, provide the accepted text-pilot record and authorized attachment-reference/model-input boundary, with the original F.04/F.07 conditions. | Implement image observations, uncertainty/conflict/injection tests and integrated demonstration; ordinary upload remains separate from image analysis. |
 
-**Planning estimate for C's Stage 2 work: about 60% remains (rough range
-55–65%).** This estimates remaining implementation, integration, evaluation and
-delivery effort, not course marks, actual authorship share, elapsed hours or a
-percentage derived from passing tests/PR counts. C1 has substantial offline
-implementation, C2 has a stub-tested boundary, evaluation has preparation only,
-and C3 plus the shared runtime/acceptance evidence remain outstanding. One
-runner or reliability increment does not make those delivery obligations complete. Jira is
-still the workflow record; this dated handoff does not change card states or
-declare any item Done.
+**Earlier planning estimate, retained as history:** about 60% remaining
+(55–65%) was a coarse implementation/integration/evaluation/delivery estimate,
+not measured completion, marks, authorship or elapsed time. Do not reuse it as a
+fresh measured percentage or reduce it by counting tests. The quality/pair tools
+and timing preparation above are now implemented; the five concrete next steps
+still need their real inputs and acceptance. C1 has offline implementation, C2
+has a stub-tested boundary, evaluation has executable preparation, and C3 plus
+runtime/formal/human evidence remain outstanding. Jira remains the workflow
+record; this README records no card transition or Done claim.
 
 ## C draft review handoff — 2026-10-15
 
