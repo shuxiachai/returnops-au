@@ -36,6 +36,21 @@ never turn into `PASS`. A failure raises sanitised `RiskReviewError` separately
 from business outcomes; A maps it to the existing ErrorEnvelope/processing
 failure path. No exception text or input is logged here.
 
+### Cancellation correction — 17 October 2026
+
+Caller cancellation now remains cancellation even if a transport suppresses
+`CancelledError` and then returns a valid-looking PASS or raises an ordinary
+exception. No completed review is returned after such cancellation. Internal
+deadline expiry still produces the existing `MODEL_TIMEOUT`, not a fabricated
+business outcome. This preserves the independent review and failure boundary
+without changing a wire field, prompt version or A-owned runtime code.
+
+Regression coverage includes normally propagated caller cancellation, suppressed
+cancellation followed by a reply or exception, and internal deadline accounting.
+These are cooperative local stub tests. They do not sandbox arbitrary Python,
+stop a blocking transport, certify a live provider or replace A's post-await
+current-version checks and real model/data-flow approval.
+
 ## Adapter and integration contract
 
 - Supply an async `ModelInvocation → ModelReply` callable. Invocation has the

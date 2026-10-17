@@ -242,6 +242,40 @@ class RiskPreparationTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(str(caught.exception), code)
             self.assertIsNone(caught.exception.__context__)
 
+    async def assert_external_cancellation(self, behaviour):
+        entered = asyncio.Event()
+        calls = []
+
+        async def transport(invocation):
+            calls.append(invocation)
+            entered.set()
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                if behaviour == "propagate":
+                    raise
+                if behaviour == "raise":
+                    raise RuntimeError("private-provider-secret") from None
+                return ModelReply(json.dumps(analysis("PASS")), 0, 0)
+
+        task = asyncio.create_task(self.call(candidate=self.candidate(transport)))
+        await entered.wait()
+        task.cancel()
+        with self.assertRaises(asyncio.CancelledError) as caught:
+            await task
+        self.assertTrue(task.cancelled())
+        self.assertEqual(len(calls), 1)
+        self.assertIsNone(caught.exception.__context__)
+
+    async def test_external_cancellation_propagates_without_review(self):
+        await self.assert_external_cancellation("propagate")
+
+    async def test_swallowed_external_cancellation_cannot_return_pass(self):
+        await self.assert_external_cancellation("return")
+
+    async def test_swallowed_external_cancellation_cannot_be_model_failure(self):
+        await self.assert_external_cancellation("raise")
+
     async def test_duplicate_json_and_missing_usage_are_invalid(self):
         async def duplicate(_):
             return ModelReply('{"outcome":"PASS","outcome":"ESCALATE"}', 0, 0)
@@ -279,8 +313,12 @@ class RiskPreparationTests(unittest.IsolatedAsyncioTestCase):
             except asyncio.CancelledError:
                 return ModelReply(json.dumps(analysis()), 0, 0)
 
-        with self.assertRaisesRegex(RiskReviewError, "MODEL_TIMEOUT"):
+        task = asyncio.current_task()
+        cancelling_before = task.cancelling()
+        with self.assertRaisesRegex(RiskReviewError, "MODEL_TIMEOUT") as caught:
             await self.call(candidate=self.candidate(swallowed, timeout_seconds=0.01))
+        self.assertEqual(task.cancelling(), cancelling_before)
+        self.assertIsNone(caught.exception.__context__)
 
     async def test_invalid_or_reverse_clock_is_rejected(self):
         for stamps in (("2000-01-01T00:00:00Z",),

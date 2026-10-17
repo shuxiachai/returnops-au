@@ -285,6 +285,8 @@ class RiskReviewerCandidate:
         invocation = ModelInvocation(SYSTEM_PROMPT, _encode(request), PROMPT_VERSION,
                                      self._provider_id, self._model_id, self._timeout)
         error_code = None
+        task = asyncio.current_task()
+        cancelling_before = task.cancelling()
         began = monotonic()
         try:
             reply = await asyncio.wait_for(self._transport(invocation), timeout=self._timeout)
@@ -292,6 +294,11 @@ class RiskReviewerCandidate:
             error_code = "MODEL_TIMEOUT"
         except Exception:
             error_code = "MODEL_FAILURE"
+        # wait_for restores its own deadline cancellation count. Caller
+        # cancellation must still propagate if the transport swallowed it,
+        # whether it then returned a reply or raised an ordinary exception.
+        if task.cancelling() > cancelling_before:
+            raise asyncio.CancelledError
         # Reject a late result even if a cooperative adapter swallowed cancellation.
         if monotonic() - began > self._timeout:
             error_code = "MODEL_TIMEOUT"
