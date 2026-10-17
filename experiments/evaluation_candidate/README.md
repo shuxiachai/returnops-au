@@ -10,6 +10,24 @@ Traceability: FR-002/006/007/008, NFR-001/005/009, AH-08, UC-02 and
 The [fixed evaluation protocol](../../docs/00-project-definition-v1.md),
 [allocation](../../docs/07-frozen-work-allocation.md) and
 [E.01/E.09 dependencies](../../docs/08-delivery-work-packages.md) remain authoritative.
+
+**C's latest completed increment — 17 October:** quality-judgment accounting,
+paired B1/B4 evidence-consistency validation, their 44 new regression tests,
+and the blank private-timing record format below are implemented. All **88
+evaluation tests** pass within **216 contract tests** on this individual PR
+source. The locked local run also passed six static groups, 12 checker and seven
+tool regressions, 14 Mermaid blocks, 64 synthetic-order, 244 security and 36
+records tests. Counts overlap; do not add focused tests to contract totals.
+An independent AI-assisted code review found and fixed the paired validator's
+handling of runner failure diagnostics; it does not replace A's acceptance.
+
+The actual local receipt `oct17-e09-e2l5er98` records parent `6bc62d6` plus five
+file hashes at 08:48:00–08:48:14 UTC; this explanatory paragraph was added after
+that run, and a final documentation/source check is retained with the PR.
+No cloud Actions, PG17, live model, Gold, human timing or gate result is claimed.
+E.01 approval, approved real adapters, sealed data, actual A/B sessions, R.03
+and E.12 remain pending; this is implemented preparation, not E.09 Done.
+
 The scorer performs no model, adapter, network, database or operation call.
 The runner described below invokes only an explicitly supplied synthetic test
 adapter; no real adapter or network client is supplied. Neither module is
@@ -27,6 +45,7 @@ handoff. The 20 timed cases remain a stratified subset of the 30, not new data.
 
 | Measurement | Proposed unit and denominator / review requirement |
 | --- | --- |
+| Classification | Freeze the supported class vocabulary and reference class before observing outputs. Report actual/predicted confusion counts and unavailable outputs separately; define absent-class F1 rather than silently averaging only represented classes. |
 | Mandatory information | Per-case relevant field IDs fixed by a reviewer before outputs. Required-field sets are conditional on the scenario; an order number or original packaging is not a universal requirement. True recall requires correctness against the retained source, not merely a field name being present. |
 | Unnecessary follow-up | Count individual requested information items judged unnecessary against the scenario guide / all requested items. Report no-question cases separately; zero denominator is null, not perfect performance. A must approve what counts as necessary and a distinct item. |
 | Critical fabrication | A source-unsupported assertion that could materially change recommendation, entitlement, evidence sufficiency or operational scope; examples include an invented purchase fact, defect observation or approval. Record count and case IDs; review severity against sources. An explicit unknown is not fabrication. No heuristic string test establishes truth. |
@@ -63,7 +82,9 @@ TN / all negative cases. Unavailable outcomes are separately counted and get
 neither TP nor TN credit; these named metrics are not mislabeled as a complete
 conventional confusion matrix. `required_field_id_coverage` checks IDs only,
 **not** field correctness or the project's mandatory-information recall target.
-The scorer does not score citations, recommendations or fabrication. Proposal
+That original scorer does not score citations, recommendations or fabrication;
+the separate annotation-accounting module below now covers their arithmetic.
+Proposal
 latency arithmetic is provided separately below; it is not the adapter's wall
 time and does not establish the authenticity of a timing event.
 
@@ -186,6 +207,123 @@ human/physical-wait events from the same run. This fixture shape is not a new
 shared API contract. The module must not replace F.06's authoritative metric
 definitions, a real B1/B4 adapter, R.03 or E.12. No labels or timed answers are
 collected here.
+
+## Quality accounting from supplied judgments — independent preparation
+
+[`score_stub_quality`](quality.py) adds the missing quality-metric **arithmetic**,
+not an automatic truth judge. It takes the explicit synthetic data role, a frozen
+`class_labels` vocabulary, separate expectations, observations and annotations.
+The complete input shapes/formulas are in its docstring, with invented examples
+in [`test_evaluation_quality.py`](../../tests/contracts/test_evaluation_quality.py).
+There are no model calls, source lookups, actual labels or personal approvals.
+
+Expectations fix case IDs, class, applicable field/component IDs and acceptable
+recommendations before scoring. Outputs contain the values/text as well as
+field, component, question, claim and claim-specific citation-use inventories.
+`observation_sha256` binds supplied judgments to the exact canonical output,
+not merely a reusable case/output ID. A changed output invalidates the old
+annotation; a matching digest still does not authenticate a reviewer or sources.
+The annotation's claim-inventory-complete judgment must cover all material
+assertions, including extracted facts, before citation/fabrication totals can
+be complete. Missing/null judgments remain unknown, not implicitly correct.
+
+| Metric | Accounting rule |
+| --- | --- |
+| Classification | Fixed-class confusion matrix with an `UNAVAILABLE` column. Missing/failed/invalid/duplicate outputs count as FN for the true class. Macro-F1 includes every frozen class; if a class has neither support nor predictions, its F1 and the macro are null, not silently omitted. |
+| Required-field correctness / packet completeness | All frozen applicable items stay in the denominator. Absent items are missing; present items need an explicit correctness judgment. Unknown items make the main value null; a clearly labelled confirmed lower bound and judgment coverage are separate. |
+| Unnecessary follow-up | Unnecessary requested items / all requested items, using supplied necessity judgments. Report no-question cases; zero denominator or incomplete review is null. |
+| Citations | Coverage counts claims needing citation that have at least one explicitly correct citation. Correctness counts correct claim-specific citation uses / all uses. URL/ID/hash validity alone never supplies semantic correctness. |
+| Critical fabrication | Count flagged claims once each and report affected case IDs. A zero known subtotal is not a zero total when output, claim inventory or judgments are incomplete. |
+| Recommendation | Membership in the predeclared acceptable set / all expected cases. Unavailable outputs get no credit; this is separate from Risk outcome agreement and not a legal correctness claim. |
+
+Missing/duplicate/invalid annotations cannot remove the case or improve its
+result. Extra/unidentifiable rows are exposed separately. Inputs are detached
+plain JSON, bounded to 2 MiB total and 100 entries per case list/inventory; this
+does not expand the formal 30-case plan. No metric produces a target/gate pass.
+The semantic definitions, class vocabulary, reference labels, actual review,
+live-output adaptation and formal freeze still need their original approvals.
+
+## Paired B1/B4 evidence consistency — independent preparation
+
+[`validate_stub_pair`](reproducibility.py) checks two **supplied synthetic**
+manifests. It does not execute them. The tests in
+[`test_evaluation_reproducibility.py`](../../tests/contracts/test_evaluation_reproducibility.py)
+provide complete invented examples; the module docstring defines the input
+shape. Its companion `canonical_stub_json_bytes` uses sorted compact UTF-8 JSON
+with finite numbers, not a claim to implement an external canonical-JSON standard.
+
+Each run supplies ordered `{case_id, input}` cases, dataset version/hash, exact
+underlying model/settings, timeout/no-retry settings, source commit, architecture
+declarations and versioned bytes/hashes for corpus, prompts, configuration,
+scorer and environment. Model/settings, ordered inputs, dataset/source and the
+shared corpus/scorer/environment pins must match across the pair. Architecture
+prompts/configurations may differ; both prohibit network and operation authority
+in this stub scope, and B1 declares no retrieval/review/gates. A B4 declaration is
+not proof of a working multi-agent system or deterministic runtime gate.
+
+Supplied artifact/output bytes are hashed, not accepted solely because a caller
+typed a valid-looking digest. Configuration bytes must match the declarations.
+Per-case result records bind structured observation bytes to the case and
+declared disposition; invalid B1 retrieval cannot be credited as successful.
+Missing, failed and invalid results remain counted. If raw bytes are unavailable,
+their digest remains null with the appropriate failure/absence record. These are
+retained structured observations, **not original provider-response evidence**.
+The receipt returns pins/counts/digests, not raw case text or output contents.
+
+Validation is bounded to 100 cases per run, 2 MiB per JSON/byte object and 4 MiB
+of paired evidence. These are technical fixture limits, not study-size changes.
+No files, network, credentials or environment variables are read. Hash agreement
+does not authenticate execution, source semantics, private sealing, identity,
+permission isolation or historical freeze; fabricated consistent fixtures also
+pass consistency checks. There is no automatic acceptance or quality claim.
+Live adapter integration and the original E.01/E.09/R.03/E.12 sequence remain.
+
+## Human timing and joint integration — C preparation, not a booking
+
+[The coordination request to A/B](https://github.com/shuxiachai/returnops-au/pull/79#issuecomment-6231875735)
+asks for two available Sydney-time windows on 18–19 October. Lucas has confirmed
+availability on both days; A/B's replies and the final booking remain pending.
+Availability does not establish E.01/E.02 readiness or a completed session.
+
+These are two separate activities:
+
+- **Independent human baseline:** A and B each process the same fixed 20-case
+  stratified subset of the 30, in different recorded random orders. They do not
+  collaborate on answers. Before either starts, E.01 and original dependencies
+  must hold; C must seal all 30 initial labels, sources and reasons, with input/
+  label versions, hashes and actual seal time. A checks only a no-answer receipt.
+  C must verify that seal before reading any timed answer, including as E.03's
+  reviewer. A/B receive the same inputs/orders/evidence/corpus, not labels.
+- **Joint integration:** a separately proposed 45–60 minute troubleshooting
+  window, not a promise to complete a gate in that time. A supplies exact
+  integrated source, startup entry and R.02 evidence/status; B brings the UI/API
+  entry and remaining defects; C brings retrieval/risk/evaluation candidates.
+  An interface discussion may happen earlier, but actual R.03 needs A1.08 and
+  its original prerequisites. Do not call an interface meeting a passed pilot.
+
+Copy the following **blank field checklist into approved private storage** when
+E.02 is ready. It is not a populated data set, signature or sealing receipt:
+
+| Record | Fields to collect privately; leave unavailable values blank |
+| --- | --- |
+| Session | Status (initially not started), operator, agreed time/timezone, input and corpus versions/hashes, fixed subset/order, no-answer seal-receipt reference, approved access restrictions |
+| Each case | Position and input ID; real start/end times; pause start/end and reason; active handling seconds; independent answer reference/hash; submission and lock time; interruption/deviation notes |
+| Completion | Actual Gold/other-answer exposure declaration and operator confirmation, only after the activity; immutable locked-output version/hash; do not preselect a successful declaration |
+
+Active handling includes reading, checking and writing the decision packet;
+pause simulated customer/provider/Founder/physical waiting and preserve reasons.
+Agree break handling in E.01 rather than silently deleting slow cases. A/B must
+produce their own timed work; software can prepare and check records, not
+fabricate their actions or elapsed time. No cross-answer access or Gold feedback
+until **both outputs are locked**. A must finish E.03 and wait for both locks
+before reading/reviewing B's E.04. Then retain E.05 label handoff → E.06 A review
+of all 30 → E.07 B arbitration → E.08 final freeze → scoring. Preserve initial
+labels and source-based revision reasons; do not adapt labels to timed answers.
+
+This repository is public. Only this empty format and the protocol belong here;
+Gold labels, timed answers and access-bearing links stay in the agreed private
+location. Hashes alone prove neither access control nor historical sealing.
+No actual session, seal, human review, contribution or Jira Done is asserted.
 
 ## Reproduce offline checks
 
