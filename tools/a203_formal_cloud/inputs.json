@@ -898,7 +898,8 @@
     "tools/model-checks/package.json": "d6169ef09c7dd9467257aae38e49c04497b190db4ec9955da101f4eff6460b46",
     "tools/model-checks/README.md": "ae9ca023e7858ce98764fa8f26c264ee627f9943b171a79fbacc4895bfcbfb7d",
     "tools/model-checks/test_check.py": "093bc55abe6e3fd97cee4ce35909742f1d55cfb45cf5af733e36c09da3b78421",
-    "tools/offline_fixed_proposal.py": "63850a1f0e518b122ddf2e85a0757fb483b7a5872eabbc41109da36204aa06c7"
+    "tools/offline_fixed_proposal.py": "63850a1f0e518b122ddf2e85a0757fb483b7a5872eabbc41109da36204aa06c7",
+    "tools/a203_formal_cloud/storage-release.json": "764659c4a636fe1fee905ba208a32581c3fb48b5642ebec4acc5857534aa46a7"
   },
   "runtime137": {
     "apps/api/returnops_api/__init__.py": "1d518b0c55dc4e3eee1bf16c0580530b35e4135fa86583f7e51c6e33e6d8ffde",

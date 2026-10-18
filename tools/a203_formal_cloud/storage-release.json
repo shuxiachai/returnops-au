@@ -1,0 +1,27 @@
+{
+  "format": 1,
+  "status": "PRIMARY_234_INDEPENDENT_PASS",
+  "repository": "shuxiachai/returnops-au",
+  "primary_branch": "test/81-a203-formal-20261018",
+  "primary_head": "ffb7e9703ee688dc4813272c941c15daa0bc82d7",
+  "primary_run_id": 39127000369,
+  "primary_run_attempt": 1,
+  "artifact_id": 12137077547,
+  "artifact_name": "a203-formal-primary-39127000369-1",
+  "artifact_digest": "sha256:f39883f0d94a6ef044bf9a00e7338f891c5a0b00d910fdd1a4e11eac43d89d97",
+  "core_freeze_sha256": "f772bf58edbd37b21c3c1d497334b140e30e8810c9d4dc157caf0183d0db123f",
+  "primary_selection_sha256": "8e412540ae72a9294b57f3dea5e51458248ccbc5ff3e4ff7156061b38110c0b0",
+  "primary_inputs_sha256": "b079f62b95633d94db84fd3f7f7ca276e23766a57eb39627798e4148dbc1fea7",
+  "final_seal_sha256": "cb74212dbc0aed28c9835366e0b7db1ffe50e09a656cfcf90379e46fb71d30d3",
+  "review": {
+    "status": "PASS",
+    "reviewer": "/root/shared_observer_fix_independent_review",
+    "authors": [
+      "/root/cloud_t2_diagnostic_impl",
+      "/root/formal_234_storage_verification",
+      "/root/formal_git_transport",
+      "/root"
+    ],
+    "review_record_sha256": "71b5a9bf62b813d5278acac440ab17e5872e1dc64f8b56588e8078fa9512066b"
+  }
+}
