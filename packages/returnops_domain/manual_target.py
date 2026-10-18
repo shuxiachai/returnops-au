@@ -47,7 +47,7 @@ def accepted_input(uow, head, intake_id, proof):
     return dict(work=work, fact=fact, receipt=receipt, origin=origin)
 
 
-def read_target(uow, head, state, request, component, *, original_state=None):
+def read_target(uow, head, state, request, component, *, original_state=None, consumer=None):
     """Return a seal of accepted facts, not an assertion supplied by the caller.
 
     The optional original state is internal precommit context. The original
@@ -55,9 +55,9 @@ def read_target(uow, head, state, request, component, *, original_state=None):
     """
     initial = state if original_state is None else original_state
     if 'proposal_id' in request:
-        from .review_sources import manual_proposal_target
-        return manual_proposal_target(uow,head,state,request,component,
-            accepted_version=None if original_state is None else head['case_version']-1)
+        from .pass_manual_sources import read_target as proposal_target
+        return proposal_target(uow, head, state, request, component,
+            original_state=original_state, consumer=consumer)
     lookup = uow.execute(select(investigation.state).where(
         investigation.state.c.case_id == head['case_id'])).mappings().one_or_none()
     block_id = None if lookup is None else lookup['current_block_id']

@@ -6,7 +6,7 @@ from .customer_uow import CustomerUnitOfWork
 from .errors import AcceptanceOutcomeUnknown
 from .lifecycle_sources import authority
 from .lifecycle_state import reject
-from .lifecycle_schema import version, CURRENT
+from .lifecycle_schema import version, APPROVAL_VERSIONS
 from .pass_review_sources import COMPONENT
 
 DENIAL_CODES=frozenset({'INVALID_STATE','STALE_CASE_VERSION','FORBIDDEN','NOT_FOUND',
@@ -14,7 +14,7 @@ DENIAL_CODES=frozenset({'INVALID_STATE','STALE_CASE_VERSION','FORBIDDEN','NOT_FO
 
 
 def authorize(uow,case_id):
-    if version(uow.connection)!=CURRENT:
+    if version(uow.connection)not in APPROVAL_VERSIONS:
         reject(uow)
     head=uow.execute(select(old.case_heads).where(old.case_heads.c.case_id==case_id).with_for_update()).mappings().one_or_none()
     if head is None or not head['available']:

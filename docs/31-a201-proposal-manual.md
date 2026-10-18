@@ -1,5 +1,12 @@
 # Private controlled ESCALATE review and proposal manual handling
 
+The [Issue 64 extension](36-a201-pass-manual.md) also prepares MANUAL_HANDLING
+for actual accepted PASS/PASS_WITH_WARNING reviews at AWAITING_APPROVAL. Modern
+proposal admission and replay now select REVIEW or REVIEW_PASS from the durable
+review event, with full original decision/notification proof. The ESCALATE
+source family, no-proposal path and historical test results below retain their
+scope; this paragraph does not turn those earlier runs into PASS manual tests.
+
 This local candidate implements two separate explicit transactions. A private
 receiver accepts a controlled synthetic ESCALATE review of the complete retained
 accepted proposal and enters ESCALATED. A subsequent Founder request validated

@@ -16,9 +16,9 @@ def project(uow, head, result):
         referenced={citation['passage_id'] for citation in packet['citations']}
         result['cited_passages']=[passage for passage in bundle['retrieval_result']['passages'] if passage['passage_id'] in referenced]
     if state['review_record_id'] is not None:
-        from .lifecycle_schema import version, CURRENT, LEGACY
+        from .lifecycle_schema import version, APPROVAL_VERSIONS, LEGACY
         schema=version(uow.connection)
-        if schema==CURRENT:
+        if schema in APPROVAL_VERSIONS:
             # Dispatch by immutable origin AND persisted event/work identity.
             # Outcome text is untrusted until the selected full proof passes.
             from .manual_target import one

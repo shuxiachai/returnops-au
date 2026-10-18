@@ -61,7 +61,13 @@ It accepts no preview or a fully proven valid/expired current preview, consumes
 only the exact tail and clears current proposal/review/preview/approval refs
 while stopping at POLICY_ASSESSMENT. It does not require PREVIEW or APPROVAL
 grants and does not produce an approval, execution intent, outcome or notice.
-AWAITING_APPROVAL manual handling remains unavailable. This extension's RVP
+The [Issue 64 PASS manual extension](36-a201-pass-manual.md) now prepares the
+existing private MANUAL_HANDLING entry at AWAITING_APPROVAL. It accepts no
+preview or a fully proved current preview at, before or after expiry, consumes
+the exact tail, clears preview/approval pointers and stops with MANUAL_HANDLED
+outcome and NOTIFICATION_PENDING status. It requires HUMAN Founder and OUTCOME
+authority and creates only the stable unclaimed pending notification intent.
+Its prepared tests and later execution evidence are separate. The revision extension's RVP
 cloud tests and independent review are separate from the earlier AP evidence;
 this text does not claim an executed PostgreSQL result.
 

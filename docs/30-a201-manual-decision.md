@@ -1,5 +1,10 @@
 # A2.01 private no-proposal manual component
 
+The [Issue 64 PASS manual extension](36-a201-pass-manual.md) adds the accepted
+PASS/PASS_WITH_WARNING proposal route to the same private service. Its current
+implementation and verification boundary are recorded separately. The original
+no-proposal flow and historical results below retain their actual scope.
+
 Local candidate for technical Issue [44](https://github.com/shuxiachai/returnops-au/issues/44),
 based on main `32ad419d7f0f51e0f390ef80b9b6974cb88270ee`. This document describes
 the private component and its verification boundary; it is not whole A2.01 or
