@@ -85,7 +85,14 @@ def test_0006_backfills_legacy_future_metadata_without_business_rewrites(flow_en
         'core_mock_label_ledger', 'label_provider_permissions',
         'lifecycle_label_artifact_work', 'lifecycle_label_execution_controls',
     }
-    added = {**lifecycle.metadata.tables, **preview.metadata.tables, **execution_preparation_tables.metadata.tables,
+    from returnops_domain import label_artifact_tables
+    artifact_added = label_artifact_tables.metadata.tables
+    assert set(artifact_added) == {
+        'label_artifact_permissions', 'lifecycle_label_artifact_controls',
+        'lifecycle_label_artifact_claims', 'generated_label_artifacts',
+        'generated_label_artifact_contents',
+    }
+    added = {**artifact_added, **lifecycle.metadata.tables, **preview.metadata.tables, **execution_preparation_tables.metadata.tables,
              **return_execution_tables.metadata.tables, **label_added}
     assert {name:value for name,value in after.items() if name not in added} == before
     assert set(after)-set(before) == set(added)

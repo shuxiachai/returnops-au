@@ -1,0 +1,70 @@
+name: A203 T2 single diagnostic
+
+on:
+  push:
+    branches: [diag/a203-t2-cloud-20261018]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a203-t2-diagnostic-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  diagnostic:
+    if: github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUTF8: '1'
+    services:
+      postgres:
+        image: postgres:17-bookworm@sha256:051f7b7b3abdd564d5d1bd1e8c4b9c1b6e77087d1dd22020ede611c096a272e0
+        env:
+          POSTGRES_USER: returnops_ci
+          POSTGRES_PASSWORD: ci_a203_diagnostic_synthetic_only
+          POSTGRES_DB: returnops_f02_a203_artifact_diag_v05_20261018
+        ports:
+          - 55433:5432
+        options: >-
+          --health-cmd "pg_isready -U returnops_ci -d returnops_f02_a203_artifact_diag_v05_20261018"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        env:
+          GIT_CONFIG_COUNT: '1'
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: 'false'
+        with:
+          path: checkout
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Install locked dependencies only
+        working-directory: checkout
+        run: python -m pip install --require-hashes -r requirements-dev.lock
+      - name: Build prove admit collect and run the fixed diagnostic once
+        env:
+          DIAGNOSTIC_PASSWORD: ci_a203_diagnostic_synthetic_only
+          DIAGNOSTIC_SERVICE_ID: ${{ job.services.postgres.id }}
+          DIAGNOSTIC_SERVICE_PORT: ${{ job.services.postgres.ports[5432] }}
+          DIAGNOSTIC_SERVICE_IMAGE: postgres:17-bookworm@sha256:051f7b7b3abdd564d5d1bd1e8c4b9c1b6e77087d1dd22020ede611c096a272e0
+        run: python -B checkout/tools/a203_t2_cloud/runner.py
+      - name: Export only already written safe observations without SQL
+        if: always()
+        run: python -B checkout/tools/a203_t2_cloud/export_safe.py
+      - name: Retain safe diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: a203-t2-${{ github.run_id }}-${{ github.run_attempt }}
+          path: diagnostic/safe-artifacts/*.json
+          if-no-files-found: error
+          retention-days: 7
+          overwrite: false
+          include-hidden-files: false

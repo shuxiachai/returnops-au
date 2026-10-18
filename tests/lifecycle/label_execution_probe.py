@@ -30,9 +30,15 @@ def main():
         path=Path(importlib.import_module(name).__file__).resolve();assert path.is_relative_to(installed)
         hashes[name]=sha256(path.read_bytes()).hexdigest()
     url=make_url(os.environ['DATABASE_URL'])
-    assert url.host=='127.0.0.1' and url.port==55433 and url.database=='returnops_f02_a203_label_main_20261016'
-    assert os.environ['LABEL_DATABASE_NAME']==url.database
-    expected_oid=int(os.environ['LABEL_DATABASE_OID']);assert expected_oid>0
+    assert url.host=='127.0.0.1' and url.port==55433
+    if 'ARTIFACT_DATABASE_NAME' in os.environ:
+        assert url.database==os.environ['ARTIFACT_DATABASE_NAME']
+        assert url.database in ('returnops_f02_a203_artifact_20261016','returnops_f02_a203_artifact_v02_20261016','returnops_f02_a203_artifact_v04_20261018')
+        expected_oid=int(os.environ['ARTIFACT_DATABASE_OID'])
+    else:
+        assert url.database==os.environ['LABEL_DATABASE_NAME']=='returnops_f02_a203_label_main_20261016'
+        expected_oid=int(os.environ['LABEL_DATABASE_OID'])
+    assert expected_oid>0
     engine=create_engine(url,hide_parameters=True,echo=False,
         connect_args={'connect_timeout':3,'options':'-c search_path='+config['schema']+' -c statement_timeout=15000'})
     def exact_database(connection,record):
