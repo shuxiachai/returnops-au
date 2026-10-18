@@ -43,6 +43,31 @@ def _cost(value):
     return amount
 
 
+def _cost_sum(values):
+    """Exactly sum _cost-validated amounts without ambient Decimal arithmetic.
+
+    Each amount is at most 1e9 with at most twelve fractional places. Keep
+    the finest supplied fractional scale, including trailing zeros, and emit
+    a plain decimal string. Skip zero coefficients BEFORE exponentiation:
+    valid scientific zeros can have arbitrarily large positive exponents.
+    """
+    parts = [value.as_tuple() for value in values]
+    exponent = min([0, *(part.exponent for part in parts)])
+    units = 0
+    for part in parts:
+        coefficient = 0
+        for digit in part.digits:
+            coefficient = coefficient * 10 + digit
+        if coefficient:
+            units += coefficient * 10 ** (part.exponent - exponent)
+    digits = str(units)
+    places = -exponent
+    if not places:
+        return digits
+    digits = digits.zfill(places + 1)
+    return digits[:-places] + "." + digits[-places:]
+
+
 def _observation(row, configuration):
     allowed = {"case_id", "status", "risk_outcome", "present_field_ids",
                "retrieved_passage_ids", "input_tokens", "output_tokens", "estimated_cost"}
@@ -142,13 +167,13 @@ def score_stub_run(*, configuration: str, data_role: str,
     for index, key in enumerate(("input_tokens", "output_tokens", "estimated_cost")):
         values = [item[index] for item in telemetry]
         known = [value for value in values if value is not None]
-        total = sum(known, Decimal("0") if index == 2 else 0)
+        total = _cost_sum(known) if index == 2 else sum(known)
         # An empty run is not evidence of zero consumption.
         complete = bool(values) and len(known) == len(values)
         usage[key] = {
             "known_case_count": len(known), "unknown_case_count": len(values) - len(known),
-            "known_subtotal": str(total) if index == 2 else total,
-            "total": (str(total) if index == 2 else total) if complete else None,
+            "known_subtotal": total,
+            "total": total if complete else None,
         }
 
     positives = sum(row["escalation_expected"] for row in expectations)

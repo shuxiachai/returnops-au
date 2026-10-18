@@ -11,7 +11,21 @@ The [fixed evaluation protocol](../../docs/00-project-definition-v1.md),
 [allocation](../../docs/07-frozen-work-allocation.md) and
 [E.01/E.09 dependencies](../../docs/08-delivery-work-packages.md) remain authoritative.
 
-## Latest independent increment — runnable evidence and human-time accounting
+## Review correction — 18 October 2026
+
+A's review found that known-cost addition could round or raise under a caller's
+Decimal context. Aggregation now uses integer coefficients and scale, preserving
+all validated fractional places without changing that context. Costs remain
+decimal strings; unknown costs remain unknown and prevent a complete total.
+Failed attempts retain known usage. Four regressions cover low precision,
+different rounding modes, traps, scientific zero, fractional bounds and mixed
+known/unknown observations. The earlier fixed five-case demo has null costs;
+this correction does not change its Gold/quality definitions or establish real
+model performance. Focused local checks pass 139 evaluation tests (including
+19 accounting tests); broader exact-source receipts accompany the PR update.
+This addresses the reported defect, not A's re-review or E.01 approval.
+
+## Independent increment — runnable evidence and human-time accounting (17 October)
 
 C has added a single-command public synthetic evidence bundle and a separate
 local human-time import/statistics command. Both reuse the existing accounting

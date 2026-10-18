@@ -1,5 +1,6 @@
 """Public invented scorer fixtures only; not Gold labels or model evaluation."""
 import copy
+from decimal import Inexact, Rounded, ROUND_DOWN, ROUND_FLOOR, ROUND_HALF_EVEN, ROUND_UP, localcontext
 import unittest
 
 from experiments.evaluation_candidate import DATA_ROLE, score_stub_run
@@ -78,6 +79,68 @@ class EvaluationPreparationTests(unittest.TestCase):
             self.assertEqual(report["usage_on_expected_cases"][key]["unknown_case_count"], 1)
         self.assertEqual(report["usage_on_expected_cases"]["input_tokens"]["known_subtotal"], 3)
         self.assertEqual(report["usage_on_expected_cases"]["estimated_cost"]["known_subtotal"], "0.10")
+
+    def test_cost_sum_is_exact_under_low_precision_rounding_and_traps(self):
+        expected = [reference("a"), reference("b")]
+        observed = [{**result(cid), "estimated_cost": "1.25"} for cid in ("a", "b")]
+        for precision in (1, 2, 28):
+            for rounding in (ROUND_DOWN, ROUND_UP, ROUND_FLOOR, ROUND_HALF_EVEN):
+                with self.subTest(precision=precision, rounding=rounding), localcontext() as context:
+                    context.prec, context.rounding = precision, rounding
+                    context.traps[Inexact] = context.traps[Rounded] = True
+                    context.clear_flags()
+                    usage = score(expected, observed)["usage_on_expected_cases"]["estimated_cost"]
+                    self.assertEqual(usage, {"known_case_count": 2, "unknown_case_count": 0,
+                                             "known_subtotal": "2.50", "total": "2.50"})
+                    self.assertFalse(any(context.flags.values()))
+                    self.assertEqual(context.prec, precision)
+                    self.assertEqual(context.rounding, rounding)
+
+    def test_cost_sum_keeps_bounds_fractional_precision_and_scientific_zero_safe(self):
+        examples = (
+            (["1000000000.000000000000", "1000000000.000000000000"], "2000000000.000000000000"),
+            (["0.000000000001", "0.000000000001", "0.000000000001"], "0.000000000003"),
+            (["1E+3", "2.5E-2", "7.5E-2"], "1000.100"),
+            (["0E+999999999999999999", "-0.000", "0E-12"], "0.000000000000"),
+            (["0E+999999999999999999", "1.25", "1.25"], "2.50"),
+            (["0E+999999999999999999"], "0"),
+        )
+        for costs, expected_sum in examples:
+            with self.subTest(costs=costs), localcontext() as context:
+                context.prec, context.Emin, context.Emax, context.capitals = 1, -1, 1, 0
+                for signal in context.traps:
+                    context.traps[signal] = True
+                context.clear_flags()
+                expected = [reference(str(i)) for i in range(len(costs))]
+                observed = [{**result(str(i)), "estimated_cost": cost} for i, cost in enumerate(costs)]
+                report = score(expected, observed)
+                self.assertEqual(report["dispositions"]["SUCCEEDED"], len(costs))
+                self.assertEqual(report["usage_on_expected_cases"]["estimated_cost"]["total"], expected_sum)
+                self.assertFalse(any(context.flags.values()))
+
+    def test_exact_known_cost_sum_does_not_fill_unknown_or_discard_failed_usage(self):
+        failed = {**result("b"), "status": "FAILED", "risk_outcome": None,
+                  "present_field_ids": [], "estimated_cost": "1.25"}
+        with localcontext() as context:
+            context.prec = 2
+            context.traps[Inexact] = context.traps[Rounded] = True
+            report = score([reference(cid) for cid in ("a", "b", "c")],
+                           [{**result("a"), "estimated_cost": "1.25"}, failed, result("c")])
+        self.assertEqual(report["usage_on_expected_cases"]["estimated_cost"], {
+            "known_case_count": 2, "unknown_case_count": 1, "known_subtotal": "2.50", "total": None})
+        self.assertEqual(report["dispositions"]["FAILED"], 1)
+        self.assertEqual(report["usage_on_expected_cases"]["input_tokens"]["known_subtotal"], 0)
+
+    def test_cost_validation_bounds_still_hold_when_aggregation_is_exact(self):
+        costs = ("1000000000.000000000001", "0E-13", "-0.000000000001", "1E999999999999999999")
+        for cost in costs:
+            with self.subTest(cost=cost), localcontext() as context:
+                context.prec = 1
+                context.traps[Inexact] = context.traps[Rounded] = True
+                report = score([reference()], [{**result(), "estimated_cost": cost}])
+                self.assertEqual(report["dispositions"]["INVALID"], 1)
+                self.assertEqual(report["usage_on_expected_cases"]["estimated_cost"], {
+                    "known_case_count": 0, "unknown_case_count": 1, "known_subtotal": "0", "total": None})
 
     def test_empty_denominators_are_null(self):
         report = score([], [])
