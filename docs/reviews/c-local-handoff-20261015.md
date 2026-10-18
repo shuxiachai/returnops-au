@@ -5,7 +5,67 @@ Tracking: [KAN-23](https://lucastaooo.atlassian.net/browse/KAN-23) (C1),
 [KAN-25](https://lucastaooo.atlassian.net/browse/KAN-25) is related evaluation
 preparation, not formal evaluation completion.
 
-## Latest 17 October follow-up — independent preparation and A decisions
+## Latest 18 October follow-up — review corrections and Linux checks
+
+A reviewed #68/#69 on 18 October and requested changes to #70's cost addition.
+The latter is corrected at `bacca6a74aee967fa80c74004833fdac0334a155`: validated
+decimal coefficients are summed as scaled integers, independent of ambient
+precision/rounding/traps. Unknowns stay unknown and failed usage is retained.
+Four regressions were added. Independent AI-assisted review additionally checked
+600 deterministic Fraction comparisons; this is not A's re-review or acceptance.
+
+#68 now incorporates main `17042b4164a0be878c7a0684cf532217ebeb77ee` at
+`e15394a05d253d1f5bcdb61aac4559c2a133d604`. Its README conflict is reconciled,
+preserving main's public-scope notice and C history. All non-README incoming A
+files are inherited unchanged from main, not newly authored C changes. The
+pending corpus/manifest bytes and loader are unchanged. A's no-new-P1/P2 static
+review is not corpus admission; fuller retrieval context remains C work, followed
+by genuine exact-byte review and a trusted integration pin.
+
+Host checks used the existing locked Python 3.12.7 / Node 24 setup:
+
+| Source / local receipt | Verified scope |
+| --- | --- |
+| #70 `bacca6a`; `e09-md9it7kp` | 267 contracts, including 139 evaluation tests; six static groups, 12 checker/seven tool tests, 14 Mermaid blocks, 64 synthetic-order, 244 security and 36 records tests. Receipt pins parent `db45f5f` plus the three changed file hashes matching `bacca6a`. |
+| #68 `e15394a`; `c1-x9r0gstl` | 162 contracts and the same other host suites. The focused C1 run also passed 70 tests/108 subtests before the merge commit. |
+| #79 parent `221adde` plus the 26 dependency files below; `composite-z123uc8p` | 339 contracts and the same other host suites. The new README/record update follows this run; final-document checks accompany publication. |
+
+Source/overlay hashes were unchanged during each recorded run. Counts overlap;
+none of these runs used a database, real LLM, formal Gold or real human timing.
+
+The **same 26-file composite** additionally ran `pytest tests/contracts
+tests/security tests/storage/test_records.py -q -p no:cacheprovider` on local
+Linux aarch64 / Python 3.12.14: **619 passed, 1579 subtests passed**. Docker used
+a read-only source/root filesystem, dropped capabilities, no new privileges,
+UID 501 and `--network none`; only temporary test files were writable. The local
+test image was derived from the existing C test image by installing Git during
+build (the build downloaded packages; the tests had no network). Image ID:
+`sha256:71669293a3ec1882ebc50ac418c05823616d366ed2ac4d30448760a2e16a550e`.
+This is component evidence, not the official deployment image or locked PG17
+Compose reproduction. Linux Node/Mermaid checks were not run.
+
+A separate clean clone of exact `bacca6a` ran the two evaluation commands on
+that Linux image with Python `-S` at 09:32:59–09:33:00 UTC. Both evidence runs
+produced content ID
+`cdedef5f787acc773dee267f1e1d79c7b8ac32d3807d21cad3b3822169c65508`
+and manifest SHA-256
+`2ad46558d7414993e3f7311cfdd0ed151086b04ab4eda7e37e5fb2e41f8cb789`.
+All 13 file hashes, private output permissions and clean source identity were
+checked. The invented timing example matched A `120/60`, B `150/60`, pooled
+`135/75` median/IQR seconds. Docker Desktop presented source mounts as root-owned,
+so this separate CLI check ran as container root with all capabilities dropped,
+read-only source/root, a dedicated output mount and no network. The first
+non-root CLI attempt stopped on source ownership/access; it is not counted as a
+successful run. No host Git trust settings were changed. No production non-root
+deployment, credential access, semantic performance or acceptance is inferred.
+
+A's #69 review confirms the preparation interface constraints, not provider
+configuration or live execution. #79 stays Draft and A/B scheduling has no
+confirmed slot. The [C README](../../README.md#c-follow-up--2026-10-18) separates
+independent work from approvals/integration and records the coarse 50–60%
+remaining estimate. Older evidence and the 15 October JSON receipt stay historical.
+
+## Current dependency reconstruction — 18 October
 
 The latest reconstruction uses the same main `17042b4` and the following
 **26 dependency files**. Use a clean disposable worktree, not a teammate's
@@ -14,9 +74,9 @@ these paths with `git restore --worktree --source <full SHA> -- <paths>`:
 
 | PR / exact source | Paths (all required) |
 | --- | --- |
-| #68 `af44d6e02cf479e94b695ee85a8b823540974bf7` | `experiments/c1_grounding_candidate/admission.py`; its `candidates/accc-20261012/README.md`, `admission-manifest.json`, `corpus.json`; `tests/contracts/test_c1_corpus_admission.py` |
+| #68 `e15394a05d253d1f5bcdb61aac4559c2a133d604` | `experiments/c1_grounding_candidate/admission.py`; its `candidates/accc-20261012/README.md`, `admission-manifest.json`, `corpus.json`; `tests/contracts/test_c1_corpus_admission.py` (all five bytes unchanged from `af44d6e`) |
 | #69 `cfda3a1d7b96e5cd973faff30739f11c57fe0850` | `experiments/c2_risk_candidate/README.md`, `__init__.py`, `reviewer.py`; `tests/contracts/test_c2_risk_preparation.py` |
-| #70 `db45f5f1228598e406d02c10953ed11a2f345cdf` | `experiments/evaluation_candidate/README.md`, `__init__.py`, `scoring.py`, `runner.py`, `latency.py`, `quality.py`, `reproducibility.py`, `evidence.py`, `human_timing.py`, `data/human_timing_example.json`; `tests/contracts/test_evaluation_preparation.py`, `test_evaluation_runner.py`, `test_evaluation_latency.py`, `test_evaluation_quality.py`, `test_evaluation_reproducibility.py`, `test_evaluation_evidence.py`, `test_evaluation_human_timing.py` |
+| #70 `bacca6a74aee967fa80c74004833fdac0334a155` | `experiments/evaluation_candidate/README.md`, `__init__.py`, `scoring.py`, `runner.py`, `latency.py`, `quality.py`, `reproducibility.py`, `evidence.py`, `human_timing.py`, `data/human_timing_example.json`; `tests/contracts/test_evaluation_preparation.py`, `test_evaluation_runner.py`, `test_evaluation_latency.py`, `test_evaluation_quality.py`, `test_evaluation_reproducibility.py`, `test_evaluation_evidence.py`, `test_evaluation_human_timing.py` |
 
 ### Current isolated reconstruction
 
@@ -26,13 +86,13 @@ they do not merge their branches or approve their content.
 
 ```sh
 git fetch origin pull/68/head pull/69/head pull/70/head
-git cat-file -e af44d6e02cf479e94b695ee85a8b823540974bf7^{commit}
+git cat-file -e e15394a05d253d1f5bcdb61aac4559c2a133d604^{commit}
 git cat-file -e cfda3a1d7b96e5cd973faff30739f11c57fe0850^{commit}
-git cat-file -e db45f5f1228598e406d02c10953ed11a2f345cdf^{commit}
+git cat-file -e bacca6a74aee967fa80c74004833fdac0334a155^{commit}
 c_review_dir=$(mktemp -d "${TMPDIR:-/tmp}/returnops-c-review.XXXXXX")
 git worktree add --detach "$c_review_dir/repo" HEAD
 cd "$c_review_dir/repo"
-git restore --worktree --source af44d6e02cf479e94b695ee85a8b823540974bf7 -- \
+git restore --worktree --source e15394a05d253d1f5bcdb61aac4559c2a133d604 -- \
   experiments/c1_grounding_candidate/admission.py \
   experiments/c1_grounding_candidate/candidates/accc-20261012/README.md \
   experiments/c1_grounding_candidate/candidates/accc-20261012/admission-manifest.json \
@@ -43,7 +103,7 @@ git restore --worktree --source cfda3a1d7b96e5cd973faff30739f11c57fe0850 -- \
   experiments/c2_risk_candidate/__init__.py \
   experiments/c2_risk_candidate/reviewer.py \
   tests/contracts/test_c2_risk_preparation.py
-git restore --worktree --source db45f5f1228598e406d02c10953ed11a2f345cdf -- \
+git restore --worktree --source bacca6a74aee967fa80c74004833fdac0334a155 -- \
   experiments/evaluation_candidate/README.md \
   experiments/evaluation_candidate/__init__.py \
   experiments/evaluation_candidate/scoring.py \
@@ -71,7 +131,7 @@ If reusing an existing environment, ensure its imports resolve to this review
 checkout (root, `apps/api`, `packages`), not an older editable installation.
 Do not commit the dependency overlays as part of this handoff PR.
 
-### Current runnable-evidence/timing increment — independent completion
+### Historical 17 October runnable-evidence/timing increment
 
 #70 `db45f5f` adds the two commands documented in
 [C's component README](https://github.com/shuxiachai/returnops-au/blob/db45f5f1228598e406d02c10953ed11a2f345cdf/experiments/evaluation_candidate/README.md).

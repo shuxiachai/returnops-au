@@ -10,7 +10,66 @@
 
 # ReturnOps AU
 
-## C follow-up — 2026-10-17
+## C follow-up — 2026-10-18
+
+**Planning estimate: approximately 55% of C's work remains (50–60% range).**
+This is a coarse estimate of remaining implementation, integration, evaluation
+and delivery effort—not a measured completion rate, grade, authorship share or
+test/PR count. The earlier 60% estimate below remains history. The larger
+remainder is real model/evaluation/image/integration work, not missing paperwork.
+
+A has now responded. This checkpoint supersedes dated current-status wording
+below, not the original evidence. Main remains `17042b4`; no main merge, Jira
+transition or human acceptance is claimed.
+
+### Independent work completed in this follow-up
+
+- **Evaluation / [#70](https://github.com/shuxiachai/returnops-au/pull/70):**
+  `bacca6a74aee967fa80c74004833fdac0334a155` fixes A's P2 cost-summation finding.
+  Integer-scaled aggregation preserves exact decimal strings even under low
+  precision, altered rounding and Decimal traps. Unknown costs remain unknown;
+  failed attempts retain known usage. Four new regressions pass. The correction
+  is ready for A's re-review; it does not itself resolve the requested changes.
+- **C1 / [#68](https://github.com/shuxiachai/returnops-au/pull/68):**
+  `e15394a05d253d1f5bcdb61aac4559c2a133d604` incorporates current main and resolves
+  the README conflict while retaining main's public-scope notice and C's dated
+  evidence. A reported no new P1/P2 in the bounded loader/tests review, but did
+  **not** admit the corpus. Candidate bytes, pending fields and inventory hashes
+  are unchanged; the three short captures are not a sufficient-runtime claim.
+- **Local verification:** the corrected #70 passes 267 contract tests, including
+  139 evaluation tests. Reconciled #68 passes 162 contract tests. Each host run
+  also passes six static groups, 244 security and 36 records tests. The dependency
+  composite passes 339 contract tests; its Linux network-disabled run passes
+  **619 tests total** (339 contracts + 244 security + 36 records). Counts overlap.
+  The two evaluation commands also pass independently from a clean `bacca6a`
+  checkout on Linux with Python `-S`, including repeatable bundle hashes and
+  invented timing arithmetic. [Exact sources and limits](docs/reviews/c-local-handoff-20261015.md)
+  distinguish these checks from PG17 deployment, real models and formal evaluation.
+- **C2 / [#69](https://github.com/shuxiachai/returnops-au/pull/69):** A's response
+  accepts the preparation boundary for further integration, not a live Risk
+  implementation. Preserve the trusted retained inputs and post-await current
+  version check; model output cannot approve or dispatch work.
+
+### What C can do alone, and what needs A/B
+
+| Work | C can prepare independently | Required decision, input or joint work |
+| --- | --- | --- |
+| C1 corpus | Expand exact source context/coverage and its tests within the already selected sources; this substantive corpus expansion is **still outstanding**, not completed by the README conflict fix. | A must review the final passage/context/conflict coverage and exact bytes; integration must supply a separately trusted admission pin. |
+| C2 Risk | Existing typed boundary, cancellation/failure tests and offline input/output checks are implemented. After configuration is agreed, C still must implement and test the real separate model invocation. | A confirms provider/model, permitted data flow, shared transport/deadlines, trusted retained inputs and current-version integration point. Credentials stay out of GitHub. |
+| Evaluation | Accounting, quality/pair consistency, evidence-bundle and timing-import tools are implemented; public invented rehearsals can run independently. | E.01 agreement precedes C's private initial 30-case Gold seal. A/B independently time the 20-case subset, lock answers, then review/arbitrate in the frozen order; formal B1/B4 also needs the real system. These counts are team protocol, not extra rubric quotas. |
+| Runtime pilot and C3 | C keeps the retrieval/Risk evidence and image-test design ready. Do not substitute more toy tests for the missing runtime feature. | A completes R.02 and trusted orchestration; C runs R.03 with the real three-role path once its original prerequisites hold. B's UI integration is separate joint verification, not an added R.03 prerequisite. C3 image implementation starts after R.03 and keeps the original attachment/finish dependencies. |
+| Final delivery | C can maintain exact-source instructions and draft the evidence/report sections. | Integrated clean reproduction, demonstration and genuine member/reviewer records require the actual system and people. |
+
+The remaining work is **not all waiting for A**: C still owns substantive corpus,
+real Risk, evaluation and image work once their inputs/prerequisites are ready.
+The frozen owners and S/F dependencies in docs/07–08 remain unchanged.
+[The existing A/B scheduling request](https://github.com/shuxiachai/returnops-au/pull/79#issuecomment-6231875735)
+has no confirmed slot; Lucas is available on 18–19 October Sydney time.
+[#79](https://github.com/shuxiachai/returnops-au/pull/79) remains a dependent Draft.
+All current checks were local; no new Actions run was requested. These updates
+were prepared and tested with Codex assistance, not recorded as personal sign-off.
+
+## Historical C follow-up — 2026-10-17
 
 The latest checked main is
 [`17042b4`](https://github.com/shuxiachai/returnops-au/commit/17042b4164a0be878c7a0684cf532217ebeb77ee).
@@ -76,8 +135,9 @@ below describe their original snapshots, not today's completion status.
 
 ### A decision checklist — reply on the existing PRs
 
-C's independent preparation above is ready for review. The following requires
-A's actual decision or integration output; no reply is treated as approval.
+C's component preparation has now received A's 18 October review. The following
+remaining decisions/integration outputs still require A's actual response;
+the earlier review does not establish those approvals.
 These are handoff questions, not a new task board or changes to WBS ownership.
 
 | Priority / review entrance | What A should provide | C's next action after that evidence |
