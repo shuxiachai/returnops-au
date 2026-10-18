@@ -42,14 +42,16 @@ def canonical_rows(value):
 def hash_rows(value, domain):
     return digest(canonical_rows(value),domain)
 
-def authorize(uow, callback, case_id, *, store):
+def authorize(uow, callback, case_id, *, store, lock_rows=True):
+    if type(lock_rows) is not bool or (not lock_rows and getattr(uow, 'write', None) is not False):
+        reject(uow)
     if version(uow.connection) != ARTIFACT: reject(uow)
     actor=callback(uow.connection,'getSession')
     if actor.role!='FOUNDER': reject(uow,'FORBIDDEN')
     if callback(uow.connection,'getFounderCase',case_id)!=actor: reject(uow,'UNAUTHENTICATED')
     head=one(uow,old.case_heads,case_id=case_id)
     if not head['available'] or head['store_id']!=actor.store_id: reject(uow,'NOT_FOUND')
-    grant=dict(authority(uow,head,COMPONENT,'EFFECT'))
+    grant=dict(authority(uow,head,COMPONENT,'EFFECT',lock_rows=lock_rows))
     p=uow.execute(select(permissions).where(permissions.c.store_id==head['store_id'],
         permissions.c.component_id==COMPONENT,permissions.c.provider_id==CONFIG['provider_id'],
         permissions.c.config_id==CONFIG['config_id'],permissions.c.pdf_profile_id==PDF_PROFILE_ID)).mappings().one_or_none()

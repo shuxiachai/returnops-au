@@ -16,7 +16,7 @@ import sys
 import zipfile
 
 NODE = 'tests/lifecycle/test_label_artifact_process_postgresql.py::test_LA_P07_P13_two_actual_installed_processes_one_claim_and_completion'
-BRANCH = 'refs/heads/diag/a203-t2-cloud-20261018'
+BRANCH = 'refs/heads/diag/81-a203-t2-cloud-20261018'
 DATABASE = 'returnops_f02_a203_artifact_diag_v05_20261018'
 VERSION = 170011
 HEAD = '0013_label_artifact_result'

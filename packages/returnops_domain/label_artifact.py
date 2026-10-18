@@ -16,7 +16,7 @@ from .lifecycle_state import reject,MAX_VERSION
 from .lifecycle_sources import Sources
 from .wire import validate
 from .evidence_validation import validate_evidence
-from .label_artifact_tables import controls,claims,artifacts,contents
+from .label_artifact_tables import controls,claims,artifacts,contents,permissions
 from .label_artifact_sources import (authorize,verify_original_label_source_0013,capture_current_artifact_context_0013,
     source_hash,binding_hash,profile_hash,claim_hash,current_claim,closure,original_pdf_fields,ids,database_now,FILENAME,COMPONENT)
 from .label_pdf_validation import verify_label_pdf
@@ -63,24 +63,92 @@ class LabelArtifactService:
             active=database_now(uow)<claim['lease_expires_at']
         return ArtifactCompletionResult('IN_PROGRESS' if active else 'PENDING',label['operation_id'],'EXECUTING',work['work_id'])
 
-    def _final(self,uow,authorization,source,expected,work_id,key,phase,*,ticket=None,post_head=None):
+    def _check_final(self,uow,authorization,source,expected,work_id,key,*,ticket=None,post_head=None,lock_rows=True):
         actor,head,grant,permission,bounds=authorization
         target_head=head if post_head is None else post_head
-        def check():
-            fresh=authorize(uow,self.authority,head['case_id'],store=True)
-            if fresh!=(actor,target_head,grant,permission,bounds):reject(uow)
-            verified=verify_original_label_source_0013(uow,actor,target_head,work_id,key)
-            if any(verified[n]!=source[n] for n in ('work','label','fact','returned','root')):reject(uow)
-            if closure(uow,head['case_id'])!=expected:reject(uow)
-            # Complete slow proof/content reads before last live capability/time.
-            if authorize(uow,self.authority,head['case_id'],store=True)!=fresh:reject(uow)
-            if ticket is not None:
-                claim=one(uow,claims,claim_id=ticket.claim_id)
-                from .approval_admission_sources import check_session_time
-                now=database_now(uow);check_session_time(now,bounds)
-                if now>=claim['lease_expires_at']:reject(uow)
-        uow.before_commit(check)
+        fresh=authorize(uow,self.authority,head['case_id'],store=True,lock_rows=lock_rows)
+        if fresh!=(actor,target_head,grant,permission,bounds):reject(uow)
+        verified=verify_original_label_source_0013(uow,actor,target_head,work_id,key)
+        if any(verified[n]!=source[n] for n in ('work','label','fact','returned','root')):reject(uow)
+        if closure(uow,head['case_id'])!=expected:reject(uow)
+        # Complete slow proof/content reads before last live capability/time.
+        if authorize(uow,self.authority,head['case_id'],store=True,lock_rows=lock_rows)!=fresh:reject(uow)
+        if ticket is not None:
+            claim=one(uow,claims,claim_id=ticket.claim_id)
+            from .approval_admission_sources import check_session_time
+            now=database_now(uow);check_session_time(now,bounds)
+            if now>=claim['lease_expires_at']:reject(uow)
+
+    def _final(self,uow,authorization,source,expected,work_id,key,phase,*,ticket=None,post_head=None):
+        uow.before_commit(lambda:self._check_final(uow,authorization,source,expected,work_id,key,
+            ticket=ticket,post_head=post_head))
         uow.before_commit(lambda:phase.update(commit_possible=True))
+
+    @staticmethod
+    def _running_observation_hint(uow,work_id):
+        """An uncommitted routing hint, never a ticket or a business outcome."""
+        found=uow.execute(select(controls).where(controls.c.work_id==work_id)).mappings().one_or_none()
+        if found is None or found['state']!='RUNNING' or found['active_claim_id'] is None:
+            return False
+        claim=one(uow,claims,claim_id=found['active_claim_id'])
+        return database_now(uow)<claim['lease_expires_at']
+
+    @staticmethod
+    def _observation_authority_rows(uow,authorization):
+        """Fixed read-only tail inputs; no authorization callback or row lock."""
+        actor,head,grant,permission,bounds=authorization
+        return dict(
+            principal=one(uow,old.principals,principal_id=actor.principal_id),
+            owner=one(uow,old.principals,principal_id=head['owner_principal_id']),
+            session=one(uow,old.sessions,session_id=actor.session_id,principal_id=actor.principal_id),
+            head=one(uow,old.case_heads,case_id=head['case_id']),
+            grant=one(uow,life.authorities,store_id=head['store_id'],component_id=COMPONENT,purpose='EFFECT'),
+            permission=one(uow,permissions,**{column.name:permission[column.name]
+                for column in permissions.primary_key.columns}))
+
+    def _observe_running_shared(self,case_id,work_id,key):
+        """Fresh shared observation only: no Ticket, write fallback or retry.
+
+        FR-009/010; NFR-002/004/006/009; AH-10/UC-04 governed execution.
+        Shared advisory admission is not a raw-connection write sandbox.
+        """
+        phase={'commit_possible':False}
+        try:
+            with self.uow_factory(self.engine,write=False) as uow:
+                authorization=authorize(uow,self.authority,case_id,store=True,lock_rows=False)
+                actor,head,grant,permission,bounds=authorization
+                authority_rows=self._observation_authority_rows(uow,authorization)
+                before=closure(uow,case_id)
+                source=verify_original_label_source_0013(uow,actor,head,work_id,key)
+                found=uow.execute(select(controls).where(controls.c.work_id==work_id)).mappings().one_or_none()
+                row=None if found is None else dict(found)
+                active_claim=(one(uow,claims,claim_id=row['active_claim_id'])
+                    if row is not None and row['state']=='RUNNING' and row['active_claim_id'] is not None else None)
+                value=self._observe(uow,source,row)
+                if value.status=='PENDING':
+                    return ArtifactCompletionResult('UNKNOWN')
+                self._check_final(uow,authorization,source,before,work_id,key,lock_rows=False)
+                # The final raw authorization callback above can mutate this
+                # connection. No callback runs after these fixed read checks.
+                if self._observation_authority_rows(uow,authorization)!=authority_rows:reject(uow)
+                if closure(uow,case_id)!=before:reject(uow)
+                current=uow.execute(select(controls).where(controls.c.work_id==work_id)).mappings().one_or_none()
+                if (None if current is None else dict(current))!=row:reject(uow)
+                if value.status=='IN_PROGRESS':
+                    if row is None or row['state']!='RUNNING' or active_claim is None:reject(uow)
+                    latest=one(uow,claims,claim_id=row['active_claim_id'])
+                    if (latest!=active_claim or latest['claim_id']!=row['active_claim_id']
+                            or latest['work_id']!=work_id or latest['epoch']!=row['epoch']):reject(uow)
+                from .approval_admission_sources import session_bounds,check_session_time
+                if session_bounds(uow,actor)!=bounds:reject(uow,'UNAUTHENTICATED')
+                now=database_now(uow);check_session_time(now,bounds)
+                if value.status=='IN_PROGRESS' and now>=active_claim['lease_expires_at']:
+                    return ArtifactCompletionResult('UNKNOWN')
+                phase['commit_possible']=True
+                uow.commit()
+            return value
+        except FlowError as error:return self._error(error,phase)
+        except Exception:return ArtifactCompletionResult('UNKNOWN')
 
     def complete_label_artifact(self,case_id,artifact_work_id,original_approval_key,correlation_id):
         value=self._claim(case_id,artifact_work_id,original_approval_key,correlation_id)
@@ -96,47 +164,55 @@ class LabelArtifactService:
         phase={'commit_possible':False}
         try:
             self._request(case_id,work_id,key,correlation)
+            observe_running=False
             with self.uow_factory(self.engine,write=True) as uow:
                 authorization=authorize(uow,self.authority,case_id,store=True)
-                actor,head,grant,permission,bounds=authorization
-                source=verify_original_label_source_0013(uow,actor,head,work_id,key)
-                found=uow.execute(select(controls).where(controls.c.work_id==work_id)).mappings().one_or_none()
-                row=None if found is None else dict(found);before=closure(uow,case_id)
-                observed=self._observe(uow,source,row)
-                if observed.status!='PENDING':
-                    self._final(uow,authorization,source,before,work_id,key,phase)
-                    uow.commit();value=observed
+                if self._running_observation_hint(uow,work_id):
+                    observe_running=True
                 else:
-                    if not source['label']['confirmation_retained'] or source['root'] is None:reject(uow)
-                    additions=[];replacements=[]
-                    original=row
-                    if row is None:
-                        manifest=source_hash(uow,work_id)
-                        row=dict(work_id=work_id,source_manifest_hash=manifest,profile_hash=profile_hash(),
-                            recovery_binding_hash=binding_hash(work_id,manifest),state='PENDING',epoch=0,
-                            active_claim_id=None,completed_evidence_id=None,safe_failure_code=None,source_withdrawal_receipt=None)
-                        uow.execute(controls.insert().values(**row));additions.append((controls,row))
-                    if row['epoch']>=MAX_VERSION:reject(uow)
-                    context=capture_current_artifact_context_0013(uow,head)
-                    now=database_now(uow)
-                    deadline=min(now+timedelta(seconds=30),datetime.fromtimestamp(bounds[4],timezone.utc))
-                    if deadline<=now:reject(uow,'UNAUTHENTICATED')
-                    claim=dict(claim_id='laclaim_'+token_hex(16),work_id=work_id,epoch=row['epoch']+1,
-                        source_manifest_hash=row['source_manifest_hash'],recovery_binding_hash=row['recovery_binding_hash'],
-                        principal_id=actor.principal_id,session_id=actor.session_id,service_authority_revision=grant['revision'],
-                        artifact_permission_revision=permission['revision'],**context,issued_at=now,lease_expires_at=deadline)
-                    claim['claim_hash']=claim_hash(claim)
-                    uow.execute(claims.insert().values(**claim));additions.append((claims,claim))
-                    final={**row,'state':'RUNNING','epoch':claim['epoch'],'active_claim_id':claim['claim_id'],'safe_failure_code':None}
-                    if uow.execute(update(controls).where(controls.c.work_id==work_id,controls.c.epoch==row['epoch']).values(
-                        state='RUNNING',epoch=claim['epoch'],active_claim_id=claim['claim_id'],safe_failure_code=None)).rowcount!=1:reject(uow)
-                    if original is None:additions[0]=(controls,final)
-                    else:replacements.append((controls,row,final))
-                    value=ArtifactTicket(work_id,case_id,key,claim['claim_id'],claim['epoch'],row['recovery_binding_hash'])
-                    current_claim(uow,authorization,value)
-                    expected=expected_delta(before,additions,replacements,head)
-                    self._final(uow,authorization,source,expected,work_id,key,phase,ticket=value)
-                    uow.commit()
+                    actor,head,grant,permission,bounds=authorization
+                    source=verify_original_label_source_0013(uow,actor,head,work_id,key)
+                    found=uow.execute(select(controls).where(controls.c.work_id==work_id)).mappings().one_or_none()
+                    row=None if found is None else dict(found);before=closure(uow,case_id)
+                    observed=self._observe(uow,source,row)
+                    if observed.status!='PENDING':
+                        self._final(uow,authorization,source,before,work_id,key,phase)
+                        uow.commit();value=observed
+                    else:
+                        if not source['label']['confirmation_retained'] or source['root'] is None:reject(uow)
+                        additions=[];replacements=[]
+                        original=row
+                        if row is None:
+                            manifest=source_hash(uow,work_id)
+                            row=dict(work_id=work_id,source_manifest_hash=manifest,profile_hash=profile_hash(),
+                                recovery_binding_hash=binding_hash(work_id,manifest),state='PENDING',epoch=0,
+                                active_claim_id=None,completed_evidence_id=None,safe_failure_code=None,source_withdrawal_receipt=None)
+                            uow.execute(controls.insert().values(**row));additions.append((controls,row))
+                        if row['epoch']>=MAX_VERSION:reject(uow)
+                        context=capture_current_artifact_context_0013(uow,head)
+                        now=database_now(uow)
+                        deadline=min(now+timedelta(seconds=30),datetime.fromtimestamp(bounds[4],timezone.utc))
+                        if deadline<=now:reject(uow,'UNAUTHENTICATED')
+                        claim=dict(claim_id='laclaim_'+token_hex(16),work_id=work_id,epoch=row['epoch']+1,
+                            source_manifest_hash=row['source_manifest_hash'],recovery_binding_hash=row['recovery_binding_hash'],
+                            principal_id=actor.principal_id,session_id=actor.session_id,service_authority_revision=grant['revision'],
+                            artifact_permission_revision=permission['revision'],**context,issued_at=now,lease_expires_at=deadline)
+                        claim['claim_hash']=claim_hash(claim)
+                        uow.execute(claims.insert().values(**claim));additions.append((claims,claim))
+                        final={**row,'state':'RUNNING','epoch':claim['epoch'],'active_claim_id':claim['claim_id'],'safe_failure_code':None}
+                        if uow.execute(update(controls).where(controls.c.work_id==work_id,controls.c.epoch==row['epoch']).values(
+                            state='RUNNING',epoch=claim['epoch'],active_claim_id=claim['claim_id'],safe_failure_code=None)).rowcount!=1:reject(uow)
+                        if original is None:additions[0]=(controls,final)
+                        else:replacements.append((controls,row,final))
+                        value=ArtifactTicket(work_id,case_id,key,claim['claim_id'],claim['epoch'],row['recovery_binding_hash'])
+                        current_claim(uow,authorization,value)
+                        expected=expected_delta(before,additions,replacements,head)
+                        self._final(uow,authorization,source,expected,work_id,key,phase,ticket=value)
+                        uow.commit()
+            # A hint exits the exclusive UoW without commit. Its normal close
+            # rolls back even raw callback writes; a close error skips shared.
+            if observe_running:
+                return self._observe_running_shared(case_id,work_id,key)
             return value
         except FlowError as error:return self._error(error,phase)
         except Exception:return ArtifactCompletionResult('UNKNOWN')

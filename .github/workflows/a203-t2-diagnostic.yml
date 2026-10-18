@@ -2,7 +2,7 @@ name: A203 T2 single diagnostic
 
 on:
   push:
-    branches: [diag/a203-t2-cloud-20261018]
+    branches: [diag/81-a203-t2-cloud-20261018]
 
 permissions:
   contents: read

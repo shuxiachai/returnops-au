@@ -359,7 +359,7 @@ class StructureTests(unittest.TestCase):
     def test_workflow_yaml_exact_trigger_service_and_safe_upload(self):
         import yaml
         workflow=yaml.load((SOURCE/'.github/workflows/a203-t2-diagnostic.yml').read_text(),Loader=yaml.BaseLoader)
-        self.assertEqual(workflow['on'],{'push':{'branches':['diag/a203-t2-cloud-20261018']}})
+        self.assertEqual(workflow['on'],{'push':{'branches':['diag/81-a203-t2-cloud-20261018']}})
         self.assertEqual(workflow['concurrency']['cancel-in-progress'],'false')
         job=workflow['jobs']['diagnostic'];self.assertEqual(job['if'],'github.run_attempt == 1')
         service=job['services']['postgres'];self.assertEqual(service['ports'],['55433:5432']);self.assertEqual(service['image'],r.IMAGE)
