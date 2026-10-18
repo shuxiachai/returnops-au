@@ -33,7 +33,11 @@ def main():
         hashes[name]=sha256(path.read_bytes()).hexdigest()
     url=make_url(os.environ['DATABASE_URL'])
     assert url.host=='127.0.0.1' and url.port==55433
-    if 'LABEL_DATABASE_NAME' in os.environ:
+    if 'ARTIFACT_DATABASE_NAME' in os.environ:
+        assert url.database==os.environ['ARTIFACT_DATABASE_NAME']
+        assert url.database in ('returnops_f02_a203_artifact_20261016','returnops_f02_a203_artifact_v02_20261016','returnops_f02_a203_artifact_v04_20261018')
+        expected_oid=int(os.environ['ARTIFACT_DATABASE_OID'])
+    elif 'LABEL_DATABASE_NAME' in os.environ:
         assert url.database==os.environ['LABEL_DATABASE_NAME']=='returnops_f02_a203_label_main_20261016'
         expected_oid=int(os.environ['LABEL_DATABASE_OID'])
     else:

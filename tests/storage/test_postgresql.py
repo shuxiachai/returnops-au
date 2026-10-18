@@ -62,6 +62,8 @@ def test_repeat_migration_preserves_committed_data_and_exact_schema(pg_engine, b
     expected = sorted(expected + ['case_lifecycle_state', 'lifecycle_authorities', 'lifecycle_work', 'lifecycle_source_bindings', 'lifecycle_event_receipts', 'lifecycle_effect_refs', 'lifecycle_action_previews', 'lifecycle_execution_preparations'])
     expected = sorted(expected + ['lifecycle_return_execution_controls', 'return_provider_permissions', 'core_mock_return_ledger'])
     expected = sorted(expected + ['core_mock_label_ledger', 'label_provider_permissions', 'lifecycle_label_artifact_work', 'lifecycle_label_execution_controls'])
+    expected = sorted(expected + ['label_artifact_permissions', 'lifecycle_label_artifact_controls',
+        'lifecycle_label_artifact_claims', 'generated_label_artifacts', 'generated_label_artifact_contents'])
     for _ in range(2):
         command.upgrade(Config(str(ROOT / "alembic.ini")), "head")
         assert sorted(inspect(pg_engine).get_table_names(schema="public")) == expected

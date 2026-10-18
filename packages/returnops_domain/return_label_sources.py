@@ -191,7 +191,21 @@ def retained_acceptance(uow, head, source, ids):
             or receipt['accepted_at'] < source['record']['recorded_at']
             or receipt['accepted_at'] < work['created_at']):
         reject(uow)
-    proof = CaseProof(ProofReads(uow), head)
+    # The bridge identity retains its original input version. On 0013 only,
+    # generated certificates must instead see the actual current proof head.
+    # Keep every other snapshot field exact; this is not a refreshed baseline.
+    from .lifecycle_schema import ARTIFACT, version
+    proof_head = head
+    if version(uow.connection) == ARTIFACT:
+        actual_head = one(uow, old.case_heads, case_id=head['case_id'])
+        if (set(head) != set(actual_head)
+                or any(head[name] != actual_head[name] for name in head if name != 'input_version')
+                or head['input_version'] != source['control']['input_version']
+                or head['input_version'] != work['input_version']
+                or head['input_version'] > actual_head['input_version']):
+            reject(uow)
+        proof_head = actual_head
+    proof = CaseProof(ProofReads(uow), proof_head)
     audits = [entry for entry in proof.events if entry['correlation_id'] == event.event_id]
     if len(audits) != 1:
         reject(uow)

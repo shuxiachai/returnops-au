@@ -3,7 +3,7 @@
 This component stops at a durable fact plus EXECUTING and artifact-only intent.
 There is no artifact reader, PDF store, completed result, outcome or sender.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import timedelta
 from secrets import token_hex
 from sqlalchemy import select, update
@@ -104,7 +104,18 @@ class LabelExecutionService:
     def _observation(self,uow,authorization,work_id,key,row,phase):
         head = authorization[1]; before = closure(uow,head['case_id'])
         self._final(uow,authorization,head,before,work_id,key,row,phase)
+        latest = None
+        from .lifecycle_schema import ARTIFACT, version
+        if row is not None and version(uow.connection)==ARTIFACT and row['confirmed_effect_status']=='SUCCEEDED':
+            from .label_artifact_tables import artifacts
+            from .generated_evidence import verify_certificate
+            completed=uow.execute(select(artifacts.c.evidence_id).where(
+                artifacts.c.work_id==stable('artifact',row['execution_work_id']))).scalar_one_or_none()
+            if completed is not None:
+                verify_certificate(uow,completed)
+                latest=replace(observed('REPLAYED',row),operation_state='SUCCEEDED')
         uow.commit()
+        if latest is not None:return latest
         if row is None:return LabelExecutionResult('UNKNOWN')
         if row['confirmed_effect_status'] is not None:
             return observed('REPLAYED' if row['confirmation_record_id'] is not None else 'FACT_REPLAYED',row)

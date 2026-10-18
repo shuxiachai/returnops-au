@@ -33,7 +33,19 @@ class RetentionService:
         validate('Id',object_id)
         with CustomerUnitOfWork(self.engine,write=True) as uow:
             now=self.clock();case_id=None;evidence=None
-            records=uow.execute(select(t.history).where(t.history.c.kind==kind,t.history.c.object_id==object_id)).mappings().all()
+            from .generated_evidence import is_generated_resource,namespace_active
+            artifact_mode=namespace_active(uow)
+            if kind=='EVIDENCE' and is_generated_resource(uow,object_id):
+                from .label_artifact_retention import remove_pdf
+                changed=remove_pdf(uow,object_id,reason,redact,now)
+                uow.commit()
+                result=changed
+            else:
+                result=None
+            if result is not None:return result
+            record_query=select(t.history).where(t.history.c.kind==kind,t.history.c.object_id==object_id)
+            if artifact_mode:record_query=record_query.order_by(t.history.c.recorded_sequence,t.history.c.record_id)
+            records=uow.execute(record_query).mappings().all()
             if kind=='EVIDENCE':
                 evidence=uow.execute(select(t.evidence).where(t.evidence.c.evidence_id==object_id)).mappings().one_or_none()
                 if evidence is None: raise FlowError('NOT_FOUND')
@@ -41,6 +53,11 @@ class RetentionService:
             elif not records: raise FlowError('NOT_FOUND')
             else: case_id=records[0]['case_id']
             if any(r['case_id']!=case_id for r in records): raise FlowError('INTERNAL_ERROR')
+            prepared=[]
+            from .lifecycle_schema import ARTIFACT,version
+            if case_id is not None and artifact_mode:
+                from .label_artifact_retention import prepare_source_withdrawal
+                prepared=prepare_source_withdrawal(uow,case_id,kind,object_id)
             active=[r for r in records if r['retention_state']=='AVAILABLE']
             if not active and (evidence is None or not evidence['available']): uow.commit();return False
             self._receipt_copies(uow,kind,object_id)
@@ -69,9 +86,12 @@ class RetentionService:
                 refs=[{'record_id':r['record_id'],'kind':kind,'object_id':object_id,'object_version':r['object_version']} for r in active]
                 # One event can reference at most100 revisions; all revisions
                 # still get removed atomically, with a minimal object pointer.
-                append_event(uow,case_id,actor=SERVICE,event_type='CUSTOMER_CONTENT_REMOVED',correlation_id=identifier('corr'),
+                source_event=append_event(uow,case_id,actor=SERVICE,event_type='CUSTOMER_CONTENT_REMOVED',correlation_id=identifier('corr'),
                     payload={'kind':kind,'object_id':object_id,'reason':reason,'revision_count':len(active)},
                     object_ids=[object_id],history_refs=refs[:100],now=now)
+                if prepared:
+                    from .label_artifact_retention import finish_source_withdrawal
+                    finish_source_withdrawal(uow,prepared,kind,object_id,source_event,reason,redact,now)
             uow.commit();return True
 
     def expire_staged(self,*,limit=20):

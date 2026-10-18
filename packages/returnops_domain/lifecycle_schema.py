@@ -12,8 +12,10 @@ APPROVAL = '0009_preview_approval'
 PREPARATION = '0010_execution_preparation'
 EXECUTION = '0011_return_execution'
 LABEL = '0012_label_execution'
-CURRENT = LABEL
-EXECUTION_VERSIONS = frozenset({EXECUTION, LABEL})
+ARTIFACT = '0013_label_artifact_result'
+CURRENT = ARTIFACT
+LABEL_VERSIONS = frozenset({LABEL, ARTIFACT})
+EXECUTION_VERSIONS = frozenset({EXECUTION, *LABEL_VERSIONS})
 PREPARATION_VERSIONS = frozenset({PREPARATION, *EXECUTION_VERSIONS})
 APPROVAL_VERSIONS = frozenset({APPROVAL, *PREPARATION_VERSIONS})
 OLD_PURPOSES = ('PROPOSAL', 'REVISION', 'OUTCOME', 'NOTIFICATION', 'EFFECT')
@@ -48,8 +50,11 @@ def version(connection):
     if revisions[0] in EXECUTION_VERSIONS:
         from .return_execution_tables import metadata
         expected.update(metadata.tables)
-    if revisions[0] == LABEL:
+    if revisions[0] in LABEL_VERSIONS:
         from .label_execution_tables import metadata
+        expected.update(metadata.tables)
+    if revisions[0] == ARTIFACT:
+        from .label_artifact_tables import metadata
         expected.update(metadata.tables)
     if names != expected:
         return None
@@ -72,8 +77,12 @@ def version(connection):
         from .return_execution_schema import descriptor
         if not descriptor(connection):
             return None
-    if revisions[0] == LABEL:
+    if revisions[0] in LABEL_VERSIONS:
         from .label_execution_schema import descriptor
+        if not descriptor(connection):
+            return None
+    if revisions[0] == ARTIFACT:
+        from .label_artifact_schema import descriptor
         if not descriptor(connection):
             return None
     return revisions[0]

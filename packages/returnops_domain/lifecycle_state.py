@@ -4,7 +4,7 @@ from . import customer_tables as old, lifecycle_tables as t
 from .errors import FlowError
 
 LEGACY_REVISIONS = {'0003_customer_flow', '0004_pre_case_audit', '0005_order_investigation', '0006_founder_reads'}
-from .lifecycle_schema import PREPARATION, PREPARATION_VERSIONS, EXECUTION, EXECUTION_VERSIONS, LABEL, APPROVAL, APPROVAL_VERSIONS, REVIEW, LEGACY, version as schema_version
+from .lifecycle_schema import PREPARATION, PREPARATION_VERSIONS, EXECUTION, EXECUTION_VERSIONS, LABEL, LABEL_VERSIONS, ARTIFACT, APPROVAL, APPROVAL_VERSIONS, REVIEW, LEGACY, version as schema_version
 MAX_VERSION = 9007199254740991
 
 
@@ -22,7 +22,7 @@ def installed(uow):
     revisions = uow.execute(text('SELECT version_num FROM alembic_version')).scalars().all()
     names = set(uow.execute(text('SELECT tablename FROM pg_tables WHERE schemaname=current_schema()')).scalars())
     present = set(t.metadata.tables) & names
-    if len(revisions) == 1 and revisions[0] in {LABEL, EXECUTION, PREPARATION, APPROVAL, REVIEW, LEGACY} and schema_version(uow.connection) == revisions[0]:
+    if len(revisions) == 1 and revisions[0] in {ARTIFACT, LABEL, EXECUTION, PREPARATION, APPROVAL, REVIEW, LEGACY} and schema_version(uow.connection) == revisions[0]:
         return True
     if len(revisions) == 1 and revisions[0] in LEGACY_REVISIONS and not present:
         return False
@@ -97,13 +97,16 @@ def invalidate(uow, head, *, input_version=None, retention=False, accepting_even
         if retention:
             changes.update(source_available=False, result_retained=False)
         uow.execute(update(controls).where(controls.c.case_id == head['case_id']).values(**changes))
-    if installed_version == LABEL:
+    if installed_version in LABEL_VERSIONS:
         from .label_execution_tables import controls as label_controls, artifact_work
         changes = dict(query_epoch=label_controls.c.query_epoch + 1, query_claim_id=None, query_lease_until=None)
         if retention:
             changes.update(source_available=False, confirmation_retained=False)
         uow.execute(update(label_controls).where(label_controls.c.case_id == head['case_id']).values(**changes))
         uow.execute(update(artifact_work).where(artifact_work.c.case_id == head['case_id']).values(state='PAUSED'))
+    if installed_version == ARTIFACT and not retention:
+        from .label_artifact_retention import invalidate_claims
+        invalidate_claims(uow,head['case_id'])
     return {**row, **values}
 
 
@@ -113,8 +116,12 @@ def retain(uow, head, reason, redact):
     invalidate(uow, head, retention=True)
     if schema_version(uow.connection) in APPROVAL_VERSIONS:
         from .preview_tables import previews
+        retained_reason=reason
+        if schema_version(uow.connection)==ARTIFACT:
+            from sqlalchemy import case
+            retained_reason=case((previews.c.available.is_(True),reason),else_=previews.c.removal_reason)
         uow.execute(update(previews).where(previews.c.case_id == head['case_id']).values(
-            body=None, available=False, removal_reason=reason))
+            body=None, available=False, removal_reason=retained_reason))
         # Preview/approval receipts can contain derivatives of any retained input.
         facts = select(old.acceptances.c.acceptance_id).where(old.acceptances.c.resource_kind == 'CASE',
             old.acceptances.c.resource_id == head['case_id'])
