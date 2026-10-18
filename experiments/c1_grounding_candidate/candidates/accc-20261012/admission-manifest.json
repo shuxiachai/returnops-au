@@ -1,8 +1,8 @@
 {
   "format_version": 1,
   "corpus_file": "corpus.json",
-  "corpus_sha256": "52ebe3e701e2bb9a684228ad39df8f82caf4e56499e681527c9a88735d771b0a",
-  "corpus_version": "accc-capture-20261012-v1",
+  "corpus_sha256": "4367be77154fe3db61683d3bd8d8be7d495a997a63cd95e99cae0fba22fe13e2",
+  "corpus_version": "accc-context-20261018-v2",
   "review": {
     "status": "PENDING_EXACT_BYTES_REVIEW",
     "author": "lulucas-tao",
@@ -25,7 +25,7 @@
     },
     {
       "passage_id": "accc-faulty-rights-limit",
-      "content_sha256": "08a06fba9d03834dcb934f8652f8d14ad13333f385229422ffabf34ba98d24a8"
+      "content_sha256": "b251d27e922b6044930b8cb4f60873edcb1a1e621fb99363033857d47a524075"
     },
     {
       "passage_id": "synthetic-wrong-item-comparison",
@@ -33,7 +33,7 @@
     },
     {
       "passage_id": "accc-description-accuracy",
-      "content_sha256": "9c2c84c44301532a8c6e93fa0b9122ba29a279de8ed2cb1e4c1f1ab369bb9a65"
+      "content_sha256": "c81dc5975fe4f9ae5b633f0270c26ce46a3b050c1541f16b71b3ab481553ef14"
     },
     {
       "passage_id": "synthetic-change-mind-offer",
@@ -41,7 +41,7 @@
     },
     {
       "passage_id": "accc-change-mind-no-general-refund",
-      "content_sha256": "ac85142d26ce5c0640064a013898469af43741d5f6c18510f39f7c4ae669ea34"
+      "content_sha256": "9e9cfe6dd4bc84a63965d4a8ee3596c2e20e34c5caafef8afd621f55a95143ab"
     }
   ]
 }

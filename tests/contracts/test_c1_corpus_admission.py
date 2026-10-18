@@ -16,7 +16,7 @@ from unittest.mock import patch
 from experiments.c1_grounding_candidate.admission import (
     ReviewedGroundingCandidate, load_reviewed_corpus,
 )
-from experiments.c1_grounding_candidate.grounding import GroundingError
+from experiments.c1_grounding_candidate.grounding import GroundingCandidate, GroundingError, _valid
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -139,20 +139,104 @@ class CorpusAdmissionTests(unittest.TestCase):
         manifest_raw = (directory / "admission-manifest.json").read_bytes()
         corpus, manifest = json.loads(corpus_raw), json.loads(manifest_raw)
         self.assertFalse(corpus["is_synthetic"])
-        self.assertEqual(manifest["review"]["status"], "PENDING_EXACT_BYTES_REVIEW")
-        self.assertIsNone(manifest["review"]["reviewer"])
+        self.assertEqual(corpus["review_status"], "PENDING_HUMAN_REVIEW")
+        self.assertEqual(manifest["review"], {
+            "status": "PENDING_EXACT_BYTES_REVIEW", "author": "lulucas-tao",
+            "reviewer": None, "reviewed_at": None, "evidence_uri": None,
+        })
+        self.assertEqual(manifest["coverage"], {
+            "issue_categories": CATEGORIES, "conflicts_reviewed": False,
+        })
+        self.assertEqual(corpus["corpus_version"], "accc-context-20261018-v2")
+        self.assertEqual(manifest["corpus_version"], corpus["corpus_version"])
         self.assertEqual(manifest["corpus_sha256"], sha256(corpus_raw).hexdigest())
+        self.assertEqual(len(corpus["passages"]), 6)
+        self.assertEqual(len({e["passage"]["passage_id"] for e in corpus["passages"]}), 6)
+        self.assertEqual(len(manifest["passages"]), 6)
+        self.assertEqual(len({p["passage_id"] for p in manifest["passages"]}), 6)
         self.assertEqual({entry["passage"]["passage_id"]: entry["passage"]["content_sha256"]
                           for entry in corpus["passages"]},
                          {entry["passage_id"]: entry["content_sha256"] for entry in manifest["passages"]})
         for entry in corpus["passages"]:
             p = entry["passage"]
             self.assertEqual(sha256(p["content"].encode("utf-8")).hexdigest(), p["content_sha256"])
+            self.assertEqual(p["corpus_version"], corpus["corpus_version"])
         # Inventory hash supplied ONLY to prove it cannot approve a pending
         # bundle; this is not an integration configuration or accepting path.
         with self.assertRaises(GroundingError) as error:
             load_reviewed_corpus(directory, trusted_manifest_sha256=sha256(manifest_raw).hexdigest())
         self.assertEqual(error.exception.code, "UNREVIEWED_CORPUS")
+        with self.assertRaises(GroundingError) as error:
+            GroundingCandidate.from_bytes(corpus_raw)
+        self.assertEqual(error.exception.code, "INVALID_CORPUS")
+
+    def test_pending_capture_context_provenance_and_wire_shape(self):
+        # Static omission guards, NOT retrieval from a real admitted corpus or
+        # proof of legal sufficiency. Positive retrieval uses fictional fixtures.
+        directory = ROOT / "experiments/c1_grounding_candidate/candidates/accc-20261012"
+        corpus = json.loads((directory / "corpus.json").read_bytes())
+        entries = {entry["passage"]["passage_id"]: entry for entry in corpus["passages"]}
+        real = {
+            "accc-faulty-rights-limit": (
+                "https://www.accc.gov.au/consumers/problem-with-a-product-or-service-you-bought/repair-replace-refund-cancel",
+                {CATEGORIES[0], CATEGORIES[1]},
+                ("the seriousness of the problem", "right to assess", "consumer misusing it",
+                 "a different problem", "What makes a product problem major", "Available solutions",
+                 "Minor problem with a product or service", "within a reasonable amount of time",
+                 "does not have to be in its original packaging", "some form of proof of purchase",
+                 "If the business confirms", "before collecting the product")),
+            "accc-description-accuracy": (
+                "https://www.accc.gov.au/consumers/buying-products-and-services/consumer-rights-and-guarantees",
+                {CATEGORIES[1]},
+                ("Matches description", "The towels delivered are red.", "When consumer rights apply",
+                 "Personal or household use", "at least one of the following conditions",
+                 "for resupply", "Private sales", "However, the following consumer guarantees",
+                 "Depending on the situation", "The only exception")),
+            "accc-change-mind-no-general-refund": (
+                "https://www.accc.gov.au/consumers/problem-with-a-product-or-service-you-bought/contacting-a-business-to-fix-a-problem",
+                {CATEGORIES[2], CATEGORIES[0]},
+                ("Product has a major problem", "Product has a minor problem",
+                 "doesn’t have to offer a replacement or refund for a minor problem",
+                 "A business puts conditions", "change your mind", "such as:",
+                 "Businesses can’t apply these same policy conditions", "major or minor problem")),
+        }
+        synthetic_hashes = {
+            "synthetic-sale-fault-rule": "810a018b518274193540e968cbc9e719347a3847c8ecfb23692c9c5083f7da04",
+            "synthetic-wrong-item-comparison": "2c462785a4ea22d3721492d00386c2213f6d627d366802f535a3cd0b1a3cbe3f",
+            "synthetic-change-mind-offer": "f44657c66dfb438802414507323bafa60fa163d71073f51bd6b44c97b29e3ee8",
+        }
+        self.assertEqual(set(entries), set(real) | set(synthetic_hashes))
+        for pid, entry in entries.items():
+            p = entry["passage"]
+            with self.subTest(passage=pid):
+                self.assertNotIn("retrieved_at", p)
+                self.assertTrue(_valid("PolicyPassage", {**p, "retrieved_at": AT}))
+                if pid in real:
+                    uri, categories, context = real[pid]
+                    self.assertFalse(p["is_synthetic"])
+                    self.assertEqual(p["source_type"], "REVIEWED_CONSUMER_GUIDANCE")
+                    self.assertEqual(p["source_uri"], uri)
+                    self.assertEqual(set(entry["issue_categories"]), categories)
+                    self.assertEqual(p["accessed_on"], "2026-10-18")
+                    self.assertIsNone(p["source_version"])
+                    self.assertTrue(p["location"].startswith("Selected sections:"))
+                    self.assertIn("pending exact-byte review", p["title"])
+                    for qualifier in context:
+                        self.assertIn(qualifier, p["content"])
+                else:
+                    self.assertTrue(p["is_synthetic"])
+                    self.assertEqual(p["source_type"], "STORE_POLICY")
+                    self.assertTrue(p["source_uri"].startswith("urn:returnops:synthetic:"))
+                    self.assertEqual(p["accessed_on"], "2026-10-12")
+                    self.assertEqual(p["source_version"], "synthetic-store-v1")
+                    self.assertEqual(p["content_sha256"], synthetic_hashes[pid])
+        self.assertEqual(len(corpus["conflicts"]), 1)
+        conflict = corpus["conflicts"][0]
+        self.assertEqual(set(conflict["passage_ids"]),
+                         {"accc-faulty-rights-limit", "synthetic-sale-fault-rule"})
+        self.assertEqual(conflict["issue_categories"], [CATEGORIES[0]])
+        for pid in conflict["passage_ids"]:
+            self.assertTrue(set(conflict["issue_categories"]).issubset(entries[pid]["issue_categories"]))
 
     def test_author_cannot_self_review_case_insensitively(self):
         self.manifest["review"]["reviewer"] = "SYNTHETIC-AUTHOR"

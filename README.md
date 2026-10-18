@@ -34,9 +34,28 @@ and C's dated implementation/course evidence below. No A/B business code or
 frozen ownership is rewritten. A's 18 October bounded static review of
 [PR #68](https://github.com/shuxiachai/returnops-au/pull/68) found no new P1/P2
 in the loader/tests, but **did not approve the corpus or runtime adoption**.
-The three short source captures remain a pending minimal sample; exact context,
-coverage/conflicts and an independently trusted pin still require A's review.
+The three short source captures have now been expanded to contextual source
+blocks in **`accc-context-20261018-v2`**, covering faulty/quality, wrong-item and
+change-of-mind rules with their selected qualifications. See **C's
+[capture README and review checklist](experiments/c1_grounding_candidate/candidates/accc-20261012/README.md)**
+for exact source locations, omissions, category/conflict mapping, inventory
+hashes and reproducible tests. The three merchant fixtures remain explicitly
+synthetic. The manifest stays pending with no reviewer or trusted runtime pin.
+New tests check real-candidate provenance/context and mandatory rejection;
+positive complete-context, category-isolation, conflict and stale-citation
+retrieval tests use only invented synthetic fixtures. No real-corpus admission,
+live model/Gold result or feature completion is claimed. A still needs to review
+these new exact bytes and coverage before any separately approved integration.
 The loader's POSIX-only (macOS/Linux) execution boundary remains explicit.
+
+Local verification of this contextual revision (18 October): **69 C1 tests /
+116 subtests**, full offline checks (**167 contract tests**, six static groups,
+12 checker/seven tool tests, 14 Mermaid blocks and 64 synthetic-order tests),
+244 security and 36 record tests passed. The no-network, read-only Linux
+container passed **447 tests / 1,352 subtests** (contracts + security + records).
+These suites overlap; they are not a completion percentage, runtime integration
+or A's acceptance. Publication uses `[skip ci]` for the local-first budget;
+skipped required checks are not passed checks.
 
 ## Historical C implementation and Canvas check — 2026-10-12
 
