@@ -6,6 +6,25 @@
 
 # ReturnOps AU
 
+## C2 preparation follow-up — 2026-10-18
+
+C's [Risk candidate README](experiments/c2_risk_candidate/README.md) records
+the image-observation handoff and transport-conformance regression increment
+for [KAN-24](https://lucastaooo.atlassian.net/browse/KAN-24) /
+[PR #69](https://github.com/shuxiachai/returnops-au/pull/69). Review that PR's
+exact head and local verification evidence; older dated notices below remain
+history. This increment changes C's tests/documentation only, not A/B code,
+the shared schema or model prompt. Synthetic image observations and stub model
+replies do not implement image extraction or establish real-model quality.
+
+A's [18 October review](https://github.com/shuxiachai/returnops-au/pull/69#pullrequestreview-5562244842)
+accepted the preparation interface constraints at `cfda3a1`, not a provider or
+runtime gate. The next real-call handoff still needs the selected provider/model,
+API/response and usage mapping, allowed data flow and shared transport ownership;
+never put credentials in a PR. Formal Gold, post-await runtime integration and
+C3's R.03 prerequisite remain separate. No merge, Jira Done or joint acceptance
+is implied. Prepared with Codex assistance; no personal sign-off is inferred.
+
 ## Current C handoff — 2026-10-09
 
 This dated update supersedes the **current-status wording**, not the original

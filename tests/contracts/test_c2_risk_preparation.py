@@ -1,13 +1,15 @@
 """C2 offline stub-transport regressions, not live LLM/Gold/Gate evidence."""
 import asyncio
 from copy import deepcopy
+from dataclasses import FrozenInstanceError
 from hashlib import sha256
 import json
 from pathlib import Path
+import traceback
 import unittest
 
 from experiments.c2_risk_candidate.reviewer import (
-    ModelReply, PROMPT_VERSION, RiskReviewError, RiskReviewerCandidate, SYSTEM_PROMPT,
+    ModelInvocation, ModelReply, PROMPT_VERSION, RiskReviewError, RiskReviewerCandidate, SYSTEM_PROMPT,
 )
 
 
@@ -85,6 +87,63 @@ class RiskPreparationTests(unittest.IsolatedAsyncioTestCase):
         copy = json.loads(invocation.input_json)
         copy["packet"]["proposal_version"] = 999
         self.assertEqual(request, before)
+
+    async def test_configured_invocation_is_frozen_and_nonzero_usage_is_preserved(self):
+        calls = []
+
+        async def transport(invocation):
+            calls.append(invocation)
+            # Synthetic adapter accounting, not a measured provider call.
+            return ModelReply(json.dumps(analysis()), 137, 29)
+
+        candidate = RiskReviewerCandidate(
+            transport, provider_id="other-stub-provider", model_id="other-stub-model",
+            timeout_seconds=7.5, clock=lambda: "2026-10-12T09:00:00Z")
+        review = await self.call(candidate=candidate)
+        self.assertEqual(len(calls), 1)
+        invocation = calls[0]
+        self.assertIs(type(invocation), ModelInvocation)
+        expected = {"system_prompt": SYSTEM_PROMPT, "input_json": invocation.input_json,
+                    "prompt_version": PROMPT_VERSION, "provider_id": "other-stub-provider",
+                    "model_id": "other-stub-model", "timeout_seconds": 7.5}
+        self.assertEqual(vars(invocation), expected)
+        for field in expected:
+            with self.subTest(field=field), self.assertRaises(FrozenInstanceError):
+                setattr(invocation, field, "replacement")
+        metadata = review["model_run"]
+        self.assertEqual(metadata["provider_id"], expected["provider_id"])
+        self.assertEqual(metadata["model_id"], expected["model_id"])
+        for field, count in (("input_tokens", 137), ("output_tokens", 29)):
+            with self.subTest(field=field):
+                self.assertIs(type(metadata[field]), int)
+                self.assertEqual(metadata[field], count)
+
+    async def test_caller_mutation_during_transport_does_not_alias_captured_input(self):
+        request = deepcopy(FIXTURE)
+        before = deepcopy(request)
+        entered, release = asyncio.Event(), asyncio.Event()
+        calls = []
+
+        async def transport(invocation):
+            calls.append(invocation)
+            entered.set()
+            await release.wait()
+            return ModelReply(json.dumps(analysis()), 0, 0)
+
+        task = asyncio.create_task(self.call(request, candidate=self.candidate(transport)))
+        try:
+            await asyncio.wait_for(entered.wait(), timeout=5)
+            request["packet"]["proposal_version"] += 1
+            request["statements"][0]["raw_text"] += " Caller changed while awaiting."
+            request["retrieval_result"]["conflicts"].append("New caller-side conflict.")
+        finally:
+            release.set()
+            review = await asyncio.wait_for(task, timeout=5)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(json.loads(calls[0].input_json), before)
+        self.assertEqual(review["proposal_version"], before["packet"]["proposal_version"])
+        # Snapshot isolation is not freshness: A must revalidate after await.
+        self.assertNotEqual(review["proposal_version"], request["packet"]["proposal_version"])
 
     async def test_stale_packet_or_stripped_original_retrieval_never_invokes(self):
         request = deepcopy(FIXTURE)
@@ -241,6 +300,86 @@ class RiskPreparationTests(unittest.IsolatedAsyncioTestCase):
                 await self.call(candidate=self.candidate(transport, timeout_seconds=0.01))
             self.assertEqual(str(caught.exception), code)
             self.assertIsNone(caught.exception.__context__)
+
+    async def test_failed_first_attempt_is_not_retried_or_leaked(self):
+        private_detail = "synthetic-provider-private-detail"
+        for mode, code in (("exception", "MODEL_FAILURE"),
+                           ("invalid", "INVALID_MODEL_OUTPUT"),
+                           ("unsafe", "UNSAFE_MODEL_OUTPUT")):
+            calls = []
+
+            async def transport(invocation):
+                calls.append(invocation)
+                if len(calls) == 1:
+                    if mode == "exception":
+                        try:
+                            raise ValueError(private_detail)
+                        except ValueError as cause:
+                            raise RuntimeError(private_detail) from cause
+                    if mode == "invalid":
+                        return ModelReply(json.dumps({"error": private_detail}), 0, 0)
+                    # A warning outcome without its required warning finding.
+                    return ModelReply(json.dumps({**analysis(), "outcome": "PASS_WITH_WARNING"}), 0, 0)
+                return ModelReply(json.dumps(analysis()), 0, 0)
+
+            with self.subTest(mode=mode):
+                with self.assertRaises(RiskReviewError) as caught:
+                    await self.call(candidate=self.candidate(transport))
+                self.assertEqual(len(calls), 1)
+                self.assertEqual(caught.exception.code, code)
+                self.assertEqual(str(caught.exception), code)
+                self.assertIsNone(caught.exception.__context__)
+                self.assertIsNone(caught.exception.__cause__)
+                rendered = "".join(traceback.format_exception(caught.exception))
+                self.assertNotIn(private_detail, rendered)
+
+    async def test_non_analysis_transport_replies_fail_closed_without_recovery(self):
+        valid = json.dumps(analysis())
+        replies = {
+            "null reply": None,
+            "untyped reply": {"analysis_json": valid, "input_tokens": 1, "output_tokens": 1},
+            "null analysis": ModelReply(None, 1, 1),
+            "JSON null": ModelReply("null", 1, 1),
+            "JSON array": ModelReply("[]", 1, 1),
+            "refusal string": ModelReply(json.dumps("I cannot provide this review."), 1, 1),
+            "refusal object": ModelReply(json.dumps({"refusal": "Review refused."}), 1, 1),
+            "truncated JSON": ModelReply(valid[:-1], 1, 1),
+            "Markdown fence": ModelReply("```json\n" + valid + "\n```", 1, 1),
+            "error object": ModelReply(json.dumps({"error": {"code": "unavailable"}}), 1, 1),
+        }
+        for name, reply in replies.items():
+            calls = []
+
+            async def transport(invocation):
+                calls.append(invocation)
+                return reply
+
+            with self.subTest(reply=name):
+                with self.assertRaisesRegex(RiskReviewError, "^INVALID_MODEL_OUTPUT$"):
+                    await self.call(candidate=self.candidate(transport))
+                self.assertEqual(len(calls), 1)
+
+    async def test_analysis_byte_capacity_boundary_rejects_without_truncation(self):
+        valid = json.dumps(analysis())
+        limit = 2 * 1024 * 1024
+        # Both payloads are otherwise valid JSON, so only the capacity changes.
+        at_limit = valid + " " * (limit - len(valid.encode("utf-8")))
+        for extra in (0, 1):
+            raw = at_limit + " " * extra
+            calls = []
+
+            async def transport(invocation):
+                calls.append(invocation)
+                return ModelReply(raw, 1, 1)
+
+            with self.subTest(bytes=len(raw.encode("utf-8"))):
+                if extra:
+                    with self.assertRaisesRegex(RiskReviewError, "^INVALID_MODEL_OUTPUT$"):
+                        await self.call(candidate=self.candidate(transport))
+                else:
+                    review = await self.call(candidate=self.candidate(transport))
+                    self.assertEqual(review["outcome"], "PASS")
+                self.assertEqual(len(calls), 1)
 
     async def assert_external_cancellation(self, behaviour):
         entered = asyncio.Event()

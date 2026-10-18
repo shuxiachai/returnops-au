@@ -51,6 +51,28 @@ These are cooperative local stub tests. They do not sandbox arbitrary Python,
 stop a blocking transport, certify a live provider or replace A's post-await
 current-version checks and real model/data-flow approval.
 
+### Image handoff and transport conformance — 18 October 2026
+
+This increment exercises the existing optional `ImageObservationResult` input,
+not a new vision model. Synthetic observations, original evidence references,
+limitations and confidence must survive intact in the immutable request JSON.
+Cross-case, stale-input, unknown/unbound evidence and malformed/authority-bearing
+inputs are rejected before the model transport runs. Empty visible observations
+and low confidence remain valid uncertain data; tests do not invent a rule that
+all low-confidence images automatically require a particular Risk outcome.
+Image text stays separate from the system prompt. That structural assertion is
+not evidence that a real model will resist prompt injection or infer correctly.
+
+Transport regressions also cover configured invocation metadata, nonzero usage
+preservation, malformed/provider-shaped responses, capacity limits and failure
+without retries. There is still no HTTP client or provider adapter in this
+component. The unchanged prompt and production module are not claimed as newly
+implemented by these tests. See PR #69 for exact-source verification results.
+
+These tests support C2.02/C2.05 and `FR-008` / `NFR-001/002/009`. They do not
+start or complete C3.01–C3.03, prove source admission, run formal Gold, or replace
+R.03's actual integrated pilot. The frozen owners, S/F and outcomes are unchanged.
+
 ## Adapter and integration contract
 
 - Supply an async `ModelInvocation → ModelReply` callable. Invocation has the
@@ -61,7 +83,8 @@ current-version checks and real model/data-flow approval.
 - Transport supplies actual usage counts. Caller supplies unique `review_id`
   and independent `run_id`; output metadata is constructed by the component,
   not accepted from generated JSON. Tests name provider/model as stubs with
-  zero usage. No live-provider claims are inferred from those values.
+  explicitly synthetic zero and nonzero usage values. No live-provider claims
+  are inferred from those values.
 - A must supply complete authorised retained inputs and recheck current
   case/input/proposal/corpus after the call, before accepting any review.
   IDs and snapshot comparison here cannot prevent a later concurrent revision.
@@ -74,12 +97,28 @@ current-version checks and real model/data-flow approval.
   separate pilot data, and satisfy F.07/C1.05 plus the unchanged WBS S/F.
   LLM integration into the executable workflow still requires Gate 1.
 
+### Concrete decision needed before real calls
+
+A's [review of `cfda3a1`](https://github.com/shuxiachai/returnops-au/pull/69#pullrequestreview-5562244842)
+accepts the preparation interface constraints only. For the next increment,
+record the chosen provider and exact model, documented endpoint/API dialect and
+structured-output/usage response shape, permitted input fields/data flow, network
+deadline/refusal/error handling, and who supplies the shared HTTP adapter.
+Credentials stay local and out of GitHub; actual call/budget permission must be
+settled before a pilot. A course resource listing alone does not choose a provider.
+
+C can then test that concrete adapter with fake HTTP responses before any live
+call, followed by separately recorded real pilot results. Actual retained-input
+provenance, current-version/expiry revalidation after await and acceptance into
+Domain remain A's integration responsibilities. No extra generic transport
+wrapper is needed: `ModelInvocation → ModelReply` is already the internal port.
+
 ## Reproduce offline checks
 
 From repository root with the existing locked dependencies:
 
 ```sh
-python -B -m unittest discover -s tests/contracts -p 'test_c2_risk_preparation.py' -v
+python -B -m unittest discover -s tests/contracts -p 'test_c2_*.py' -v
 ```
 
 All model responses in these tests are explicit synthetic stubs. The suite
