@@ -455,6 +455,7 @@
     ".github/ISSUE_TEMPLATE/research.yml": "b87e542eb1776e399b6264b8b8d5c91106065a71a8f57819207c600b36afdd35",
     ".github/PULL_REQUEST_TEMPLATE.md": "76d5a549ba0c695d16c032b92943cfc067961d42d5f21bed8636285a2dcf0a08",
     ".github/workflows/a203-formal-validation.yml": "006b11a80140c06053bfbf33b80a6560de19914ef8b192a9039151de498748eb",
+    ".github/workflows/a203-legacy-regression.yml": "390350ccb10d1e5d1868315964434be6db6930fc1f02b9350f8926fb0257ad59",
     ".github/workflows/ci.yml": "d4a74cc873d51a1421a87273a3cfe4a30cf04c0321afa9af061a5f91e11be884",
     ".gitignore": "9a3fece2786f5bea038428d52bac74a798a2bc6fb57b9b0b838a85562ae7e99f",
     "AGENTS.md": "28b8c29e6fafbd3e432ab4629f20a5bcdc45c8f23fb4a5214664720a60607245",
@@ -879,10 +880,12 @@
     "tests/unit/test_domain_models.py": "cfcdd7ddda94ad83bbc983e2ed551e239a6e4dd1d768b6148c5af0430c13be9b",
     "tests/unit/test_label_pdf.py": "1a31ae96a7390629458390cc62cdf6dbb1f2f258fc31b171099365b1d40c7774",
     "tests/unit/test_label_pdf_validation.py": "bcf341f3b5da993cce2a9f119c846e4c996a37724cadfab033b32a0728073e32",
-    "tools/a203_formal_cloud/export_safe.py": "00ad2586c7cc1175ea942ada004104a30b33dc23c7520bde1968a9c1eb3046a5",
+    "tools/a203_formal_cloud/export_safe.py": "5f30cc1cd45f719aae9ab0d67e33d4cb0221e5b6f29393c0eec5c03e462eeb51",
+    "tools/a203_formal_cloud/legacy-selection.json": "bab5737b0cfc1489eb21006f80aed2ecbe56bff78739a4ae769fa5c4471b635b",
     "tools/a203_formal_cloud/primary-selection.json": "8e412540ae72a9294b57f3dea5e51458248ccbc5ff3e4ff7156061b38110c0b0",
-    "tools/a203_formal_cloud/pytest_entry.py": "0f557f69ab1d1019ef6cca03464ca0e2b33cd39d183075000ea8f2b6d95cb6c4",
-    "tools/a203_formal_cloud/runner.py": "0dba7c7794ab30a41891fe6a5ad88cff9c95ccb031a2a8d1be028e97abdd987c",
+    "tools/a203_formal_cloud/pytest_entry.py": "6290b20d4eca083f1346840c84f11b14979b75f06e9c98b8ef5cd7119fd13471",
+    "tools/a203_formal_cloud/runner.py": "5573549048bc31e6c76c8acc482c72251318f0d3d8ec36ae65061f52ab4060a6",
+    "tools/a203_formal_cloud/storage-release.json": "764659c4a636fe1fee905ba208a32581c3fb48b5642ebec4acc5857534aa46a7",
     "tools/a203_formal_cloud/storage-selection.json": "16b53f2b75cd41cefb7005e23aaa43cf83feeabcc7c6c6973ef922e2350d2fc8",
     "tools/a203_formal_cloud/storage_audit.py": "513a93ff18b9a742ee6116fcdb2d20839bd5121e1becf1757d6052d06e2a6123",
     "tools/checks/check-installed.py": "62e7f8d1f650af8b864f8b8ad87f2f3ea5def1c7fd15e5c08cafef5dadc5b214",
@@ -898,8 +901,7 @@
     "tools/model-checks/package.json": "d6169ef09c7dd9467257aae38e49c04497b190db4ec9955da101f4eff6460b46",
     "tools/model-checks/README.md": "ae9ca023e7858ce98764fa8f26c264ee627f9943b171a79fbacc4895bfcbfb7d",
     "tools/model-checks/test_check.py": "093bc55abe6e3fd97cee4ce35909742f1d55cfb45cf5af733e36c09da3b78421",
-    "tools/offline_fixed_proposal.py": "63850a1f0e518b122ddf2e85a0757fb483b7a5872eabbc41109da36204aa06c7",
-    "tools/a203_formal_cloud/storage-release.json": "764659c4a636fe1fee905ba208a32581c3fb48b5642ebec4acc5857534aa46a7"
+    "tools/offline_fixed_proposal.py": "63850a1f0e518b122ddf2e85a0757fb483b7a5872eabbc41109da36204aa06c7"
   },
   "runtime137": {
     "apps/api/returnops_api/__init__.py": "1d518b0c55dc4e3eee1bf16c0580530b35e4135fa86583f7e51c6e33e6d8ffde",
@@ -1303,5 +1305,7 @@
     "stage1/reports/v0.4/stage1-report.pdf"
   ],
   "origin_primary_selection_sha256": "96664f9d8cef01813e0097f8dea4b4e9348a09db1da777f3a35e5913e2347d6f",
-  "offline_collection_map_sha256": "9edecf669ec186b83e1b082a76184ecb50747c74bd2cb96725a47cd0ea02f5d3"
+  "offline_collection_map_sha256": "9edecf669ec186b83e1b082a76184ecb50747c74bd2cb96725a47cd0ea02f5d3",
+  "legacy_origin_provenance_sha256": "22e608c49314b634d8764489d8a7ed25727e1ac3f44c98fee0355dd89d158fca",
+  "legacy_collection_map_sha256": "490d9f0b9f95e6161667bb7d9a127e27678fec9b05313b2a4dbd6ade7eb52e59"
 }

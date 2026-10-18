@@ -1,7 +1,7 @@
 """Formal original tests on one fresh hosted PostgreSQL service; inert at import.
 
 FR-009/010; NFR-002/003/004/006/009; governed execution / exact-scope UML.
-Only the new primary234 and separately released Storage74 are claimed.
+Each phase claims only its own exact current selection, never old full coverage.
 """
 from __future__ import annotations
 import hashlib
@@ -15,15 +15,22 @@ import sys
 import zipfile
 
 BRANCHES = {'primary': 'refs/heads/test/81-a203-formal-20261018',
-            'storage': 'refs/heads/test/81-a203-storage-20261018'}
+            'storage': 'refs/heads/test/81-a203-storage-20261018',
+            'legacy': 'refs/heads/test/81-a203-legacy-20261019'}
 DATABASES = {'primary': 'returnops_f02_a203_artifact_v04_20261018',
-             'storage': 'returnops_f02_a203_artifact_storage_v04_20261018'}
+             'storage': 'returnops_f02_a203_artifact_storage_v04_20261018',
+             'legacy': 'returnops_f02_a203_artifact_v04_20261018'}
+SUITES = {'primary': {'artifact': 1, 'lifecycle': 233}, 'storage': {'storage': 74},
+          'legacy': {'artifact': 168, 'authority': 37}}
+RESULT_STATUS = {'primary': 'FORMAL_PRIMARY_234_PASS', 'storage': 'FORMAL_STORAGE_74_PASS',
+                 'legacy': 'FORMAL_LEGACY_205_PASS'}
 VERSION = 170011
 HEAD = '0013_label_artifact_result'
 IMAGE = 'postgres:17-bookworm@sha256:051f7b7b3abdd564d5d1bd1e8c4b9c1b6e77087d1dd22020ede611c096a272e0'
 MANIFEST = 'tools/a203_formal_cloud/inputs.json'
 CORE_FREEZE = 'f772bf58edbd37b21c3c1d497334b140e30e8810c9d4dc157caf0183d0db123f'
 RELEASE = 'tools/a203_formal_cloud/storage-release.json'
+LEGACY_SELECTION = 'tools/a203_formal_cloud/legacy-selection.json'
 REPORT_RUNTIME = {'pytest_version': '9.1.1',
  'classes': {'parent': '_pytest.reports.TestReport', 'subtest': '_pytest.subtests.SubtestReport'},
  'source_files': {
@@ -88,18 +95,24 @@ def cloud_context(env, platform=None):
 
 def load_inputs(source):
     data = json.loads(safe_file(source / MANIFEST).read_bytes())
+    legacy = LEGACY_SELECTION in data['files']
+    legacy_fields = ('legacy_origin_provenance_sha256', 'legacy_collection_map_sha256') if legacy else ()
     exact(data, ('format', 'core_freeze_sha256', 'core444', 'files', 'runtime137',
                  'source_to_installed', 'migrations13', 'intentional_absences',
-                 'origin_primary_selection_sha256', 'offline_collection_map_sha256'), 'input-fields')
+                 'origin_primary_selection_sha256', 'offline_collection_map_sha256', *legacy_fields), 'input-fields')
     require(data['format'] == 1 and data['core_freeze_sha256'] == CORE_FREEZE, 'input-format')
     require(data['origin_primary_selection_sha256'] == '96664f9d8cef01813e0097f8dea4b4e9348a09db1da777f3a35e5913e2347d6f'
             and data['offline_collection_map_sha256'] == '9edecf669ec186b83e1b082a76184ecb50747c74bd2cb96725a47cd0ea02f5d3', 'selection-origin')
+    for key in legacy_fields:
+        require(type(data[key]) is str and re.fullmatch('[a-f0-9]{64}', data[key]), 'legacy-origin')
     require(len(data['core444']) == 444 and len(data['runtime137']) == len(data['source_to_installed']) == 137,
             'source-count')
     require(len(data['migrations13']) == 13 and len(data['intentional_absences']) == 106, 'baseline-count')
     require(set(data['runtime137']) == set(data['source_to_installed']), 'runtime-mapping')
     require(MANIFEST not in data['files'], 'manifest-self-reference')
-    require(len(data['files']) == (452 if RELEASE in data['files'] else 451), 'file-count')
+    require(len(data['files']) == (454 if legacy else 452 if RELEASE in data['files'] else 451), 'file-count')
+    if legacy:
+        require(RELEASE in data['files'] and '.github/workflows/a203-legacy-regression.yml' in data['files'], 'legacy-layout')
     for relative, expected in data['files'].items():
         require(type(relative) is str and not Path(relative).is_absolute() and '\\' not in relative
                 and '..' not in Path(relative).parts, 'input-path')
@@ -140,17 +153,23 @@ def selections(source, phase):
     require(phase in BRANCHES, 'phase')
     path = source / ('tools/a203_formal_cloud/' + phase + '-selection.json')
     value = json.loads(safe_file(path).read_bytes())
+    extra = ('offline_collection_map_sha256',) if phase == 'legacy' else ()
     exact(value, ('format', 'core_freeze_sha256', 'origin_selection_sha256',
-                  'expected_public_tables', 'suites'), 'selection-fields')
+                  'expected_public_tables', 'suites', *extra), 'selection-fields')
     require(value['format'] == 1 and value['core_freeze_sha256'] == CORE_FREEZE, 'selection-core')
-    names = ['artifact', 'lifecycle'] if phase == 'primary' else ['storage']
+    if phase == 'legacy':
+        require(value['origin_selection_sha256'] == 'e3d1c825de939b38f4cb255302c7599661cbadf41be318a679d64a8ddf250dd0', 'legacy-selection-origin')
+        actual_map = value['offline_collection_map_sha256']
+        require(type(actual_map) is str and re.fullmatch('[a-f0-9]{64}', actual_map)
+                and actual_map == json.loads(safe_file(source / MANIFEST).read_bytes())['legacy_collection_map_sha256'], 'legacy-collection-map')
+    names = list(SUITES[phase])
     require(list(value['suites']) == names, 'suite-order')
     require(len(value['expected_public_tables']) == 61
             and value['expected_public_tables'] == sorted(set(value['expected_public_tables']))
             and all(re.fullmatch('[a-z_]+', n) for n in value['expected_public_tables']), 'table-selection')
     for name, suite in value['suites'].items():
         exact(suite, ('selectors', 'expected_nodes', 'expected_count', 'max_seconds'), 'suite-fields')
-        count = {'artifact': 1, 'lifecycle': 233, 'storage': 74}[name]
+        count = SUITES[phase][name]
         require(suite['expected_count'] == count and len(suite['expected_nodes']) == count
                 and len(set(suite['expected_nodes'])) == count, 'node-count')
         require(suite['max_seconds'] == (3600 if name == 'storage' else 14400), 'outer-budget')
@@ -159,7 +178,7 @@ def selections(source, phase):
         if name == 'storage':
             require(suite['selectors'] == ['tests/storage/test_postgresql.py', 'tests/storage/test_records.py'], 'storage-selectors')
         else:
-            require(suite['selectors'] == suite['expected_nodes'], 'primary-selectors')
+            require(suite['selectors'] == suite['expected_nodes'], 'exact-node-selectors')
         selected_files = {s.split('::')[0] for s in suite['selectors']}
         require(all(type(n) is str and '::' in n and n.split('::')[0] in selected_files for n in suite['expected_nodes']), 'node-files')
     return value
@@ -479,8 +498,12 @@ def main():
         selection = selections(source, phase)
         if phase == 'storage':
             write_new(safe / 'primary-release-proof.json', storage_release(source, data))
-        else:
+        elif phase == 'primary':
             require(RELEASE not in data['files'], 'primary-release-unexpected')
+        elif phase == 'legacy':
+            # The inherited Storage release remains byte-hashed history only.
+            # This phase never parses it, invokes its API gate, or reuses its grant.
+            require(LEGACY_SELECTION in data['files'], 'legacy-selection-missing')
         stage_name = 'service-container'
         write_new(safe / 'container-proof.json', service_proof(home, os.environ.copy(), private))
         stage_name = 'build'
@@ -506,7 +529,7 @@ def main():
         final = success_audit(raw, database, proof['oid'], selection['expected_public_tables'], storage=phase == 'storage')
         require(final == last, 'final-seal-drift')
         write_new(safe / 'final-seal.json', final)
-        write_new(safe / 'result.json', dict(status='FORMAL_PRIMARY_234_PASS' if phase == 'primary' else 'FORMAL_STORAGE_74_PASS',
+        write_new(safe / 'result.json', dict(status=RESULT_STATUS[phase],
             phase=phase, suites={k: len(v['EXECUTION']['collected']) for k, v in outcomes.items()},
             source_manifest_sha256=sha(source / MANIFEST), core_freeze_sha256=CORE_FREEZE,
             selection_sha256=sha(source / ('tools/a203_formal_cloud/' + phase + '-selection.json')),

@@ -5,7 +5,7 @@ from pathlib import Path
 import re
 import sys
 
-from runner import REPORT_RUNTIME, exact, load_inputs, require, safe_exception, selections, sha, write_new
+from runner import REPORT_RUNTIME, SUITES, exact, load_inputs, require, safe_exception, selections, sha, write_new
 
 EXCEPTION_TYPES = {'AssertionError', 'ValueError', 'TypeError', 'KeyError', 'OSError', 'PermissionError',
     'FileExistsError', 'RuntimeError', 'OperationalError', 'ProgrammingError', 'IntegrityError', 'DBAPIError',
@@ -33,7 +33,7 @@ def safe_outcome(value, suite):
             'unexpected_plugins', 'exit_code', 'testsfailed', 'report_counts', 'subtest_counts',
             'warning_count', 'report_runtime')
     exact(value, keys, 'outcome-fields')
-    require(value['phase'] in {'primary', 'storage'} and value['suite'] in {'artifact', 'lifecycle', 'storage'}
+    require(value['phase'] in SUITES and value['suite'] in SUITES[value['phase']]
             and value['kind'] in {'COLLECTION', 'EXECUTION'}, 'outcome-scope')
     require(type(value['collected']) is list and len(value['collected']) <= len(suite['expected_nodes'])
             and all(type(n) is str and n in suite['expected_nodes'] for n in value['collected']), 'outcome-collected')

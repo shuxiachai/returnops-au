@@ -4,7 +4,7 @@ from pathlib import Path
 import re
 import sys
 
-from runner import (BRANCHES, CORE_FREEZE, DATABASES, HEAD, IMAGE, MANIFEST, VERSION,
+from runner import (BRANCHES, CORE_FREEZE, DATABASES, HEAD, IMAGE, MANIFEST, VERSION, RESULT_STATUS, SUITES,
                     exact, load_inputs, require, safe_file, selections, sha, write_new)
 from pytest_entry import safe_outcome
 
@@ -28,6 +28,7 @@ def installed(value, data):
 
 
 def record(name, value, data, phase, tables):
+    require(phase in SUITES, 'export-phase')
     if name in {'source-before.json', 'source-after.json'}:
         return file_map(value, (*data['files'], MANIFEST))
     if name == 'installed-after.json':
@@ -89,7 +90,7 @@ def record(name, value, data, phase, tables):
     if name == 'stop.json':
         exact(value, ('status', 'stage', 'exception_type', 'sqlstate', 'database_retained', 'retry_permitted'), 'export-stop-fields')
         require(value['status'] == 'STOP_UNKNOWN_OR_FAILED' and value['stage'] in
-            {'release', 'service-container', 'build', 'service-bootstrap', 'artifact', 'lifecycle', 'storage', 'final-seal'}
+            {'release', 'service-container', 'build', 'service-bootstrap', 'artifact', 'authority', 'lifecycle', 'storage', 'final-seal'}
             and value['exception_type'] in {'AssertionError', 'ValueError', 'TypeError', 'KeyError', 'OSError', 'PermissionError',
                 'FileExistsError', 'RuntimeError', 'OperationalError', 'ProgrammingError', 'IntegrityError', 'DBAPIError',
                 'SQLAlchemyError', 'TimeoutExpired', 'KeyboardInterrupt', 'Stop', 'OTHER'}
@@ -99,8 +100,8 @@ def record(name, value, data, phase, tables):
     if name == 'result.json':
         exact(value, ('status', 'phase', 'suites', 'source_manifest_sha256', 'core_freeze_sha256',
             'selection_sha256', 'final_seal_sha256', 'database_retained', 'old_2906_transferred', 'full_3140_acceptance_claimed'), 'export-result-fields')
-        require(value['phase'] == phase and value['status'] == ('FORMAL_PRIMARY_234_PASS' if phase == 'primary' else 'FORMAL_STORAGE_74_PASS')
-                and value['suites'] == ({'artifact': 1, 'lifecycle': 233} if phase == 'primary' else {'storage': 74})
+        require(value['phase'] == phase and value['status'] == RESULT_STATUS[phase]
+                and value['suites'] == SUITES[phase]
                 and value['core_freeze_sha256'] == CORE_FREEZE and all(value[k] is False for k in
                     ('database_retained', 'old_2906_transferred', 'full_3140_acceptance_claimed')), 'export-result')
         for key in ('source_manifest_sha256', 'selection_sha256', 'final_seal_sha256'):
