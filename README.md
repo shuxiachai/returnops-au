@@ -10,6 +10,82 @@
 
 # ReturnOps AU
 
+## C synchronization receipt — 2026-10-19 (later checkpoint)
+
+This dated receipt supersedes only the current-status statements in earlier
+blocks. Main advanced to `bbf0869cf23b970078209aee7b9615ac4d9b9902` when A
+merged [PR #20](https://github.com/shuxiachai/returnops-au/pull/20); PR #7 is
+also merged. These are bounded Stage 1 guide/archive increments, not completion
+of C's Stage 2 work or personal/joint acceptance.
+
+Both normal jobs (**offline contracts/models and API/PostgreSQL**) are now
+successful for each exact corrected source; no extra rerun was requested for
+this synchronization:
+
+| C PR | Exact head | Completed normal run |
+| --- | --- | --- |
+| #68 C1 | `4dc60bd93b900a579758ec026fb851d0754fdba0` | [39187150566](https://github.com/shuxiachai/returnops-au/actions/runs/39187150566) |
+| #69 C2 | `11ca4f08c74885f39f960f89b15e305e1ccaf5ba` | [39186660660](https://github.com/shuxiachai/returnops-au/actions/runs/39186660660) |
+| #70 evaluation | `e5b3e91a6e82b3419bbc542c537861eb961988bd` | [39187153134](https://github.com/shuxiachai/returnops-au/actions/runs/39187153134) |
+| #61 source review | `b23b7481c083bd7d0805fe9fb20e6b9ca390aaea` | [39186658534](https://github.com/shuxiachai/returnops-au/actions/runs/39186658534) |
+| #17 historical receipts | `3ab0e886c752ed3e30b0cdbc0c60097b52a93df2` | [39187151323](https://github.com/shuxiachai/returnops-au/actions/runs/39187151323) |
+
+Those runs cover their recorded branch sources, not a claimed integration with
+the later `bbf0869` main. A's earlier reviews remain attributable to their own
+heads; the current corrections still need non-author re-review/adoption.
+
+### Local backup, not public adoption
+
+An append-only local checkpoint on `local/c-provisional-oct19` is
+`543d0d03e1319f1035df17c4fbc84dcac187ff54` (tree
+`43fef3fee1f3f90272af37dd87e7d35faf238a8f`). It preserves the original Oct18
+snapshot and unadopted experimental transport/image/capture work. Only the
+bounded C1/evaluation corrections were imported; this is **not** a blind merge
+of all public branches or a current-main deployment.
+
+The local mock lab also fixes a real source-recording defect: inherited
+`GIT_DIR`/`GIT_WORK_TREE` can no longer redirect the recorded commit to another
+checkout. It reuses the bounded, isolated Git reader, validates the SHA and
+fails before publication if initial/final source identity cannot be established.
+The three-file fix received an independent AI-assisted review. It remains in
+the local backup, not silently included in this public dependent Draft.
+
+Exact clean-checkpoint verification: **798 tests / 1,923 subtests** across
+contracts/security/records/orders; six static groups, 12 checker tests,
+7 runner tests and 14 Mermaid blocks pass. The four local component suites
+pass 84 tests / 242 subtests (overlapping, not additional counts). A clean-source
+12-case mock rehearsal retained 6 reviews and 6 expected failures. Its receipt
+SHA-256 is `376a2fbee458b382cd4fb70e22b7a08723483f59ead1dec7a465ee9c17460df1`.
+No DB, real provider/model, real image interpretation, Gold or human timing
+was used; these checks establish neither R.03 nor B4 acceptance.
+
+### Jira and next decisions
+
+Dated evidence/pending-work comments were saved to
+[KAN-23](https://lucastaooo.atlassian.net/browse/KAN-23),
+[KAN-24](https://lucastaooo.atlassian.net/browse/KAN-24),
+[KAN-25](https://lucastaooo.atlassian.net/browse/KAN-25),
+[KAN-26](https://lucastaooo.atlassian.net/browse/KAN-26),
+[KAN-22](https://lucastaooo.atlassian.net/browse/KAN-22),
+[KAN-12](https://lucastaooo.atlassian.net/browse/KAN-12) and
+[KAN-33](https://lucastaooo.atlassian.net/browse/KAN-33).
+Their original status, dates, estimates, owners, reviewers and S/F conditions
+were retained; no card was marked Done. Technical threads
+[#58](https://github.com/shuxiachai/returnops-au/issues/58#issuecomment-6259670017),
+[#66](https://github.com/shuxiachai/returnops-au/issues/66#issuecomment-6259670187) and
+[#67](https://github.com/shuxiachai/returnops-au/issues/67#issuecomment-6259670385)
+now link the same exact-head checks and remaining decisions.
+
+Still needed: A's exact corpus/context admission and trusted pin; approved
+provider/input flow and retained-input/current-state integration; E.01/private
+Gold agreement and genuine blind A/B timing; prerequisite-qualified real pilot,
+C3 authorized-image demonstration and joint acceptance. There is no new A/B
+scheduling confirmation or personal explanation record. **#79 stays Draft**
+until dependencies are adopted and its exact integrated source is retested.
+This README-only receipt uses `[skip ci]` to conserve quota, never to satisfy
+required implementation checks. Prepared with Codex assistance; A/B files and
+main are untouched by this update.
+
 ## C review follow-up — 2026-10-19
 
 A's new reviews have been read and the actionable C corrections are published
