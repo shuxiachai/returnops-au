@@ -100,9 +100,11 @@ python -B tools/checks/run.py offline --baseline-ref 17042b4164a0be878c7a0684cf5
 
 - Real-candidate **static/negative** checks bind version, file/content hashes,
   unique IDs, schema, the three source URLs, category mapping, retained qualifier
-  markers and unchanged synthetic texts. Even the correct inventory hash must
-  produce `UNREVIEWED_CORPUS`; the older synthetic-only constructor also rejects
-  these bytes. Marker/schema checks are omission guards, not legal review.
+  markers and unchanged synthetic texts. On supported filesystems, even the
+  correct inventory hash must produce `UNREVIEWED_CORPUS`; unsupported platforms
+  return `UNSUPPORTED_FILESYSTEM` before reading the bundle. The older
+  synthetic-only constructor also rejects these bytes. Marker/schema checks
+  are omission guards, not legal review.
 - Positive retrieval uses **invented synthetic fixtures only**: qualifier-only
   matching with all paragraphs retained; all three categories isolated at
   `top_k=1`; full nonmatching conflict counterpart retained; stable ordering;
@@ -112,6 +114,25 @@ python -B tools/checks/run.py offline --baseline-ref 17042b4164a0be878c7a0684cf5
   live model, PostgreSQL run, Gate 1/2 integration or end-to-end recall claim is
   implied. The file-descriptor loader is macOS/Linux only; unsupported filesystem
   platforms fail explicitly.
+
+### 19 October: platform-aware admission tests
+
+Addressed A's [Windows capability review](https://github.com/shuxiachai/returnops-au/pull/68#discussion_r4309279551)
+without changing the loader or either candidate JSON file. Tests that require
+secure descriptor-based reads now check the same `O_DIRECTORY`, `O_NOFOLLOW`
+and `O_NONBLOCK` capabilities as the loader; they do not pretend that native
+Windows can admit this bundle. Static corpus/provenance checks, invalid pin and
+configuration checks, and explicit unsupported-filesystem checks remain runnable.
+Capability-removal tests tolerate an already absent flag and verify that both
+loader entry points reject before calling `os.open`, with no retained exception
+context. All supported-host security assertions are retained.
+
+Local macOS focused verification: **70 tests / 127 subtests** passed. Separate
+capability-namespace simulations (each required flag missing, and all three
+missing) each ran the 36 admission tests with **6 passed / 30 capability skips**.
+These are simulations, **not a native Windows test run** or Windows runtime
+support. Corpus/manifest bytes and their pending-review states remain unchanged;
+this test correction supplies no approval pin, runtime wiring or acceptance.
 
 ## Review requested from A
 

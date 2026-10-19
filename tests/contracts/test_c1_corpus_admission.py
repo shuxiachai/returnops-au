@@ -23,6 +23,15 @@ ROOT = Path(__file__).resolve().parents[2]
 DATA = ROOT / "experiments/c1_grounding_candidate/data/corpus.json"
 AT = "2026-10-12T10:00:00Z"
 CATEGORIES = ["FAULTY_OR_QUALITY_ISSUE", "WRONG_ITEM", "CHANGE_OF_MIND"]
+# Mirror the loader's fail-closed capability gate, not an operating-system name.
+# Only tests that need to pass that gate are skipped on unsupported platforms;
+# static checks, pre-I/O validation and missing-capability checks still execute.
+ADMISSION_FLAGS = ("O_DIRECTORY", "O_NOFOLLOW", "O_NONBLOCK")
+HAS_ADMISSION_FILESYSTEM = all(hasattr(os, flag) for flag in ADMISSION_FLAGS)
+requires_admission_filesystem = unittest.skipUnless(
+    HAS_ADMISSION_FILESYSTEM,
+    "admission needs O_DIRECTORY, O_NOFOLLOW and O_NONBLOCK; unsupported hosts fail closed",
+)
 
 
 def encoded(value):
@@ -78,6 +87,7 @@ class CorpusAdmissionTests(unittest.TestCase):
             self.load(**options)
         self.assertEqual(error.exception.code, code)
 
+    @requires_admission_filesystem
     def test_synthetic_fixture_admitted_and_immutable(self):
         receipt = self.load()
         self.assertEqual(receipt.corpus_version, self.corpus["corpus_version"])
@@ -88,6 +98,7 @@ class CorpusAdmissionTests(unittest.TestCase):
         (self.directory / "corpus.json").write_bytes(b"replaced after load")
         self.assertEqual(len(json.loads(receipt.snapshot)["passages"]), 9)
 
+    @requires_admission_filesystem
     def test_existing_wire_adapter_retrieves_conflict_closure_and_pins(self):
         pin = self.write()
         candidate = ReviewedGroundingCandidate.from_directory(
@@ -116,19 +127,31 @@ class CorpusAdmissionTests(unittest.TestCase):
             ReviewedGroundingCandidate.from_bytes(encoded(self.corpus))
         self.assertEqual(error.exception.code, "UNTRUSTED_MANIFEST")
 
-    def test_missing_or_wrong_external_pin(self):
+    def test_missing_or_malformed_external_pin(self):
         actual = self.write()
-        for pin in (None, "", "f" * 64, actual + "\n", 1):
-            with self.subTest(pin=pin), self.assertRaises(GroundingError) as error:
-                load_reviewed_corpus(self.directory, trusted_manifest_sha256=pin)
-            self.assertEqual(error.exception.code, "UNTRUSTED_MANIFEST")
+        with patch("experiments.c1_grounding_candidate.admission.os.open") as open_file:
+            for pin in (None, "", actual + "\n", 1):
+                with self.subTest(pin=pin), self.assertRaises(GroundingError) as error:
+                    load_reviewed_corpus(self.directory, trusted_manifest_sha256=pin)
+                self.assertEqual(error.exception.code, "UNTRUSTED_MANIFEST")
+            open_file.assert_not_called()
 
+    @requires_admission_filesystem
+    def test_well_formed_but_wrong_external_pin(self):
+        actual = self.write()
+        wrong = ("0" if actual[0] != "0" else "1") + actual[1:]
+        with self.assertRaises(GroundingError) as error:
+            load_reviewed_corpus(self.directory, trusted_manifest_sha256=wrong)
+        self.assertEqual(error.exception.code, "UNTRUSTED_MANIFEST")
+
+    @requires_admission_filesystem
     def test_pending_review_rejected_even_with_exact_pin_and_approved_payload_text(self):
         self.corpus["review_status"] = "APPROVED_EXACT_BYTES"
         self.manifest["review"].update(status="PENDING_EXACT_BYTES_REVIEW", reviewer=None,
                                        reviewed_at=None, evidence_uri=None)
         self.rejects("UNREVIEWED_CORPUS")
 
+    @requires_admission_filesystem
     def test_source_selection_only_approval_is_not_admission(self):
         self.manifest["review"]["status"] = "INCLUDE_FOR_NEXT_PASSAGE_CAPTURE_ONLY"
         self.rejects("UNREVIEWED_CORPUS")
@@ -165,7 +188,10 @@ class CorpusAdmissionTests(unittest.TestCase):
         # bundle; this is not an integration configuration or accepting path.
         with self.assertRaises(GroundingError) as error:
             load_reviewed_corpus(directory, trusted_manifest_sha256=sha256(manifest_raw).hexdigest())
-        self.assertEqual(error.exception.code, "UNREVIEWED_CORPUS")
+        # Native unsupported hosts cannot read the bundle at all; do not claim
+        # that its review metadata was reached. The static checks above still run.
+        self.assertEqual(error.exception.code, "UNREVIEWED_CORPUS"
+                         if HAS_ADMISSION_FILESYSTEM else "UNSUPPORTED_FILESYSTEM")
         with self.assertRaises(GroundingError) as error:
             GroundingCandidate.from_bytes(corpus_raw)
         self.assertEqual(error.exception.code, "INVALID_CORPUS")
@@ -238,10 +264,12 @@ class CorpusAdmissionTests(unittest.TestCase):
         for pid in conflict["passage_ids"]:
             self.assertTrue(set(conflict["issue_categories"]).issubset(entries[pid]["issue_categories"]))
 
+    @requires_admission_filesystem
     def test_author_cannot_self_review_case_insensitively(self):
         self.manifest["review"]["reviewer"] = "SYNTHETIC-AUTHOR"
         self.rejects()
 
+    @requires_admission_filesystem
     def test_approval_metadata_required(self):
         original = deepcopy(self.manifest)
         for field, value in (("author", ""), ("reviewer", None), ("reviewed_at", "2026-10-12"),
@@ -252,10 +280,12 @@ class CorpusAdmissionTests(unittest.TestCase):
                 self.manifest["review"][field] = value
                 self.rejects()
 
+    @requires_admission_filesystem
     def test_review_cannot_predate_capture(self):
         self.manifest["review"]["reviewed_at"] = "2026-10-08T23:00:00Z"
         self.rejects()
 
+    @requires_admission_filesystem
     def test_whole_corpus_bytes_hash_bound_not_just_semantics(self):
         self.write()
         (self.directory / "corpus.json").write_bytes(encoded(self.corpus) + b"\n")
@@ -264,6 +294,7 @@ class CorpusAdmissionTests(unittest.TestCase):
             load_reviewed_corpus(self.directory, trusted_manifest_sha256=pin)
         self.assertEqual(error.exception.code, "INVALID_ADMISSION")
 
+    @requires_admission_filesystem
     def test_passage_hash_and_manifest_mapping_both_checked(self):
         self.corpus["passages"][0]["passage"]["content"] += " tampered"
         self.rejects()
@@ -271,12 +302,14 @@ class CorpusAdmissionTests(unittest.TestCase):
         p["content_sha256"] = sha256(p["content"].encode()).hexdigest()
         self.rejects()
 
+    @requires_admission_filesystem
     def test_missing_and_extra_manifest_passage_rejected(self):
         self.manifest["passages"].pop()
         self.rejects()
         self.manifest["passages"].append({"passage_id": "unknown-passage", "content_sha256": "a" * 64})
         self.rejects()
 
+    @requires_admission_filesystem
     def test_duplicate_passage_and_manifest_identifiers_rejected(self):
         self.corpus["passages"].append(deepcopy(self.corpus["passages"][0]))
         self.rejects()
@@ -284,6 +317,7 @@ class CorpusAdmissionTests(unittest.TestCase):
         self.manifest["passages"].append(deepcopy(self.manifest["passages"][0]))
         self.rejects()
 
+    @requires_admission_filesystem
     def test_unknown_fields_and_noninteger_format_rejected(self):
         for document in (self.corpus, self.manifest):
             with self.subTest(document=document is self.corpus):
@@ -294,6 +328,7 @@ class CorpusAdmissionTests(unittest.TestCase):
                 self.rejects()
                 document["format_version"] = 1
 
+    @requires_admission_filesystem
     def test_corpus_version_and_synthetic_flag_must_match(self):
         self.corpus["corpus_version"] += "-other"
         self.rejects()
@@ -301,12 +336,14 @@ class CorpusAdmissionTests(unittest.TestCase):
         self.corpus["is_synthetic"] = False
         self.rejects()
 
+    @requires_admission_filesystem
     def test_all_three_categories_must_be_in_actual_passages(self):
         for entry in self.corpus["passages"]:
             if entry["issue_categories"] == ["CHANGE_OF_MIND"]:
                 entry["issue_categories"] = ["WRONG_ITEM"]
         self.rejects()
 
+    @requires_admission_filesystem
     def test_declared_coverage_and_conflict_review_cannot_be_omitted(self):
         self.manifest["coverage"]["issue_categories"] = CATEGORIES[:2]
         self.rejects()
@@ -314,15 +351,18 @@ class CorpusAdmissionTests(unittest.TestCase):
         self.manifest["coverage"]["conflicts_reviewed"] = False
         self.rejects()
 
+    @requires_admission_filesystem
     def test_source_type_identity_cannot_be_changed_with_same_document(self):
         self.corpus["passages"][0]["passage"]["source_type"] = "REVIEWED_CONSUMER_GUIDANCE"
         self.rejects()
 
+    @requires_admission_filesystem
     def test_source_categories_do_not_substitute_for_policy_and_guidance_types(self):
         for entry in self.corpus["passages"]:
             entry["passage"]["source_type"] = "STORE_POLICY"
         self.rejects()
 
+    @requires_admission_filesystem
     def test_synthetic_must_be_marked_and_real_must_have_https_source(self):
         self.corpus["passages"][0]["passage"]["title"] = "Not a test source"
         self.rejects()
@@ -332,6 +372,7 @@ class CorpusAdmissionTests(unittest.TestCase):
         self.corpus["is_synthetic"] = False
         self.rejects()
 
+    @requires_admission_filesystem
     def test_provenance_missing_or_unknown_field_rejected(self):
         original = deepcopy(self.corpus)
         for key in ("document_id", "accessed_on", "source_version", "location", "source_uri"):
@@ -343,6 +384,7 @@ class CorpusAdmissionTests(unittest.TestCase):
         self.corpus["passages"][0]["passage"]["approval"] = True
         self.rejects()
 
+    @requires_admission_filesystem
     def test_registered_conflict_ids_categories_and_coverage_checked(self):
         original = deepcopy(self.corpus["conflicts"])
         for mutation in ("none", "unknown", "duplicate", "wrong-category"):
@@ -358,6 +400,7 @@ class CorpusAdmissionTests(unittest.TestCase):
                     self.corpus["conflicts"][0]["issue_categories"] = ["WRONG_ITEM"]
                 self.rejects()
 
+    @requires_admission_filesystem
     def test_registered_conflict_cannot_omit_cross_source_counterparts(self):
         self.corpus["conflicts"] = [{
             "conflict_id": "synthetic-store-only-conflict",
@@ -365,12 +408,14 @@ class CorpusAdmissionTests(unittest.TestCase):
             "issue_categories": [CATEGORIES[0]], "message": "Synthetic store-only conflict"}]
         self.rejects()
 
+    @requires_admission_filesystem
     def test_manifest_cannot_select_path_traversal_absolute_or_remote_file(self):
         for name in ("../corpus.json", "/tmp/corpus.json", "https://example.invalid/corpus.json"):
             with self.subTest(name=name):
                 self.manifest["corpus_file"] = name
                 self.rejects()
 
+    @requires_admission_filesystem
     def test_symlink_files_rejected(self):
         for name in ("corpus.json", "admission-manifest.json"):
             with self.subTest(name=name):
@@ -384,6 +429,7 @@ class CorpusAdmissionTests(unittest.TestCase):
                 target.unlink()
                 moved.rename(target)
 
+    @requires_admission_filesystem
     def test_symlink_directory_rejected(self):
         pin = self.write()
         link = self.directory / "alias"
@@ -391,6 +437,7 @@ class CorpusAdmissionTests(unittest.TestCase):
         with self.assertRaises(GroundingError):
             load_reviewed_corpus(link, trusted_manifest_sha256=pin)
 
+    @requires_admission_filesystem
     def test_duplicate_keys_nonfinite_and_invalid_utf8_rejected(self):
         for malformed in (b'{"x":1,"x":2}', b'{"x":NaN}', b'{"x":Infinity}', b'\xff'):
             with self.subTest(malformed=malformed):
@@ -400,6 +447,7 @@ class CorpusAdmissionTests(unittest.TestCase):
                     load_reviewed_corpus(self.directory, trusted_manifest_sha256=sha256(malformed).hexdigest())
                 self.assertEqual(error.exception.code, "INVALID_ADMISSION")
 
+    @requires_admission_filesystem
     def test_malformed_corpus_rejected_even_when_whole_file_hash_matches(self):
         for malformed in (b'{"x":1,"x":2}', b'{"x":NaN}', b'{"x":Infinity}', b'\xff'):
             with self.subTest(malformed=malformed):
@@ -414,12 +462,22 @@ class CorpusAdmissionTests(unittest.TestCase):
 
     def test_unsupported_filesystem_does_not_silently_weaken_symlink_guard(self):
         pin = self.write()
-        with patch.dict(os.__dict__):
-            del os.__dict__["O_NOFOLLOW"]
-            with self.assertRaises(GroundingError) as error:
-                load_reviewed_corpus(self.directory, trusted_manifest_sha256=pin)
-        self.assertEqual(error.exception.code, "UNSUPPORTED_FILESYSTEM")
+        # Removing a capability that is already absent is intentional. This
+        # simulation also runs on native Windows; it never installs fake flags.
+        for missing in tuple((flag,) for flag in ADMISSION_FLAGS) + (ADMISSION_FLAGS,):
+            with self.subTest(missing=missing), patch.dict(os.__dict__):
+                for flag in missing:
+                    os.__dict__.pop(flag, None)
+                with patch("experiments.c1_grounding_candidate.admission.os.open") as open_file:
+                    for load in (load_reviewed_corpus, ReviewedGroundingCandidate.from_directory):
+                        with self.subTest(loader=load.__name__), self.assertRaises(GroundingError) as error:
+                            load(self.directory, trusted_manifest_sha256=pin)
+                        self.assertEqual(error.exception.code, "UNSUPPORTED_FILESYSTEM")
+                        self.assertIsNone(error.exception.__context__)
+                        self.assertIsNone(error.exception.__cause__)
+                    open_file.assert_not_called()
 
+    @requires_admission_filesystem
     def test_file_size_and_missing_file_rejected(self):
         pin = self.write()
         (self.directory / "corpus.json").write_bytes(b"x" * (2 * 1024 * 1024 + 1))
@@ -429,6 +487,7 @@ class CorpusAdmissionTests(unittest.TestCase):
         with self.assertRaises(GroundingError):
             load_reviewed_corpus(self.directory, trusted_manifest_sha256=pin)
 
+    @requires_admission_filesystem
     def test_errors_do_not_retain_raw_document_or_filesystem_context(self):
         malformed = b'{"private-synthetic-test-sentinel":'
         (self.directory / "admission-manifest.json").write_bytes(malformed)
@@ -442,6 +501,7 @@ class CorpusAdmissionTests(unittest.TestCase):
         self.assertIsNone(missing.exception.__context__)
         self.assertIsNone(missing.exception.__cause__)
 
+    @requires_admission_filesystem
     def test_retrieval_text_injection_does_not_change_admission_or_authority(self):
         candidate = ReviewedGroundingCandidate.from_directory(
             self.directory, trusted_manifest_sha256=self.write(), clock=lambda: AT)
@@ -455,9 +515,10 @@ class CorpusAdmissionTests(unittest.TestCase):
     def test_invalid_adapter_configuration_rejected(self):
         pin = self.write()
         for config in ({"top_k": True}, {"top_k": 0}, {"clock": None}):
-            with self.subTest(config=config), self.assertRaises(GroundingError):
+            with self.subTest(config=config), self.assertRaises(GroundingError) as error:
                 ReviewedGroundingCandidate.from_directory(
                     self.directory, trusted_manifest_sha256=pin, **config)
+            self.assertEqual(error.exception.code, "INVALID_ADMISSION")
 
 
 if __name__ == "__main__":
