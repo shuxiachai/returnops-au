@@ -104,10 +104,11 @@ def test_proposal_then_same_input_revision_revokes_actual_old_claim_and_keeps_mo
 def test_saved_notification_pending_failed_sent_keeps_identity_and_has_no_effects(flow_engine,identities,enabled,decision,terminal):
     from returnops_domain.lifecycle_schema import version, CURRENT
     with flow_engine.connect() as connection:
-        modern_reject=decision=='REJECT' and version(connection)==CURRENT
+        modern=version(connection)==CURRENT
+        modern_reject=decision=='REJECT' and modern
     component=COMPONENT
     if modern_reject:
-        # Exact 0008 now proves a real accepted PASS before the actual private
+        # Modern schema proves a real accepted PASS before the actual private
         # HUMAN REJECT entry. Exact 0007 retains its original fixture below.
         from reject_helpers import ready as reject_ready, attempt, assert_rejected
         from returnops_domain.reject_denial import COMPONENT as REJECT_COMPONENT
@@ -117,6 +118,9 @@ def test_saved_notification_pending_failed_sent_keeps_identity_and_has_no_effect
         with CustomerUnitOfWork(flow_engine,write=True) as uow:
             uow.execute(t.authorities.insert().values(store_id=identities.people['founder']['store_id'],
                 component_id=component,purpose='NOTIFICATION',revision=1,enabled=True));uow.commit()
+    elif modern:
+        from pass_manual_helpers import accepted_pass_manual
+        case,accepted,_,component=accepted_pass_manual(flow_engine,identities)
     else:
         original=ready(flow_engine,identities);case=original['case_id'];proposal(flow_engine,identities,case)
         accepted,_=outcome(flow_engine,identities,case,decision=decision)
@@ -134,19 +138,19 @@ def test_saved_notification_pending_failed_sent_keeps_identity_and_has_no_effect
     assert not [r for r in rows(flow_engine,old.history) if r['kind']=='OPERATION']
     with CustomerUnitOfWork(flow_engine,write=True) as uow:
         assert LifecycleGuards(component).apply(uow,event,now())==receipt;uow.commit()
-    # Modern REJECT adds the actual REVIEW_PASS receipt; all original outcome,
+    # Each modern decision adds the actual REVIEW_PASS receipt; original outcome,
     # FAILED -> PENDING -> SENT and replay assertions remain above.
-    assert len(rows(flow_engine,t.events))==(6 if modern_reject else 5)
+    assert len(rows(flow_engine,t.events))==(6 if modern else 5)
 
 
 @pytest.mark.parametrize('field,value',[('notification_id','foreign_notification'),('outcome','RETURN_CREATED'),
     ('message','changed message'),('next_steps',['changed next step'])])
 def test_notification_cannot_change_frozen_identity_or_payload(flow_engine,identities,enabled,field,value):
-    original=ready(flow_engine,identities);case=original['case_id'];proposal(flow_engine,identities,case)
-    outcome(flow_engine,identities,case)
+    from pass_manual_helpers import accepted_pass_manual
+    case,_,_,component=accepted_pass_manual(flow_engine,identities)
     before=rows(flow_engine,t.state)[0];history=len(rows(flow_engine,old.history))
     with pytest.raises(FlowError):
-        notify(flow_engine,identities,case,'SENT',mutate=lambda body:body.update({field:value}))
+        notify(flow_engine,identities,case,'SENT',mutate=lambda body:body.update({field:value}),component=component)
     assert rows(flow_engine,t.state)[0]==before and len(rows(flow_engine,old.history))==history
 
 
@@ -221,29 +225,58 @@ def test_cross_case_source_reference_poison_does_not_leave_foreign_history(flow_
 
 
 @pytest.mark.parametrize('change',[{'enabled':False},{'role':'CUSTOMER'},{'store_id':'foreign_store'}])
-def test_new_decision_rechecks_causal_founder_current_principal(flow_engine,identities,enabled,change):
+def test_new_decision_rechecks_causal_founder_current_principal(flow_engine,identities,enabled,change,monkeypatch):
     from returnops_domain.registry import TrustedRegistry
-    original=ready(flow_engine,identities);case=original['case_id'];proposal(flow_engine,identities,case)
+    from returnops_domain.lifecycle_sources import Sources
+    from manual_helpers import snapshot
+    from pass_manual_helpers import ready as pass_ready, prove_pass_manual_target, stage_pass_manual_event
+    case,body,_,_=pass_ready(flow_engine,identities,preview_mode='none')
+    with CustomerUnitOfWork(flow_engine,write=True) as uow:
+        _,proven_before=prove_pass_manual_target(uow,case,body);uow.commit()
     TrustedRegistry(flow_engine).change_principal(identities.people['founder']['principal_id'],**change)
+    with CustomerUnitOfWork(flow_engine,write=True) as uow:
+        _,proven_after=prove_pass_manual_target(uow,case,body)
+        assert proven_after==proven_before
+        uow.commit()
     before=len(rows(flow_engine,old.history))
-    with pytest.raises(FlowError):outcome(flow_engine,identities,case)
+    saved=snapshot(flow_engine);observed=[];original_read=Sources.read
+    at=now()
+    assert at.utcoffset() is not None and at>=proven_after['event']['accepted_at']
+    with CustomerUnitOfWork(flow_engine,write=True) as uow:
+        guard,event=stage_pass_manual_event(uow,identities,case,body,at)
+        def causal_read(self,record_id,kinds,**options):
+            try:
+                return original_read(self,record_id,kinds,**options)
+            except FlowError as error:
+                if record_id==event.record_id and options.get('current_actor',True):
+                    observed.append((record_id,tuple(sorted(kinds)),error.code))
+                raise
+        monkeypatch.setattr(Sources,'read',causal_read)
+        with pytest.raises(FlowError) as denied:
+            guard.apply(uow,event,at)
+        assert denied.value.code=='FORBIDDEN'
+        assert observed==[(event.record_id,('DECISION','NOTIFICATION'),'FORBIDDEN')]
+        with pytest.raises(FlowError):uow.commit()
     assert len(rows(flow_engine,old.history))==before and rows(flow_engine,t.state)[0]['outcome'] is None
+    assert snapshot(flow_engine)==saved
 
 
 def test_notification_retry_uses_current_service_not_expired_original_human_authority(flow_engine,identities,enabled):
     from returnops_domain.registry import TrustedRegistry
-    original=ready(flow_engine,identities);case=original['case_id'];proposal(flow_engine,identities,case);outcome(flow_engine,identities,case)
+    from pass_manual_helpers import accepted_pass_manual
+    case,_,_,component=accepted_pass_manual(flow_engine,identities)
     TrustedRegistry(flow_engine).change_principal(identities.people['founder']['principal_id'],enabled=False)
-    assert notify(flow_engine,identities,case,'SENT')[1]['status']=='MANUAL_HANDLED'
+    assert notify(flow_engine,identities,case,'SENT',component=component)[1]['status']=='MANUAL_HANDLED'
 
 
 def test_failed_notification_requires_saved_pending_retry_before_sent(flow_engine,identities,enabled):
-    original=ready(flow_engine,identities);case=original['case_id'];proposal(flow_engine,identities,case);outcome(flow_engine,identities,case)
-    notify(flow_engine,identities,case,'FAILED');before=rows(flow_engine,old.history)
-    with pytest.raises(FlowError):notify(flow_engine,identities,case,'SENT')
+    from pass_manual_helpers import accepted_pass_manual
+    case,_,_,component=accepted_pass_manual(flow_engine,identities)
+    notify(flow_engine,identities,case,'FAILED',component=component);before=rows(flow_engine,old.history)
+    with pytest.raises(FlowError):notify(flow_engine,identities,case,'SENT',component=component)
     assert rows(flow_engine,old.history)==before
-    notify(flow_engine,identities,case,'PENDING')
-    assert notify(flow_engine,identities,case,'SENT')[1]['status']=='MANUAL_HANDLED'
+    notify(flow_engine,identities,case,'PENDING',component=component)
+    assert notify(flow_engine,identities,case,'SENT',component=component)[1]['status']=='MANUAL_HANDLED'
 
 
 def test_risk_revise_consumes_exact_current_proposal_without_increasing_input(flow_engine,identities,enabled):
@@ -262,24 +295,24 @@ def test_risk_revise_consumes_exact_current_proposal_without_increasing_input(fl
 
 
 def test_outcome_atomically_saves_stable_unclaimed_notification_intent_without_grant(flow_engine,identities,enabled):
-    original=ready(flow_engine,identities);case=original['case_id'];proposal(flow_engine,identities,case)
+    from pass_manual_helpers import accepted_pass_manual
+    case,event,receipt,component=accepted_pass_manual(flow_engine,identities,notification_grant=False)
     with CustomerUnitOfWork(flow_engine,write=True) as uow:
         uow.execute(t.authorities.delete().where(t.authorities.c.purpose=='NOTIFICATION'));uow.commit()
-    event,receipt=outcome(flow_engine,identities,case)
     state=rows(flow_engine,t.state)[0]
     notification=next(row for row in rows(flow_engine,t.work) if row['purpose']=='NOTIFICATION')
     assert notification['work_id']==state['notification_work_id'] and notification['idempotency_key']
     assert (notification['state'],notification['epoch'],notification['authority_revision'])==('PENDING',0,None)
     with CustomerUnitOfWork(flow_engine,write=True) as uow:
-        assert LifecycleGuards(COMPONENT).apply(uow,event,now())==receipt;uow.commit()
+        assert LifecycleGuards(component).apply(uow,event,now())==receipt;uow.commit()
     assert next(row for row in rows(flow_engine,t.work) if row['purpose']=='NOTIFICATION')==notification
     with CustomerUnitOfWork(flow_engine,write=True) as uow:
-        with pytest.raises(FlowError):claim(uow,case,NotificationObserved)
+        with pytest.raises(FlowError):claim(uow,case,NotificationObserved,component=component)
         with pytest.raises(FlowError):uow.commit()
     with CustomerUnitOfWork(flow_engine,write=True) as uow:
         uow.execute(t.authorities.insert().values(store_id=identities.people['customer_a']['store_id'],
-            component_id=COMPONENT,purpose='NOTIFICATION',enabled=True,revision=7));uow.commit()
-    sent,_=notify(flow_engine,identities,case,'SENT')
+            component_id=component,purpose='NOTIFICATION',enabled=True,revision=7));uow.commit()
+    sent,_=notify(flow_engine,identities,case,'SENT',component=component)
     current_work=next(row for row in rows(flow_engine,t.work) if row['purpose']=='NOTIFICATION')
     assert sent.claim.work_id==notification['work_id'] and sent.claim.authority_revision==7
     assert current_work['idempotency_key']==notification['idempotency_key']

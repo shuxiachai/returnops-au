@@ -1,3 +1,7 @@
+> **Current technical checkpoint - 13 October 2026:** [PR #65](https://github.com/shuxiachai/returnops-au/pull/65) is merged at main `7fc30856`. Its [new-main CI](https://github.com/shuxiachai/returnops-au/actions/runs/38331528059) passed 2262 core regressions on PG17.11/head0009. The four private Founder decision components are technically adopted; original personal, predecessor and joint acceptance remain separate.
+
+> **A2.02 first candidate / KAN-15 / Issue #71:** see [private retained-source approval admission](docs/37-a202-approval-admission.md). This read-only slice checks a future CREATE_RETURN against full persisted current approval proof; saved execution work remains unclaimed. Its own exact-source PR/CI records establish publication and validation. Older dated notices below retain their historical scope.
+
 > **A1.03 investigation increment / Issue #27 / recorded KAN-14:** [persisted order investigation and clarification](docs/23-order-investigation.md) now connects the adopted customer flow and synthetic provider through explicit database permissions, durable work, five outcome paths and atomic lifecycle/audit/retention guards. The implementation starts from merged PR26/main4673; use its exact-source PR/CI records for publication and adoption status. No Founder packet, Risk/approval, LLM or real provider is implemented, and no whole-package or teammate/joint acceptance is implied. Earlier component/customer-candidate notices below retain their historical scope.
 
 > **A1.04 / recorded KAN-29:** see the [independent synthetic order provider](docs/22-a104-synthetic-order-provider.md) for its internal port, immutable fixture provenance and installation checks. Customer-worker/Domain acceptance wiring belongs to later A1.05 work.
@@ -5,6 +9,34 @@
 > **Customer backend candidate (26 September 2026, Issue #23 / recorded KAN-14 mapping):** the isolated implementation now provides the seven frozen customer operations, PostgreSQL admission/receipts/history, current F.03 authorization, bounded attachments and separate durable deterministic intake processing. See [customer flow and private demo](docs/21-customer-flow.md). This remains a scoped implementation candidate; use its actual pull request and exact-source CI records for publication/review/merge status. It does not claim teammate or joint acceptance, verified purchase facts, AI processing, or a Founder/provider workflow. Earlier health-only/component-only notes below describe their historical baselines.
 
 # ReturnOps AU
+
+## Public access and project scope
+
+This is a synthetic-data course prototype. Use synthetic customer data and
+disposable test credentials only; do not supply real customer data or provider
+secrets. The actual logistics provider remains subject to tutor disposition and
+account access. Simulated results do not establish a live provider integration.
+
+This maintenance change limits branch-push CI to `main` while preserving all
+pull-request checks, and removes personal machine paths from selected current
+comments and context. Team authorship, assessment materials and review records
+remain intact. Retained history, branches and earlier evidence are not anonymized.
+
+Public visibility does not grant an open-source license or establish Stage 2
+completion, teammate/tutor acceptance, or production readiness. Dated evidence
+below retains its original scope.
+
+## C2 review reconciliation — 2026-10-19
+
+[A reviewed the 18 October head](https://github.com/shuxiachai/returnops-au/pull/69)
+without a new actionable P1/P2 in the bounded static scope, but held adoption
+for the README conflict and missing normal checks. This reconciliation brings
+main `c85efc0` into C's branch, preserving main's public-scope notice and the
+dated C2 record below. The Risk implementation, prompt and C2 tests are unchanged.
+The resulting exact head still requires normal PR checks and targeted A review;
+an earlier static review is not approval of these new bytes.
+Provider/model, allowed data flow, real invocation and current-version runtime
+acceptance remain unconfirmed; no real-model, corpus, Gold or gate result is added.
 
 ## C2 preparation follow-up — 2026-10-18
 

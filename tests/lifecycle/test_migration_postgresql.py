@@ -3,6 +3,8 @@ import pytest
 from sqlalchemy import inspect, select, text
 from returnops_domain import lifecycle_tables as t
 from returnops_domain import preview_tables
+from returnops_domain import execution_preparation_tables
+from returnops_domain import return_execution_tables
 from returnops_domain.lifecycle_schema import CURRENT
 from returnops_domain.customer_uow import CustomerUnitOfWork
 from returnops_domain.errors import FlowError
@@ -26,7 +28,8 @@ def test_upgrade_real_0006_acceptance_to_empty_sidecars_repeat_preserves_every_o
     before=fingerprints(flow_engine)
     migrate(flow_engine);migrate(flow_engine)
     after=fingerprints(flow_engine)
-    added = {**t.metadata.tables, **preview_tables.metadata.tables}
+    added = {**t.metadata.tables, **preview_tables.metadata.tables, **execution_preparation_tables.metadata.tables,
+             **return_execution_tables.metadata.tables}
     assert {name:value for name,value in after.items() if name not in added}==before
     assert set(after)-set(before)==set(added)
     with flow_engine.connect() as connection:
