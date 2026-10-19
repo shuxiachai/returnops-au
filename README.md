@@ -26,6 +26,51 @@ Public visibility does not grant an open-source license or establish Stage 2
 completion, teammate/tutor acceptance, or production readiness. Dated evidence
 below retains its original scope.
 
+## C2 follow-up after C1/evaluation adoption — 2026-10-19
+
+A's [latest PR #69 review](https://github.com/shuxiachai/returnops-au/pull/69#pullrequestreview-5567087122)
+held adoption only for the README conflict after PRs #68 and #70 were adopted.
+This reconciliation incorporates main `d9813d6da4a9bf2c7f654a2bea6af34be46a0088`
+into the C2 branch and retains main's public-scope notice, C1/history sections
+and Stage 1 presentation navigation, together with both dated C2 sections below.
+The Risk implementation, prompt and C2 tests remain byte-identical to `11ca4f0`.
+The new exact head still needs fresh normal PR checks and A's targeted review;
+prior-head CI and reviews do not validate this merged source. Issue #66 remains
+open, and preparation-component adoption does not establish corpus admission,
+real-provider/model or allowed-data-flow approval, runtime integration, Gold,
+personal or whole-feature acceptance. Prepared with Codex assistance.
+
+## C2 review reconciliation — 2026-10-19
+
+[A reviewed the 18 October head](https://github.com/shuxiachai/returnops-au/pull/69)
+without a new actionable P1/P2 in the bounded static scope, but held adoption
+for the README conflict and missing normal checks. This reconciliation brings
+main `c85efc0` into C's branch, preserving main's public-scope notice and the
+dated C2 record below. The Risk implementation, prompt and C2 tests are unchanged.
+The resulting exact head still requires normal PR checks and targeted A review;
+an earlier static review is not approval of these new bytes.
+Provider/model, allowed data flow, real invocation and current-version runtime
+acceptance remain unconfirmed; no real-model, corpus, Gold or gate result is added.
+
+## C2 preparation follow-up — 2026-10-18
+
+C's [Risk candidate README](experiments/c2_risk_candidate/README.md) records
+the image-observation handoff and transport-conformance regression increment
+for [KAN-24](https://lucastaooo.atlassian.net/browse/KAN-24) /
+[PR #69](https://github.com/shuxiachai/returnops-au/pull/69). Review that PR's
+exact head and local verification evidence; older dated notices below remain
+history. This increment changes C's tests/documentation only, not A/B code,
+the shared schema or model prompt. Synthetic image observations and stub model
+replies do not implement image extraction or establish real-model quality.
+
+A's [18 October review](https://github.com/shuxiachai/returnops-au/pull/69#pullrequestreview-5562244842)
+accepted the preparation interface constraints at `cfda3a1`, not a provider or
+runtime gate. The next real-call handoff still needs the selected provider/model,
+API/response and usage mapping, allowed data flow and shared transport ownership;
+never put credentials in a PR. Formal Gold, post-await runtime integration and
+C3's R.03 prerequisite remain separate. No merge, Jira Done or joint acceptance
+is implied. Prepared with Codex assistance; no personal sign-off is inferred.
+
 ## C1 review follow-up — 2026-10-18
 
 This C branch now incorporates main `17042b4164a0be878c7a0684cf532217ebeb77ee`.
