@@ -20,19 +20,30 @@ MODULES=['returnops_domain.'+n for n in ('label_artifact','label_artifact_source
     'label_execution_sources','return_execution_sources','return_label_sources','execution_preparation_sources')]+[
     'returnops_api.private_label_artifact','returnops_api.customer_authority','returnops_api.database']
 
+# Diagnostic-only phase labels; no URL, credentials, config or arguments exported.
+diagnostic_stage='startup'
+
 def main():
+    global diagnostic_stage
     installed=Path(sys.argv[1]).resolve();config=json.loads(sys.stdin.buffer.read())
     assert re.fullmatch(r'customer_test_[a-f0-9]{32}',config['schema'])
     assert not Path.cwd().resolve().is_relative_to(Path(__file__).resolve().parents[2])
+    diagnostic_stage='installed-modules'
     hashes={}
     for name in MODULES:
         path=Path(importlib.import_module(name).__file__).resolve();assert path.is_relative_to(installed)
         hashes[name]=sha256(path.read_bytes()).hexdigest()
+    diagnostic_stage='parse-database-url'
     url=make_url(os.environ['DATABASE_URL'])
+    diagnostic_stage='host-port-binding'
     assert url.host=='127.0.0.1' and url.port==55433
+    diagnostic_stage='database-name-binding'
     assert url.database==os.environ['ARTIFACT_DATABASE_NAME']
+    diagnostic_stage='database-allowlist-binding'
     assert url.database in ('returnops_f02_a203_artifact_20261016','returnops_f02_a203_artifact_v02_20261016','returnops_f02_a203_artifact_v04_20261018')
+    diagnostic_stage='database-oid-binding'
     expected_oid=int(os.environ['ARTIFACT_DATABASE_OID']);assert expected_oid>0
+    diagnostic_stage='engine-and-operation'
     engine=create_engine(url,hide_parameters=True,echo=False,connect_args={
         'connect_timeout':3,'options':'-c search_path='+config['schema']+' -c statement_timeout=15000'})
     def exact_database(connection,record):
@@ -83,5 +94,5 @@ def main():
 if __name__=='__main__':
     try:main()
     except Exception as error:
-        print(json.dumps(dict(probe_error_type=type(error).__name__)),file=sys.stderr)
+        print(json.dumps(dict(probe_error_type=type(error).__name__,diagnostic_stage=diagnostic_stage)),file=sys.stderr)
         raise SystemExit(1) from None
