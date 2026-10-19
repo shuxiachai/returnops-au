@@ -9,7 +9,7 @@ from .canonical import digest, decode_document
 from . import founder_codec as finite
 from .errors import ReceiptUnavailable
 from .founder_integrity import CaseProof
-from .lifecycle_schema import CURRENT, version
+from .lifecycle_schema import APPROVAL_VERSIONS, version
 from .lifecycle_sources import authority
 from .lifecycle_state import reject
 from .manual_target import one
@@ -36,7 +36,7 @@ def payload(row):
 
 
 def authorize(uow, case_id):
-    if version(uow.connection) != CURRENT:
+    if version(uow.connection) not in APPROVAL_VERSIONS:
         reject(uow)
     head = uow.execute(select(old.case_heads).where(old.case_heads.c.case_id == case_id)
         .with_for_update()).mappings().one_or_none()
@@ -74,7 +74,7 @@ def accepted_preview(uow, head, preview_id, *, review=None):
     input/proposal/review and an explicit expired predecessor replacement.
     Reading an old acceptance never grants new approval or execution authority.
     """
-    if version(uow.connection) != CURRENT:
+    if version(uow.connection) not in APPROVAL_VERSIONS:
         reject(uow)
     row = one(uow, previews, preview_id=preview_id)
     if not row['available'] or row['body'] is None:

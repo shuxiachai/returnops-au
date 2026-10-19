@@ -4,6 +4,8 @@ Trace: docs/00 section 12.2; E.02/E.03/E.04/E.08. This module never accepts
 answers or Gold labels. Preparing this tool does not complete those work items.
 The CLI imports one explicit local file and exclusively creates one private
 report; it discovers no files, services, credentials or network resources.
+File import/export requires POSIX no-follow/nonblocking open and descriptor
+permissions. Unsupported hosts fail before I/O; pure accounting stays portable.
 """
 from __future__ import annotations
 
@@ -31,6 +33,23 @@ _MAX_CASES = 100
 _MAX_RECORDS = 400
 _MAX_DURATION_US = 86_400 * 1_000_000
 _HASH = re.compile(r"[a-f0-9]{64}")
+
+
+class HumanTimingPlatformError(ValueError):
+    """Required private-file protections are unavailable on this host."""
+
+
+def _file_io_supported():
+    return (os.name == "posix"
+            and all(type(getattr(os, name, None)) is int and getattr(os, name) != 0
+                    for name in ("O_NONBLOCK", "O_NOFOLLOW"))
+            and all(callable(getattr(os, name, None)) for name in
+                    ("open", "lstat", "fstat", "fdopen", "fchmod", "fsync")))
+
+
+def _require_file_io_support():
+    if not _file_io_supported():
+        raise HumanTimingPlatformError("HUMAN_TIMING_PLATFORM_UNSUPPORTED")
 
 
 def _require(condition):
@@ -241,7 +260,8 @@ def _reject_constant(_value):
 
 
 def _read_input(path):
-    flags = os.O_RDONLY | os.O_NONBLOCK | getattr(os, "O_NOFOLLOW", 0)
+    _require_file_io_support()
+    flags = os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW
     # Final-component symlinks and nonregular inputs (including FIFOs) fail closed.
     if stat.S_ISLNK(os.lstat(path).st_mode):
         raise ValueError("INVALID_HUMAN_TIMING_INPUT")
@@ -256,8 +276,9 @@ def _read_input(path):
 
 
 def _write_output(path, report):
+    _require_file_io_support()
     raw = json.dumps(report, sort_keys=True, indent=2, ensure_ascii=False, allow_nan=False).encode("utf-8") + b"\n"
-    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600)
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
     owned = os.fstat(fd)
     try:
         with os.fdopen(fd, "wb") as destination:
@@ -287,10 +308,14 @@ def main(argv=None):
     parser.add_argument("--output", required=True, help="new report path in approved private storage")
     args = parser.parse_args(argv)
     try:
+        _require_file_io_support()  # Check output protection before reading input.
         manifest, digest = _read_input(args.input)
         report = summarize_human_timing(manifest)
         report["imported_file_sha256"] = digest
         _write_output(args.output, report)
+    except HumanTimingPlatformError:
+        print("HUMAN_TIMING_PLATFORM_UNSUPPORTED", file=sys.stderr)
+        return 2
     except (OSError, ValueError, TypeError, OverflowError, RecursionError):
         print("HUMAN_TIMING_IMPORT_FAILED", file=sys.stderr)
         return 2

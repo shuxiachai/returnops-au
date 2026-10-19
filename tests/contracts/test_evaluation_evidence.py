@@ -1,7 +1,9 @@
 """Local offline evidence CLI checks; fixtures never establish real acceptance."""
 import asyncio
+from contextlib import redirect_stderr, redirect_stdout
 from copy import deepcopy
 from hashlib import sha256
+import io
 import json
 import os
 from pathlib import Path
@@ -9,12 +11,32 @@ import stat
 import subprocess
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from experiments.evaluation_candidate import evidence
 from experiments.evaluation_candidate.quality import observation_sha256
 from experiments.evaluation_candidate.reproducibility import validate_stub_pair
+
+
+def publication_supported():
+    try:
+        evidence._require_publication_support()
+    except evidence.EvidencePlatformError:
+        return False
+    return True
+
+
+UNIX_PUBLICATION = unittest.skipUnless(publication_supported(), "Requires POSIX atomic no-replace publication")
+FIXTURE_SOURCE = {"head_commit": "a" * 40, "identity_limit": "SYNTHETIC_TEST_SOURCE_NOT_ACTUAL_GIT"}
+
+
+def build_fixture_evidence():
+    # Keep pipeline/accounting tests runnable without Unix Git lookup or file
+    # publication. A separate supported-host test checks actual source identity.
+    with patch.object(evidence, "_source_identity", return_value=deepcopy(FIXTURE_SOURCE)):
+        return asyncio.run(evidence.build_demo_evidence())
 
 
 def decode_bytes(value):
@@ -31,7 +53,7 @@ class EvaluationEvidenceTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.root = Path(evidence.__file__).resolve().parents[2]
-        cls.files = asyncio.run(evidence.build_demo_evidence())
+        cls.files = build_fixture_evidence()
 
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="returnops-evidence-test-")
@@ -100,7 +122,7 @@ class EvaluationEvidenceTests(unittest.TestCase):
                 return reply
 
         with patch.object(evidence, "_FixtureAdapter", ChangedRich):
-            files = asyncio.run(evidence.build_demo_evidence())
+            files = build_fixture_evidence()
         for config in evidence.CONFIGS:
             quality = self.loaded("summaries.json", files)["runs"][config]["quality"]
             self.assertEqual(quality["annotation_dispositions"]["INVALID"], 1)  # Changed successful output.
@@ -140,7 +162,7 @@ class EvaluationEvidenceTests(unittest.TestCase):
                 return reply
 
         with patch.object(evidence, "_FixtureAdapter", FailAfterOutput):
-            files = asyncio.run(evidence.build_demo_evidence())
+            files = build_fixture_evidence()
         for config in evidence.CONFIGS:
             quality = self.loaded("quality-evidence.json", files)["runs"][config]
             self.assertEqual(quality["observations"][0]["status"], "FAILED")
@@ -159,7 +181,7 @@ class EvaluationEvidenceTests(unittest.TestCase):
                 return reply
 
         with patch.object(evidence, "_FixtureAdapter", ChangedRisk):
-            files = asyncio.run(evidence.build_demo_evidence())
+            files = build_fixture_evidence()
         for config in evidence.CONFIGS:
             row = self.loaded("quality-evidence.json", files)["runs"][config]
             self.assertEqual(row["observations"][0], {"case_id": "demo-faulty-supported"})
@@ -176,7 +198,7 @@ class EvaluationEvidenceTests(unittest.TestCase):
                 return reply
 
         with patch.object(evidence, "_FixtureAdapter", ForbiddenRetrieval):
-            files = asyncio.run(evidence.build_demo_evidence())
+            files = build_fixture_evidence()
         self.assertEqual(self.loaded("b1.raw.json", files)["case_results"][0]["disposition"], "INVALID")
         self.assertEqual(self.loaded("quality-evidence.json", files)["runs"][evidence.CONFIGS[0]]["observations"][0],
                          {"case_id": "demo-faulty-supported"})
@@ -201,8 +223,9 @@ class EvaluationEvidenceTests(unittest.TestCase):
             self.assertEqual(rows[2]["status"], "FAILED")
             self.assertEqual(rows[4], {"case_id": "demo-malformed-output"})
 
+    @UNIX_PUBLICATION
     def test_exact_source_bytes_commit_and_dirty_transparency_without_private_paths(self):
-        source = self.loaded("source-manifest.json")
+        source = evidence._source_identity()
         actual_head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=self.root, capture_output=True,
                                      text=True, check=True).stdout.strip()
         self.assertEqual(source["head_commit"], actual_head)
@@ -210,20 +233,20 @@ class EvaluationEvidenceTests(unittest.TestCase):
             self.assertEqual(record["sha256"], sha256((self.root / name).read_bytes()).hexdigest())
             self.assertEqual(record["matches_head"], record["sha256"] == record["head_sha256"])
         self.assertEqual(source["relevant_sources_match_head"], all(r["matches_head"] for r in source["files"].values()))
-        raw = b"".join(self.files.values())
+        raw = evidence._json(source)
         self.assertNotIn(str(self.root).encode(), raw)
         self.assertNotIn(str(Path.home()).encode(), raw)
 
     def test_source_change_during_run_refuses_bundle(self):
         source = self.loaded("source-manifest.json")
         changed = deepcopy(source)
-        changed["head_commit"] = "a" * 40
+        changed["head_commit"] = "b" * 40
         with patch.object(evidence, "_source_identity", side_effect=[source, changed]):
             with self.assertRaisesRegex(evidence.EvidenceError, "SOURCE_CHANGED_DURING_REHEARSAL"):
                 asyncio.run(evidence.build_demo_evidence())
 
     def test_comparison_artifacts_repeat_exactly_and_manifest_covers_each_file(self):
-        again = asyncio.run(evidence.build_demo_evidence())
+        again = build_fixture_evidence()
         self.assertEqual(again, self.files)
         manifest = self.loaded("manifest.json")
         self.assertEqual(set(manifest["files"]), set(self.files) - {"manifest.json"})
@@ -232,11 +255,18 @@ class EvaluationEvidenceTests(unittest.TestCase):
         content_id = manifest.pop("content_id")
         self.assertEqual(content_id, sha256(evidence._json(manifest)).hexdigest())
 
+    @UNIX_PUBLICATION
     def test_real_cli_without_site_packages_writes_private_complete_bundle(self):
         result = self.run_cli(self.output)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(json.loads(result.stdout)["file_count"], 13)
         self.assertEqual(set(p.name for p in self.output.iterdir()), set(self.files) | {"creation.json", "index.json"})
+        actual_files = asyncio.run(evidence.build_demo_evidence())
+        for name, expected in actual_files.items():
+            self.assertEqual((self.output / name).read_bytes(), expected)
+        all_bytes = b"\n".join(path.read_bytes() for path in self.output.iterdir())
+        self.assertNotIn(str(self.root).encode(), all_bytes)
+        self.assertNotIn(str(Path.home()).encode(), all_bytes)
         self.assertEqual(stat.S_IMODE(self.output.stat().st_mode), 0o700)
         index = json.loads((self.output / "index.json").read_bytes())
         for name, record in index["files"].items():
@@ -247,6 +277,7 @@ class EvaluationEvidenceTests(unittest.TestCase):
         self.assertTrue(creation["timestamp_is_not_a_seal"])
         self.assertTrue(index["creation_excluded_from_reproducible_content_id"])
 
+    @UNIX_PUBLICATION
     def test_existing_paths_including_empty_directory_and_symlink_are_preserved(self):
         protected = self.parent / "protected"
         protected.write_bytes(b"original")
@@ -268,6 +299,7 @@ class EvaluationEvidenceTests(unittest.TestCase):
         self.assertTrue(targets[4].is_symlink())
         self.assertFalse(list(self.parent.glob(".returnops-evidence-*")))
 
+    @UNIX_PUBLICATION
     def test_symlink_parent_dotdot_and_missing_parent_are_rejected(self):
         linked = self.parent / "linked"
         linked.symlink_to(self.parent, target_is_directory=True)
@@ -277,6 +309,7 @@ class EvaluationEvidenceTests(unittest.TestCase):
         self.assertFalse(self.output.exists())
         self.assertFalse(list(self.parent.glob(".returnops-evidence-*")))
 
+    @UNIX_PUBLICATION
     def test_racing_destination_is_never_overwritten_and_stage_removed(self):
         original = evidence._rename_no_replace
 
@@ -291,6 +324,7 @@ class EvaluationEvidenceTests(unittest.TestCase):
         self.assertEqual(list(self.output.iterdir()), [])
         self.assertFalse(list(self.parent.glob(".returnops-evidence-*")))
 
+    @UNIX_PUBLICATION
     def test_write_failure_publishes_nothing_and_cleans_only_owned_stage(self):
         preserved = self.parent / "preserved"
         preserved.write_bytes(b"unchanged")
@@ -301,6 +335,7 @@ class EvaluationEvidenceTests(unittest.TestCase):
         self.assertFalse(list(self.parent.glob(".returnops-evidence-*")))
         self.assertEqual(preserved.read_bytes(), b"unchanged")
 
+    @UNIX_PUBLICATION
     def test_stage_open_failure_removes_new_empty_stage(self):
         original = evidence.os.open
 
@@ -315,6 +350,7 @@ class EvaluationEvidenceTests(unittest.TestCase):
         self.assertFalse(self.output.exists())
         self.assertFalse(list(self.parent.glob(".returnops-evidence-*")))
 
+    @UNIX_PUBLICATION
     def test_cli_nonoverwrite_is_nonzero_and_sanitized(self):
         self.output.mkdir()
         result = self.run_cli(self.output)
@@ -324,6 +360,7 @@ class EvaluationEvidenceTests(unittest.TestCase):
         self.assertNotIn("Traceback", result.stderr)
         self.assertEqual(list(self.output.iterdir()), [])
 
+    @UNIX_PUBLICATION
     def test_output_filename_traversal_or_oversize_never_writes(self):
         files = dict(self.files)
         files["../other"] = b"invalid"
@@ -334,6 +371,76 @@ class EvaluationEvidenceTests(unittest.TestCase):
         with self.assertRaises(evidence.EvidenceError):
             evidence.publish_demo_evidence(self.output, files)
         self.assertFalse(self.output.exists())
+
+
+class EvaluationEvidencePlatformTests(unittest.TestCase):
+    def fake_os(self):
+        operations = ("open", "mkdir", "stat", "unlink", "rmdir", "close", "fdopen", "fsync", "fstat")
+        return SimpleNamespace(name="posix", O_DIRECTORY=1, O_NOFOLLOW=2,
+            supports_dir_fd=[SimpleNamespace(__name__=name) for name in ("open", "mkdir", "stat", "unlink", "rmdir")],
+            supports_follow_symlinks=[SimpleNamespace(__name__="stat")],
+            **{name: Mock(side_effect=AssertionError("I/O must not occur")) for name in operations})
+
+    def assert_refused_without_io(self, fake, platform="linux", expected="EVIDENCE_PLATFORM_UNSUPPORTED",
+                                  library=None, load_error=None):
+        out, err = io.StringIO(), io.StringIO()
+        with (patch.object(evidence, "os", fake), patch.object(evidence.sys, "platform", platform),
+              patch.object(evidence.ctypes, "CDLL", return_value=library, side_effect=load_error) as load,
+              patch.object(evidence, "build_demo_evidence") as build,
+              patch.object(evidence, "_source_identity") as source,
+              patch.object(evidence, "_open_parent") as parent,
+              redirect_stdout(out), redirect_stderr(err)):
+            self.assertEqual(evidence.main(["--output-dir", "PRIVATE_DESTINATION"]), 1)
+            with self.assertRaisesRegex(evidence.EvidencePlatformError, "^" + expected + "$"):
+                evidence.publish_demo_evidence("PRIVATE_DESTINATION", {})
+            build.assert_not_called()
+            source.assert_not_called()
+            parent.assert_not_called()
+            if expected == "EVIDENCE_PLATFORM_UNSUPPORTED":
+                load.assert_not_called()
+        self.assertEqual(out.getvalue(), "")
+        self.assertEqual(err.getvalue(), expected + "\n")
+        for value in vars(fake).values():
+            if isinstance(value, Mock):
+                value.assert_not_called()
+
+    def test_windows_boundary_refuses_before_git_build_or_publication(self):
+        fake = self.fake_os()
+        fake.name = "nt"
+        self.assert_refused_without_io(fake, platform="win32")
+
+    def test_missing_publication_flags_or_capabilities_fail_closed(self):
+        for name in ("O_DIRECTORY", "O_NOFOLLOW", "supports_dir_fd", "supports_follow_symlinks", "fsync"):
+            fake = self.fake_os()
+            with patch.object(evidence, "os", fake), patch.object(evidence.sys, "platform", "linux"):
+                self.assertTrue(evidence._publication_io_supported())
+            delattr(fake, name)
+            with self.subTest(missing=name):
+                self.assert_refused_without_io(fake)
+        for name, value in (("O_NOFOLLOW", 0), ("O_DIRECTORY", True), ("supports_dir_fd", []),
+                            ("supports_follow_symlinks", [])):
+            fake = self.fake_os()
+            setattr(fake, name, value)
+            with self.subTest(capability=name, value=value):
+                self.assert_refused_without_io(fake)
+
+    def test_absent_native_atomic_primitive_fails_before_any_source_or_output_io(self):
+        for platform in ("linux", "darwin"):
+            with self.subTest(platform=platform):
+                self.assert_refused_without_io(self.fake_os(), platform=platform,
+                    expected="ATOMIC_PUBLICATION_UNSUPPORTED", library=SimpleNamespace())
+        self.assert_refused_without_io(self.fake_os(), expected="ATOMIC_PUBLICATION_UNSUPPORTED",
+                                      load_error=OSError("PRIVATE_LOADER_PATH"))
+
+    def test_fixture_pipeline_remains_portable_without_publication_or_git(self):
+        fake = self.fake_os()
+        fake.name = "nt"
+        with patch.object(evidence, "os", fake), patch.object(evidence, "_git") as git:
+            files = build_fixture_evidence()
+            git.assert_not_called()
+        summary = json.loads(files["summaries.json"])
+        self.assertEqual(summary["runs"][evidence.CONFIGS[0]]["risk"]["dispositions"]["FAILED"], 1)
+        self.assertFalse(summary["formal_performance_claim"])
 
 
 if __name__ == "__main__":

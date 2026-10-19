@@ -10,10 +10,12 @@ import stat
 import subprocess
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
+from experiments.evaluation_candidate import human_timing
 from experiments.evaluation_candidate.human_timing import (
     PRIVATE_ROLE, SYNTHETIC_ROLE, main, summarize_human_timing,
 )
@@ -274,6 +276,7 @@ class HumanTimingTests(unittest.TestCase):
         self.assertNotEqual(result["manifest_sha256"], reversed_result["manifest_sha256"])
 
 
+@unittest.skipUnless(human_timing._file_io_supported(), "Requires protected POSIX file I/O")
 class HumanTimingCliTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="returnops-human-timing-test-")
@@ -325,15 +328,18 @@ class HumanTimingCliTests(unittest.TestCase):
         self.assertEqual(self.invoke()[0], 2)
         self.assertEqual(real.read_bytes(), before)
 
-    def test_nonregular_fifo_directory_missing_and_oversize_inputs_fail_closed(self):
+    def test_nonregular_directory_missing_and_oversize_inputs_fail_closed(self):
         self.assertEqual(self.invoke()[0], 2)
         self.source.mkdir()
         self.assertEqual(self.invoke()[0], 2)
         self.source.rmdir()
-        os.mkfifo(self.source)
-        self.assertEqual(self.invoke()[0], 2)
-        self.source.unlink()
         self.source.write_bytes(b" " * (2 * 1024 * 1024 + 1))
+        self.assertEqual(self.invoke()[0], 2)
+        self.assertFalse(self.destination.exists())
+
+    @unittest.skipUnless(callable(getattr(os, "mkfifo", None)), "Requires FIFO creation")
+    def test_fifo_input_fails_closed_without_blocking(self):
+        os.mkfifo(self.source)
         self.assertEqual(self.invoke()[0], 2)
         self.assertFalse(self.destination.exists())
 
@@ -367,6 +373,53 @@ class HumanTimingCliTests(unittest.TestCase):
                                 cwd=repo, capture_output=True, text=True, timeout=5)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertTrue(self.destination.exists())
+
+
+class HumanTimingPlatformTests(unittest.TestCase):
+    def fake_os(self):
+        # A local namespace, not deletion/patching of process-wide os features.
+        return SimpleNamespace(name="posix", O_NONBLOCK=1, O_NOFOLLOW=2,
+            **{name: Mock(side_effect=AssertionError("I/O must not occur")) for name in
+               ("open", "lstat", "fstat", "fdopen", "fchmod", "fsync")})
+
+    def assert_refused_without_io(self, fake):
+        out, err = io.StringIO(), io.StringIO()
+        with patch.object(human_timing, "os", fake), redirect_stdout(out), redirect_stderr(err):
+            self.assertEqual(main(["--input", "PRIVATE_INPUT", "--output", "PRIVATE_OUTPUT"]), 2)
+            for action in (lambda: human_timing._read_input("PRIVATE_INPUT"),
+                           lambda: human_timing._write_output("PRIVATE_OUTPUT", {})):
+                with self.assertRaisesRegex(human_timing.HumanTimingPlatformError,
+                                           "^HUMAN_TIMING_PLATFORM_UNSUPPORTED$"):
+                    action()
+        self.assertEqual(out.getvalue(), "")
+        self.assertEqual(err.getvalue(), "HUMAN_TIMING_PLATFORM_UNSUPPORTED\n")
+        for value in vars(fake).values():
+            if isinstance(value, Mock):
+                value.assert_not_called()
+
+    def test_native_windows_boundary_precedes_any_file_access(self):
+        fake = self.fake_os()
+        fake.name = "nt"
+        self.assert_refused_without_io(fake)
+
+    def test_missing_required_api_or_flag_is_typed_failure_not_attribute_error(self):
+        for name in ("O_NONBLOCK", "O_NOFOLLOW", "fchmod", "fsync"):
+            fake = self.fake_os()
+            with patch.object(human_timing, "os", fake):
+                self.assertTrue(human_timing._file_io_supported())
+            delattr(fake, name)
+            with self.subTest(missing=name):
+                self.assert_refused_without_io(fake)
+        for value in (0, None, True):
+            fake = self.fake_os()
+            fake.O_NOFOLLOW = value
+            with self.subTest(no_follow=value):
+                self.assert_refused_without_io(fake)
+
+    def test_pure_accounting_remains_available_without_unix_file_apis(self):
+        expected = summarize()
+        with patch.object(human_timing, "os", SimpleNamespace(name="nt")):
+            self.assertEqual(summarize(), expected)
 
 
 if __name__ == "__main__":

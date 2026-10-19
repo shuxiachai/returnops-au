@@ -58,6 +58,30 @@ class EvidenceError(ValueError):
     """A bounded diagnostic without local paths or exception contents."""
 
 
+class EvidencePlatformError(EvidenceError):
+    """Required private/atomic file publication is unavailable on this host."""
+
+
+def _publication_io_supported():
+    required_dir_fd = {"open", "mkdir", "stat", "unlink", "rmdir"}
+    # Compare capability names so test instrumentation of os.open does not
+    # change the host's advertised descriptor-relative operation support.
+    dir_fd = {getattr(function, "__name__", "") for function in getattr(os, "supports_dir_fd", ())}
+    nofollow = {getattr(function, "__name__", "") for function in getattr(os, "supports_follow_symlinks", ())}
+    return (os.name == "posix" and (sys.platform == "darwin" or sys.platform.startswith("linux"))
+            and all(type(getattr(os, name, None)) is int and getattr(os, name) != 0
+                    for name in ("O_DIRECTORY", "O_NOFOLLOW"))
+            and required_dir_fd <= dir_fd and "stat" in nofollow
+            and all(callable(getattr(os, name, None)) for name in
+                    ("open", "mkdir", "stat", "unlink", "rmdir", "close", "fdopen", "fsync", "fstat")))
+
+
+def _require_publication_support():
+    if not _publication_io_supported():
+        raise EvidencePlatformError("EVIDENCE_PLATFORM_UNSUPPORTED")
+    _atomic_publication_primitive()  # Refuse before reading Git or creating a stage.
+
+
 def _digest(raw):
     return sha256(raw).hexdigest()
 
@@ -391,17 +415,25 @@ def _open_parent(output):
         raise
 
 
+def _atomic_publication_primitive():
+    function, flag = None, None
+    if sys.platform == "darwin" or sys.platform.startswith("linux"):
+        try:
+            libc = ctypes.CDLL(None, use_errno=True)
+            if sys.platform == "darwin":
+                function, flag = getattr(libc, "renameatx_np", None), 0x4  # RENAME_EXCL.
+            else:
+                function, flag = getattr(libc, "renameat2", None), 1  # RENAME_NOREPLACE.
+        except OSError:
+            pass
+    if not callable(function):
+        raise EvidencePlatformError("ATOMIC_PUBLICATION_UNSUPPORTED")
+    return function, flag
+
+
 def _rename_no_replace(parent_fd, source_name, destination_name):
     """Native atomic no-replace rename; never fall back to overwrite rename."""
-    libc = ctypes.CDLL(None, use_errno=True)
-    if sys.platform == "darwin":
-        function, flag = getattr(libc, "renameatx_np", None), 0x4  # RENAME_EXCL, sys/stdio.h.
-    elif sys.platform.startswith("linux"):
-        function, flag = getattr(libc, "renameat2", None), 1  # RENAME_NOREPLACE.
-    else:
-        function, flag = None, None
-    if function is None:
-        raise EvidenceError("ATOMIC_PUBLICATION_UNSUPPORTED")
+    function, flag = _atomic_publication_primitive()
     function.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
     function.restype = ctypes.c_int
     if function(parent_fd, os.fsencode(source_name), parent_fd, os.fsencode(destination_name), flag):
@@ -415,6 +447,7 @@ def publish_demo_evidence(output, files):
     sandbox claim. Existing paths, including empty directories and dangling
     links, are never replaced. This function accepts no arbitrary source files.
     """
+    _require_publication_support()
     expected = {"inputs.json", "fixture-expectations.json", "source-manifest.json", "environment.json",
                 "b1.raw.json", "b4.raw.json", "quality-evidence.json", "latency-fixtures.json",
                 "paired-inputs.json", "summaries.json", "manifest.json"}
@@ -473,8 +506,12 @@ def main(argv=None):
     parser.add_argument("--output-dir", required=True, help="New physical path; existing parent; no overwrite")
     args = parser.parse_args(argv)
     try:
+        _require_publication_support()
         files = asyncio.run(build_demo_evidence())
         publish_demo_evidence(args.output_dir, files)
+    except EvidencePlatformError as error:
+        print(str(error), file=sys.stderr)
+        return 1
     except (EvidenceError, ValueError, OSError, subprocess.SubprocessError):
         print("Offline evidence failed; no existing destination was overwritten.", file=sys.stderr)
         return 1

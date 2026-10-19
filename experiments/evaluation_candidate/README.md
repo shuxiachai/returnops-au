@@ -92,6 +92,15 @@ existing destinations are never overwritten. A supported atomic primitive is
 required; there is no unsafe overwrite fallback. No permission-sandbox,
 crash-durability, human-review or acceptance claim is made.
 
+**Platform boundary (19 October):** the evidence CLI checks its descriptor-
+relative, no-follow and native atomic-publication capabilities before reading
+Git/source files or creating an output directory. Native Windows is unsupported:
+it exits with `EVIDENCE_PLATFORM_UNSUPPORTED` (status 1), not an attribute error
+or a weaker overwrite fallback. A missing native no-replace primitive reports
+`ATOMIC_PUBLICATION_UNSUPPORTED`. Use the protected CLI on macOS/Linux with the
+required capabilities; ordinary write/source errors retain their sanitized
+failure message. This does not prevent portable in-memory accounting tests.
+
 ### Validate and summarize human-time records locally
 
 The checked-in example is explicitly invented, not a record of A/B working:
@@ -140,6 +149,16 @@ answers nor Gold. It verifies no identity, participation, blindness, seal,
 source approval, answer quality, omissions or E.08 acceptance; those require
 the original private records and review sequence. Do not publish real timing
 input/output simply because this program can process it.
+
+The human-time **file CLI** requires POSIX `O_NONBLOCK`, `O_NOFOLLOW`, descriptor
+permissions and sync support. Native Windows, or a host missing a required
+capability, returns `HUMAN_TIMING_PLATFORM_UNSUPPORTED` (status 2) **before
+reading input or creating output**. No-follow protection is never replaced by
+a zero flag. The pure `summarize_human_timing` API and its arithmetic tests
+remain platform-independent. Only protected-file/native-publication test cases
+are skipped on unsupported hosts; portable scoring, bindings and simulated
+missing-capability tests still run. A missing `mkfifo` skips just the FIFO test.
+Simulated feature-loss checks are not evidence of a native Windows execution.
 
 ## Earlier 17 October increment — historical verification
 

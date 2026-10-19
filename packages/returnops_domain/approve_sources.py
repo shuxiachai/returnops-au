@@ -5,7 +5,7 @@ from . import customer_tables as old, lifecycle_tables as t
 from .audit import timestamp
 from .canonical import digest
 from .lifecycle_events import ApprovalAccepted, LifecycleClaim
-from .lifecycle_schema import CURRENT, version
+from .lifecycle_schema import APPROVAL_VERSIONS, version
 from .lifecycle_sources import Sources
 from .lifecycle_state import reject
 from .manual_target import one
@@ -24,7 +24,7 @@ def execution_identity(approval_record, approval, generation):
 
 def read_target(uow, head, state, request, component, *, original_state=None, consumer=None):
     initial = state if original_state is None else original_state
-    if (component != COMPONENT or version(uow.connection) != CURRENT or initial is None
+    if (component != COMPONENT or version(uow.connection) not in APPROVAL_VERSIONS or initial is None
             or state is None or not initial['available'] or not state['available']
             or initial['preview_id'] is None or any(initial[name] is not None for name in EMPTY)):
         reject(uow)
@@ -98,7 +98,7 @@ def verify_staged(uow, head, state, row, body, binding, work, event, now):
 
 
 def accepted_approval(uow, head, record_id, component):
-    if component != COMPONENT or version(uow.connection) != CURRENT:
+    if component != COMPONENT or version(uow.connection) not in APPROVAL_VERSIONS:
         reject(uow)
     sources = Sources(uow, head, component)
     row, body = sources.read(record_id, {'APPROVAL'}, current_actor=False)
