@@ -3,6 +3,7 @@ name: F.02 checks
 on:
   pull_request:
   push:
+    branches: [main]
 
 permissions:
   contents: read
@@ -40,6 +41,14 @@ jobs:
           python -m pip check
       - name: Install locked Mermaid parser
         run: npm ci --prefix tools/model-checks --ignore-scripts --no-audit --no-fund
+      - name: Check isolated F.03 security candidate
+        run: python -B -m pytest tests/security -q
+      - name: Check initial records without a database
+        run: python -B -m pytest tests/storage/test_records.py -q
+      - name: Check bounded attachment parsers and customer codecs without a database
+        run: python -B -m pytest tests/customer/test_evidence_validation.py tests/customer/test_codec_and_dto.py tests/customer/test_foundation_guards.py -q
+      - name: Build and import installed packages outside checkout
+        run: python -B tools/checks/check-installed.py
       - name: Check PR against its base WBS
         if: github.event_name == 'pull_request'
         env:
@@ -53,7 +62,8 @@ jobs:
   api-environment:
     name: API and PostgreSQL environment
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    # Both source/PR jobs hit 75 minutes; preserve full suites with measured PR pace plus 30% margin.
+    timeout-minutes: 170
     env:
       # Disposable CI service credentials; never use these outside this job.
       DATABASE_URL: postgresql+psycopg://returnops_ci:ci_synthetic_only@localhost:5432/returnops_f02_ci
@@ -83,5 +93,25 @@ jobs:
           python -m pip install --require-hashes -r requirements-dev.lock
           python -m pip install --no-deps --no-build-isolation -e .
           python -m pip check
+      - name: Check affected manual notification fixtures before the full suite
+        # These 12 existing nodes also remain in the complete lifecycle run below.
+        run: |
+          unset MANUAL_EVIDENCE_DIR
+          python -B -m pytest \
+            'tests/lifecycle/test_guards_postgresql.py::test_saved_notification_pending_failed_sent_keeps_identity_and_has_no_effects[head-MANUAL_HANDLING-MANUAL_HANDLED]' \
+            'tests/lifecycle/test_guards_postgresql.py::test_notification_cannot_change_frozen_identity_or_payload' \
+            'tests/lifecycle/test_guards_postgresql.py::test_new_decision_rechecks_causal_founder_current_principal' \
+            'tests/lifecycle/test_guards_postgresql.py::test_notification_retry_uses_current_service_not_expired_original_human_authority' \
+            'tests/lifecycle/test_guards_postgresql.py::test_failed_notification_requires_saved_pending_retry_before_sent' \
+            'tests/lifecycle/test_guards_postgresql.py::test_outcome_atomically_saves_stable_unclaimed_notification_intent_without_grant' \
+            'tests/lifecycle/test_transaction_postgresql.py::test_supported_same_uow_notification_reclaim_invalidates_earlier_commit_proof' \
+            -q --tb=short -x
       - name: Migrate and check disposable PostgreSQL environment
+        env:
+          # Per-node temporary evidence is not a persisted/downloaded artifact.
+          MANUAL_EVIDENCE_DIR: ${{ runner.temp }}/a201-pass-manual-full-evidence
         run: python -B tools/checks/run.py environment
+      - name: Build runtime image and import installed packages outside app directory
+        run: |
+          docker build --tag returnops-a1-ci .
+          docker run --rm -i --workdir /tmp --entrypoint python returnops-a1-ci -I -B - < tools/checks/probe-installed.py

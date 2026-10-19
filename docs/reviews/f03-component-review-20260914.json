@@ -1,0 +1,286 @@
+{
+  "schema": "returnops-f03-component-review-1",
+  "status": "local-checks-and-independent-review-passed-unpublished",
+  "date": "2026-09-14",
+  "candidate": "F03-C0.1",
+  "base": "3dd1ff637693a826990eee5712cfb239a3c3da7b",
+  "branch": "feat/f03-security-component",
+  "releaseFiles": [
+    "apps/api/returnops_api/security/__init__.py",
+    "apps/api/returnops_api/security/authentication.py",
+    "apps/api/returnops_api/security/authorization.py",
+    "apps/api/returnops_api/security/errors.py",
+    "apps/api/returnops_api/security/types.py",
+    "tests/security/test_authentication.py",
+    "tests/security/test_authorization.py",
+    "pyproject.toml",
+    "requirements.lock",
+    "requirements-dev.lock",
+    ".github/workflows/ci.yml",
+    "docs/16-demo-identity-authorization.md",
+    "docs/18-f03-security-component.md",
+    "README.md",
+    "tools/checks/README.md",
+    "docs/reviews/f03-component-review-20260914.json"
+  ],
+  "scope": "Existing isolated component only; no HTTP/DB/business integration, tokens issued, runtime services started, remote publication or C acceptance.",
+  "exclusions": [
+    "root report and model-checker fix",
+    "historical 2026-09-09 receipt",
+    "other dirty root files"
+  ],
+  "sourceRootHashes": {
+    "apps/api/returnops_api/security/__init__.py": "414a838fcf2cf6341584348c2af17f31ec75147b44ac599f11e89eebc6807e67",
+    "apps/api/returnops_api/security/authentication.py": "7e7a21961583452a2c2e32ffae5a6df85660f3d5b4ae7684eced9a2530b9753b",
+    "apps/api/returnops_api/security/authorization.py": "d9361c54ff784d0802a91adb1e766c7ffd2c31a791a69e791d0c819ef3996a39",
+    "apps/api/returnops_api/security/errors.py": "cb01c18ebc5cee59eb1412fd3abc2e928329e9e45ab817424f8400ac64735c15",
+    "apps/api/returnops_api/security/types.py": "4acceab2382eea76ac170c18a768709614691629919b3250eadd632a5ed09ed0",
+    "tests/security/test_authentication.py": "cd9709bbb5201e51445ea86481020a03509d78552484b01f4f2bfa47f914fd70",
+    "tests/security/test_authorization.py": "8351893fdbc60df566fa22d3df87b8a45357abcddabb9fadaab812d354fa2c4b",
+    "pyproject.toml": "d74f2f9723c28c43474bc30fb5c915f0db0202bf6914862c6035aed3d3de2a2a",
+    "requirements.lock": "797d887d1b67d7c1062db7eee9c9e0514de17d8107882e105324aa31f52f3524",
+    "requirements-dev.lock": "f7eddf76a2c7fa12fb915532b29f3fa60bac331f07b8b9ea904b6c37567b6aee",
+    ".github/workflows/ci.yml": "c8de0fe84a78fe54c1a15ff1281f78ed67fb4011e3f4728bbff1176c17910a36",
+    "docs/16-demo-identity-authorization.md": "5b2152a7168b846fc8ed043f638e7b00ba739423b3723824487501fe1bebc87f",
+    "docs/18-f03-security-component.md": "e4a72962c91c9b7e07a9b75f4645fbcb0262f5a46247d5e3236ef33eee83691d",
+    "README.md": "cc897841e311216f0a08353880c90dc6e5e08327c49cd6c07bd646ed7a0c8e3f",
+    "tools/checks/README.md": "c3f1d4b372f0497dd93cde7541debf8238812dfdda18711f76cfbac0edd5dc18"
+  },
+  "checks": [
+    {
+      "name": "source-import",
+      "command": [
+        "D:\\AAA树下\\硕士\\26S2\\5620\\assignment\\returnops-au\\.venv\\Scripts\\python.exe",
+        "-B",
+        "-c",
+        "import pathlib,returnops_api,returnops_api.security,jwt,sys; p=pathlib.Path(returnops_api.security.__file__).resolve(); expected=pathlib.Path(sys.argv[1]).resolve(); assert p.is_relative_to(expected), (p,expected); print('security_import='+str(p)); print('python='+sys.version.split()[0]); print('PyJWT='+jwt.__version__)",
+        "D:\\AAA树下\\硕士\\26S2\\5620\\assignment\\returnops-au\\tmp\\ordered-progress-20260914\\f03-worktree"
+      ],
+      "cwd": "D:\\AAA树下\\硕士\\26S2\\5620\\assignment\\returnops-au\\tmp\\ordered-progress-20260914\\f03-worktree",
+      "exitCode": 0,
+      "durationSeconds": 0.098,
+      "log": "D:\\AAA树下\\硕士\\26S2\\5620\\assignment\\returnops-au\\tmp\\ordered-progress-20260914\\f03-package\\source-import.log",
+      "logSha256": "86b30ed88ddd2e7983171327f845f70a99051d993941b4e27737ebec08e3efe6"
+    },
+    {
+      "name": "pip-check",
+      "command": [
+        "D:\\AAA树下\\硕士\\26S2\\5620\\assignment\\returnops-au\\.venv\\Scripts\\python.exe",
+        "-B",
+        "-m",
+        "pip",
+        "check"
+      ],
+      "cwd": "D:\\AAA树下\\硕士\\26S2\\5620\\assignment\\returnops-au\\tmp\\ordered-progress-20260914\\f03-worktree",
+      "exitCode": 0,
+      "durationSeconds": 0.348,
+      "log": "D:\\AAA树下\\硕士\\26S2\\5620\\assignment\\returnops-au\\tmp\\ordered-progress-20260914\\f03-package\\pip-check.log",
+      "logSha256": "672aec65a45bed50e70229c70934a7eebf0462595c459b83023027645d57cccf"
+    },
+    {
+      "name": "security",
+      "command": [
+        "D:\\AAA树下\\硕士\\26S2\\5620\\assignment\\returnops-au\\.venv\\Scripts\\python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "tests/security",
+        "-q",
+        "-p",
+        "no:cacheprovider"
+      ],
+      "cwd": "D:\\AAA树下\\硕士\\26S2\\5620\\assignment\\returnops-au\\tmp\\ordered-progress-20260914\\f03-worktree",
+      "exitCode": 0,
+      "durationSeconds": 0.595,
+      "log": "D:\\AAA树下\\硕士\\26S2\\5620\\assignment\\returnops-au\\tmp\\ordered-progress-20260914\\f03-package\\security.log",
+      "logSha256": "5995bce18f7e9f1882fdc6cebc951649fe7e03aeb662a237f4282168ab81b603"
+    },
+    {
+      "name": "environment-non-database",
+      "command": [
+        "D:\\AAA树下\\硕士\\26S2\\5620\\assignment\\returnops-au\\.venv\\Scripts\\python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "tests/environment",
+        "-m",
+        "not database",
+        "-q",
+        "-p",
+        "no:cacheprovider"
+      ],
+      "cwd": "D:\\AAA树下\\硕士\\26S2\\5620\\assignment\\returnops-au\\tmp\\ordered-progress-20260914\\f03-worktree",
+      "exitCode": 0,
+      "durationSeconds": 3.269,
+      "log": "D:\\AAA树下\\硕士\\26S2\\5620\\assignment\\returnops-au\\tmp\\ordered-progress-20260914\\f03-package\\environment-non-database.log",
+      "logSha256": "dcd4b43776bca0f2e094ee192d2a607675eaa7ceeeb03310a856c6155b1484ab"
+    },
+    {
+      "name": "contracts",
+      "command": [
+        "D:\\AAA树下\\硕士\\26S2\\5620\\assignment\\returnops-au\\.venv\\Scripts\\python.exe",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/contracts",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "cwd": "D:\\AAA树下\\硕士\\26S2\\5620\\assignment\\returnops-au\\tmp\\ordered-progress-20260914\\f03-worktree",
+      "exitCode": 0,
+      "durationSeconds": 12.844,
+      "log": "D:\\AAA树下\\硕士\\26S2\\5620\\assignment\\returnops-au\\tmp\\ordered-progress-20260914\\f03-package\\contracts.log",
+      "logSha256": "d98413b19ce85b03bc984cc99e990e9c413308db81b15d278e13761b30eccb02"
+    },
+    {
+      "name": "static-models",
+      "command": [
+        "D:\\AAA树下\\硕士\\26S2\\5620\\assignment\\returnops-au\\.venv\\Scripts\\python.exe",
+        "-B",
+        "tools/model-checks/check.py",
+        "--baseline-ref",
+        "9eb7b0b46b1b28cfec300a59b03bba6a1d60c3bf"
+      ],
+      "cwd": "D:\\AAA树下\\硕士\\26S2\\5620\\assignment\\returnops-au\\tmp\\ordered-progress-20260914\\f03-worktree",
+      "exitCode": 0,
+      "durationSeconds": 0.187,
+      "log": "D:\\AAA树下\\硕士\\26S2\\5620\\assignment\\returnops-au\\tmp\\ordered-progress-20260914\\f03-package\\static-models.log",
+      "logSha256": "f1fa0e55f8cc9332aa70e499f8192ed8328c907a57cb3cf1a3ff2a656cb5fd95"
+    },
+    {
+      "name": "model-regressions",
+      "command": [
+        "D:\\AAA树下\\硕士\\26S2\\5620\\assignment\\returnops-au\\.venv\\Scripts\\python.exe",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tools/model-checks",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "cwd": "D:\\AAA树下\\硕士\\26S2\\5620\\assignment\\returnops-au\\tmp\\ordered-progress-20260914\\f03-worktree",
+      "exitCode": 0,
+      "durationSeconds": 0.168,
+      "log": "D:\\AAA树下\\硕士\\26S2\\5620\\assignment\\returnops-au\\tmp\\ordered-progress-20260914\\f03-package\\model-regressions.log",
+      "logSha256": "205d75ddcd8dbc6f8cd11144a99f760aceb8e41809d2e56e28bf0772a5399834"
+    },
+    {
+      "name": "runner-regressions",
+      "command": [
+        "D:\\AAA树下\\硕士\\26S2\\5620\\assignment\\returnops-au\\.venv\\Scripts\\python.exe",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tools/checks",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "cwd": "D:\\AAA树下\\硕士\\26S2\\5620\\assignment\\returnops-au\\tmp\\ordered-progress-20260914\\f03-worktree",
+      "exitCode": 0,
+      "durationSeconds": 0.129,
+      "log": "D:\\AAA树下\\硕士\\26S2\\5620\\assignment\\returnops-au\\tmp\\ordered-progress-20260914\\f03-package\\runner-regressions.log",
+      "logSha256": "fd08ed97d9dadf15ecaaf2921b1da6d30adcae97fcf1897993051f408a5684fa"
+    },
+    {
+      "name": "mermaid",
+      "command": [
+        "node",
+        "tools/model-checks/check-mermaid.mjs",
+        "--dependencies",
+        "D:\\AAA树下\\硕士\\26S2\\5620\\assignment\\returnops-au\\tools\\model-checks"
+      ],
+      "cwd": "D:\\AAA树下\\硕士\\26S2\\5620\\assignment\\returnops-au\\tmp\\ordered-progress-20260914\\f03-worktree",
+      "exitCode": 0,
+      "durationSeconds": 0.85,
+      "log": "D:\\AAA树下\\硕士\\26S2\\5620\\assignment\\returnops-au\\tmp\\ordered-progress-20260914\\f03-package\\mermaid.log",
+      "logSha256": "bea87d71c10b3431bb516175ac6e8411cd68088dff682872409bfdf3dd9c1154"
+    }
+  ],
+  "testsExecutedFrom": "isolated worktree, with explicit PYTHONPATH to its apps/api; import provenance asserted before tests",
+  "environment": {
+    "python": "3.12.9",
+    "PyJWT": "2.13.0",
+    "pythonRuntime": "existing root .venv reused; no new install or hash-required install performed this round",
+    "mermaidDependencies": "existing root tools/model-checks/node_modules via checked-in --dependencies option; installed versions checked by parser",
+    "servicesStarted": false
+  },
+  "results": {
+    "securityPassed": 244,
+    "environmentNonDatabasePassed": 28,
+    "databaseDeselected": 4,
+    "existingDeprecationWarnings": 2,
+    "contractPassed": 58,
+    "staticGroupsPassed": 6,
+    "staticGroupsTotal": 6,
+    "wbsRowsUnchangedAgainstMain9eb7b0b": 89,
+    "modelToolPassed": 12,
+    "runnerPassed": 5,
+    "mermaidBlocksParsed": 15,
+    "mermaidFailures": 0,
+    "pipCheck": "No broken requirements found."
+  },
+  "warnings": [
+    "Starlette TestClient: httpx integration deprecated in favour of httpx2",
+    "anyio.abc.BlockingPortal alias deprecated"
+  ],
+  "preservation": {
+    "rootSourceFiles": 15,
+    "rootSourceHashesUnchanged": true,
+    "coreFilesByteIdenticalToExistingCandidate": 11,
+    "modelCheckerAndRegressionsMatch3ddBaseline": true,
+    "releaseDifferenceExactlyListed16Files": true,
+    "gitDiffCheck": "pass"
+  },
+  "fileHashes": {
+    "apps/api/returnops_api/security/__init__.py": "414a838fcf2cf6341584348c2af17f31ec75147b44ac599f11e89eebc6807e67",
+    "apps/api/returnops_api/security/authentication.py": "7e7a21961583452a2c2e32ffae5a6df85660f3d5b4ae7684eced9a2530b9753b",
+    "apps/api/returnops_api/security/authorization.py": "d9361c54ff784d0802a91adb1e766c7ffd2c31a791a69e791d0c819ef3996a39",
+    "apps/api/returnops_api/security/errors.py": "cb01c18ebc5cee59eb1412fd3abc2e928329e9e45ab817424f8400ac64735c15",
+    "apps/api/returnops_api/security/types.py": "4acceab2382eea76ac170c18a768709614691629919b3250eadd632a5ed09ed0",
+    "tests/security/test_authentication.py": "cd9709bbb5201e51445ea86481020a03509d78552484b01f4f2bfa47f914fd70",
+    "tests/security/test_authorization.py": "8351893fdbc60df566fa22d3df87b8a45357abcddabb9fadaab812d354fa2c4b",
+    "pyproject.toml": "d74f2f9723c28c43474bc30fb5c915f0db0202bf6914862c6035aed3d3de2a2a",
+    "requirements.lock": "797d887d1b67d7c1062db7eee9c9e0514de17d8107882e105324aa31f52f3524",
+    "requirements-dev.lock": "f7eddf76a2c7fa12fb915532b29f3fa60bac331f07b8b9ea904b6c37567b6aee",
+    ".github/workflows/ci.yml": "c8de0fe84a78fe54c1a15ff1281f78ed67fb4011e3f4728bbff1176c17910a36",
+    "docs/16-demo-identity-authorization.md": "5b2152a7168b846fc8ed043f638e7b00ba739423b3723824487501fe1bebc87f",
+    "docs/18-f03-security-component.md": "4e22a9657617361b1bf19b83c704090ef7d69ac45ddcc5df2b2673804bc5cb7b",
+    "README.md": "abd635b8b909ea02ecc91191047e9b5d1decbcd1fa5ce03c942bfea31365e50a",
+    "tools/checks/README.md": "c3f1d4b372f0497dd93cde7541debf8238812dfdda18711f76cfbac0edd5dc18"
+  },
+  "hashConvention": "SHA-256 of raw workspace bytes; receipt excludes its own recursive hash. For publication, separately record normalized Git blobs and final commit.",
+  "independentReview": {
+    "reviewer": "b_pr14_readiness; separate strong read-only review coordinated by parent",
+    "conclusion": "No P1/P2/P3 findings. No code change warranted.",
+    "reviewedReceiptSha256": "569a4917e195434b7744bc69c602d92b5c16c97e8e5d7cd2d34ac864db38220c",
+    "reviewedScope": "Exact 3dd baseline; 16-file diff and 16/16 raw manifest hashes; 9/9 retained check log hashes and outcomes; fresh receipt link; narrow config/navigation metadata; report-checker exclusion. This subsequent update records that review only.",
+    "execution": "Reviewer did not run tests or write files; reviewed recorded local execution evidence.",
+    "notMemberCReview": true,
+    "doesNotEstablish": "C personal acceptance, F.01/F.02/F.03 acceptance, remote CI or HTTP/DB/business integration"
+  },
+  "failureLedger": {
+    "componentFixOrValidationFailures": 0,
+    "gitTrustPreflight": {
+      "failedBatch": 1,
+      "outcome": "Three initial read-only Git queries in one batch refused a differently owned authorized repository; command-scoped safe.directory for exact paths succeeded. No global/persistent trust or ACL change."
+    }
+  },
+  "notEstablished": [
+    "fresh dependency installation",
+    "four database tests/PG17 Compose or same-API outage/recovery",
+    "new remote CI",
+    "HTTP/DB/business integration or concurrency safety",
+    "real identity bootstrap/token distribution",
+    "C personal review or F.01/F.02/F.03 acceptance",
+    "Git commit/push/PR/merge or course submission"
+  ]
+}

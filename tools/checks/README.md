@@ -29,6 +29,7 @@ provider, database or package registry.
 python -B tools/checks/run.py offline
 python -B tools/checks/run.py offline --baseline-ref main
 python -B -m unittest discover -s tools/checks -p 'test_*.py' -v
+python -B -m pytest tests/security -q -p no:cacheprovider
 ```
 
 `offline` runs contract artifact unittest discovery, the static document/model
@@ -36,6 +37,8 @@ checker, both tools' regression tests, and the Mermaid grammar parser. It stops
 at the first failing step and exits nonzero; later steps have not passed by
 implication. Python subprocesses use the same interpreter as the runner. The
 runner derives the repository root from its own location.
+
+The separate `tests/security` command validates the isolated [F.03 component](../../docs/18-f03-security-component.md) with synthetic registries/resources and in-memory test keys. It does not start HTTP, a database or providers. The local workflow includes this command as a separate step; historical CI runs predate that addition.
 
 WBS ID/Owner/Reviewer/S/F are compared to `HEAD` by default or the existing local
 ref given by `--baseline-ref`. To check an archive or explicitly omit only that
@@ -54,10 +57,18 @@ python -B tools/checks/run.py environment
 
 This command changes the configured database by running this project's
 `python -B -m alembic upgrade head`, then reports `alembic current` and runs
-`python -B -m pytest tests/environment -q`. The initial `0001_environment`
-migration establishes a migration version without business DDL. The tests use
-FastAPI TestClient plus actual PostgreSQL readiness/version and temporary-table
-transaction checks; they do not need a running uvicorn server. Use the local
+`python -B -m pytest tests/environment -q`, `tests/storage`, `tests/customer`
+and `tests/investigation`, followed by `tests/founder`. The retained0001–0005
+migrations are followed by `0006_founder_reads`:4 independent metadata tables,
+41 including all earlier tables and `alembic_version`. The suite checks fresh/repeated migration and
+upgrade with accepted data, PostgreSQL17 constraints, exact content, atomic
+rollback, unknown commits, current authority, retention and lifecycle guards.
+The investigation suite also starts and stops its own loopback uvicorn processes
+on dynamic ports to verify actual TCP, two workers and durable restart. It does
+not use or stop a pre-existing API server. See the
+[investigation boundaries](../../docs/23-order-investigation.md) and
+[Founder read boundaries](../../docs/24-founder-read-queries.md). The Founder suite
+also verifies persisted cursors across independent TCP process restart. Use the local
 environment setup in [F.02 readiness](../../docs/10-f02-environment-readiness.md).
 The runner rejects a missing/wrong-driver target and database names other than
 `returnops_f02` or `returnops_f02_` followed by lowercase ASCII letters, digits

@@ -8,7 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from .settings import Settings
 
 
-EXPECTED_SCHEMA_REVISION = "0001_environment"
+EXPECTED_SCHEMA_REVISION = "0011_return_execution"
 
 
 def build_engine(settings: Settings) -> Engine:
@@ -33,7 +33,8 @@ def readiness(engine: Engine) -> bool:
             revisions = connection.execute(
                 text("SELECT version_num FROM alembic_version ORDER BY version_num")
             ).scalars().all()
-            return revisions == [EXPECTED_SCHEMA_REVISION]
+            from returnops_domain.lifecycle_schema import version
+            return revisions == [EXPECTED_SCHEMA_REVISION] and version(connection) == EXPECTED_SCHEMA_REVISION
     except SQLAlchemyError:
         # Driver errors may include host/user/DSN fragments; expose no details.
         return False
