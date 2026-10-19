@@ -10,7 +10,67 @@
 
 # ReturnOps AU
 
-## C follow-up — 2026-10-18
+## C review follow-up — 2026-10-19
+
+A's new reviews have been read and the actionable C corrections are published
+below. The checked main is now `c85efc07676e58b51f88da5d7c457d79f1f4ad80`
+after [PR #7](https://github.com/shuxiachai/returnops-au/pull/7) merged.
+This notice supersedes current-status wording in older dated blocks; it does
+not replace their historical evidence or claim a newly measured completion rate.
+
+| Review entrance | New exact C source | Follow-up and remaining boundary |
+| --- | --- | --- |
+| [#68 C1](https://github.com/shuxiachai/returnops-au/pull/68) | `4dc60bd93b900a579758ec026fb851d0754fdba0` | Fixed platform-aware admission tests while preserving all supported filesystem/security assertions and explicit unsupported-host rejection. Context/coverage expansion was already published at `94c8e55`; the older statement that expansion is still outstanding is obsolete. Final corpus admission, authentic non-author review and a separately trusted pin remain outstanding. |
+| [#69 C2](https://github.com/shuxiachai/returnops-au/pull/69) | `11ca4f08c74885f39f960f89b15e305e1ccaf5ba` | Reconciled README/main without changing Risk code or tests. A reported no new P1/P2 in the bounded prior-source review; exact new-source review/normal checks are still required, and no live-model or runtime acceptance follows. |
+| [#70 evaluation](https://github.com/shuxiachai/returnops-au/pull/70) | `e5b3e91a6e82b3419bbc542c537861eb961988bd` | File CLIs now reject unsupported platform capabilities before I/O. Pure calculations remain portable; supported-platform safety and whole-bundle privacy checks remain. Definitions/private data, formal Gold, real timing and real model measurements are separate uncompleted gates. |
+| [#61 source review](https://github.com/shuxiachai/returnops-au/pull/61) | `b23b7481c083bd7d0805fe9fb20e6b9ca390aaea` | Reconciled README notices with current main. Earlier source-capture approval is not corpus admission; new exact-source review/checks remain necessary. |
+| [#17 historical receipts](https://github.com/shuxiachai/returnops-au/pull/17) | `3ab0e886c752ed3e30b0cdbc0c60097b52a93df2` | Migrated the worksheet increment to canonical `stage1/drafts/`, retained the old compatibility pointer and six byte-unchanged September artifacts, corrected scope to eight files, and preserved October notices. Historical PG17 receipts are not a new-main run or a personal/team signature. |
+
+All five source-specific local runs passed the full six-step offline runner,
+244 security tests and 36 records tests. Contract counts for #68/#69/#70/#61/#17
+were respectively **168/174/275/128/128**; focused suites overlap those counts.
+The C1 and evaluation capability-absence simulations are **not native Windows
+execution**. Local runs are not PG17 deployment, live-model quality, formal Gold,
+runtime gates or team acceptance. One normal PR run per corrected branch was
+requested after local verification, as A requested; use each exact PR head's
+live checks rather than assuming completion from this README. No workflow or
+A/B implementation was modified.
+
+[PR #20](https://github.com/shuxiachai/returnops-au/pull/20) is still open at
+`fe77638aac5ad7c82db0ada8ac639815f8c65221`; its normal offline and API/PG checks
+passed in [run 39177811043](https://github.com/shuxiachai/returnops-au/actions/runs/39177811043).
+That is not a merge or a new C runtime acceptance.
+
+### Dependent Draft and decisions still needed
+
+Per A's latest review, **#79 remains Draft and must not be used as a standalone
+implementation**. Its nine rehearsal tests still depend on the separate C1/C2
+candidates. The old composite receipts below are historical: this documentation
+follow-up did not produce a new combined-source pass. After the dependency
+blockers are resolved and their adoption is recorded, reconcile with the
+resulting main, rerun the nine tests and all contracts on that exact integrated
+source, request normal checks and obtain re-review before changing readiness.
+This README-only dependent-Draft update uses `[skip ci]`; it does not satisfy
+required checks or waive the later normal run.
+
+The [existing decision checklist](https://github.com/shuxiachai/returnops-au/pull/79#issuecomment-6231733616)
+still needs specific answers: final exact corpus/context admission and pin;
+provider/model, permitted input flow, trusted packet/current-version integration
+and budget; E.01 definitions, private Gold access and blind-timing arrangements;
+and the exact integrated source plus original R.02/A1.08 prerequisites before
+the real R.03 pilot. C3 retains its original text-pilot/attachment dependencies.
+The expanded pending corpus inventory is now SHA-256
+`4367be77154fe3db61683d3bd8d8be7d495a997a63cd95e99cae0fba22fe13e2`;
+older inventory hashes in comments are historical, not approval pins.
+
+There is still no confirmed A/B reply to the
+[18–19 October Sydney scheduling request](https://github.com/shuxiachai/returnops-au/pull/79#issuecomment-6231875735).
+Lucas's stated availability is not an agreed meeting or permission to extend it
+to other dates. None of these updates creates human timing, Gold labels, a
+personal explanation, a Jira transition/Done, a main merge or teammate approval.
+Implementation and checks in this follow-up were Codex-assisted.
+
+## Historical C follow-up — 2026-10-18
 
 **Planning estimate: approximately 55% of C's work remains (50–60% range).**
 This is a coarse estimate of remaining implementation, integration, evaluation
