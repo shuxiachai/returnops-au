@@ -10,6 +10,69 @@
 
 # ReturnOps AU
 
+## C delivery progress after A's component adoption — 19 October 2026
+
+**Approximately 50% of C's delivery effort remains (planning range 45–55%).**
+This is a coarse workload judgement, not a grade, authorship share, measured
+completion rate or count of tests/PRs. Planning weights: C1 20%, C2 20%, C3 15%,
+evaluation 30%, C's joint-verification/delivery contribution 15%. These are not
+changes to the frozen ownership or contribution allocation. Earlier 55%/60%
+estimates below are dated history; the remainder is not all waiting for A.
+
+### Newly verified adoption and independent follow-up
+
+- A approved and merged [C1 PR #68](https://github.com/shuxiachai/returnops-au/pull/68#pullrequestreview-5567051891):
+  reviewed `4dc60bd`, merged `437b4eb`. This adopts preparation code and explicitly
+  PENDING candidate data, **not corpus semantic/context admission or a trusted pin**.
+- A approved and merged [evaluation PR #70](https://github.com/shuxiachai/returnops-au/pull/70#pullrequestreview-5567078774):
+  reviewed `e5b3e91`, merged `d9813d6`. This adopts the preparation tool, **not
+  E.01/Gold/human timing/live-model or whole-feature acceptance**.
+- C addressed [A's README-only PR #69 blocker](https://github.com/shuxiachai/returnops-au/pull/69#pullrequestreview-5567087122)
+  and pushed `f2bf32d184a34d4eddc883150257ba93cf5dc892`, incorporating actual main
+  `d9813d6` and preserving every main README line plus both C2 sections. Original
+  C2 implementation/prompt/tests are unchanged. Exact local verification passed
+  361 contracts, all six offline steps, 244 security and 36 records tests;
+  focused 46 C2 tests overlap. Independent AI-assisted read-only review found no
+  blocking issue. [Exact-head re-review requested](https://github.com/shuxiachai/returnops-au/pull/69#issuecomment-6260042217).
+  Its [fresh normal CI](https://github.com/shuxiachai/returnops-au/actions/runs/39202282951)
+  is separate; this receipt does not assume both jobs finished or A adopted it.
+- The separate **local-only** backup now includes `08b75126e8e1f8d426c5aa76c9228e080db2bab4`:
+  four same-case image-extraction-off/on pairs, preserving packet/retrieval/
+  attachment hashes. A vision failure remains visible and stops Risk; no empty
+  success or dropped variant. It passed 807 local contract/security/record/order
+  tests and 1,933 subtests, plus the six-step offline runner. Clean-source
+  rehearsal retained 8 variants, 7 Risk returns and 1 expected vision failure.
+  Receipt SHA-256: `279cb440713a7631affd20d7f1623fdf69d0bddab7c606fd89567847f4025feb`.
+  All replies are fake HTTP and the Assessment packet is fixed. This is neither
+  image-quality improvement nor C3.03/R.03 acceptance, and these local modules
+  are **not included in this public dependent Draft**. Only a future narrow,
+  reviewed C migration may bring them onto the adopted main.
+
+### Remaining work: independent versus collaborative
+
+| Track | C can do independently / already prepared | Actual decision or collaboration required, followed by more C work |
+| --- | --- | --- |
+| C1 | Source-context/coverage and retrieval/admission tests already exist; address specific review findings. | A must disposition exact content/context/conflicts and trusted admission pin; C then verifies admitted-corpus quality and hands it into runtime. |
+| C2 | Independent prompt/boundary tests and local HTTP transport candidate exist. | Provider/model, permitted data flow, budget and A's retained-input/current-version interface; C still runs real Risk, analyses misses/false positives and fixes measured faults. |
+| Evaluation | Accounting, pair consistency, evidence CLI, capture/replay and human-time importer already exist; do not recreate them. | E.01/private inputs agreement; C seals initial labels, A/B genuinely complete blind timing and review/arbitration, then C freezes and scores actual outputs and runs real B1/B4. |
+| C3 and integration | The local observer and new off/on plumbing tests are prepared. | R.03/stable real text path, authorized image/attachment and Assessment wiring, then C performs real image-quality checks and a full demonstration with A/B. |
+| Delivery | Keep exact-source evidence, README and restorable backups current. | Actual integrated reproduction, independent acceptance and personal explanation; R.05 remains A-owned with C review, not C's solo obligation to finish all team work. |
+
+The 30-case Gold / 20-case timed subset are frozen **team protocol**, not new
+teacher-rubric quotas. Original WBS/S/F, optional C3 and private/blind sequencing
+remain unchanged. Once inputs are available, C must execute the remaining real
+work; approval alone does not complete it. No appointment or personal sign-off
+is fabricated. #79 remains Draft until C2 is adopted, the resulting actual main
+is reconciled and the nine handoff tests/contracts plus normal checks/review
+run on that exact integrated source.
+
+Jira adoption-only updates are saved at
+[KAN-23](https://lucastaooo.atlassian.net/browse/KAN-23?focusedCommentId=10107) and
+[KAN-25](https://lucastaooo.atlassian.net/browse/KAN-25?focusedCommentId=10108).
+No card was marked Done and no A/B implementation or main was changed by C.
+This README-only receipt uses `[skip ci]` for quota conservation, never as an
+implementation-check substitute. Prepared with Codex assistance.
+
 ## C synchronization receipt — 2026-10-19 (later checkpoint)
 
 This dated receipt supersedes only the current-status statements in earlier
