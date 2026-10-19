@@ -5,7 +5,7 @@ from . import customer_tables as old, investigation_tables as investigation, lif
 from .audit import timestamp
 from .canonical import digest
 from .lifecycle_events import LifecycleClaim, OutcomeAccepted
-from .lifecycle_schema import version, CURRENT
+from .lifecycle_schema import version, APPROVAL_VERSIONS
 from .lifecycle_sources import Sources
 from .lifecycle_state import reject
 from .manual_target import one
@@ -41,7 +41,7 @@ def check_seal(uow, seal):
 
 def read_target(uow, head, state, request, component, *, original_state=None, consumer=None):
     initial = state if original_state is None else original_state
-    if (component != COMPONENT or version(uow.connection) != CURRENT or initial is None or state is None
+    if (component != COMPONENT or version(uow.connection) not in APPROVAL_VERSIONS or initial is None or state is None
             or not initial['available'] or not state['available']
             or initial['review_record_id'] is None or initial['proposal_record_id'] is None):
         reject(uow)
@@ -83,7 +83,7 @@ def accepted_reject(uow, head, record_id, component):
     located by the original immutable outcome target; the original notification
     body, binding and audit remain required even after a failed/retried send.
     """
-    if component != COMPONENT or version(uow.connection) != CURRENT:
+    if component != COMPONENT or version(uow.connection) not in APPROVAL_VERSIONS:
         reject(uow)
     sources = Sources(uow, head, component)
     row, body = sources.read(record_id, {'DECISION'}, current_actor=False)

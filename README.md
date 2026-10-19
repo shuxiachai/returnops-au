@@ -1,3 +1,7 @@
+> **Current technical checkpoint - 13 October 2026:** [PR #65](https://github.com/shuxiachai/returnops-au/pull/65) is merged at main `7fc30856`. Its [new-main CI](https://github.com/shuxiachai/returnops-au/actions/runs/38331528059) passed 2262 core regressions on PG17.11/head0009. The four private Founder decision components are technically adopted; original personal, predecessor and joint acceptance remain separate.
+
+> **A2.02 first candidate / KAN-15 / Issue #71:** see [private retained-source approval admission](docs/37-a202-approval-admission.md). This read-only slice checks a future CREATE_RETURN against full persisted current approval proof; saved execution work remains unclaimed. Its own exact-source PR/CI records establish publication and validation. Older dated notices below retain their historical scope.
+
 > **A1.03 investigation increment / Issue #27 / recorded KAN-14:** [persisted order investigation and clarification](docs/23-order-investigation.md) now connects the adopted customer flow and synthetic provider through explicit database permissions, durable work, five outcome paths and atomic lifecycle/audit/retention guards. The implementation starts from merged PR26/main4673; use its exact-source PR/CI records for publication and adoption status. No Founder packet, Risk/approval, LLM or real provider is implemented, and no whole-package or teammate/joint acceptance is implied. Earlier component/customer-candidate notices below retain their historical scope.
 
 > **A1.04 / recorded KAN-29:** see the [independent synthetic order provider](docs/22-a104-synthetic-order-provider.md) for its internal port, immutable fixture provenance and installation checks. Customer-worker/Domain acceptance wiring belongs to later A1.05 work.
@@ -6,9 +10,37 @@
 
 # ReturnOps AU
 
+## Public access and project scope
+
+This is a synthetic-data course prototype. Use synthetic customer data and
+disposable test credentials only; do not supply real customer data or provider
+secrets. The actual logistics provider remains subject to tutor disposition and
+account access. Simulated results do not establish a live provider integration.
+
+This maintenance change limits branch-push CI to `main` while preserving all
+pull-request checks, and removes personal machine paths from selected current
+comments and context. Team authorship, assessment materials and review records
+remain intact. Retained history, branches and earlier evidence are not anonymized.
+
+Public visibility does not grant an open-source license or establish Stage 2
+completion, teammate/tutor acceptance, or production readiness. Dated evidence
+below retains its original scope.
+
+## C source-review reconciliation — 2026-10-19
+
+This branch incorporates main `c85efc0` and preserves its public-scope notice
+and October delivery records. [A's latest PR #61 review](https://github.com/shuxiachai/returnops-au/pull/61)
+requested this author-side README reconciliation; the original source-selection
+approval is not approval of the resulting new head or admission of corpus bytes.
+Use [PR #68](https://github.com/shuxiachai/returnops-au/pull/68) for the later
+C1 context candidate and its exact-byte review, not the historical planning
+paragraphs below. PR #7 is now merged; other PRs retain their own review/check
+records. Normal PR checks and targeted re-review are required before adopting
+this branch. No runtime, personal, corpus or whole-feature acceptance is claimed.
+
 ## C follow-up after A review — 2026-10-11
 
-Latest verified main: [`d2e809d`](https://github.com/shuxiachai/returnops-au/commit/d2e809d1a127e0e38bab4111394752541ad6b8c6).
+Main verified for this 11 October snapshot: [`d2e809d`](https://github.com/shuxiachai/returnops-au/commit/d2e809d1a127e0e38bab4111394752541ad6b8c6).
 This dated receipt supersedes pending/Draft wording in the October 9 and older
 snapshots below without deleting their historical evidence.
 
