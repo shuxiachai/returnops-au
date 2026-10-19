@@ -16,6 +16,7 @@ from unittest.mock import patch
 
 from jsonschema import Draft202012Validator, FormatChecker
 
+from experiments.c1_grounding_candidate import admission
 from experiments.c1_grounding_candidate.admission import ReviewedGroundingCandidate
 from experiments.c1_grounding_candidate.grounding import GroundingError
 from experiments.c2_risk_candidate.reviewer import (
@@ -27,6 +28,8 @@ AT = "2026-10-15T06:00:00Z"
 DEFS = json.loads((ROOT / "contracts/v1/schemas.json").read_text())["$defs"]
 EXAMPLES = json.loads((ROOT / "contracts/v1/examples.json").read_text())["positive"]
 BINDINGS = ("case_id", "input_version", "proposal_id", "proposal_version", "corpus_version")
+ADMISSION_FLAGS = ("O_DIRECTORY", "O_NOFOLLOW", "O_NONBLOCK")
+HAS_ADMISSION_FILESYSTEM = all(hasattr(admission.os, flag) for flag in ADMISSION_FLAGS)
 
 
 def encoded(value):
@@ -70,6 +73,10 @@ class StubReviewerTransport:
         return ModelReply(json.dumps(analysis), 0, 0)
 
 
+@unittest.skipUnless(
+    HAS_ADMISSION_FILESYSTEM,
+    "exact-byte admission needs O_DIRECTORY, O_NOFOLLOW and O_NONBLOCK; unsupported hosts fail closed",
+)
 class CHandoffRehearsalTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory(prefix="returnops-c-handoff-test-")
@@ -262,6 +269,28 @@ class CHandoffRehearsalTests(unittest.IsolatedAsyncioTestCase):
                 with self.assertRaisesRegex(RiskReviewError, code):
                     await self.review(request, current, original, transport)
                 self.assertEqual(len(transport.calls), 1)
+
+
+class CHandoffUnsupportedFilesystemTests(unittest.TestCase):
+    def test_missing_admission_capabilities_refuse_before_any_file_open(self):
+        # Runs even on native unsupported hosts. Supply the other capability
+        # names only to isolate each missing flag; no OS call may use them.
+        for missing in [(flag,) for flag in ADMISSION_FLAGS] + [ADMISSION_FLAGS]:
+            with self.subTest(missing=missing), patch.dict(
+                admission.os.__dict__, {flag: 1 for flag in ADMISSION_FLAGS},
+            ):
+                for flag in missing:
+                    delattr(admission.os, flag)
+                with patch.object(admission.os, "open", side_effect=AssertionError("File I/O forbidden")) as opened:
+                    with self.assertRaises(GroundingError) as caught:
+                        ReviewedGroundingCandidate.from_directory(
+                            "synthetic-path-never-opened", trusted_manifest_sha256="a" * 64,
+                        )
+                self.assertEqual(caught.exception.code, "UNSUPPORTED_FILESYSTEM")
+                self.assertIsNone(caught.exception.__cause__)
+                self.assertIsNone(caught.exception.__context__)
+                opened.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

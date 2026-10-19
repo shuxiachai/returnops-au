@@ -5,6 +5,66 @@ Tracking: [KAN-23](https://lucastaooo.atlassian.net/browse/KAN-23) (C1),
 [KAN-25](https://lucastaooo.atlassian.net/browse/KAN-25) is related evaluation
 preparation, not formal evaluation completion.
 
+## 19 October actual-main integration
+
+This section supersedes current-status statements in the historical receipts
+below. Their dependency hashes and results remain unchanged; the JSON summary
+beside this file is still the historical composite, not this new run.
+
+A adopted C1 #68 (`4dc60bd` -> `437b4eb`), evaluation preparation #70
+(`e5b3e91` -> `d9813d6`), and then C2 #69 (`f2bf32d` ->
+`5006da1ab0dcf046e34e5d16bb9407941322c574`). C2's exact-source
+[approval](https://github.com/shuxiachai/returnops-au/pull/69#pullrequestreview-5567289418)
+and [successful normal checks](https://github.com/shuxiachai/returnops-au/actions/runs/39202282951)
+are preparation-component evidence only. No corpus semantic admission or
+trusted pin, real model, Gold, R.02/R.03 or personal acceptance follows.
+
+Following [A's PR #79 review](https://github.com/shuxiachai/returnops-au/pull/79#pullrequestreview-5565657630),
+C merged actual main `5006da1` into source `7addfbbb6284940806c49ffd3971e01b16739dbd`
+in a fresh isolated checkout. No dependency overlays are required now. Every
+main README line remains present; the diff from main is still limited to
+README, these two C handoff receipts, and the C rehearsal test file. The local
+HTTP transport, image-pair and capture/replay candidates are not imported.
+
+### Test-only compatibility correction
+
+The nine original handoff tests pass on a filesystem supporting `O_DIRECTORY`,
+`O_NOFOLLOW` and `O_NONBLOCK`. An independent AI-assisted review also reproduced
+their old unguarded failure when `O_DIRECTORY` is absent. They now use C1's
+same capability boundary: capable hosts run all nine; unsupported hosts report
+explicit skips rather than pretending admission succeeded. A separate test
+still checks missing capabilities and no filesystem I/O. No production loader,
+contract, caller authority or safety setting is changed. This review is not A's
+non-author approval of the integrated head.
+
+### Reproduce the integrated checks
+
+Use the final exact PR #79 commit named in its thread, a clean checkout and the
+existing locked Python 3.12 / Node 24 dependencies. These commands need no
+Docker, PostgreSQL, credentials, network model calls or Gold labels:
+
+```sh
+export PYTHONPATH=apps/api:packages
+python -B -m unittest discover -s tests/contracts -p 'test_c_handoff_rehearsal.py' -v
+python -B tools/checks/run.py offline --baseline-ref 5006da1ab0dcf046e34e5d16bb9407941322c574
+python -B -m pytest tests/security tests/storage/test_records.py -q -p no:cacheprovider
+git diff --check
+git status --porcelain
+```
+
+The offline runner includes all current contract tests, document/model links,
+12 checker regressions, seven runner regressions, 14 Mermaid blocks and 64
+synthetic-order tests. Security/records add 244/36 tests; focused tests overlap
+the contract total. Final counts, exact source/tree and append-only log hashes
+are recorded in the PR evidence reply and local backup after the clean-source
+rerun. Native unsupported-host skips are not Windows runtime acceptance.
+
+PR #79 stays Draft pending normal integrated-source checks and A's targeted
+review. Normal CI is requested once by publication, not repeatedly dispatched;
+required final checks are not skipped to save quota. Local DB/Docker remain
+paused. No real provider/Risk, full application path, E.12, C3.03, human timing,
+personal sign-off or Done is claimed.
+
 ## Latest 18 October follow-up — review corrections and Linux checks
 
 A reviewed #68/#69 on 18 October and requested changes to #70's cost addition.
