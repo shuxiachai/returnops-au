@@ -12,14 +12,14 @@ import threading
 
 NODE = ('tests/lifecycle/test_label_artifact_process_postgresql.py::'
         'test_LA_P07_P13_two_actual_installed_processes_one_claim_and_completion')
-SOURCE = '7b2dd209a628e58f84d136e933fd345745799a77'
-BRANCH = 'refs/heads/diag/81-a82-process-20261020'
+SOURCE = 'e38723733bae51b66c9f3cc97e264793e1aef946'
+BRANCH = 'refs/heads/diag/81-a82-binding-20261020'
 LIMIT = 1024 * 1024
 REASONS = {'artifact signal timeout or early exit', 'artifact actual waiter timeout',
            'artifact owned process timeout', 'parent assertion or observation failed with an owned child still running'}
 STAGES = {'startup', 'installed-modules', 'parse-database-url', 'host-port-binding',
           'database-name-binding', 'database-allowlist-binding', 'database-oid-binding',
-          'engine-and-operation'}
+          'engine-and-operation', 'parent-database-binding', 'live-database-binding'}
 
 
 def read_sample(path, base):
@@ -116,6 +116,39 @@ def diagnostic_result(code, base, **values):
     return dict(**values, **evidence, exit_code=code)
 
 
+def phase_proof(path, private, code, poll):
+    """Only five exact safe reports can prove this single case passed."""
+    raw, metadata = read_sample(path, private)
+    result = dict(single_node_passed=False, report=metadata)
+    if raw is None:
+        return result
+    expected = [dict(event='collection', count=1, exact_node=True)] + [
+        dict(event='report', exact_node=True, phase=phase, outcome='passed', xfail=False)
+        for phase in ('setup', 'call', 'teardown')
+    ] + [dict(event='session', exitstatus=0)]
+    try:
+        assert len(raw) <= 4096 and not metadata['truncated']
+        lines = raw.splitlines()
+        assert len(lines) == 5 and raw.endswith(b'\n')
+        records = [json.loads(line) for line in lines]
+        for actual, wanted in zip(records, expected):
+            assert type(actual) is dict and set(actual) == set(wanted)
+            assert all(type(actual[key]) is type(value) and actual[key] == value
+                       for key, value in wanted.items())
+        assert type(code) is int and code == 0 and type(poll) is int and poll == 0
+    except (AssertionError, ValueError, UnicodeError, RecursionError):
+        result['proof_error'] = 'incomplete-or-nonpassing-phase-proof'
+        return result
+    result.update(single_node_passed=True, collected=1, exact_node=True,
+                  phases={phase: 'passed' for phase in ('setup', 'call', 'teardown')},
+                  skipped=0, xfail=0, session_exitstatus=0)
+    return result
+
+
+def diagnostic_exit(code, proof):
+    return code if code != 0 else (0 if proof['single_node_passed'] else 126)
+
+
 def main():
     root = Path(__file__).resolve().parents[2]
     # Fail before any subprocess/test/DB access outside the single authorized job.
@@ -161,8 +194,11 @@ def main():
                       old_probe_bindings_supplied=False, retry=False)
     (output / 'provenance.json').write_text(json.dumps(provenance, indent=2) + '\n')
     print(json.dumps(provenance), flush=True)
-    command = [sys.executable, '-B', '-m', 'pytest', NODE, '-vv', '-s', '--tb=short', '-x', '--basetemp', str(base)]
-    environment = {**os.environ, 'PYTHONUNBUFFERED': '1'}
+    report_path = private / 'phase-report.jsonl'
+    assert not report_path.exists() and not report_path.is_symlink()
+    command = [sys.executable, '-B', '-m', 'pytest', NODE, '-vv', '-s', '--tb=short', '-x',
+               '--basetemp', str(base), '-p', 'tools.a82_diagnostic.phase_report']
+    environment = {**os.environ, 'PYTHONUNBUFFERED': '1', 'A82_REPORT_PATH': str(report_path)}
     captured = bytearray()
     totals = [0]
     process = subprocess.Popen(command, cwd=root, env=environment, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -184,14 +220,20 @@ def main():
     data = bytes(captured)
     # Raw pytest output stays in the temporary job directory, never the artifact.
     (private / 'pytest-output.bin').write_bytes(data)
+    poll = process.poll()
+    try:
+        proof = phase_proof(report_path, private, code, poll)
+    except Exception as error:
+        proof = dict(single_node_passed=False, proof_error=type(error).__name__)
+    driver_code = diagnostic_exit(code, proof)
     result = diagnostic_result(code, base, node=NODE, outer_deadline_reached=timed_out,
-                  pytest_pid=process.pid, pytest_poll=process.poll(),
+                  pytest_pid=process.pid, pytest_poll=poll,
                   pytest_output_bytes=totals[0], pytest_sample_sha256=sha256(data).hexdigest(),
                   pytest_output_truncated=totals[0] > len(data),
-                  full_suite=False, acceptance=False)
+                  full_suite=False, acceptance=False, case_proof=proof, driver_exit_code=driver_code)
     (output / 'result.json').write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result), flush=True)
-    return code
+    return driver_code
 
 
 if __name__ == '__main__':

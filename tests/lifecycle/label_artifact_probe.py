@@ -2,11 +2,10 @@
 from dataclasses import asdict
 from functools import partial
 from hashlib import sha256
-import importlib,json,os,re,socket,sys
+import importlib,importlib.util,json,os,re,socket,sys
 from pathlib import Path
 sys.path.insert(0,sys.argv[1])
 from sqlalchemy import create_engine,event,text
-from sqlalchemy.engine import make_url
 from returnops_api.private_label_artifact import compose_private_label_artifact
 from returnops_api.security.authentication import AuthConfig
 from returnops_domain import customer_uow
@@ -34,24 +33,25 @@ def main():
         path=Path(importlib.import_module(name).__file__).resolve();assert path.is_relative_to(installed)
         hashes[name]=sha256(path.read_bytes()).hexdigest()
     diagnostic_stage='parse-database-url'
-    url=make_url(os.environ['DATABASE_URL'])
-    diagnostic_stage='host-port-binding'
-    assert url.host=='127.0.0.1' and url.port==55433
-    diagnostic_stage='database-name-binding'
-    assert url.database==os.environ['ARTIFACT_DATABASE_NAME']
-    diagnostic_stage='database-allowlist-binding'
-    assert url.database in ('returnops_f02_a203_artifact_20261016','returnops_f02_a203_artifact_v02_20261016','returnops_f02_a203_artifact_v04_20261018')
-    diagnostic_stage='database-oid-binding'
-    expected_oid=int(os.environ['ARTIFACT_DATABASE_OID']);assert expected_oid>0
+    spec=importlib.util.spec_from_file_location('label_artifact_binding',Path(__file__).resolve().with_name('label_artifact_binding.py'))
+    database_binding=importlib.util.module_from_spec(spec);spec.loader.exec_module(database_binding)
+    diagnostic_stage='parent-database-binding'
+    binding=config['database_binding']
+    url=database_binding.child_binding(os.environ['DATABASE_URL'],binding,config['schema'],os.environ)
     diagnostic_stage='engine-and-operation'
     engine=create_engine(url,hide_parameters=True,echo=False,connect_args={
         'connect_timeout':3,'options':'-c search_path='+config['schema']+' -c statement_timeout=15000'})
     def exact_database(connection,record):
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT current_database(),oid,current_setting('server_version_num') FROM pg_database WHERE datname=current_database()")
-            name,oid,version=cursor.fetchone()
-        connection.rollback();assert (name,oid,int(version))==(url.database,expected_oid,170011)
+        global diagnostic_stage
+        diagnostic_stage='live-database-binding'
+        try:
+            with connection.cursor() as cursor:
+                identity=database_binding.observe(cursor.execute,config['schema'])
+            database_binding.live_identity(binding,identity)
+        finally:connection.rollback()
     event.listen(engine,'connect',exact_database)
+    with engine.connect():pass
+    diagnostic_stage='engine-and-operation'
     auth=AuthConfig(config['issuer'],config['audience'],bytes.fromhex(config['signing_key']),leeway_seconds=0)
     caller=compose_private_label_artifact(engine,auth,'Bearer '+config['token'],
         uow_factory=partial(customer_uow.CustomerUnitOfWork,lock_timeout_ms=10000))

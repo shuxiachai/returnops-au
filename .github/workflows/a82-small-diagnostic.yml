@@ -2,7 +2,7 @@ name: A82 single process diagnostic
 
 on:
   push:
-    branches: [diag/81-a82-process-20261020]
+    branches: [diag/81-a82-binding-20261020]
 
 permissions:
   contents: read
