@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   FileText,
   Upload,
@@ -56,6 +56,7 @@ export const CustomerPortal: React.FC = () => {
   // Idempotency state for case lodgement
   const [pendingLodgementKey, setPendingLodgementKey] = useState<string | null>(null);
   const [lastSubmittedLodgementPayload, setLastSubmittedLodgementPayload] = useState<string | null>(null);
+  const activeLodgementUploads = useRef(new Set<string>());
 
   // ---------------------------------------------------------
   // Sub-Tab 2: Track & Clarify State (UC-01E)
@@ -75,6 +76,11 @@ export const CustomerPortal: React.FC = () => {
   const [clarifyErrorMsg, setClarifyErrorMsg] = useState<string | null>(null);
   const [pendingClarifyKey, setPendingClarifyKey] = useState<string | null>(null);
   const [lastClarifyPayload, setLastClarifyPayload] = useState<string | null>(null);
+  const activeClarificationUploads = useRef(new Set<string>());
+  const activeCaseId = useRef<string | null>(null);
+  const clarificationScope = useRef<string | null>(null);
+  const clarificationGeneration = useRef(0);
+  const latestCaseLoad = useRef(0);
 
   // Protected Evidence Download State (Finding 5)
   const [downloadingEvId, setDownloadingEvId] = useState<string | null>(null);
@@ -87,28 +93,58 @@ export const CustomerPortal: React.FC = () => {
     }
   }, [activeSubTab]);
 
+  const resetClarificationDraft = () => {
+    clarificationGeneration.current += 1;
+    clarificationScope.current = null;
+    activeClarificationUploads.current.clear();
+    setAnswers({});
+    setClarificationFiles([]);
+    setPendingClarifyKey(null);
+    setLastClarifyPayload(null);
+    setIsSubmittingClarify(false);
+    setClarifySuccessMsg(null);
+    setClarifyErrorMsg(null);
+  };
+
+  const getClarificationScope = (view: CustomerCaseView) =>
+    JSON.stringify([view.case_id, view.case_version, view.clarification?.question_set_id ?? null]);
+
   const loadCase = async (caseId: string) => {
-    if (!caseId.trim()) return;
+    const requestedCaseId = caseId.trim();
+    if (!requestedCaseId) return;
+    const request = ++latestCaseLoad.current;
+    // A case switch invalidates pending callbacks immediately, before GET returns.
+    if (activeCaseId.current !== requestedCaseId) {
+      activeCaseId.current = requestedCaseId;
+      resetClarificationDraft();
+      setCurrentCase(null);
+    }
     setIsLoadingCase(true);
     setCaseError(null);
     setClarifySuccessMsg(null);
     setClarifyErrorMsg(null);
     try {
-      const data = await getCustomerCase(caseId.trim());
-      setCurrentCase(data);
-      // Initialize answer fields if clarification exists
-      if (data.clarification?.questions) {
-        const initialAnswers: Record<string, string> = {};
-        data.clarification.questions.forEach((q) => {
-          initialAnswers[q.question_id] = '';
-        });
-        setAnswers(initialAnswers);
+      const data = await getCustomerCase(requestedCaseId);
+      if (request !== latestCaseLoad.current) return;
+      const nextScope = getClarificationScope(data);
+      if (clarificationScope.current !== nextScope) {
+        resetClarificationDraft();
+        clarificationScope.current = nextScope;
       }
+      activeCaseId.current = data.case_id;
+      setCurrentCase(data);
     } catch (err: unknown) {
+      if (request !== latestCaseLoad.current) return;
+      if (err instanceof ApiError && [401, 403, 404].includes(err.status)) {
+        activeCaseId.current = null;
+        resetClarificationDraft();
+      }
+      // A transient read failure hides the view without discarding an uncertain
+      // POST's retry identity. Recovery must confirm the same scope to reuse it.
       setCurrentCase(null);
       setCaseError(err instanceof ApiError ? `${err.code}: ${err.message}` : 'Failed to fetch case details');
     } finally {
-      setIsLoadingCase(false);
+      if (request === latestCaseLoad.current) setIsLoadingCase(false);
     }
   };
 
@@ -127,28 +163,33 @@ export const CustomerPortal: React.FC = () => {
     setSelectedFiles((prev) => [...prev, ...newFiles]);
   };
 
-  const handleStageFile = async (index: number) => {
-    const item = selectedFiles[index];
-    if (!item || item.staged || item.uploading) return;
+  const handleStageFile = async (fileKey: string) => {
+    const item = selectedFiles.find((file) => file.idempotencyKey === fileKey);
+    if (!item || item.staged || activeLodgementUploads.current.has(fileKey)) return;
 
-    const updated = [...selectedFiles];
-    updated[index].uploading = true;
-    setSelectedFiles(updated);
+    activeLodgementUploads.current.add(fileKey);
+    setSelectedFiles((files) => files.map((file) =>
+      file.idempotencyKey === fileKey ? { ...file, uploading: true } : file
+    ));
 
     try {
       const staged = await stageEvidence(item.file, item.description || undefined, item.idempotencyKey);
-      updated[index].staged = staged;
-      updated[index].uploading = false;
-      setSelectedFiles([...updated]);
+      if (!activeLodgementUploads.current.delete(fileKey)) return;
+      setSelectedFiles((files) => files.map((file) =>
+        file.idempotencyKey === fileKey ? { ...file, staged, uploading: false } : file
+      ));
     } catch (err: unknown) {
-      updated[index].uploading = false;
-      setSelectedFiles([...updated]);
+      if (!activeLodgementUploads.current.delete(fileKey)) return;
+      setSelectedFiles((files) => files.map((file) =>
+        file.idempotencyKey === fileKey ? { ...file, uploading: false } : file
+      ));
       alert(err instanceof Error ? err.message : 'Upload failed');
     }
   };
 
-  const handleRemoveFile = (index: number) => {
-    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+  const handleRemoveFile = (fileKey: string) => {
+    activeLodgementUploads.current.delete(fileKey);
+    setSelectedFiles((files) => files.filter((file) => file.idempotencyKey !== fileKey));
   };
 
   // ---------------------------------------------------------
@@ -225,28 +266,34 @@ export const CustomerPortal: React.FC = () => {
     setClarificationFiles((prev) => [...prev, ...newFiles]);
   };
 
-  const handleStageClarificationFile = async (index: number) => {
-    const item = clarificationFiles[index];
-    if (!item || item.staged || item.uploading) return;
+  const handleStageClarificationFile = async (fileKey: string) => {
+    const item = clarificationFiles.find((file) => file.idempotencyKey === fileKey);
+    if (!item || item.staged || activeClarificationUploads.current.has(fileKey)) return;
+    const generation = clarificationGeneration.current;
 
-    const updated = [...clarificationFiles];
-    updated[index].uploading = true;
-    setClarificationFiles(updated);
+    activeClarificationUploads.current.add(fileKey);
+    setClarificationFiles((files) => files.map((file) =>
+      file.idempotencyKey === fileKey ? { ...file, uploading: true } : file
+    ));
 
     try {
       const staged = await stageEvidence(item.file, item.description || undefined, item.idempotencyKey);
-      updated[index].staged = staged;
-      updated[index].uploading = false;
-      setClarificationFiles([...updated]);
+      if (generation !== clarificationGeneration.current || !activeClarificationUploads.current.delete(fileKey)) return;
+      setClarificationFiles((files) => files.map((file) =>
+        file.idempotencyKey === fileKey ? { ...file, staged, uploading: false } : file
+      ));
     } catch (err: unknown) {
-      updated[index].uploading = false;
-      setClarificationFiles([...updated]);
+      if (generation !== clarificationGeneration.current || !activeClarificationUploads.current.delete(fileKey)) return;
+      setClarificationFiles((files) => files.map((file) =>
+        file.idempotencyKey === fileKey ? { ...file, uploading: false } : file
+      ));
       alert(err instanceof Error ? err.message : 'Upload failed');
     }
   };
 
-  const handleRemoveClarificationFile = (index: number) => {
-    setClarificationFiles((prev) => prev.filter((_, i) => i !== index));
+  const handleRemoveClarificationFile = (fileKey: string) => {
+    activeClarificationUploads.current.delete(fileKey);
+    setClarificationFiles((files) => files.filter((file) => file.idempotencyKey !== fileKey));
   };
 
   // ---------------------------------------------------------
@@ -254,7 +301,8 @@ export const CustomerPortal: React.FC = () => {
   // ---------------------------------------------------------
   const handleSubmitClarification = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentCase || !currentCase.clarification) return;
+    if (!currentCase || !currentCase.clarification || isLoadingCase || isSubmittingClarify) return;
+    const generation = clarificationGeneration.current;
 
     const answerList: ClarificationAnswer[] = Object.entries(answers)
       .filter(([_, text]) => text.trim().length > 0)
@@ -262,11 +310,6 @@ export const CustomerPortal: React.FC = () => {
         question_id,
         text: text.trim(),
       }));
-
-    if (answerList.length === 0) {
-      setClarifyErrorMsg('Please provide an answer to at least one question.');
-      return;
-    }
 
     // Validate supplementary clarification files
     if (clarificationFiles.some((f) => f.uploading)) {
@@ -281,6 +324,11 @@ export const CustomerPortal: React.FC = () => {
     const clarifyEvidenceIds = clarificationFiles
       .map((f) => f.staged?.evidence_id)
       .filter((id): id is string => Boolean(id));
+
+    if (answerList.length === 0 && clarifyEvidenceIds.length === 0) {
+      setClarifyErrorMsg('Please provide an answer or supplementary evidence.');
+      return;
+    }
 
     const wirePayload: ClarificationRequest = {
       expected_case_version: currentCase.case_version,
@@ -304,17 +352,21 @@ export const CustomerPortal: React.FC = () => {
 
     try {
       const updated = await submitClarification(currentCase.case_id, wirePayload, keyToUse);
+      if (generation !== clarificationGeneration.current) return;
+      // A read begun before this accepted submission must not restore an old view.
+      latestCaseLoad.current += 1;
+      setIsLoadingCase(false);
+      resetClarificationDraft();
+      clarificationScope.current = getClarificationScope(updated);
       setCurrentCase(updated);
       setClarifySuccessMsg('Clarification successfully admitted (HTTP 202). Case moved to re-evaluation.');
-      setClarificationFiles([]);
-      setPendingClarifyKey(null);
-      setLastClarifyPayload(null);
     } catch (err: unknown) {
+      if (generation !== clarificationGeneration.current) return;
       setClarifyErrorMsg(
         err instanceof ApiError ? `[${err.code}] ${err.message}` : 'Failed to submit clarification.'
       );
     } finally {
-      setIsSubmittingClarify(false);
+      if (generation === clarificationGeneration.current) setIsSubmittingClarify(false);
     }
   };
 
@@ -540,9 +592,9 @@ export const CustomerPortal: React.FC = () => {
                   </div>
                 ) : (
                   <div className="space-y-2.5">
-                    {selectedFiles.map((item, idx) => (
+                    {selectedFiles.map((item) => (
                       <div
-                        key={idx}
+                        key={item.idempotencyKey}
                         className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs"
                       >
                         <div className="flex items-center space-x-3 overflow-hidden">
@@ -567,7 +619,7 @@ export const CustomerPortal: React.FC = () => {
                             <button
                               type="button"
                               disabled={item.uploading}
-                              onClick={() => handleStageFile(idx)}
+                              onClick={() => handleStageFile(item.idempotencyKey)}
                               className="px-2.5 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-medium text-xs disabled:opacity-50"
                             >
                               {item.uploading ? 'Uploading...' : 'Stage File'}
@@ -576,7 +628,7 @@ export const CustomerPortal: React.FC = () => {
 
                           <button
                             type="button"
-                            onClick={() => handleRemoveFile(idx)}
+                            onClick={() => handleRemoveFile(item.idempotencyKey)}
                             aria-label={`Remove ${item.file.name}`}
                             className="text-slate-400 hover:text-rose-600 p-1"
                           >
@@ -793,7 +845,6 @@ export const CustomerPortal: React.FC = () => {
                         )}
                         <textarea
                           rows={2}
-                          required
                           value={answers[q.question_id] || ''}
                           onChange={(e) =>
                             setAnswers((prev) => ({
@@ -834,9 +885,9 @@ export const CustomerPortal: React.FC = () => {
 
                       {clarificationFiles.length > 0 && (
                         <div className="space-y-2">
-                          {clarificationFiles.map((item, idx) => (
+                          {clarificationFiles.map((item) => (
                             <div
-                              key={idx}
+                              key={item.idempotencyKey}
                               className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 flex items-center justify-between text-xs"
                             >
                               <div className="truncate mr-2">
@@ -855,7 +906,7 @@ export const CustomerPortal: React.FC = () => {
                                   <button
                                     type="button"
                                     disabled={item.uploading}
-                                    onClick={() => handleStageClarificationFile(idx)}
+                                    onClick={() => handleStageClarificationFile(item.idempotencyKey)}
                                     className="px-2 py-0.5 bg-amber-600 hover:bg-amber-700 text-white rounded font-medium text-xs disabled:opacity-50"
                                   >
                                     {item.uploading ? 'Uploading...' : 'Stage File'}
@@ -863,7 +914,7 @@ export const CustomerPortal: React.FC = () => {
                                 )}
                                 <button
                                   type="button"
-                                  onClick={() => handleRemoveClarificationFile(idx)}
+                                  onClick={() => handleRemoveClarificationFile(item.idempotencyKey)}
                                   aria-label={`Remove ${item.file.name}`}
                                   className="text-slate-400 hover:text-rose-600 p-1"
                                 >
@@ -889,6 +940,7 @@ export const CustomerPortal: React.FC = () => {
                         type="submit"
                         disabled={
                           isSubmittingClarify ||
+                          isLoadingCase ||
                           clarificationFiles.some((f) => !f.staged || f.uploading)
                         }
                         className="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors flex items-center space-x-2 disabled:opacity-50"
