@@ -5,6 +5,17 @@ Tracking: [KAN-23](https://lucastaooo.atlassian.net/browse/KAN-23) (C1),
 [KAN-25](https://lucastaooo.atlassian.net/browse/KAN-25) is related evaluation
 preparation, not formal evaluation completion.
 
+## 20 October adoption status (Sydney)
+
+A merged PR #79 as `e35c61d272040d2aad18b5931d7bb4eed04e3a34`; the approved
+`e6354bf` source and adopted main have the same tree. Both normal PR checks and
+the separate actual-main checks passed. See the [current C adoption receipt](../../README.md#c-handoff-adopted--20-october-2026-sydney)
+for exact SHAs, review and run links. The dated Draft/pending-review statements
+below are historical, not the current merge status. This is preparation and
+synthetic regression adoption only, not corpus, model, Gold, runtime, personal
+or whole-feature acceptance. Earlier logs, JSON and reproduction sources remain
+unchanged; no new live-model or database run is claimed.
+
 ## 19 October actual-main integration
 
 This section supersedes current-status statements in the historical receipts
