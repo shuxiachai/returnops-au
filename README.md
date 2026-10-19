@@ -26,6 +26,20 @@ Public visibility does not grant an open-source license or establish Stage 2
 completion, teammate/tutor acceptance, or production readiness. Dated evidence
 below retains its original scope.
 
+## C2 follow-up after C1/evaluation adoption — 2026-10-19
+
+A's [latest PR #69 review](https://github.com/shuxiachai/returnops-au/pull/69#pullrequestreview-5567087122)
+held adoption only for the README conflict after PRs #68 and #70 were adopted.
+This reconciliation incorporates main `d9813d6da4a9bf2c7f654a2bea6af34be46a0088`
+into the C2 branch and retains main's public-scope notice, C1/history sections
+and Stage 1 presentation navigation, together with both dated C2 sections below.
+The Risk implementation, prompt and C2 tests remain byte-identical to `11ca4f0`.
+The new exact head still needs fresh normal PR checks and A's targeted review;
+prior-head CI and reviews do not validate this merged source. Issue #66 remains
+open, and preparation-component adoption does not establish corpus admission,
+real-provider/model or allowed-data-flow approval, runtime integration, Gold,
+personal or whole-feature acceptance. Prepared with Codex assistance.
+
 ## C2 review reconciliation — 2026-10-19
 
 [A reviewed the 18 October head](https://github.com/shuxiachai/returnops-au/pull/69)
@@ -56,6 +70,93 @@ API/response and usage mapping, allowed data flow and shared transport ownership
 never put credentials in a PR. Formal Gold, post-await runtime integration and
 C3's R.03 prerequisite remain separate. No merge, Jira Done or joint acceptance
 is implied. Prepared with Codex assistance; no personal sign-off is inferred.
+
+## C1 review follow-up — 2026-10-18
+
+This C branch now incorporates main `17042b4164a0be878c7a0684cf532217ebeb77ee`.
+The README conflict is reconciled by retaining both main's public-scope notice
+and C's dated implementation/course evidence below. No A/B business code or
+frozen ownership is rewritten. A's 18 October bounded static review of
+[PR #68](https://github.com/shuxiachai/returnops-au/pull/68) found no new P1/P2
+in the loader/tests, but **did not approve the corpus or runtime adoption**.
+The three short source captures have now been expanded to contextual source
+blocks in **`accc-context-20261018-v2`**, covering faulty/quality, wrong-item and
+change-of-mind rules with their selected qualifications. See **C's
+[capture README and review checklist](experiments/c1_grounding_candidate/candidates/accc-20261012/README.md)**
+for exact source locations, omissions, category/conflict mapping, inventory
+hashes and reproducible tests. The three merchant fixtures remain explicitly
+synthetic. The manifest stays pending with no reviewer or trusted runtime pin.
+New tests check real-candidate provenance/context and mandatory rejection;
+positive complete-context, category-isolation, conflict and stale-citation
+retrieval tests use only invented synthetic fixtures. No real-corpus admission,
+live model/Gold result or feature completion is claimed. A still needs to review
+these new exact bytes and coverage before any separately approved integration.
+The loader's POSIX-only (macOS/Linux) execution boundary remains explicit.
+
+Local verification of this contextual revision (18 October): **69 C1 tests /
+116 subtests**, full offline checks (**167 contract tests**, six static groups,
+12 checker/seven tool tests, 14 Mermaid blocks and 64 synthetic-order tests),
+244 security and 36 record tests passed. The no-network, read-only Linux
+container passed **447 tests / 1,352 subtests** (contracts + security + records).
+These suites overlap; they are not a completion percentage, runtime integration
+or A's acceptance. Publication uses `[skip ci]` for the local-first budget;
+skipped required checks are not passed checks.
+
+## Historical C implementation and Canvas check — 2026-10-12
+
+This dated notice supersedes older *current-status* wording below; it does not
+rewrite historical evidence or declare any feature accepted. Main was checked
+at [`72ffd04`](https://github.com/shuxiachai/returnops-au/commit/72ffd043dbd400b7ae81c3b1d23085ae0be1743b),
+including merged [PR #63](https://github.com/shuxiachai/returnops-au/pull/63)
+(A's accepted-PASS revision path). The earlier “main at PR #56” snapshot is no
+longer current. A's next private manual-handling increment is
+[Issue #64](https://github.com/shuxiachai/returnops-au/issues/64), not C-owned code.
+
+**Course requirement, not an achieved mark:** the live Canvas Stage 2 rubric
+was read on 12 October: implementation **7**, AI capabilities **4**, Agile **4**,
+advanced technologies **5**, total **20**. It explicitly requires **Jira**, source
+submission by **1 November 2026, 23:59**, and a **Week 13 demonstration deployed
+on site from source downloaded from Canvas**. The PDF does not specify timezone;
+the current Assignments list exposes no Stage 2 upload item, so file extensions,
+size limits and submission options remain unverified. Use the
+[dated source/requirements checklist](docs/28-stage2-submission-checklist.md).
+Each member still implements two core features and one selected optional;
+documentation and offline tests alone do not satisfy that implementation rule.
+
+### C's bounded implementation increments
+
+| Work | Review entrance and current boundary |
+| --- | --- |
+| **C1 / KAN-23 — primary** | [Issue #58](https://github.com/shuxiachai/returnops-au/issues/58): [exact-byte admission loader](experiments/c1_grounding_candidate/admission.py), [pending ACCC capture](experiments/c1_grounding_candidate/candidates/accc-20261012/README.md), [negative/admission tests](tests/contracts/test_c1_corpus_admission.py). External trusted manifest pin, non-author exact-byte review, category/source/conflict coverage and immutable snapshots; no runtime wiring. |
+| C2 / KAN-24 — isolated preparation | [Issue #66](https://github.com/shuxiachai/returnops-au/issues/66): separate Risk prompt/invocation, five typed outcomes, exact retained-input checks, conflict preservation and fail-closed stub tests. Live provider/data-flow approval, semantic evaluation and A integration remain separate. |
+| E.01/E.09 / KAN-25 — small offline preparation | [Issue #67](https://github.com/shuxiachai/returnops-au/issues/67): draft label/denominator definitions and synthetic scorer accounting; no Gold access, sealing, timed runs or B4 performance claim. |
+| C3 / KAN-26 — gated future work | Product-image observations remain required, but runtime implementation waits for R.03/text stability and the original F.04/F.07/C2.05/B1.03 finish dependencies. Do not count an upload UI as image analysis. |
+
+[A's PR #61 source-selection review](https://github.com/shuxiachai/returnops-au/pull/61#pullrequestreview-5486256534)
+permits the next capture only. It is **not** approval of the new passage bytes,
+coverage or loader. The candidate manifest deliberately stays
+`PENDING_EXACT_BYTES_REVIEW`; even its correct hash must not admit it. A must
+review sufficient context, exact bytes, category/conflict mapping and the loader
+before a trusted integration configuration can pin an approved manifest.
+Hash validity is not review authenticity, claim support or legal correctness.
+
+Run the new C1 checks with the existing locked Python 3.12 environment:
+
+```sh
+python -B -m unittest discover -s tests/contracts -p 'test_c1_corpus_admission.py' -v
+python -B tools/checks/run.py offline --baseline-ref origin/main
+```
+
+The original synthetic `GroundingCandidate`/pilot below is unchanged. The new
+`ReviewedGroundingCandidate.from_directory` is a separate, source-checkout-only
+candidate; it has no network, DB, model, approval or execution capability. Its
+file-descriptor protections require POSIX (macOS/Linux, including Linux Docker);
+unsupported filesystems fail closed instead of silently weakening validation.
+Formal C1/C2 acceptance, Gate 1/2, real LLM evidence, full B1/B4 evaluation,
+Canvas-package rehearsal and actual per-criterion member contribution records
+remain open. No owner, WBS S/F, deadline or Jira Done transition is implied.
+These increments were prepared with Codex assistance; each PR records its own
+exact source and tests, and A remains non-author reviewer/integrator.
 
 ## Current C handoff — 2026-10-09
 
@@ -389,6 +490,7 @@ report/video. The links below are navigation, not a second task or status board.
 | Current course requirements and rubric | [Course requirements and A/B/C evidence map](docs/19-course-assessment-requirements.md) |
 | Product scope, ownership and task acceptance | [Project definition](docs/00-project-definition-v1.md) → [Frozen allocation](docs/07-frozen-work-allocation.md) → [Delivery work packages](docs/08-delivery-work-packages.md) |
 | Final report, video, interview and submission checks | [Stage 1 readiness / R.04 checklist](docs/11-stage1-readiness.md) |
+| Final Stage 1 slides and A/B/C script — synced 17 October | [Preserved nine-slide PPTX, 560-word spoken script and Drive source checks](stage1/presentation/README.md); this archive update is not a new course submission |
 | A: personal models and design rationale | [A model chain](docs/12-member-a-model-chain.md), [A design decisions](docs/14-member-a-design-decisions.md), [A review PR #11](https://github.com/shuxiachai/returnops-au/pull/11) |
 | B: intake/UI work and model-index integration | [B review PR #8](https://github.com/shuxiachai/returnops-au/pull/8); use its actual files/review history, with responsibilities fixed by docs/07–08 |
 | C: personal models and report text | [C model chain](https://github.com/shuxiachai/returnops-au/blob/docs/kan-22-c-model-review/docs/18-member-c-model-chain.md), [C Stage 1 report](https://github.com/shuxiachai/returnops-au/blob/docs/kan-22-c-model-review/docs/reports/member-c-stage1-draft.md) |

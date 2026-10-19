@@ -1,0 +1,137 @@
+{
+  "format_version": 1,
+  "corpus_version": "accc-context-20261018-v2",
+  "is_synthetic": false,
+  "review_status": "PENDING_HUMAN_REVIEW",
+  "passages": [
+    {
+      "issue_categories": [
+        "FAULTY_OR_QUALITY_ISSUE"
+      ],
+      "passage": {
+        "passage_id": "synthetic-sale-fault-rule",
+        "document_id": "synthetic-store-capture-v1",
+        "source_type": "STORE_POLICY",
+        "title": "SYNTHETIC store policy: deliberately conflicting faulty-sale fixture",
+        "source_uri": "urn:returnops:synthetic:store-policy:20261012",
+        "accessed_on": "2026-10-12",
+        "source_version": "synthetic-store-v1",
+        "corpus_version": "accc-context-20261018-v2",
+        "location": "synthetic rule 1 (invalid policy for conflict exercise)",
+        "content": "SYNTHETIC CONFLICT FIXTURE ONLY. The fictional store refuses every refund or replacement for a faulty sale item, regardless of consumer guarantees. This intentionally problematic invented rule is not an adopted shop policy and must be surfaced to independent Risk Review.",
+        "content_sha256": "810a018b518274193540e968cbc9e719347a3847c8ecfb23692c9c5083f7da04",
+        "is_synthetic": true
+      }
+    },
+    {
+      "issue_categories": [
+        "FAULTY_OR_QUALITY_ISSUE",
+        "WRONG_ITEM"
+      ],
+      "passage": {
+        "passage_id": "accc-faulty-rights-limit",
+        "document_id": "accc-repair-replace-refund-cancel",
+        "source_type": "REVIEWED_CONSUMER_GUIDANCE",
+        "title": "ACCC: Repair, replace, refund, cancel (selected context sections; pending exact-byte review)",
+        "source_uri": "https://www.accc.gov.au/consumers/problem-with-a-product-or-service-you-bought/repair-replace-refund-cancel",
+        "accessed_on": "2026-10-18",
+        "source_version": null,
+        "corpus_version": "accc-context-20261018-v2",
+        "location": "Selected sections: Consumer rights when buying products and services; Major problem with a product; Minor problem with a product or service; Returning a faulty product (selection details in README)",
+        "content": "Consumer rights when buying products and services\nRights when consumer guarantees aren’t met\n\nConsumers are entitled to a solution of a repair, replacement or refund if a product or service they buy doesn’t meet one of the basic rights. These basic rights are known as consumer guarantees.\n\nThe solutions are collectively referred to as remedies. What remedy the consumer is entitled to generally depends on:\n- what was bought (whether the problem is with a product or a service)\n- the seriousness of the problem (whether the problem is major or minor).\n\nFind out more about products and the consumer rights that apply, including examples.\n\nIn some situations, the consumer gets to choose the remedy they prefer. A business has the right to assess the product or service before they provide a remedy.\n\nBusinesses can’t take away a consumer's right to a refund or replacement for faulty products or services.\nIt’s illegal for businesses to rely on store policies or terms and conditions which deny these rights. For example, policies which say ‘no refunds’ or ‘no refunds or exchanges on sale items’.\n\nOccasions when consumers aren't entitled to a repair, replacement or refund\n\nConsumers are not entitled to a repair, replacement or refund under the consumer guarantees if:\n- they got what they asked for but simply changed their mind, found the product cheaper somewhere else, or decided they didn't like the purchase or had no use for it. However, if a business has a ‘change of mind’ policy, they must follow it.\n- the problem with the product was caused by the consumer misusing it\n- they knew of or were made aware of the problem with the product before they bought it (but they may be entitled to a repair, replacement or refund for a different problem with the product that wasn’t made clear to them before they bought it)\n- asked for a service to be done in a certain way against the advice of the business\n- the problem with a service was caused by the actions of someone other than the business.\n\nMajor problem with a product\nWhat makes a product problem major\n\nA major problem means the product:\n- is unsafe\n- is very different from the description or sample\n- has either one serious problem or several smaller problems that would stop someone buying the product if they knew about them beforehand\n- can’t be used for its normal purpose, or another purpose the consumer told the seller about before they bought it, and can’t easily be fixed within a reasonable time.\n\nFor examples of major problems with a product, read our guides for consumers and for business and legal practitioners.\n\nAvailable solutions\n\nWhen a business sells a product with a major problem, or a product that later develops a major problem, it must give the consumer the choice of a:\n- refund, or\n- replacement of the same type of product.\n\nA refund should be the full amount the consumer paid for the product. The business must not deduct an amount from a refund to take into account the use a consumer has had of the product.\nRefunds should be provided in the same form as the original payment, unless the business and consumer agree otherwise.\n\nA consumer can also choose to keep the product but be compensated for the drop in value caused by the problem.\n\nIn some cases, a consumer can also be entitled to compensation for extra damages and loss.\n\nFor more information, see Claiming compensation.\n\nWho is responsible\n\nBusinesses are responsible for resolving problems with products they sell to consumers.\n\nBusinesses must not tell consumers to go to the manufacturer for a remedy.\nHowever, for some consumer guarantees, consumers can choose to seek a remedy from the manufacturer, rather than the business they bought the product from. If they do so, consumers will only be entitled to be compensated for the drop in value caused by the problem and, in some cases, other compensation. A manufacturer may offer to resolve the problem by providing a repair, refund or replacement, but consumers cannot demand this from the manufacturer.\n\nMinor problem with a product or service\nAvailable solutions\n\nWhen a product or service has a minor problem, the business must fix the problem or repair the product for free.\n\nThe business does not have to offer a replacement or refund for a minor problem, although it can choose to do this.\nWhen repairing electronic products, like mobile phones, computers and music players, consumers can lose their stored data. Businesses may also use refurbished products or parts when repairing products. Businesses have to warn consumers about both of these things by giving them a repair notice.\n\nWhen the business can’t or won’t fix a minor problem\n\nIf the business can’t or won’t repair or fix the problem within a reasonable amount of time, or at all, a consumer is entitled to:\n- get it done somewhere else, with the business paying the consumer back for the reasonable cost of the fix or repair\n- get a refund or replacement instead\n- keep the product or cancel the service contract, and be compensated for the drop in value caused by the problem.\nWhat is a ’reasonable’ amount of time for a business to fix a problem will depend on the nature of the product or service.\n\nFor example, it may take longer for a repairer to attend a house to fix an installed dishwasher than for a pair of pants to be repaired in-store.\n\nReturning a faulty product\nThe right to return a product\n\nConsumers have the right to return a product if they think there’s a problem.\n\nThe product does not have to be in its original packaging, but a business is entitled to ask consumers to provide some form of proof of purchase, such as a receipt.\n\nResponsibility for returning products\n\nConsumers are responsible for returning products that can be posted or easily returned.\n\nBusinesses are responsible for paying for the shipping costs or collecting faulty products that are large, heavy or hard to remove, such as:\n- widescreen televisions\n- beds\n- installed appliances, like stoves or dishwashers\n- extension ladders stuck in an extended position.\n\nThis must be done within a reasonable time.\n\nReturn costs\n\nIf the business confirms that the product does have a problem, it must reimburse the consumer for any reasonable return costs they have already paid.\n\nConsumers should keep receipts for postage or transport costs so that they can be repaid by the business.\nIf the business finds that the product does not have a problem, it can make the consumer pay the collection and inspection costs. To do this, the business must give the consumer a reasonable estimate of these costs before collecting the product.",
+        "content_sha256": "b251d27e922b6044930b8cb4f60873edcb1a1e621fb99363033857d47a524075",
+        "is_synthetic": false
+      }
+    },
+    {
+      "issue_categories": [
+        "WRONG_ITEM"
+      ],
+      "passage": {
+        "passage_id": "synthetic-wrong-item-comparison",
+        "document_id": "synthetic-store-capture-v1",
+        "source_type": "STORE_POLICY",
+        "title": "SYNTHETIC store policy: wrong-item fact comparison",
+        "source_uri": "urn:returnops:synthetic:store-policy:20261012",
+        "accessed_on": "2026-10-12",
+        "source_version": "synthetic-store-v1",
+        "corpus_version": "accc-context-20261018-v2",
+        "location": "synthetic rule 2",
+        "content": "SYNTHETIC STORE POLICY FIXTURE. Compare the ordered product and original description with the delivered item and the customer's account. Request material missing evidence before drawing a conclusion. A retrieved description rule does not itself prove that this case contains a wrong item.",
+        "content_sha256": "2c462785a4ea22d3721492d00386c2213f6d627d366802f535a3cd0b1a3cbe3f",
+        "is_synthetic": true
+      }
+    },
+    {
+      "issue_categories": [
+        "WRONG_ITEM"
+      ],
+      "passage": {
+        "passage_id": "accc-description-accuracy",
+        "document_id": "accc-consumer-rights-and-guarantees",
+        "source_type": "REVIEWED_CONSUMER_GUIDANCE",
+        "title": "ACCC: Consumer rights and guarantees (selected context sections; pending exact-byte review)",
+        "source_uri": "https://www.accc.gov.au/consumers/buying-products-and-services/consumer-rights-and-guarantees",
+        "accessed_on": "2026-10-18",
+        "source_version": null,
+        "corpus_version": "accc-context-20261018-v2",
+        "location": "Selected sections: Matches description; When consumer rights apply; Private sales; Next steps if a business doesn’t meet a consumer guarantee / Contact the business (selection details in README)",
+        "content": "Products and consumer rights\n\nWhen buying a product, a consumer has the right to expect the following things.\n\nMatches description\n\nAny description of a product by a business must be accurate, whether written or spoken.\n\nExample\n\nA consumer orders a set of pink towels online based on the colour chart supplied by the business. The towels delivered are red.\n\nThe consumer can claim that the towels don’t match the description by the business.\n\nWhen consumer rights apply\n\nThere are some exceptions and special rules where consumer guarantees don’t apply to certain types of goods and services, or apply in a different way, or different laws apply. Read about the exceptions and special rules that apply.\n\nPersonal or household use\n\nProducts and services that are normally bought for personal or household use are covered by consumer guarantees.\n\nBusiness use\n\nA business can be a consumer too. A product or service bought for business use is covered by consumer guarantees, when it meets at least one of the following conditions:\n- it costs less than $100,000 including GST\n- it is a product or service commonly bought for personal, domestic or household use\n- the good is a vehicle or trailer that is used mainly to transport goods on public roads.\nHowever, there are some exceptions. Even when meeting one of these conditions, a product is not covered by consumer guarantees when it's purchased:\n- for resupply\n- for use or transformation in production or manufacturing, or\n- to repair or treat other goods.\n\nExceptions and special rules\nPrivate sales\n\nMost consumer guarantees don’t apply to one-off sales between 2 people, where the seller isn’t running a business. Examples include sales at a garage sale or fete, or individuals selling through online marketplaces like Gumtree or Facebook Marketplace.\n\nHowever, the following consumer guarantees do apply to these private sales:\n- title to the product\n- undisturbed possession\n- no hidden debts or charges.\n\nNext steps if a business doesn’t meet a consumer guarantee\n\nIf a product or service doesn’t meet one of the consumer guarantees, you can claim a remedy. Depending on the situation, the remedy may be:\n- repair, replacement, refund, cancel\n- compensation for damages or loss\n\nContact the business\n\nYour first step is to contact the business that sold the product or service to explain the problem. The business can’t refuse to help you by telling you to contact the manufacturer.\n\nThe only exception to this is where the problem with the product is that spare parts or repair facilities are not available a reasonable time after purchase. In this situation, the business who sold you the product can direct you to contact the manufacturer instead.\nIf the business or manufacturer doesn’t resolve the problem, there are more steps you can take.",
+        "content_sha256": "c81dc5975fe4f9ae5b633f0270c26ce46a3b050c1541f16b71b3ab481553ef14",
+        "is_synthetic": false
+      }
+    },
+    {
+      "issue_categories": [
+        "CHANGE_OF_MIND"
+      ],
+      "passage": {
+        "passage_id": "synthetic-change-mind-offer",
+        "document_id": "synthetic-store-capture-v1",
+        "source_type": "STORE_POLICY",
+        "title": "SYNTHETIC store policy: change-of-mind courtesy example",
+        "source_uri": "urn:returnops:synthetic:store-policy:20261012",
+        "accessed_on": "2026-10-12",
+        "source_version": "synthetic-store-v1",
+        "corpus_version": "accc-context-20261018-v2",
+        "location": "synthetic rule 3",
+        "content": "SYNTHETIC STORE POLICY FIXTURE. This imaginary store offers coupon credit for an unopened, unused change-of-mind product requested within twentyone days. These invented conditions are for this courtesy offer only, not a rule excluding faulty-product consumer guarantees.",
+        "content_sha256": "f44657c66dfb438802414507323bafa60fa163d71073f51bd6b44c97b29e3ee8",
+        "is_synthetic": true
+      }
+    },
+    {
+      "issue_categories": [
+        "CHANGE_OF_MIND",
+        "FAULTY_OR_QUALITY_ISSUE"
+      ],
+      "passage": {
+        "passage_id": "accc-change-mind-no-general-refund",
+        "document_id": "accc-contacting-business",
+        "source_type": "REVIEWED_CONSUMER_GUIDANCE",
+        "title": "ACCC: Contacting a business to fix a problem (selected context sections; pending exact-byte review)",
+        "source_uri": "https://www.accc.gov.au/consumers/problem-with-a-product-or-service-you-bought/contacting-a-business-to-fix-a-problem",
+        "accessed_on": "2026-10-18",
+        "source_version": null,
+        "corpus_version": "accc-context-20261018-v2",
+        "location": "Selected sections: Contacting a business about consumer rights and guarantees / introduction; Product has a major problem; Product has a minor problem; A business puts conditions (details in README)",
+        "content": "Contacting a business about consumer rights and guarantees\n\nWhen you have a consumer rights and guarantees problem the first step is to contact the business.\n\nWe have the following tips for common situations that can arise when contacting a business about a consumer rights and guarantees issue.\n\nProduct has a major problem\n\nWhen a product has or develops a major problem, you should:\n- let the business know that you think the product has a major problem under the consumer guarantees in the Australian Consumer Law\n- tell the business you are rejecting the product\n- tell the business what remedy you would like – a refund, or a replacement\n- explain why you think there is a major problem.\nIn this situation, you have the right to choose a replacement or a refund. You can also choose a repair, but you are entitled to a refund or replacement.\n\nProduct has a minor problem\n\nWhen a product has a minor problem, the business must fix or repair the product for free. The business doesn’t have to offer a replacement or refund for a minor problem, although it can choose to.\n\nWhen contacting the business, you should:\n- let them know that you think the product has a minor problem under the consumer guarantees in the Australian Consumer Law\n- explain why you think there is a minor problem\n- tell the business you want to discuss your options for a repair, refund or replacement.\n\nFor more information on defining a major or minor problem see Repair, replace, refund, cancel.\n\nA business puts conditions on when it will provide any remedies for problems\n\nSometimes businesses may have a policy to provide refunds or replacements within a certain number of days for products where you change your mind about the purchase.\n\nUnder consumer law, businesses don’t have to offer refunds and replacements for changes of mind. So a business can put conditions on these change of mind policies, such as:\n- limiting it to a certain number of days after purchase\n- excluding specific products, for example sale items\n- requiring a sale tag to still be attached to the product\n- requiring a product to be in original packaging.\n\nBusinesses can’t apply these same policy conditions to situations where consumers are returning a product due to a major or minor problem.\n\nIf this happens, you should:\n- explain that you think the product has a major or minor problem under the consumer guarantees, and why\n- explain that you are rejecting the product and requesting a remedy because of your rights under the Australian Consumer Law, and not your rights under the business’s change of mind returns policy.",
+        "content_sha256": "9e9cfe6dd4bc84a63965d4a8ee3596c2e20e34c5caafef8afd621f55a95143ab",
+        "is_synthetic": false
+      }
+    }
+  ],
+  "conflicts": [
+    {
+      "conflict_id": "synthetic-fault-sale-exclusion-conflict",
+      "passage_ids": [
+        "synthetic-sale-fault-rule",
+        "accc-faulty-rights-limit"
+      ],
+      "issue_categories": [
+        "FAULTY_OR_QUALITY_ISSUE"
+      ],
+      "message": "Pending exact-byte/context review: the deliberately invented store fixture categorically excludes faulty sale items. The paired ACCC context addresses consumer guarantees, assessment, major/minor conditions and exceptions. Preserve both full passages for independent Risk Review; do not turn a query hit or this registration into an automatic refund, a final legal determination or approval. Other unregistered conflicts are not ruled out."
+    }
+  ]
+}
