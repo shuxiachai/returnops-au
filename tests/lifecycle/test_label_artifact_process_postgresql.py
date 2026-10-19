@@ -1,0 +1,79 @@
+"""P07/P13: installed real OS processes and independently observed PG waiters."""
+from hashlib import sha256
+import json,os,subprocess,sys
+from pathlib import Path
+from time import monotonic,sleep
+import pytest
+from sqlalchemy import text
+from returnops_domain.customer_uow import CustomerUnitOfWork
+from returnops_domain.label_artifact_tables import claims,artifacts,contents
+from label_artifact_helpers import ready,rows,snapshot,evidence
+from test_manual_postgresql import installed_manual
+from test_return_label_bridge_process_postgresql import preserve_running_on_failure,stop_preserving_children
+
+def launch(engine,identities,args,installed,tmp_path,index,children,*,mode='complete',signal=False):
+    auth=identities.auth_config;marker=tmp_path/f'artifact-signal-{index}.json'
+    config=dict(schema=engine._customer_test_schema,issuer=auth.issuer,audience=auth.audience,signing_key=auth.signing_key.hex(),
+        token=identities.tokens['founder'],arguments=args,mode=mode)
+    if signal:config['signal']=str(marker)
+    command=[sys.executable,'-I','-B','-X','utf8',str(Path(__file__).with_name('label_artifact_probe.py')),str(installed)]
+    output=tmp_path/f'artifact-{index}.stdout.bin';error=tmp_path/f'artifact-{index}.stderr.bin'
+    with output.open('xb') as out,error.open('xb') as err:
+        process=subprocess.Popen(command,cwd=tmp_path,env=os.environ.copy(),stdin=subprocess.PIPE,stdout=out,stderr=err)
+        child=dict(process=process,signal=marker,stdout=output,stderr=error,command=command,schema=config['schema']);children.append(child)
+        process.stdin.write(json.dumps(config).encode('utf8'));process.stdin.close()
+    return child
+
+def completed(request,child,children,installed):
+    with preserve_running_on_failure(request,children):
+        try:child['process'].wait(timeout=60)
+        except subprocess.TimeoutExpired:stop_preserving_children(request,children,'artifact owned process timeout')
+        out=child['stdout'].read_bytes();err=child['stderr'].read_bytes()
+        assert child['process'].returncode==0 and err==b'',(child['process'].returncode,err.decode('utf8','replace'))
+        value=json.loads(out)
+        pdf_counts={'pdf_render','pdf_text_line','pdf_assembly','pdf_expected','pdf_validation'}
+        assert all(v==0 for k,v in value['counts'].items() if k not in {'artifact_read',*pdf_counts})
+        if value['counts']['artifact_read']:
+            assert value['counts']['pdf_render']==value['counts']['pdf_assembly']==value['counts']['pdf_expected']==1
+            assert value['counts']['pdf_text_line']>0
+        else:assert all(value['counts'][name]==0 for name in pdf_counts-{'pdf_validation'})
+        root=Path(__file__).resolve().parents[2]
+        assert len(value['installed_hashes'])==24
+        for module,hashed in value['installed_hashes'].items():
+            relative=module.replace('.','/')+'.py';source=root/('apps/api/' if module.startswith('returnops_api.') else 'packages/')/relative
+            assert sha256(source.read_bytes()).hexdigest()==hashed
+            assert source.read_bytes()==(installed/relative).read_bytes()
+        assert not (installed/'tests').exists()
+        return value
+
+def test_LA_P07_P13_two_actual_installed_processes_one_claim_and_completion(flow_engine,identities,enabled,request,tmp_path,installed_manual):
+    args,_=ready(flow_engine,identities);children=[];before=snapshot(flow_engine)
+    with preserve_running_on_failure(request,children):
+        with CustomerUnitOfWork(flow_engine,write=True,lock_timeout_ms=10000) as holder:
+            holder_pid=holder.execute(text('SELECT pg_backend_pid()')).scalar_one()
+            for i in range(2):launch(flow_engine,identities,args,installed_manual,tmp_path,i,children,signal=True)
+            deadline=monotonic()+8
+            while not all(c['signal'].exists() for c in children):
+                if monotonic()>=deadline or not all(c['process'].poll() is None for c in children):
+                    stop_preserving_children(request,children,'artifact signal timeout or early exit')
+                sleep(.02)
+            announced=[json.loads(c['signal'].read_bytes()) for c in children];pids=[r['pid'] for r in announced]
+            assert len(set(pids))==2;waiting=[]
+            while len(waiting)!=2:
+                with flow_engine.connect() as observer:
+                    waiting=[dict(r) for r in observer.execute(text("SELECT pid,wait_event_type,wait_event,pg_blocking_pids(pid) AS blockers FROM pg_stat_activity WHERE pid IN (:a,:b) AND wait_event_type='Lock' AND wait_event='advisory'"),dict(a=pids[0],b=pids[1])).mappings()]
+                if monotonic()>=deadline:stop_preserving_children(request,children,'artifact actual waiter timeout')
+                if len(waiting)!=2:sleep(.02)
+            assert all(holder_pid in r['blockers'] for r in waiting);holder.commit()
+        results=[completed(request,c,children,installed_manual) for c in children]
+        assert len({r['process'] for r in results})==2
+        assert sum(r['result']['status']=='COMMITTED' for r in results)==1
+        assert all(r['result']['status'] in {'COMMITTED','REPLAYED','IN_PROGRESS'} for r in results)
+        assert sum(r['counts']['artifact_read'] for r in results)==1
+        assert len(rows(flow_engine,claims))==len(rows(flow_engine,artifacts))==len(rows(flow_engine,contents))==1
+        prior=snapshot(flow_engine)
+        restart=completed(request,launch(flow_engine,identities,args,installed_manual,tmp_path,'restart',children,mode='recover'),children,installed_manual)
+        assert restart['result']['status']=='REPLAYED' and restart['counts']['artifact_read']==0 and snapshot(flow_engine)==prior
+        assert restart['counts']['pdf_validation']>0
+        assert all(restart['counts'][name]==0 for name in ('pdf_render','pdf_text_line','pdf_assembly','pdf_expected'))
+        evidence(request.node.nodeid,holder_pid=holder_pid,actual_waiters=waiting,results=results,restarted=restart,before=before,after=prior)

@@ -207,14 +207,153 @@ def test_current_authority_or_retention_loss_prevents_new_packet_and_denial_audi
 
 
 def test_two_workers_share_stable_intent_and_one_source_receipt(flow_engine,identities,enabled):
+    from threading import Event, Lock, local
+    from manual_helpers import evidence
+    from returnops_domain.proposal_processor import ProcessingResult
     case=ready(flow_engine,identities)
-    with ThreadPoolExecutor(max_workers=2) as pool:
-        intents=list(pool.map(lambda _:FixedProposalProcessor(flow_engine).prepare(case),range(2)))
-    assert intents[0].work_id==intents[1].work_id
-    with ThreadPoolExecutor(max_workers=2) as pool:
-        results=list(pool.map(lambda intent:FixedProposalProcessor(flow_engine).process(intent),intents))
-    assert all(result.status=='ACCEPTED' for result in results)
-    assert len(rows(flow_engine,t.work))==len(rows(flow_engine,t.events))==len(rows(flow_engine,t.sources))==1
+    prepare_held=Event();release_prepare=Event();process_held=Event();release_process=Event()
+    context=local();capture_lock=Lock();sqlstates=[];attempt_results={};terminal_results={};snapshots={}
+    checked={'prepare_same_intent':False,'prepare_recovery_no_growth':False,
+             'process_recovery_no_growth':False,'both_accepted':False,'unique_work_event_source':False}
+    def summary(value):
+        return dict(type=type(value).__name__,status=getattr(value,'status',None),
+            work_id=getattr(value,'work_id',None),safe_code=getattr(value,'safe_code',None),
+            audit=getattr(value,'audit',None))
+    def diagnostics():
+        with capture_lock:states=list(sqlstates)
+        return dict(attempt_results=dict(attempt_results),terminal_results=dict(terminal_results),
+            sqlstates=states,checked=dict(checked),all_table_fingerprints=dict(snapshots))
+    def capture_error(error_context):
+        state=getattr(error_context.original_exception,'sqlstate',None)
+        state=state if type(state) is str and len(state)==5 and state.isalnum() else 'UNAVAILABLE'
+        compiled=getattr(getattr(error_context,'execution_context',None),'compiled',None)
+        statement=getattr(compiled,'statement',None)
+        is_fence=getattr(statement,'text',None)=='SELECT pg_advisory_xact_lock(:key)'
+        with capture_lock:sqlstates.append(dict(phase=getattr(context,'phase','UNASSIGNED'),
+            worker=getattr(context,'worker',None),sqlstate=state,exclusive_fence_statement=is_fence))
+    def in_phase(phase,worker,operation,*args):
+        context.phase=phase;context.worker=worker
+        return operation(*args)
+    def all_tables():
+        with flow_engine.connect() as connection:
+            names=sorted(inspect(connection).get_table_names())
+            result={}
+            for name in names:
+                assert name.replace('_','').isalnum()
+                values=connection.execute(text('SELECT * FROM "'+name+'"')).all()
+                result[name]=sha256(repr(sorted((tuple(row) for row in values),key=repr)).encode(
+                    'utf-8','surrogatepass')).hexdigest()
+            return result
+    def observe_uows(worker,observed):
+        original=worker._uow
+        def factory(*,resolve=False):
+            value=original(resolve=resolve)
+            observed.append(value)
+            return value
+        worker._uow=factory
+    def assert_closed_rollback(observed):
+        assert len(observed)==1,diagnostics()
+        uow=observed[0]
+        assert type(uow) is _ProposalUnitOfWork and uow.lock_timeout_ms==500,diagnostics()
+        assert uow.finished and uow.connection is not None and uow.connection.closed,diagnostics()
+        assert uow.transaction is not None and not uow.transaction.is_active,diagnostics()
+    class HoldPrepareCommit(_ProposalUnitOfWork):
+        def commit(self):
+            assert self.lock_timeout_ms==500
+            prepare_held.set()
+            assert release_prepare.wait(timeout=10),'Prepare winner release handshake timed out'
+            super().commit()
+    def hold_build(*args):
+        process_held.set()
+        assert release_process.wait(timeout=10),'Process winner release handshake timed out'
+        return build_fixed_proposal(*args)
+    prepare_a=FixedProposalProcessor(flow_engine,uow_factory=HoldPrepareCommit)
+    prepare_b=FixedProposalProcessor(flow_engine)
+    prepare_uows=[];observe_uows(prepare_b,prepare_uows)
+    sqlalchemy_event.listen(flow_engine,'handle_error',capture_error)
+    try:
+        snapshots['before_prepare']=all_tables()
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            first=pool.submit(in_phase,'prepare',0,prepare_a.prepare,case)
+            try:
+                assert prepare_held.wait(timeout=10),'Prepare winner did not hold its actual transaction fence'
+                second=pool.submit(in_phase,'prepare',1,prepare_b.prepare,case)
+                prepare_loser=second.result(timeout=10)
+                attempt_results['prepare_loser']=summary(prepare_loser)
+                assert type(prepare_loser) is ProcessingResult,diagnostics()
+                assert (prepare_loser.status,prepare_loser.work_id,prepare_loser.safe_code,prepare_loser.audit)==(
+                    'RETRYABLE',None,'INTERNAL_ERROR','NOT_ATTEMPTED'),diagnostics()
+                assert_closed_rollback(prepare_uows)
+                assert sqlstates==[dict(phase='prepare',worker=1,sqlstate='55P03',exclusive_fence_statement=True)],diagnostics()
+                snapshots['after_prepare_loser_while_winner_uncommitted']=all_tables()
+                assert snapshots['after_prepare_loser_while_winner_uncommitted']==snapshots['before_prepare'],diagnostics()
+            finally:
+                release_prepare.set()
+            prepare_winner=first.result(timeout=10)
+        attempt_results['prepare_winner']=summary(prepare_winner)
+        assert type(prepare_winner) is Intent,diagnostics()
+        snapshots['before_prepare_recovery']=all_tables()
+        recovered_intent=in_phase('prepare-recovery',1,prepare_b.prepare,case)
+        terminal_results['prepare_recovery']=summary(recovered_intent)
+        assert type(recovered_intent) is Intent,diagnostics()
+        intents=[prepare_winner,recovered_intent]
+        same_intent=intents[0]==intents[1]
+        assert same_intent,diagnostics()
+        assert intents[0].work_id==intents[1].work_id
+        checked['prepare_same_intent']=True
+        snapshots['after_prepare_recovery']=all_tables()
+        assert snapshots['after_prepare_recovery']==snapshots['before_prepare_recovery'],diagnostics()
+        checked['prepare_recovery_no_growth']=True
+        process_a=FixedProposalProcessor(flow_engine,build=hold_build)
+        process_b=FixedProposalProcessor(flow_engine)
+        process_uows=[];observe_uows(process_b,process_uows)
+        snapshots['before_process']=all_tables()
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            first=pool.submit(in_phase,'process',0,process_a.process,intents[0])
+            try:
+                assert process_held.wait(timeout=10),'Process winner did not hold its actual transaction fence'
+                second=pool.submit(in_phase,'process',1,process_b.process,intents[1])
+                process_loser=second.result(timeout=10)
+                attempt_results['process_loser']=summary(process_loser)
+                assert type(process_loser) is ProcessingResult,diagnostics()
+                assert (process_loser.status,process_loser.work_id,process_loser.safe_code,process_loser.audit)==(
+                    'RETRYABLE',intents[1].work_id,'INTERNAL_ERROR','NOT_ATTEMPTED'),diagnostics()
+                assert_closed_rollback(process_uows)
+                assert sqlstates==[
+                    dict(phase='prepare',worker=1,sqlstate='55P03',exclusive_fence_statement=True),
+                    dict(phase='process',worker=1,sqlstate='55P03',exclusive_fence_statement=True)],diagnostics()
+                snapshots['after_process_loser_while_winner_uncommitted']=all_tables()
+                assert snapshots['after_process_loser_while_winner_uncommitted']==snapshots['before_process'],diagnostics()
+            finally:
+                release_process.set()
+            process_winner=first.result(timeout=10)
+        attempt_results['process_winner']=summary(process_winner)
+        assert type(process_winner) is ProcessingResult and process_winner.status=='ACCEPTED',diagnostics()
+        assert process_winner.work_id==intents[0].work_id,diagnostics()
+        snapshots['before_process_resolution']=all_tables()
+        recovered=in_phase('process-resolution',1,process_b.resolve,intents[1])
+        terminal_results['process_winner']=summary(process_winner)
+        terminal_results['process_resolution']=summary(recovered)
+        assert type(recovered) is ProcessingResult and recovered.work_id==intents[1].work_id,diagnostics()
+        results=[process_winner,recovered]
+        assert all(result.status=='ACCEPTED' for result in results)
+        checked['both_accepted']=True
+        snapshots['after_process_resolution']=all_tables()
+        assert snapshots['after_process_resolution']==snapshots['before_process_resolution'],diagnostics()
+        checked['process_recovery_no_growth']=True
+        assert len(rows(flow_engine,t.work))==len(rows(flow_engine,t.events))==len(rows(flow_engine,t.sources))==1
+        work=rows(flow_engine,t.work)[0];receipt=rows(flow_engine,t.events)[0];source=rows(flow_engine,t.sources)[0]
+        assert work['work_id']==intents[0].work_id and work['state']=='DONE' and work['epoch']==1,diagnostics()
+        assert receipt['event_id']==stable_id('event',intents[0].work_id),diagnostics()
+        assert receipt['record_id']==source['record_id']==stable_id('source',intents[0].work_id),diagnostics()
+        assert receipt['work_id']==source['work_id']==intents[0].work_id,diagnostics()
+        checked['unique_work_event_source']=True
+    finally:
+        release_prepare.set();release_process.set()
+        sqlalchemy_event.remove(flow_engine,'handle_error',capture_error)
+        evidence('tests/lifecycle/test_proposal_runtime_postgresql.py::test_two_workers_share_stable_intent_and_one_source_receipt',
+            contract_scope='DETERMINISTIC_REAL_FENCE_TIMEOUT_AND_EXPLICIT_SAME_IDENTITY_RECOVERY',
+            default_clock_and500ms_unchanged=True,unknown_or_denied_never_retried=True,**diagnostics())
 
 
 @pytest.mark.parametrize('actual_commit',[True,False])

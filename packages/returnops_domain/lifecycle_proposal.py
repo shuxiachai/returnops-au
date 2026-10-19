@@ -15,9 +15,14 @@ from .lifecycle_state import reject
 
 
 def live_material(uow, head, sources):
+    from .generated_evidence import is_generated_resource, verify_certificate
     latest = {}
     for row in sources.proof.revisions.values():
         if row['kind'] not in {'STATEMENT','EVIDENCE'}:
+            continue
+        if row['kind']=='EVIDENCE' and is_generated_resource(uow,row['object_id']):
+            seal=verify_certificate(uow,row['object_id'],proof=sources.proof)
+            if seal['evidence_record']!=row:reject(uow)
             continue
         key=(row['kind'],row['object_id'])
         if key not in latest or latest[key]['object_version']<row['object_version']:
