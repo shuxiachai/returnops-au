@@ -13,6 +13,7 @@ from returnops_domain.label_execution_tables import controls,ledger,artifact_wor
 from label_execution_helpers import ready,service,execute,control,assert_complete,rows,snapshot,evidence
 from test_label_execution_late_postgresql import LostResponse
 from test_manual_postgresql import installed_manual
+import label_artifact_binding as database_binding
 from test_return_label_bridge_process_postgresql import preserve_running_on_failure,stop_preserving_children
 
 
@@ -31,8 +32,12 @@ def installed_proof(installed):
 
 def launch(engine,identities,args,installed,tmp_path,index,children,*,mode='execute',signal=False):
     auth=identities.auth_config;marker=tmp_path/f'label-signal-{index}.json'
+    raw=os.environ['DATABASE_URL'];assert database_binding.target_url(raw,component='label')==engine.url
+    with engine.connect() as connection:
+        identity=database_binding.observe(connection.exec_driver_sql,engine._customer_test_schema)
+    binding=database_binding.parent_binding(raw,engine.url,engine._customer_test_schema,identity,os.environ,component='label')
     config=dict(schema=engine._customer_test_schema,issuer=auth.issuer,audience=auth.audience,signing_key=auth.signing_key.hex(),
-        token=identities.tokens['founder'],arguments=args,mode=mode)
+        token=identities.tokens['founder'],arguments=args,mode=mode,database_binding=binding)
     if signal:config['signal']=str(marker)
     command=[sys.executable,'-I','-B','-X','utf8',str(Path(__file__).with_name('label_execution_probe.py')),str(installed)]
     output=tmp_path/f'label-{index}.stdout.bin';error=tmp_path/f'label-{index}.stderr.bin'

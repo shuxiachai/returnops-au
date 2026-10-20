@@ -10,11 +10,16 @@ from returnops_domain.label_artifact_tables import claims,artifacts,contents
 from label_artifact_helpers import ready,rows,snapshot,evidence
 from test_manual_postgresql import installed_manual
 from test_return_label_bridge_process_postgresql import preserve_running_on_failure,stop_preserving_children
+import label_artifact_binding as database_binding
 
 def launch(engine,identities,args,installed,tmp_path,index,children,*,mode='complete',signal=False):
     auth=identities.auth_config;marker=tmp_path/f'artifact-signal-{index}.json'
+    raw=os.environ['DATABASE_URL'];assert database_binding.target_url(raw)==engine.url
+    with engine.connect() as connection:
+        identity=database_binding.observe(connection.exec_driver_sql,engine._customer_test_schema)
+    binding=database_binding.parent_binding(raw,engine.url,engine._customer_test_schema,identity,os.environ)
     config=dict(schema=engine._customer_test_schema,issuer=auth.issuer,audience=auth.audience,signing_key=auth.signing_key.hex(),
-        token=identities.tokens['founder'],arguments=args,mode=mode)
+        token=identities.tokens['founder'],arguments=args,mode=mode,database_binding=binding)
     if signal:config['signal']=str(marker)
     command=[sys.executable,'-I','-B','-X','utf8',str(Path(__file__).with_name('label_artifact_probe.py')),str(installed)]
     output=tmp_path/f'artifact-{index}.stdout.bin';error=tmp_path/f'artifact-{index}.stderr.bin'

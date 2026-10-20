@@ -15,6 +15,7 @@ from returnops_domain.customer_uow import CustomerUnitOfWork
 from returnops_domain.return_execution_tables import controls,ledger
 from return_label_bridge_helpers import ready,accepted_rows,rows,snapshot,evidence
 from test_manual_postgresql import installed_manual
+import label_artifact_binding as database_binding
 
 
 def installed_proof(installed):
@@ -30,19 +31,28 @@ def installed_proof(installed):
     return hashes
 
 
+def verify_child_sources(value,hashes):
+    expected={source.removeprefix('packages/').removeprefix('apps/api/').removesuffix('.py').replace('/','.'):h for source,h in hashes.items()}
+    assert value['installed_hashes']==expected
+
+
 def launch(engine,identities,arguments,installed,tmp_path,index,children,mode='accept',signal=False):
-    auth=identities.auth_config;path=tmp_path/f'bridge-config-{index}.json';marker=tmp_path/f'bridge-signal-{index}.json'
+    auth=identities.auth_config;marker=tmp_path/f'bridge-signal-{index}.json'
+    raw=os.environ['DATABASE_URL'];assert database_binding.target_url(raw,component='bridge')==engine.url
+    with engine.connect() as connection:
+        identity=database_binding.observe(connection.exec_driver_sql,engine._customer_test_schema)
+    binding=database_binding.parent_binding(raw,engine.url,engine._customer_test_schema,identity,os.environ,component='bridge')
     config=dict(schema=engine._customer_test_schema,issuer=auth.issuer,audience=auth.audience,
-        signing_key=auth.signing_key.hex(),token=identities.tokens['founder'],arguments=arguments,mode=mode)
+        signing_key=auth.signing_key.hex(),token=identities.tokens['founder'],arguments=arguments,mode=mode,database_binding=binding)
     if signal:config['signal']=str(marker)
-    path.write_text(json.dumps(config),encoding='utf8')
-    command=[sys.executable,'-I','-B','-X','utf8',str(Path(__file__).with_name('return_label_bridge_probe.py')),str(path),str(installed)]
+    command=[sys.executable,'-I','-B','-X','utf8',str(Path(__file__).with_name('return_label_bridge_probe.py')),str(installed)]
     output=tmp_path/f'bridge-{index}.stdout.bin';error=tmp_path/f'bridge-{index}.stderr.bin'
     with output.open('xb') as out,error.open('xb') as err:
-        process=subprocess.Popen(command,cwd=tmp_path,env=os.environ.copy(),stdout=out,stderr=err)
+        process=subprocess.Popen(command,cwd=tmp_path,env=os.environ.copy(),stdin=subprocess.PIPE,stdout=out,stderr=err)
         child=dict(process=process,signal=marker,stdout=output,stderr=error,command=command,schema=config['schema'])
         # Register ownership before closing parent streams or any further I/O.
         children.append(child)
+        process.stdin.write(json.dumps(config).encode('utf8'));process.stdin.close()
     return child
 
 
@@ -124,6 +134,7 @@ def test_RB_G7_G11_installed_processes_wait_on_actual_pg_fence(flow_engine,ident
                 if len(waiting)!=2:sleep(.02)
             assert all(holder_pid in row['blockers'] for row in waiting);holder.commit()
         results=[completed(request,item,children) for item in children]
+        for result in results:verify_child_sources(result,hashes)
         assert len({row['process'] for row in results})==2
         assert sorted(row['result']['status'] for row in results)==(['ACCEPTED','REPLAYED'] if changed=='same' else ['ACCEPTED','DENIED'])
         assert sum(row['counts']['effect_claim'] for row in results)==1 and len(accepted_rows(flow_engine))==1
@@ -144,9 +155,11 @@ def test_RB_G9_G11_new_process_recovery_is_readonly(flow_engine,identities,enabl
         if initial=='accepted':
             child=launch(flow_engine,identities,arguments,installed_manual,tmp_path,'accept',children)
             first=completed(request,child,children);assert first['result']['status']=='ACCEPTED' and first['counts']['effect_claim']==1
+            verify_child_sources(first,hashes)
         before=snapshot(flow_engine)
         child=launch(flow_engine,identities,arguments,installed_manual,tmp_path,'restart',children,mode='recover')
         result=completed(request,child,children)
+        verify_child_sources(result,hashes)
         assert result['result']['status']==('UNKNOWN' if initial=='absent' else 'REPLAYED')
         assert result['counts']['effect_claim']==0 and snapshot(flow_engine)==before
         if first is not None:
