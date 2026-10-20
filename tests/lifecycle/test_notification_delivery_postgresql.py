@@ -111,6 +111,19 @@ def test_actual_producers_send_one_independent_fact_and_terminal_outcome(
     assert control['attempt_count']==saved[0]['attempt_count']==1
     head=rows(flow_engine,old.case_heads)[0]
     assert head['status']==('COMPLETED' if kind=='return' else 'REJECTED' if kind=='reject' else 'MANUAL_HANDLED')
+    from returnops_domain.canonical import decode_document, digest
+    from returnops_domain.notification_customer_origin import EVENT, customer_payload, history_ref
+    from returnops_domain.wire import validate
+    messages=[row for row in rows(flow_engine,old.history) if row['kind']=='OUTCOME_MESSAGE']
+    assert len(messages)==1
+    audits=[decode_document(row['body']) for row in rows(flow_engine,old.audit)]
+    customer_audits=[event for event in audits if event['event_type']==EVENT]
+    assert len(customer_audits)==1
+    accepted=next(row for row in rows(flow_engine,old.history) if row['record_id']==control['accepted_record_id'])
+    assert customer_audits[0]['history_refs']==[history_ref(accepted)]
+    assert accepted['kind']=='NOTIFICATION'
+    assert customer_audits[0]['payload_hash']==digest(customer_payload(control,saved[0],messages[0]),'audit-payload/v1')
+    validate('AuditPage',{'items':audits},internal=True)
     assert all(calls[name]==0 for name in ('render','text_line','assembly','expected_pdf',
                                           'return_provider','label_provider','artifact_retrieval'))
     after=snapshot(flow_engine)

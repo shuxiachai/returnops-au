@@ -239,6 +239,8 @@ def test_notification_actual_current_and_history_publish_only_sent(
                     params={'kind': 'OUTCOME_MESSAGE'}, schema='CustomerHistoryPage')
         founder = _get(client, '/v1/founder/cases/' + case, identities,
                        role='founder', schema='CaseView')
+        audit = _get(client, '/v1/founder/cases/' + case + '/audit', identities,
+                     role='founder', params={'limit':100}, schema='AuditPage')
     assert len(page['items']) == 1
     message = page['items'][0]['content']
     validate('CustomerOutcomeMessage', message)
@@ -246,6 +248,10 @@ def test_notification_actual_current_and_history_publish_only_sent(
     assert message['outcome'] == setup['control']['outcome']
     assert message['message'] in current['outcome_message']
     assert current['status'] == founder['status'] == TERMINAL[message['outcome']]
+    customer_events=[event for event in audit['items']
+                     if event['event_type']=='NOTIFICATION_CUSTOMER_MESSAGE_RECORDED']
+    assert len(customer_events)==1
+    assert customer_events[0]['history_refs'][0]['kind']=='NOTIFICATION'
     assert _business(flow_engine) == before
     assert len(rows(flow_engine, facts)) == 1 and rows(flow_engine, facts)[0]['status'] == 'SENT'
     evidence(request.node.nodeid, kind=kind, sent=asdict(sent),
@@ -383,3 +389,118 @@ def test_notification_retention_keeps_safe_reads_and_never_restores_content(
              recovery=asdict(recovery), actual_pdf_calls=probe.pdf,
              notification_read_calls=probe.notification,
              recovery_pdf_calls=recovery_probe.pdf)
+
+
+def _reseal_customer_audit(uow,case_id,change):
+    """Controlled corruption with a valid chain, so the origin check must reject."""
+    from sqlalchemy import select
+    from returnops_domain.canonical import decode_document,digest,encode_document
+    previous=None
+    for row in uow.execute(select(old.audit).where(old.audit.c.case_id==case_id)
+                           .order_by(old.audit.c.sequence)).mappings().all():
+        event=decode_document(row['body'])
+        if event['event_type']=='NOTIFICATION_CUSTOMER_MESSAGE_RECORDED':
+            change(event)
+        if previous is None:
+            event.pop('previous_event_hash',None)
+        else:
+            event['previous_event_hash']=previous
+        unsigned={key:value for key,value in event.items() if key!='event_hash'}
+        event['event_hash']=digest({'sequence':row['sequence'],'event':unsigned},'audit/v1')
+        uow.execute(update(old.audit).where(old.audit.c.event_id==row['event_id']).values(
+            event_hash=event['event_hash'],body=encode_document(event)))
+        previous=event['event_hash']
+    uow.execute(update(old.case_heads).where(old.case_heads.c.case_id==case_id).values(audit_head=previous))
+
+
+@pytest.mark.parametrize('retained',[False,True])
+def test_customer_origin_and_retained_identity_corruption_fail_closed(
+        flow_engine,identities,enabled,request,retained):
+    from sqlalchemy import delete
+    from returnops_domain.customer_uow import CustomerUnitOfWork
+    from returnops_domain.errors import FlowError
+    from returnops_domain.history import read_revision
+    from returnops_domain.manual_target import one
+    setup=ready(flow_engine,identities,'reject')
+    assert service(flow_engine,identities).send(setup['work_id']).status=='SENT'
+    if retained:
+        statement=next(row for row in rows(flow_engine,old.history) if row['kind']=='STATEMENT')
+        assert RetentionService(flow_engine).remove('STATEMENT',statement['object_id'])
+    message=next(row for row in rows(flow_engine,old.history) if row['kind']=='OUTCOME_MESSAGE')
+    saved=rows(flow_engine,controls)[0]
+    baseline=snapshot(flow_engine)
+    faults=('metadata_hash','metadata_time','control_owner','control_missing','fact_hash',
+            'work_purpose','accepted_ref','actor','correlation','payload','duplicate_origin')
+    for fault in faults:
+        with CustomerUnitOfWork(flow_engine,write=True) as uow:
+            if fault=='metadata_hash':
+                uow.execute(update(old.history).where(old.history.c.record_id==message['record_id'])
+                            .values(content_sha256='d'*64))
+            elif fault=='metadata_time':
+                uow.execute(update(old.history).where(old.history.c.record_id==message['record_id'])
+                            .values(recorded_at=message['recorded_at']+timedelta(seconds=1)))
+            elif fault=='control_owner':
+                uow.execute(update(controls).where(controls.c.notification_work_id==saved['notification_work_id'])
+                            .values(owner_id=identities.people['customer_b']['principal_id']))
+            elif fault=='control_missing':
+                uow.execute(delete(controls).where(controls.c.notification_work_id==saved['notification_work_id']))
+            elif fault=='fact_hash':
+                uow.execute(update(facts).where(facts.c.fact_id==saved['accepted_fact_id']).values(fact_hash='d'*64))
+            elif fault=='work_purpose':
+                uow.execute(update(life.work).where(life.work.c.work_id==saved['notification_work_id'])
+                            .values(purpose='OUTCOME'))
+            elif fault=='duplicate_origin':
+                from returnops_domain.audit import append_event
+                from returnops_domain.notification_customer_origin import customer_payload,history_ref,EVENT
+                accepted=one(uow,old.history,record_id=saved['accepted_record_id'])
+                fact=one(uow,facts,fact_id=saved['accepted_fact_id'])
+                append_event(uow,setup['case_id'],actor={'kind':'SERVICE','component_id':'notification-delivery-v2'},
+                    event_type=EVENT,correlation_id=saved['accepted_event_id'],
+                    payload=customer_payload(saved,fact,message),
+                    object_ids=[message['object_id'],message['record_id']],history_refs=[history_ref(accepted)],
+                    now=message['recorded_at'])
+            else:
+                def corrupt(event):
+                    if fault=='accepted_ref':
+                        event['history_refs'][0]['object_version']+=1
+                    elif fault=='actor':
+                        event['actor']={'kind':'SERVICE','component_id':'wrong_component'}
+                    elif fault=='correlation':
+                        event['correlation_id']='wrong_correlation'
+                    else:
+                        event['payload_hash']='d'*64
+                _reseal_customer_audit(uow,setup['case_id'],corrupt)
+            row=one(uow,old.history,record_id=message['record_id'])
+            with pytest.raises(FlowError):
+                read_revision(uow,row)
+        assert snapshot(flow_engine)==baseline,fault
+    evidence(request.node.nodeid,retained=retained,faults=list(faults),before=baseline,after=snapshot(flow_engine))
+
+
+def test_current_get_rejects_orphan_sent_fact_and_origin_when_customer_kind_is_hidden(
+        flow_engine,identities,enabled,request):
+    from sqlalchemy import delete
+    from returnops_domain.customer_uow import CustomerUnitOfWork
+    from returnops_domain.founder_integrity import CaseProof
+    from returnops_domain.manual_target import one
+    setup=ready(flow_engine,identities,'reject')
+    assert service(flow_engine,identities).send(setup['work_id']).status=='SENT'
+    message=next(row for row in rows(flow_engine,old.history) if row['kind']=='OUTCOME_MESSAGE')
+    with CustomerUnitOfWork(flow_engine,write=True) as uow:
+        assert uow.execute(update(old.history).where(old.history.c.record_id==message['record_id'])
+                           .values(kind='PROCESSING_FAILURE')).rowcount==1
+        assert uow.execute(delete(controls).where(controls.c.notification_work_id==setup['work_id'])).rowcount==1
+        # Preserve contiguous history and the legal audit chain/reference. The
+        # new orphan check, not a broken sequence or FK, must prevent the read.
+        CaseProof(uow,one(uow,old.case_heads,case_id=setup['case_id']))
+        uow.commit()
+    before=_business(flow_engine)
+    with _client(flow_engine,identities) as (client,probe):
+        response=client.get('/v1/cases/'+setup['case_id'],headers=_headers(identities,'customer_a'))
+    assert response.status_code==409
+    validate('ErrorEnvelope',response.json())
+    assert response.json()['error']['code']=='INVALID_STATE'
+    assert _business(flow_engine)==before
+    assert len(rows(flow_engine,facts))==1
+    evidence(request.node.nodeid,controlled_corruption=True,status=response.status_code,
+             before=before,after=_business(flow_engine),notification_read_calls=probe.notification)

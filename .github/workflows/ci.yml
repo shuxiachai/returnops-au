@@ -50,7 +50,7 @@ jobs:
       - name: Check mock label PDF renderer and validator without a database
         run: python -B -m pytest tests/unit/test_label_pdf.py tests/unit/test_label_pdf_validation.py -q
       - name: Check notification profile and independent fact integrity without a database
-        run: python -B -m pytest --noconftest tests/lifecycle/test_notification_profile_offline.py tests/lifecycle/test_notification_fact_offline.py -q
+        run: python -B -m pytest --noconftest tests/lifecycle/test_notification_profile_offline.py tests/lifecycle/test_notification_fact_offline.py tests/lifecycle/test_notification_customer_origin_offline.py -q
       - name: Build and import installed packages outside checkout
         run: python -B tools/checks/check-installed.py
       - name: Check PR against its base WBS

@@ -35,14 +35,26 @@ def append_note(uow, head, body, *, record_id, object_version, actor_component,
 def append_customer(uow, head, control, fact, note, now):
     from .canonical import digest, encode_document
     from .wire import validate
-    if note['status'] != 'SENT' or fact['status'] != 'SENT' or control['accepted_fact_id'] != fact['fact_id']:
+    from .notification_customer_origin import customer_id, customer_payload, history_ref, EVENT
+    if (note['status'] != 'SENT' or fact['status'] != 'SENT'
+            or control['accepted_fact_id'] != fact['fact_id']
+            or note['notification_id'] != control['notification_id']
+            or control['case_id'] != head['case_id']
+            or control['store_id'] != head['store_id']
+            or control['owner_id'] != head['owner_principal_id']):
         reject(uow)
-    record_id = 'nmessage_' + digest({'notification_id':note['notification_id']},'notification-customer-id/v2')
+    record_id = customer_id(note['notification_id'])
     if uow.execute(select(old.history.c.record_id).where(old.history.c.record_id==record_id)).first():
         reject(uow)
     body = {name:note[name] for name in ('notification_id','outcome','message','next_steps','sent_at')}
     validate('CustomerOutcomeMessage',body,internal=True)
     current = one(uow,old.case_heads,case_id=head['case_id'])
+    accepted = one(uow,old.history,record_id=control['accepted_record_id'])
+    if (accepted['kind'] != 'NOTIFICATION' or accepted['case_id'] != head['case_id']
+            or accepted['object_id'] != note['notification_id']
+            or current['case_version'] != accepted['case_version'] + 1
+            or current['history_sequence'] != accepted['recorded_sequence']):
+        reject(uow)
     ref = dict(record_id=record_id,kind='OUTCOME_MESSAGE',object_id=note['notification_id'],object_version=1)
     uow.execute(old.history.insert().values(**ref,case_id=head['case_id'],case_version=current['case_version'],
         recorded_sequence=current['history_sequence']+1,recorded_at=now,
@@ -50,8 +62,8 @@ def append_customer(uow, head, control, fact, note, now):
     uow.execute(old.history_contents.insert().values(record_id=record_id,body=encode_document(body)))
     uow.execute(update(old.case_heads).where(old.case_heads.c.case_id==head['case_id']).values(
         history_sequence=current['history_sequence']+1))
+    row = one(uow,old.history,record_id=record_id)
     append_event(uow,head['case_id'],actor={'kind':'SERVICE','component_id':COMPONENT},
-        event_type='NOTIFICATION_CUSTOMER_MESSAGE_RECORDED',correlation_id=control['accepted_event_id'],
-        payload=dict(profile='notification-customer-message/v2',intent_hash=control['intent_hash'],
-            fact_hash=fact['fact_hash'],notification_record_id=control['accepted_record_id']),
-        object_ids=[note['notification_id']],history_refs=[ref],now=now)
+        event_type=EVENT,correlation_id=control['accepted_event_id'],
+        payload=customer_payload(control,fact,row),
+        object_ids=[note['notification_id'],record_id],history_refs=[history_ref(accepted)],now=now)

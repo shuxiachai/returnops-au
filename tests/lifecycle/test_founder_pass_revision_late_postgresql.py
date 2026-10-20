@@ -18,7 +18,7 @@ from returnops_domain.revision_denial import COMPONENT, OPERATION
 from manual_helpers import business, evidence, rows, snapshot
 from pass_revision_helpers import (ready, service, attempt, assert_revised, case_rows,
     mutate_source, mutate_authority)
-from test_founder_approve_late_postgresql import _overlap_at_actual_fence
+from test_founder_approve_late_postgresql import _overlap_at_actual_fence, _fence_cost_lines
 from test_manual_postgresql import expire_human
 
 
@@ -277,16 +277,19 @@ def test_RVP06_founder_decisions_compete_in_both_real_fence_orders(flow_engine, 
     caller = service(flow_engine, identities, clock=lambda:at)
     before = snapshot(flow_engine)
     diagnostic = {}
+    cost_diagnostic = {}
     try:
         results, overlap = _overlap_at_actual_fence(flow_engine, monkeypatch, dict(
             revision=lambda:caller.accept(case, body, 'race_revision', 'decision_race'),
             competitor=lambda:other.accept(case, other_body, 'race_other', 'decision_race')),
-            first=first, diagnostic=diagnostic)
+            first=first, diagnostic=diagnostic, cost=True, cost_diagnostic=cost_diagnostic)
     finally:
         # Emit safe timing evidence even if the original assertion fails. The
         # existing evidence file still carries the complete successful result.
         diagnostic['competitor_kind'] = competitor
         with capsys.disabled():
+            for line in _fence_cost_lines(cost_diagnostic):
+                print(line, flush=True)
             print('RETURNOPS_REVISION_FENCE_OBSERVATION ' + json.dumps(diagnostic, sort_keys=True), flush=True)
     assert results[first].status == 'ACCEPTED'
     loser = 'competitor' if first == 'revision' else 'revision'

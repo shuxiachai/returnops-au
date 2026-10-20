@@ -40,31 +40,50 @@ def verify_founder_note(uow, head, row):
 
 
 def verify_message(uow, row):
-    if version(uow.connection)!=NOTIFICATION:
-        reject(uow)
+    from .notification_customer_origin import (
+        message_markers, verify_customer_origin, verify_accepted_metadata)
+    modern, markers = message_markers(uow,row)
+    if not modern:
+        return False  # Original historical DTO/hash/tombstone oracle remains in history.read_revision.
     head=one(uow,old.case_heads,case_id=row['case_id'])
     control=one(uow,controls,notification_id=row['object_id'])
     fact=one(uow,facts,fact_id=control['accepted_fact_id'])
     proof=CaseProof(uow,head)
-    origin=proof.origin(row)
-    payload=dict(profile='notification-customer-message/v2',intent_hash=control['intent_hash'],
-        fact_hash=fact['fact_hash'],notification_record_id=control['accepted_record_id'])
-    expected_id='nmessage_'+digest({'notification_id':control['notification_id']},'notification-customer-id/v2')
-    if (row['record_id']!=expected_id or row['object_version']!=1
-            or control['case_id']!=head['case_id'] or fact['status']!='SENT'
-            or origin['event_type']!='NOTIFICATION_CUSTOMER_MESSAGE_RECORDED'
-            or origin['actor']!={'kind':'SERVICE','component_id':COMPONENT}
-            or origin['correlation_id']!=control['accepted_event_id']
-            or origin['payload_hash']!=digest(payload,'audit-payload/v1')):
-        reject(uow)
+    accepted=verify_customer_origin(uow,head,row,control,fact,proof,markers)
+    verify_accepted_metadata(uow,head,control,fact,accepted,proof)
     if row['retention_state']!='AVAILABLE':
         from .notification_retention import verify_retained
         verify_retained(uow,head,control)
-        return
+        return True
     seal=validate_control(uow,head,control)
     note=seal['note']
     raw=one(uow,old.history_contents,record_id=row['record_id'])['body']
     expected={name:note[name] for name in ('notification_id','outcome','message','next_steps','sent_at')}
     if (control['state']!='SENT' or note['status']!='SENT' or decode_document(raw)!=expected
-            or note['sent_at']!=timestamp(fact['accepted_at'])):
+            or note['sent_at']!=timestamp(fact['accepted_at'])
+            or digest(expected,'history/v1')!=row['content_sha256']):
         reject(uow)
+    return True
+
+
+def current_messages(uow, head, messages):
+    """Legacy rows never become current SENT evidence or modern cardinality."""
+    from .notification_customer_origin import current_case_markers
+    from .notification_mock import verify_fact
+    markers=current_case_markers(uow,head)
+    modern = [row for row in messages if verify_message(uow,row)]
+    saved=markers['controls']
+    if (len(modern)>1 or len(saved)>1 or markers['facts'] and not saved
+            or markers['events'] and (len(modern)!=1 or len(saved)!=1)):
+        reject(uow)
+    for control in saved:
+        if (control['case_id']!=head['case_id'] or control['store_id']!=head['store_id']
+                or control['owner_id']!=head['owner_principal_id']):
+            reject(uow)
+        for fact in markers['facts']:
+            verify_fact(uow,control,fact)
+        accepted=(control['accepted_fact_id'] is not None and
+                  one(uow,facts,fact_id=control['accepted_fact_id'])['status']=='SENT')
+        if bool(accepted)!=bool(modern):
+            reject(uow)
+    return modern

@@ -51,6 +51,33 @@ Notification/PDF source withdrawal removes derived message bodies and leaves
 verified tombstones, hashes and independent facts. No recovery path rebuilds
 removed content.
 
+The customer-message audit uses the frozen contract's exact accepted
+`NOTIFICATION` reference. A separate internal `notification-customer-message/v3`
+payload hash binds the immutable customer row (including sequence, timestamp
+and content hash) to the original control and sending fact. Customer history
+keeps kind `OUTCOME_MESSAGE`; the Founder history enum is unchanged. Current
+and retained reads verify the unique origin, accepted notification metadata,
+work purpose, owner/store and independent fact. Tombstones need no regenerated
+message or source manifest.
+
+Original nonreserved customer-message history remains readable on exact old
+schemas and after migration without modern state. Multiple legacy rows and
+tombstones do not become current SENT content. A new control cannot be admitted
+in a case already containing a customer outcome: the initial and same-UoW final
+checks poison the original transaction before commit or sending. Cross-case
+identity aliases and reserved `nmessage_` rows always require modern proof.
+Opaque audit discovery reads across cases with explicit limits of 16,384 rows,
+65,536 bytes per event and 16 MiB total; control/fact discovery is limited to
+4,096 rows per table. Exceeding a bound rejects the read, with no truncation,
+cache or claim of large-dataset performance. These are internal candidate
+limits, not changes to authority, business leases or database lock timeouts.
+
+`test_notification_customer_origin_offline.py` exercises the actual customer
+writer through an in-memory recording UoW and the frozen AuditEvent/AuditPage
+oracles. Added cloud cases cover legacy migration/read preservation, admission
+rollback, current-message cardinality and retained provenance mutations.
+Their presence does not claim that these new PostgreSQL cases have run.
+
 ## Requirement and model trace
 
 | Requirement | Implementation responsibility |
@@ -91,9 +118,9 @@ local PostgreSQL and Docker remain paused.
 | 13 | Schema and legacy tests: exact migration preservation, ownership/ACL negatives, empty new tables and explicitly labelled v1 compatibility samples |
 | 14 | Updated exact lifecycle inventory and normal CI; actual full cloud outcome and final independent review pending |
 
-The CI inventory retains the original 54 lifecycle files and adds the twelve
+The CI inventory retains the original 54 lifecycle files and adds the thirteen
 notification test files exactly once. The new `notification` group is separate
-from the six original groups, whose membership and order are unchanged: 66
+from the six original groups, whose membership and order are unchanged: 67
 test files across the same eight PostgreSQL parts including foundation. The
 installed-process helper is not a test file or an extra matrix part.
 Explicit historical fixtures keep the original

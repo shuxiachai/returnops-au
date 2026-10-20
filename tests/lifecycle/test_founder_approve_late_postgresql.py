@@ -337,7 +337,143 @@ def _safe_fence_error(error):
     return dict(error_type=kind, sqlstate=state)
 
 
-def _observed_fence_overlap(engine, monkeypatch, calls, first, diagnostic):
+def _install_fence_cost_observer(scoped, transactions, mutex):
+    """Count inclusive work in existing transaction contexts; never query or cache proof.
+
+    Nested totals overlap and MUST NOT be summed as exclusive transaction time.
+    At most eight existing transaction tokens plus an unavailable bucket, six
+    stages and depth 32 are retained. Instrumentation faults cannot replace a
+    real return value or exception.
+    """
+    from returnops_domain import founder_integrity, notification_intent, notification_schema, notification_sources
+    stages = ('create_control', 'validate_control', 'inventory', 'case_proof',
+              'notification_descriptor', 'notification_ownership')
+    maximum = (1 << 63) - 1
+    context, aggregates = local(), {}
+    counters = dict(overflow_count=0, observer_error_count=0)
+
+    def increment(name):
+        with mutex:
+            counters[name] = min(maximum, counters[name] + 1)
+
+    def wrap(original, stage, position, argument, raw_connection=False):
+        def observed(*args, **kwargs):
+            previous = getattr(context, 'depth', 0)
+            context.depth = previous + 1
+            key, started = None, None
+            try:
+                try:
+                    value = args[position] if len(args) > position else kwargs.get(argument)
+                    connection = value if raw_connection else getattr(value, 'connection', None)
+                    with mutex:
+                        existing = transactions.get(connection)
+                        token = existing.get('token') if type(existing) is dict else None
+                    if type(token) is not int or not 1 <= token <= 8:
+                        if token is not None:
+                            increment('overflow_count')
+                        token = None
+                    key = (token, stage)
+                    if previous < 32:
+                        started = monotonic_ns()
+                    else:
+                        increment('overflow_count')
+                except Exception:
+                    increment('observer_error_count')
+                # Exactly one forwarding call, including unavailable/overflow
+                # observations. A bare finally preserves exception identity.
+                return original(*args, **kwargs)
+            finally:
+                try:
+                    if key is not None:
+                        duration = monotonic_ns() - started if started is not None else None
+                        if type(duration) is not int or not 0 <= duration <= maximum:
+                            if started is not None:
+                                increment('overflow_count')
+                            duration = None
+                        with mutex:
+                            row = aggregates.setdefault(key, dict(count=0, inclusive_ns=0, unmeasured_count=0))
+                            if row['count'] == maximum or (duration is not None
+                                    and row['inclusive_ns'] > maximum - duration):
+                                counters['overflow_count'] = min(maximum, counters['overflow_count'] + 1)
+                            row['count'] = min(maximum, row['count'] + 1)
+                            if duration is None:
+                                row['unmeasured_count'] = min(maximum, row['unmeasured_count'] + 1)
+                            else:
+                                row['inclusive_ns'] = min(maximum, row['inclusive_ns'] + duration)
+                except Exception:
+                    increment('observer_error_count')
+                finally:
+                    if previous:
+                        context.depth = previous
+                    else:
+                        del context.depth
+        return observed
+
+    for owner, name, stage, position, argument, raw in (
+            (notification_intent, 'create_control', stages[0], 0, 'uow', False),
+            (notification_sources, 'validate_control', stages[1], 0, 'uow', False),
+            (notification_intent, '_inventory', stages[2], 0, 'uow', False),
+            (founder_integrity.CaseProof, '__init__', stages[3], 1, 'uow', False),
+            (notification_schema, 'descriptor', stages[4], 0, 'connection', True),
+            (notification_schema, '_ownership', stages[5], 0, 'connection', True)):
+        scoped.setattr(owner, name, wrap(getattr(owner, name), stage, position, argument, raw))
+
+    def snapshot_costs():
+        # Called after both workers join and scoped patches are restored. Read
+        # only the original observer's PID binding; never fill it from SQL.
+        with mutex:
+            known = {value['token']: value for value in transactions.values()
+                     if type(value) is dict and type(value.get('token')) is int}
+            rows = []
+            for (token, stage), counts in aggregates.items():
+                pid = known.get(token, {}).get('backend_pid')
+                if type(pid) is not int or not 1 <= pid <= 2147483647:
+                    pid = None
+                rows.append(dict(token=token, backend_pid=pid, stage=stage, **counts))
+            result = dict(rows=rows, **counters)
+            aggregates.clear()
+            counters.update(overflow_count=0, observer_error_count=0)
+            return result
+    return snapshot_costs
+
+
+def _fence_cost_lines(diagnostic):
+    """Only fixed ASCII names and bounded numbers cross this output boundary."""
+    import json
+    stages = ('create_control', 'validate_control', 'inventory', 'case_proof',
+              'notification_descriptor', 'notification_ownership')
+    maximum = (1 << 63) - 1
+
+    def number(value, upper=maximum, lower=0):
+        return value if type(value) is int and lower <= value <= upper else None
+
+    def line(value):
+        encoded = 'RETURNOPS_REVISION_FENCE_COST ' + json.dumps(value, sort_keys=True, ensure_ascii=True)
+        assert len(encoded) <= 1024 and encoded.isascii()
+        return encoded
+
+    if type(diagnostic) is not dict:
+        diagnostic = {}
+    rows = diagnostic.get('rows')
+    if type(rows) is not list:
+        rows = []
+    output = [line(dict(kind='summary', inclusive_totals_overlap=True,
+        overflow_count=number(diagnostic.get('overflow_count')),
+        observer_error_count=number(diagnostic.get('observer_error_count')),
+        output_truncated=len(rows) > 54))]
+    for row in rows[:54]:
+        if type(row) is not dict or type(row.get('stage')) is not str or row['stage'] not in stages:
+            continue
+        token = number(row.get('token'), 8, 1)
+        pid = number(row.get('backend_pid'), 2147483647, 1) if token is not None else None
+        output.append(line(dict(kind='stage', stage=row['stage'], token=token, backend_pid=pid,
+            binding_unavailable=token is None or pid is None, count=number(row.get('count')),
+            inclusive_ns=number(row.get('inclusive_ns')),
+            unmeasured_count=number(row.get('unmeasured_count')))))
+    return output
+
+
+def _observed_fence_overlap(engine, monkeypatch, calls, first, diagnostic, *, cost=False, cost_diagnostic=None):
     """Optional observation of the existing race; no new SQL or lock operations.
 
     The engine commit event precedes the native commit. Its successful UOW
@@ -350,6 +486,9 @@ def _observed_fence_overlap(engine, monkeypatch, calls, first, diagnostic):
     context, mutex = local(), Lock()
     transactions, events, results = {}, [], {}
     overlap = None
+    snapshot_costs = None
+    if cost:
+        assert type(cost_diagnostic) is dict and not cost_diagnostic
 
     def transaction(connection):
         with mutex:
@@ -415,6 +554,8 @@ def _observed_fence_overlap(engine, monkeypatch, calls, first, diagnostic):
         with monkeypatch.context() as scoped:
             scoped.setattr(customer_uow, 'acquire_fence', fence)
             scoped.setattr(CustomerUnitOfWork, 'commit', commit)
+            if cost:
+                snapshot_costs = _install_fence_cost_observer(scoped, transactions, mutex)
             sqlalchemy_event.listen(engine, 'commit', commit_begin)
             try:
                 result, overlap = _overlap_at_actual_fence(engine, scoped,
@@ -448,9 +589,11 @@ def _observed_fence_overlap(engine, monkeypatch, calls, first, diagnostic):
             pid_binding='original_overlap_queries' if overlap is not None else 'unavailable',
             transactions=list(transactions.values()), events=events, results=results,
             successful_commit_hold_bounds=bounds)
+        if snapshot_costs is not None:
+            cost_diagnostic.update(snapshot_costs())
 
 
-def _overlap_at_actual_fence(engine, monkeypatch, calls, *, first=None, diagnostic=None):
+def _overlap_at_actual_fence(engine, monkeypatch, calls, *, first=None, diagnostic=None, cost=False, cost_diagnostic=None):
     """Observe both real connections waiting before releasing the holder.
 
     Normal 5-second lock timeouts and 10-second statement timeouts remain intact.
@@ -458,7 +601,8 @@ def _overlap_at_actual_fence(engine, monkeypatch, calls, *, first=None, diagnost
     ThreadPoolExecutor joins workers. No unbounded barrier remains to strand them.
     """
     if diagnostic is not None:
-        return _observed_fence_overlap(engine, monkeypatch, calls, first, diagnostic)
+        return _observed_fence_overlap(engine, monkeypatch, calls, first, diagnostic,
+                                      cost=cost, cost_diagnostic=cost_diagnostic)
     from returnops_domain import customer_uow
     original = customer_uow.acquire_fence
     participants = Queue()

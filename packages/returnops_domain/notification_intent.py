@@ -73,6 +73,9 @@ def create_control(uow, head, before, after, work, receipt, producer):
     """Only the outcome guard calls this in the actual original transaction."""
     if version(uow.connection) != NOTIFICATION or work['component_id'] != COMPONENT:
         reject(uow)
+    from .notification_customer_origin import forbid_existing_messages
+    forbid_existing_messages(uow,head['case_id'])
+    uow.before_commit(lambda: forbid_existing_messages(uow,head['case_id']))
     initial = one(uow, old.history, record_id=after['notification_record_id'])
     sources = Sources(uow, head, producer)
     _, note = sources.read(initial['record_id'], {'NOTIFICATION'})

@@ -216,60 +216,206 @@ def test_PMP05_direct_domain_replay_rejects_corrupt_original_proof(flow_engine, 
 
 
 
+@contextmanager
+def _observe_manual_final_replay(monkeypatch, case, event, original, original_work, control, mutate):
+    """Forward real calls; arm tampering only at this replay's final direct proof."""
+    import sys
+    from types import CodeType
+    from returnops_domain import notification_sources, pass_manual_sources
+    from returnops_domain.lifecycle_guards import LifecycleGuards
+    apply_code = LifecycleGuards.apply.__code__
+    final_codes = [value for value in apply_code.co_consts
+                   if isinstance(value, CodeType) and value.co_name == 'manual_replay_check']
+    assert len(final_codes) == 1
+    final_code = final_codes[0]
+    outcome_code = notification_sources._outcome.__code__
+    original_control = notification_sources.validate_control
+    original_proof = pass_manual_sources.accepted_manual
+    original_actor = pass_manual_sources.check_actor
+    original_seal = pass_manual_sources.check_seal
+    observed = dict(phase='apply', armed=False, uow=None, active_controls=[],
+        controls=[], proofs=[], actors=[], seals=[], proof_calls=[], injections=[],
+        eligible=[], actor_checks=[], actor_denials=[], seal_checks=[])
+
+    def entry(group, exact, **fields):
+        value = dict(phase=observed['phase'], exact=exact, returned=False, error=None, **fields)
+        observed[group].append(value)
+        return value
+
+    def invoke(value, callback, *args, **kwargs):
+        try:
+            result = callback(*args, **kwargs)
+        except BaseException as error:
+            value['error'] = error
+            raise
+        value['returned'] = True
+        return result
+
+    def bound(seal):
+        return type(seal) is dict and seal.get('event') == original and seal.get('work') == original_work
+
+    def validate(uow, head, row, **kwargs):
+        value = entry('controls', uow is observed['uow'] and head.get('case_id') == case
+                      and type(row) is dict and row == control)
+        observed['active_controls'].append(value)
+        try:
+            return invoke(value, original_control, uow, head, row, **kwargs)
+        finally:
+            observed['active_controls'].pop()
+
+    def proof(uow, head, record_id, component):
+        caller = sys._getframe(1).f_code
+        callsite = ('apply' if caller is apply_code else
+                    'manual_replay_check' if caller is final_code else
+                    'notification_outcome' if caller is outcome_code else 'other')
+        parent = observed['active_controls'][-1] if observed['active_controls'] else None
+        context = 'control_outcome' if parent is not None else 'direct'
+        value = entry('proofs', uow is observed['uow'] and head.get('case_id') == case
+            and record_id == event.record_id and component == COMPONENT,
+            context=context, callsite=callsite, control=parent, binding_valid=False,
+            injected=False, mutation_error=None)
+        result = invoke(value, original_proof, uow, head, record_id, component)
+        value['binding_valid'] = bound(result)
+        if context == 'direct' and callsite in {'apply', 'manual_replay_check'}:
+            observed['proof_calls'].append('returned')
+        if (observed['armed'] and value['phase'] == 'commit' and context == 'direct'
+                and callsite == 'manual_replay_check' and value['exact'] and value['binding_valid']):
+            observed['eligible'].append(value)
+            if not observed['injections']:
+                try:
+                    mutate(uow)
+                except BaseException as error:
+                    value['mutation_error'] = error
+                    raise
+                value['injected'] = True
+                observed['injections'].append('after_final_domain_accepted_manual')
+        return result
+
+    def actor(uow, head, seal):
+        observed['actor_checks'].append('direct_domain_check_actor')
+        value = entry('actors', sys._getframe(1).f_code is final_code
+            and uow is observed['uow'] and head.get('case_id') == case and bound(seal))
+        try:
+            return invoke(value, original_actor, uow, head, seal)
+        except FlowError as error:
+            observed['actor_denials'].append(error.code)
+            raise
+
+    def seal(uow, saved):
+        observed['seal_checks'].append('direct_domain_check_seal')
+        value = entry('seals', sys._getframe(1).f_code is final_code
+            and uow is observed['uow'] and bound(saved))
+        return invoke(value, original_seal, uow, saved)
+
+    with monkeypatch.context() as scoped:
+        scoped.setattr(notification_sources, 'validate_control', validate)
+        scoped.setattr(pass_manual_sources, 'accepted_manual', proof)
+        scoped.setattr(pass_manual_sources, 'check_actor', actor)
+        scoped.setattr(pass_manual_sources, 'check_seal', seal)
+        yield observed
+
+
 @pytest.mark.parametrize('fault', ['founder_disabled', 'preview_seal'])
 def test_PMP05_direct_domain_replay_final_actor_and_seal_checks_reject_and_roll_back(flow_engine, identities, enabled, request, monkeypatch, fault):
-    from returnops_domain import pass_manual_sources
     from returnops_domain.lifecycle_guards import LifecycleGuards
+    from returnops_domain.notification_tables import controls
     case, body, action, at = ready(flow_engine, identities)
     accepted = attempt(flow_engine, identities, case, body, at)
     assert_manual(flow_engine, case, body, accepted, action=action)
     event, original = _original_manual_event(flow_engine, case)
-    original_proof = pass_manual_sources.accepted_manual
-    original_actor = pass_manual_sources.check_actor
-    original_seal = pass_manual_sources.check_seal
-    proof_calls, injections, actor_checks, actor_denials, seal_checks = [], [], [], [], []
-    def proof(uow, *args, **kwargs):
-        result = original_proof(uow, *args, **kwargs)
-        proof_calls.append('returned')
-        if len(proof_calls) == 2:
-            if fault == 'founder_disabled':
-                assert uow.execute(update(old.principals).where(old.principals.c.principal_id ==
-                    identities.people['founder']['principal_id']).values(enabled=False)).rowcount == 1
-            else:
-                assert uow.execute(update(previews).where(previews.c.preview_id == action['preview_id']).values(
-                    request_key='changed_after_domain_final_proof')).rowcount == 1
-            injections.append('after_final_domain_accepted_manual')
-        return result
-    def actor(*args, **kwargs):
-        actor_checks.append('direct_domain_check_actor')
-        try:
-            return original_actor(*args, **kwargs)
-        except FlowError as error:
-            actor_denials.append(error.code)
-            raise
-    def seal(*args, **kwargs):
-        seal_checks.append('direct_domain_check_seal')
-        return original_seal(*args, **kwargs)
-    monkeypatch.setattr(pass_manual_sources, 'accepted_manual', proof)
-    monkeypatch.setattr(pass_manual_sources, 'check_actor', actor)
-    monkeypatch.setattr(pass_manual_sources, 'check_seal', seal)
-    before = snapshot(flow_engine)
-    with CustomerUnitOfWork(flow_engine, write=True) as uow:
-        assert LifecycleGuards(COMPONENT).apply(uow, event, at) == original
-        with pytest.raises(FlowError) as denied:
+    original_work, = [row for row in case_rows(flow_engine, t.work, case)
+                      if row['work_id'] == event.claim.work_id]
+    control, = [row for row in rows(flow_engine, controls)
+                if row['case_id'] == case and row['outcome_record_id'] == event.record_id]
+
+    def mutate(uow):
+        if fault == 'founder_disabled':
+            assert uow.execute(update(old.principals).where(old.principals.c.principal_id ==
+                identities.people['founder']['principal_id']).values(enabled=False)).rowcount == 1
+        else:
+            assert uow.execute(update(previews).where(previews.c.preview_id == action['preview_id']).values(
+                request_key='changed_after_domain_final_proof')).rowcount == 1
+
+    with _observe_manual_final_replay(monkeypatch, case, event, original, original_work,
+                                      control, mutate) as observed:
+        proof_calls, injections = observed['proof_calls'], observed['injections']
+        actor_checks, actor_denials, seal_checks = (
+            observed['actor_checks'], observed['actor_denials'], observed['seal_checks'])
+
+        def assert_proof_contexts():
+            assert not observed['active_controls']
+            assert observed['controls'] and all(value['exact'] and value['returned']
+                and value['error'] is None for value in observed['controls'])
+            assert all(value['exact'] and value['returned'] and value['binding_valid']
+                and value['error'] is None and value['mutation_error'] is None for value in observed['proofs'])
+            assert {(value['phase'], value['context'], value['callsite']) for value in observed['proofs']} == {
+                ('apply', 'control_outcome', 'notification_outcome'), ('apply', 'direct', 'apply'),
+                ('commit', 'control_outcome', 'notification_outcome'), ('commit', 'direct', 'manual_replay_check')}
+            assert all(any(value['control'] is parent for parent in observed['controls'])
+                for value in observed['proofs'] if value['context'] == 'control_outcome')
+            assert [value['phase'] for value in observed['proofs'] if value['context'] == 'direct'] == ['apply', 'commit']
+
+        # Real no-tamper apply+commit proves the original receipt and unchanged
+        # database before arming either fault, including modern control proofs.
+        before = snapshot(flow_engine)
+        with CustomerUnitOfWork(flow_engine, write=True) as uow:
+            observed['uow'] = uow
+            assert LifecycleGuards(COMPONENT).apply(uow, event, at) == original
+            observed['phase'] = 'commit'
             uow.commit()
-        assert denied.value.code == 'INVALID_STATE'
-        with pytest.raises(FlowError):
-            uow.commit()
-    assert proof_calls == ['returned', 'returned']
-    assert injections == ['after_final_domain_accepted_manual']
-    assert actor_checks == ['direct_domain_check_actor']
-    assert actor_denials == (['FORBIDDEN'] if fault == 'founder_disabled' else [])
-    assert seal_checks == ([] if fault == 'founder_disabled' else ['direct_domain_check_seal'])
-    assert snapshot(flow_engine) == before
+        assert snapshot(flow_engine) == before
+        assert_proof_contexts()
+        assert proof_calls == ['returned', 'returned'] and not injections and not observed['eligible']
+        assert actor_checks == ['direct_domain_check_actor'] and not actor_denials
+        assert seal_checks == ['direct_domain_check_seal']
+        assert all(value['exact'] and value['phase'] == 'commit' and value['returned']
+            and value['error'] is None for value in observed['actors'] + observed['seals'])
+        positive_counts = {group:len(observed[group]) for group in ('controls', 'proofs', 'actors', 'seals')}
+        for group in ('controls', 'proofs', 'actors', 'seals', 'proof_calls', 'injections',
+                      'eligible', 'actor_checks', 'actor_denials', 'seal_checks'):
+            observed[group].clear()
+        observed.update(phase='apply', armed=True, uow=None)
+
+        with CustomerUnitOfWork(flow_engine, write=True) as uow:
+            observed['uow'] = uow
+            assert LifecycleGuards(COMPONENT).apply(uow, event, at) == original
+            assert not injections and not observed['eligible']
+            observed['phase'] = 'commit'
+            with pytest.raises(FlowError) as denied:
+                uow.commit()
+            assert denied.value.code == 'INVALID_STATE'
+            with pytest.raises(FlowError) as poisoned:
+                uow.commit()
+        assert_proof_contexts()
+        assert proof_calls == ['returned', 'returned']
+        assert injections == ['after_final_domain_accepted_manual']
+        eligible, = observed['eligible']
+        assert eligible['phase'] == 'commit' and eligible['context'] == 'direct'
+        assert eligible['callsite'] == 'manual_replay_check' and eligible['injected']
+        assert actor_checks == ['direct_domain_check_actor']
+        assert actor_denials == (['FORBIDDEN'] if fault == 'founder_disabled' else [])
+        assert seal_checks == ([] if fault == 'founder_disabled' else ['direct_domain_check_seal'])
+        actor, = observed['actors']
+        assert actor['exact'] and actor['phase'] == 'commit'
+        if fault == 'founder_disabled':
+            assert not actor['returned'] and isinstance(actor['error'], FlowError)
+            assert actor['error'].code == 'FORBIDDEN' and not observed['seals']
+            inner_error = actor['error']
+        else:
+            seal, = observed['seals']
+            assert actor['returned'] and actor['error'] is None
+            assert seal['exact'] and seal['phase'] == 'commit' and not seal['returned']
+            assert isinstance(seal['error'], FlowError) and seal['error'].code == 'INVALID_STATE'
+            inner_error = seal['error']
+        assert denied.value is not inner_error  # UoW converts the callback error.
+        assert poisoned.value.code == 'INTERNAL_ERROR' and poisoned.value is not denied.value
+        assert snapshot(flow_engine) == before
     evidence(request.node.nodeid, before=before, after=snapshot(flow_engine), fault=fault, event=asdict(event),
         proof_calls=proof_calls, injections=injections, actor_checks=actor_checks,
         actor_denials=actor_denials, seal_checks=seal_checks, commit_denial=denied.value.code,
+        positive_proof_counts=positive_counts, injection_phase='commit',
+        injection_callsite='manual_replay_check', inner_denial=inner_error.code,
+        poisoned_commit_denial=poisoned.value.code,
         entrypoint='LifecycleGuards.apply original event; no browser authority or service replay used')
 
 

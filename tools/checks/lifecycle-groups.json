@@ -68,6 +68,7 @@
       "tests/lifecycle/test_transaction_postgresql.py"
     ],
     "notification": [
+      "tests/lifecycle/test_notification_customer_origin_offline.py",
       "tests/lifecycle/test_notification_delivery_postgresql.py",
       "tests/lifecycle/test_notification_execution_proof_postgresql.py",
       "tests/lifecycle/test_notification_fact_alias_postgresql.py",

@@ -106,8 +106,8 @@ def case_view(uow, actor, case_id, now, *, snapshot_ttl=900):
     messages=list(uow.execute(select(t.history).where(t.history.c.case_id==case_id,
         t.history.c.kind=='OUTCOME_MESSAGE',t.history.c.recorded_sequence<=snapshot['highwater'],
         t.history.c.case_version<=snapshot['case_version'])).mappings())
-    if len(messages)>1:
-        raise FlowError('INTERNAL_ERROR')
+    from .notification_projection import current_messages
+    messages=current_messages(uow,head,messages)
     if messages:
         projected=read_revision(uow,messages[0])
         if 'content' in projected:
