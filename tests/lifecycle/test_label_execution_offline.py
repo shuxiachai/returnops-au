@@ -3,7 +3,10 @@ from copy import deepcopy
 from dataclasses import FrozenInstanceError
 from datetime import datetime,timedelta,timezone
 from inspect import signature
+from itertools import permutations
+from types import SimpleNamespace
 import pytest
+from sqlalchemy import BigInteger,Boolean,DateTime,String,text
 from sqlalchemy.schema import CreateTable
 from sqlalchemy.dialects import postgresql
 from returnops_domain import founder_codec as finite
@@ -13,6 +16,7 @@ from returnops_domain.label_execution import LabelExecutionService,LabelExecutio
 from returnops_domain.label_execution_sources import identities,stable,control_payload,confirmation_body,ledger_payload,verify_fact,accepted_payload
 from returnops_domain.label_execution_tables import controls,permissions,ledger,artifact_work,CONTROL_IDS,CONTROL_HASHES,CONTROL_NUMBERS
 from returnops_domain.core_label_mock import Ticket
+from returnops_domain import label_execution_schema as label_schema
 
 
 def reservation():
@@ -116,3 +120,157 @@ def test_LE_G1_G2_ledger_payload_uses_plain_keys_and_exact_accepted_time():
     payload=ledger_payload(row)
     assert all(type(k) is str for k in payload) and 'fact_hash' not in payload
     assert payload['accepted_at']=='2026-10-15T00:00:00.000000Z' and row['accepted_at'] is now
+
+
+def _label_catalog_rows():
+    """Synthetic catalog values for batching tests, not actual PostgreSQL evidence."""
+    result=[]
+    for table in label_schema.metadata.tables.values():
+        columns=[]
+        for column in table.columns:
+            kind=('timestamp with time zone' if isinstance(column.type,DateTime) else
+                  'bigint' if isinstance(column.type,BigInteger) else 'boolean' if isinstance(column.type,Boolean)
+                  else f'character varying({column.type.length})')
+            columns.append(dict(name=column.name,type=kind,notnull=not column.nullable,default=None,
+                                identity='',generated='',collation='default' if isinstance(column.type,String) else None))
+        constraints=[dict(name=table.name+'_pkey',type='p',definition='PRIMARY KEY ('+
+                          ', '.join(c.name for c in table.primary_key)+')')]
+        constraints.extend(dict(name=name,type='c',definition=value) for name,value in label_schema.CHECKS[table.name].items())
+        keys={table.name+'_pkey':(True,tuple(c.name for c in table.primary_key))}
+        for constraint in table.constraints:
+            if constraint.__class__.__name__=='UniqueConstraint':
+                names=tuple(c.name for c in constraint.columns)
+                constraints.append(dict(name=constraint.name,type='u',definition='UNIQUE ('+', '.join(names)+')'))
+                keys[constraint.name]=(True,names)
+        for constraint in table.foreign_key_constraints:
+            elements=list(constraint.elements)
+            constraints.append(dict(name=constraint.name,type='f',definition='FOREIGN KEY ('+
+                ', '.join(e.parent.name for e in elements)+') REFERENCES '+elements[0].column.table.name+
+                '('+', '.join(e.column.name for e in elements)+')'))
+        constraints=[{**item,'validated':True,'deferrable':False,'deferred':False} for item in constraints]
+        keys.update({index.name:(index.unique,tuple(c.name for c in index.columns)) for index in table.indexes})
+        indexes=[dict(name=name,definition=f"CREATE {'UNIQUE ' if unique else ''}INDEX {name} ON descriptor_probe.{table.name} "
+                      f"USING btree ({', '.join(names)})",valid=True,ready=True,immediate=True,nulls_not_distinct=False)
+                 for name,(unique,names) in keys.items()]
+        result.append(dict(table_name=table.name,schema='descriptor_probe',kind='r',persistence='p',rls=False,
+                           force_rls=False,options=None,triggers=0,columns=columns,constraints=constraints,indexes=indexes))
+    return result
+
+
+class _LabelCatalogConnection:
+    def __init__(self, rows, *, error=None, error_stage='execute'):
+        self.rows=rows;self.error=error;self.error_stage=error_stage;self.calls=[]
+        self.dialect=postgresql.dialect()
+
+    def execute(self, statement, parameters):
+        self.calls.append((str(statement),dict(parameters)))
+        if self.error is not None and self.error_stage=='execute':raise self.error
+        return self
+
+    def scalars(self):
+        if self.error is not None and self.error_stage=='scalars':raise self.error
+        return self
+
+    def all(self):
+        if self.error is not None and self.error_stage=='all':raise self.error
+        return deepcopy(self.rows)
+
+
+@pytest.mark.parametrize('order',list(permutations(range(4))))
+def test_LE_G1_descriptor_batch_accepts_all_row_orders_with_one_fixed_query(order):
+    rows=_label_catalog_rows();connection=_LabelCatalogConnection([rows[i] for i in order])
+    assert label_schema.descriptor(connection) is True
+    assert len(connection.calls)==1
+    sql,parameters=connection.calls[0]
+    assert parameters==dict(control_name='lifecycle_label_execution_controls',permission_name='label_provider_permissions',
+                           ledger_name='core_mock_label_ledger',artifact_work_name='lifecycle_label_artifact_work')
+    assert "'table_name', r.relname" in sql and 'n.nspname=current_schema()' in sql
+    assert 'r.relname IN (:control_name, :permission_name, :ledger_name, :artifact_work_name)' in sql
+    assert all(fragment in sql for fragment in ('t.tgrelid=r.oid','a.attrelid=r.oid','c.conrelid=r.oid','i.indrelid=r.oid',
+                                               'ORDER BY a.attnum','ORDER BY c.conname','ORDER BY ix.relname'))
+
+
+@pytest.mark.parametrize('fault',['missing','duplicate','extra','unknown','null_row','list_row','missing_name','int_name','bool_name','null_name'])
+def test_LE_G1_descriptor_batch_rejects_incomplete_ambiguous_or_malformed_rows(fault):
+    rows=_label_catalog_rows()
+    if fault=='missing':rows.pop()
+    elif fault=='duplicate':rows[3]=deepcopy(rows[0])
+    elif fault=='extra':rows.append(deepcopy(rows[0]))
+    elif fault=='unknown':rows[0]['table_name']='unexpected_label_table'
+    elif fault=='null_row':rows[0]=None
+    elif fault=='list_row':rows[0]=[]
+    elif fault=='missing_name':del rows[0]['table_name']
+    else:rows[0]['table_name']={'int_name':1,'bool_name':True,'null_name':None}[fault]
+    connection=_LabelCatalogConnection(rows)
+    assert label_schema.descriptor(connection) is False and len(connection.calls)==1
+
+
+@pytest.mark.parametrize('table_index',range(4))
+@pytest.mark.parametrize('fault',['kind','persistence','rls','force_rls','options','triggers','column_type','notnull','default',
+    'identity','generated','collation','column_order','missing_constraint','constraint_definition','validated','deferrable',
+    'deferred','extra_index','index_definition','valid','ready','immediate','nulls_not_distinct'])
+def test_LE_G1_descriptor_batch_preserves_each_table_structural_checks(table_index,fault):
+    rows=_label_catalog_rows();row=rows[table_index]
+    if fault in {'kind','persistence','rls','force_rls','options','triggers'}:
+        row[fault]={'kind':'v','persistence':'u','rls':True,'force_rls':True,'options':['fillfactor=70'],'triggers':1}[fault]
+    elif fault in {'column_type','notnull','default','identity','generated','collation'}:
+        field='type' if fault=='column_type' else fault
+        row['columns'][0][field]={'column_type':'text','notnull':False,'default':'0','identity':'a','generated':'s','collation':'C'}[fault]
+    elif fault=='column_order':row['columns'].reverse()
+    elif fault=='missing_constraint':row['constraints'].pop()
+    elif fault=='constraint_definition':row['constraints'][0]['definition']='PRIMARY KEY (wrong_id)'
+    elif fault in {'validated','deferrable','deferred'}:row['constraints'][0][fault]=fault!='validated'
+    elif fault=='extra_index':row['indexes'].append(deepcopy(row['indexes'][0]))
+    elif fault=='index_definition':row['indexes'][0]['definition']='CREATE INDEX wrong_index'
+    else:row['indexes'][0][fault]=fault=='nulls_not_distinct'
+    connection=_LabelCatalogConnection(rows)
+    assert label_schema.descriptor(connection) is False and len(connection.calls)==1
+
+
+@pytest.mark.parametrize('anchor',["SELECT jsonb_build_object(","r.relname='lifecycle_execution_preparations'",
+                                 "'identity', a.attidentity, 'generated', a.attgenerated)"])
+@pytest.mark.parametrize('fault',['missing','duplicate'])
+def test_LE_G1_descriptor_batch_refuses_changed_query_anchors_before_io(monkeypatch,anchor,fault):
+    source=label_schema.CATALOG.text
+    changed=source.replace(anchor,'changed_anchor',1) if fault=='missing' else source+' '+anchor
+    monkeypatch.setattr(label_schema,'CATALOG',text(changed))
+    connection=_LabelCatalogConnection(_label_catalog_rows())
+    assert label_schema.descriptor(connection) is False and connection.calls==[]
+
+
+@pytest.mark.parametrize('fault',['missing','duplicate','extra','unknown'])
+def test_LE_G1_descriptor_batch_requires_one_exact_metadata_snapshot(monkeypatch,fault):
+    tables=list(label_schema.metadata.tables.values())
+    if fault=='missing':tables.pop()
+    elif fault=='duplicate':tables[3]=tables[0]
+    elif fault=='extra':tables.append(tables[0])
+    else:tables[0]=SimpleNamespace(name='unexpected_label_table')
+    calls=[]
+    class Once:
+        def values(self):
+            calls.append('values')
+            assert len(calls)==1
+            return iter(tables)
+    monkeypatch.setattr(label_schema,'metadata',SimpleNamespace(tables=Once()))
+    connection=_LabelCatalogConnection([])
+    assert label_schema.descriptor(connection) is False and connection.calls==[] and calls==['values']
+
+
+@pytest.mark.parametrize('stage',['execute','scalars','all'])
+def test_LE_G1_descriptor_batch_propagates_original_error_without_retry(stage):
+    from sqlalchemy.exc import OperationalError
+    error=OperationalError('synthetic catalog query',{},RuntimeError('synthetic driver failure'))
+    connection=_LabelCatalogConnection(_label_catalog_rows(),error=error,error_stage=stage)
+    with pytest.raises(OperationalError) as caught:label_schema.descriptor(connection)
+    assert caught.value is error and len(connection.calls)==1
+
+
+def test_LE_G1_descriptor_batch_reads_fresh_after_success_and_after_failure():
+    original=_label_catalog_rows();connection=_LabelCatalogConnection(original)
+    assert label_schema.descriptor(connection) is True
+    connection.rows=deepcopy(original);connection.rows[1]['columns'][0]['default']='changed'
+    assert label_schema.descriptor(connection) is False
+    connection.rows=original
+    assert label_schema.descriptor(connection) is True and len(connection.calls)==3
+    separate=_LabelCatalogConnection(connection.rows)
+    assert label_schema.descriptor(separate) is True and len(separate.calls)==1

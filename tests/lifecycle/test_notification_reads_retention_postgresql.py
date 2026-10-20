@@ -25,6 +25,7 @@ from returnops_domain.notification_mock import CoreMockNotification
 from returnops_domain.notification_tables import controls, facts
 from returnops_domain.retention import RetentionService
 from returnops_domain.return_execution_tables import ledger as return_facts
+from returnops_domain import founder_codec as finite
 from returnops_domain.wire import validate
 
 
@@ -212,7 +213,9 @@ def _get(client, path, identities, role='customer_a', params=None, schema=None):
     response = client.get(path, headers=_headers(identities, role), params=params)
     assert response.status_code == 200, response.text
     body = response.json()
-    if schema is not None:
+    if schema in {'CaseView', 'FounderHistoryPage'}:
+        finite.validate(schema, body)
+    elif schema is not None:
         validate(schema, body)
     assert response.headers['Cache-Control'] == 'no-store'
     return body
