@@ -37,6 +37,8 @@ def test_late_both_effect_successes_preserve_accepted_outcome_and_notification(f
 
 
 @pytest.mark.parametrize('status',['ACTION_IN_PROGRESS','RECONCILING'])
+# Historical v1 synthetic delivery compatibility; actual v2 delivery has separate oracles.
+@pytest.mark.parametrize('flow_engine',['0013_label_artifact_result'],indirect=True)
 def test_current_saved_return_label_then_matching_sent_is_completed(flow_engine,identities,enabled,status):
     original=ready(flow_engine,identities);case=original['case_id'];operations=existing_execution(flow_engine,identities,case)
     with CustomerUnitOfWork(flow_engine,write=True) as uow:

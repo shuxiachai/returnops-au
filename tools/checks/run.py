@@ -26,6 +26,7 @@ LIFECYCLE_GROUPS = {
     "label_artifact": 8,
     "label_execution_bridge": 8,
     "lifecycle_core": 14,
+    "notification": 10,
 }
 PARTS = ("foundation", *LIFECYCLE_GROUPS)
 MANIFEST = Path("tools/checks/lifecycle-groups.json")
@@ -145,7 +146,7 @@ def ci_matrix(root: Path | None = None) -> dict:
 
 
 def validate_ci_needs(raw: str, matrix: dict) -> None:
-    """Require all dependency results and the exact seven-part plan."""
+    """Require all dependency results and the exact eight-part plan."""
     try:
         needs = json.loads(raw, object_pairs_hook=_unique_object)
         required = {"offline-contract-models", "environment-plan", "environment-checks"}
@@ -160,7 +161,7 @@ def validate_ci_needs(raw: str, matrix: dict) -> None:
         if planned != matrix:
             raise ValueError("Unexpected CI matrix.")
     except (ValueError, TypeError, KeyError) as exc:
-        raise ValueError("CI gate requires successful offline, plan and all seven environment parts.") from exc
+        raise ValueError("CI gate requires successful offline, plan and all eight environment parts.") from exc
 
 
 def build_steps(
@@ -266,7 +267,7 @@ def main(argv: list[str] | None = None) -> int:
     baseline.add_argument("--skip-baseline", action="store_true", help="disclose and skip only the independent Git WBS comparison")
     environment = groups.add_parser("environment", help="migrate DATABASE_URL and test API/PostgreSQL infrastructure")
     environment.add_argument("--part", choices=PARTS, help="one validated CI part; omit for all eight existing steps")
-    groups.add_parser("ci-matrix", help="validate lifecycle file coverage and print the seven CI parts")
+    groups.add_parser("ci-matrix", help="validate lifecycle file coverage and print the eight CI parts")
     groups.add_parser("ci-gate", help="require strict success of all CI dependencies from CI_NEEDS_JSON")
     args = parser.parse_args(argv)
     try:
@@ -276,7 +277,7 @@ def main(argv: list[str] | None = None) -> int:
                 print(json.dumps(matrix, separators=(",", ":")))
             else:
                 validate_ci_needs(os.environ.get("CI_NEEDS_JSON", ""), matrix)
-                print("PASS offline, plan and all seven environment parts.")
+                print("PASS offline, plan and all eight environment parts.")
             return 0
         steps = build_steps(args.mode, getattr(args, "baseline_ref", "HEAD"),
                             getattr(args, "skip_baseline", False),

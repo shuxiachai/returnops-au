@@ -479,6 +479,8 @@ def test_R04_exact_replay_and_changed_request_conflicts(flow_engine, identities,
 
 
 @pytest.mark.parametrize('changed', ['FAILED','PENDING','SENT'])
+# Historical v1 synthetic delivery compatibility; actual v2 delivery has separate oracles.
+@pytest.mark.parametrize('flow_engine',['0013_label_artifact_result'],indirect=True)
 def test_R06_later_notification_does_not_replace_original_receipt(flow_engine,identities,enabled,request,changed):
     from reject_helpers import provision_notification
     from synthetic_sources import notify
@@ -516,6 +518,8 @@ def test_R06_retention_never_reconstructs_reject(flow_engine,identities,enabled,
 
 @pytest.mark.parametrize('mode', ['receipt_missing','receipt_unavailable','receipt_body','original_note_missing',
     'original_note_binding','original_note_body','decision_body','acceptance_time'])
+# Historical v1 synthetic delivery compatibility; actual v2 delivery has separate oracles.
+@pytest.mark.parametrize('flow_engine',['0013_label_artifact_result'],indirect=True)
 def test_R06_missing_original_data_never_rebuilt(flow_engine,identities,enabled,request,mode):
     from datetime import timedelta
     from reject_helpers import provision_notification

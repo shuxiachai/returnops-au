@@ -66,6 +66,18 @@
       "tests/lifecycle/test_reads_postgresql.py",
       "tests/lifecycle/test_review_escalation_postgresql.py",
       "tests/lifecycle/test_transaction_postgresql.py"
+    ],
+    "notification": [
+      "tests/lifecycle/test_notification_delivery_postgresql.py",
+      "tests/lifecycle/test_notification_execution_proof_postgresql.py",
+      "tests/lifecycle/test_notification_fact_alias_postgresql.py",
+      "tests/lifecycle/test_notification_fact_offline.py",
+      "tests/lifecycle/test_notification_guards_postgresql.py",
+      "tests/lifecycle/test_notification_legacy_postgresql.py",
+      "tests/lifecycle/test_notification_profile_offline.py",
+      "tests/lifecycle/test_notification_reads_retention_postgresql.py",
+      "tests/lifecycle/test_notification_schema_postgresql.py",
+      "tests/lifecycle/test_notification_transactions_postgresql.py"
     ]
   }
 }

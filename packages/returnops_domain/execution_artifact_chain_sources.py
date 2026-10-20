@@ -25,7 +25,7 @@ from .approve_sources import accepted_approval,execution_identity
 from .execution_preparation_sources import (identities as preparation_ids, request_fingerprint as preparation_request_fingerprint,
     operation as preparation_operation, audit_payload as preparation_audit_payload)
 from .lifecycle_effects import fingerprint
-from .lifecycle_schema import ARTIFACT,version
+from .lifecycle_schema import ARTIFACT, ARTIFACT_VERSIONS,version
 from .wire import validate
 
 def approval_receipt_0013(uow, actor, head, seal, original_key):
@@ -45,6 +45,11 @@ def approval_receipt_0013(uow, actor, head, seal, original_key):
         digest(request, 'founder-approve-request/v1'), check_resource=resource)
     if fact is None:
         raise AdmissionUncertain()
+    return _approval_receipt_fact(uow, head, seal, fact)
+
+
+def _approval_receipt_fact(uow, head, seal, fact):
+    decision, approval, event = seal['decision'], seal['body'], seal['event']
     status, receipt = idempotency.original_receipt(uow, fact)
     validate('DecisionReceipt', receipt, internal=True)
     expected = dict(case_id=head['case_id'], case_version=event['case_version'],
@@ -73,12 +78,16 @@ def approval_receipt_0013(uow, actor, head, seal, original_key):
 
 
 def preparation_root_0013(uow, actor, head, row, original_key):
+    return _preparation_material(uow, head, row, _ExecutionCaller(actor, original_key))
+
+
+def _preparation_material(uow, head, row, context):
     """Same retained first record/binding proof, without claiming no continuation.
 
     This 0013 copy changes only the receipt inventory to its original acceptance
     point. All frozen0011/0012 readers and their stronger old inventory remain.
     """
-    if version(uow.connection) != ARTIFACT:
+    if version(uow.connection) not in ARTIFACT_VERSIONS:
         reject(uow)
     work_id = row['approval_execution_work_id']; stable_ids = preparation_ids(work_id)
     if (row['case_id'] != head['case_id'] or any(row[name] != value for name, value in stable_ids.items())
@@ -88,7 +97,7 @@ def preparation_root_0013(uow, actor, head, row, original_key):
     record, body = sources.read(row['first_operation_record_id'], {'OPERATION'}, current_actor=False)
     execution = one(uow, life.work, work_id=work_id)
     approval = accepted_approval(uow, head, execution['target_record_id'], policy.APPROVAL_COMPONENT)
-    receipt = approval_receipt_0013(uow, actor, head, approval, original_key)
+    receipt = context.receipt(uow, head, approval, row['original_approval_acceptance_id'])
     command = approval['body']['scope']['commands'][0]
     proof = dict(approval=approval, original_receipt=receipt,
         operation_fingerprint=fingerprint(dict(approval_id=approval['body']['approval_id'],
@@ -123,8 +132,12 @@ def preparation_root_0013(uow, actor, head, row, original_key):
 
 
 def _return_chain_proof(uow, actor, head, row, original_key, *, creating=False):
+    return _return_material(uow, head, row, _ExecutionCaller(actor, original_key), creating=creating)
+
+
+def _return_material(uow, head, row, context, *, creating=False):
     """Complete exact N1 root + two/three N2 revisions, or retained identity only."""
-    control_identity(uow, actor, head, row, original_key)
+    context.return_identity(uow, head, row)
     existing_fact = uow.execute(select(ledger).where(ledger.c.effect_key == row['effect_key'])).mappings().one_or_none()
     if existing_fact is not None:
         verify_fact(uow, row, existing_fact)
@@ -172,7 +185,7 @@ def _return_chain_proof(uow, actor, head, row, original_key, *, creating=False):
         reject(uow)
     root = None
     if row['source_available']:
-        root = preparation_root_0013(uow, actor, head, prep, original_key)
+        root = _preparation_material(uow, head, prep, context)
         if (root['approval']['record']['record_id'] != row['approval_record_id']
                 or root['original_receipt']['fact']['acceptance_id'] != row['approval_acceptance_id']
                 or root['operation_fingerprint'] != row['operation_fingerprint']):
@@ -261,8 +274,12 @@ from .label_execution_sources import (control_identity as label_identity, verify
     accepted_payload as label_accepted,artifact_values,confirmation_body,COMPONENT as LABEL_COMPONENT)
 from .label_execution_tables import ledger as label_ledger,artifact_work
 def _validate_label_chain(uow, actor, head, row, original_key, returned, root, bridge):
+    return _label_material(uow, head, row, returned, root, bridge, _ExecutionCaller(actor, original_key))
+
+
+def _label_material(uow, head, row, returned, root, bridge, context):
     """Private lower proof invoked only inside the exact 0012 aggregate."""
-    label_identity(uow, actor, head, row, original_key)
+    context.label_identity(uow, head, row)
     source = bridge['source']; receipt = bridge['accepted']['receipt']
     expected_binding = dict(execution_work_id=returned['execution_work_id'],
         approval_record_id=returned['approval_record_id'], approval_acceptance_id=returned['approval_acceptance_id'],
@@ -451,13 +468,17 @@ def historical_material(uow,head,root):
 
 
 def return_continuation(uow,actor,head,row,original_key,*,creating=False):
+    return _continuation_material(uow, head, row, _ExecutionCaller(actor, original_key), creating=creating)
+
+
+def _continuation_material(uow, head, row, context, *, creating=False):
     from .label_execution_tables import controls as labels,artifact_work,ledger as label_ledger
     from .label_artifact_tables import artifacts,controls as recovery,claims,contents
     from .generated_evidence import verify_certificate,partition_evidence
     from .label_artifact_history import effect_values
     from .label_artifact_sources import validate_control,claim_hash
-    root=_return_chain_proof(uow,actor,head,row,original_key,creating=creating)
-    bridge=historical_bridge(uow,actor,head,row,root)
+    root=_return_material(uow,head,row,context,creating=creating)
+    bridge=context.bridge(uow,head,row,root)
     # The original RETURN_SOURCE bridge owns one fully proved EFFECT producer.
     # Generated artifacts own none. Derive the entire allowed inventory from
     # that existing proof, never from a caller or an event-name exception.
@@ -475,7 +496,7 @@ def return_continuation(uow,actor,head,row,original_key,*,creating=False):
     if found:
         label=dict(found[0])
         if bridge is None or creating:reject(uow)
-        expected+=_validate_label_chain(uow,actor,head,label,original_key,row,root,bridge)
+        expected+=_label_material(uow,head,label,row,root,bridge,context)
         works=list(uow.execute(select(artifact_work).where(artifact_work.c.case_id==head['case_id'])).mappings())
         for work in works:
             control=uow.execute(select(recovery).where(recovery.c.work_id==work['work_id'])).mappings().one_or_none()
@@ -520,3 +541,24 @@ def return_continuation(uow,actor,head,row,original_key,*,creating=False):
     if root is not None:historical_material(uow,head,root)
     return root
 
+
+
+class _ExecutionCaller:
+    """Existing execution entry points keep their actual actor and original key."""
+    def __init__(self, actor, key):
+        self.actor, self.key = actor, key
+
+    def receipt(self, uow, head, approval, acceptance_id):
+        result = approval_receipt_0013(uow, self.actor, head, approval, self.key)
+        if result['fact']['acceptance_id'] != acceptance_id:
+            reject(uow)
+        return result
+
+    def return_identity(self, uow, head, row):
+        control_identity(uow, self.actor, head, row, self.key)
+
+    def label_identity(self, uow, head, row):
+        label_identity(uow, self.actor, head, row, self.key)
+
+    def bridge(self, uow, head, row, root):
+        return historical_bridge(uow, self.actor, head, row, root)

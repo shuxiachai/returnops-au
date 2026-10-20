@@ -49,6 +49,8 @@ jobs:
         run: python -B -m pytest tests/customer/test_evidence_validation.py tests/customer/test_codec_and_dto.py tests/customer/test_foundation_guards.py -q
       - name: Check mock label PDF renderer and validator without a database
         run: python -B -m pytest tests/unit/test_label_pdf.py tests/unit/test_label_pdf_validation.py -q
+      - name: Check notification profile and independent fact integrity without a database
+        run: python -B -m pytest --noconftest tests/lifecycle/test_notification_profile_offline.py tests/lifecycle/test_notification_fact_offline.py -q
       - name: Build and import installed packages outside checkout
         run: python -B tools/checks/check-installed.py
       - name: Check PR against its base WBS
@@ -117,13 +119,13 @@ jobs:
           python -m pip install --require-hashes -r requirements-dev.lock
           python -m pip install --no-deps --no-build-isolation -e .
           python -m pip check
-      - name: Check affected manual notification fixtures before the full suite
+      - name: Check historical manual notification fixtures before the full suite
         if: matrix.part == 'foundation'
         # These 12 nodes also remain in their complete lifecycle file groups.
         run: |
           unset MANUAL_EVIDENCE_DIR
           python -B -m pytest \
-            'tests/lifecycle/test_guards_postgresql.py::test_saved_notification_pending_failed_sent_keeps_identity_and_has_no_effects[head-MANUAL_HANDLING-MANUAL_HANDLED]' \
+            'tests/lifecycle/test_guards_postgresql.py::test_saved_notification_pending_failed_sent_keeps_identity_and_has_no_effects[0013_label_artifact_result-MANUAL_HANDLING-MANUAL_HANDLED]' \
             'tests/lifecycle/test_guards_postgresql.py::test_notification_cannot_change_frozen_identity_or_payload' \
             'tests/lifecycle/test_guards_postgresql.py::test_new_decision_rechecks_causal_founder_current_principal' \
             'tests/lifecycle/test_guards_postgresql.py::test_notification_retry_uses_current_service_not_expired_original_human_authority' \

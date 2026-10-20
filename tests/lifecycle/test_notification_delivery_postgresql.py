@@ -1,0 +1,141 @@
+"""Cloud-only actual three-outcome delivery, query recovery and no-effect retry."""
+from dataclasses import asdict
+import pytest
+from sqlalchemy import select, update
+from returnops_domain import customer_tables as old, lifecycle_tables as life
+from returnops_domain.customer_uow import CustomerUnitOfWork
+from returnops_domain.errors import AcceptanceOutcomeUnknown
+from returnops_domain.notification_mock import CoreMockNotification
+from returnops_domain.notification_tables import controls, facts
+from returnops_domain.notification_profile import COMPONENT
+from notification_helpers import ready, service, rows, snapshot, evidence, pdf_call_counts
+
+
+class NoEffect(CoreMockNotification):
+    def _outcome(self):
+        return 'NO_EFFECT_FAILED'
+
+
+class LostReply(CoreMockNotification):
+    def deliver(self,reservation_id):
+        found=super().deliver(reservation_id)
+        assert found is not None
+        raise AcceptanceOutcomeUnknown()
+
+
+class NoSend(CoreMockNotification):
+    def deliver(self,reservation_id):
+        return None
+
+
+@pytest.mark.parametrize('kind',['return','reject','manual_pass','manual_escalated',
+                                'manual_failure','manual_block','manual_intake','manual_assessment'])
+def test_actual_producers_send_one_independent_fact_and_terminal_outcome(
+        flow_engine,identities,enabled,request,kind):
+    setup=ready(flow_engine,identities,kind)
+    before=snapshot(flow_engine)
+    with pdf_call_counts() as calls:
+        delivered=service(flow_engine,identities).send(setup['work_id'])
+    assert delivered.status=='SENT',asdict(delivered)
+    saved=rows(flow_engine,facts)
+    assert len(saved)==1 and saved[0]['status']=='SENT'
+    control=rows(flow_engine,controls)[0]
+    assert saved[0]['fact_id']==control['accepted_fact_id']
+    assert saved[0]['notification_work_id']==setup['work_id']
+    assert control['notification_id']==setup['control']['notification_id']
+    assert control['logical_key']==setup['control']['logical_key']
+    assert control['attempt_count']==saved[0]['attempt_count']==1
+    head=rows(flow_engine,old.case_heads)[0]
+    assert head['status']==('COMPLETED' if kind=='return' else 'REJECTED' if kind=='reject' else 'MANUAL_HANDLED')
+    assert all(calls[name]==0 for name in ('render','text_line','assembly','expected_pdf',
+                                          'return_provider','label_provider','artifact_retrieval'))
+    after=snapshot(flow_engine)
+    for name in ('lifecycle_effect_refs','core_mock_return_ledger','core_mock_label_ledger',
+                 'generated_label_artifact_contents','generated_label_artifacts'):
+        assert after[name]==before[name]
+    for _ in range(2):
+        assert service(flow_engine,identities).reconcile(setup['work_id']).status=='SENT'
+        assert service(flow_engine,identities).send(setup['work_id']).status=='SENT'
+    assert snapshot(flow_engine)==after
+    evidence(request.node.nodeid,kind=kind,result=asdict(delivered),before=before,after=after,
+             independent_fact=saved[0]['fact_id'],actual_calls=calls)
+
+
+def test_unknown_missing_fact_queries_only_and_never_authorizes_retry(flow_engine,identities,enabled,request):
+    setup=ready(flow_engine,identities)
+    initial=service(flow_engine,identities,mock=NoSend(flow_engine)).send(setup['work_id'])
+    assert initial.status=='UNKNOWN'
+    assert rows(flow_engine,facts)==[]
+    before=snapshot(flow_engine)
+    class ForbiddenSend(CoreMockNotification):
+        def deliver(self,*args):
+            pytest.fail('UNKNOWN recovery invoked sender')
+    caller=service(flow_engine,identities,mock=ForbiddenSend(flow_engine))
+    assert caller.send(setup['work_id']).status=='UNKNOWN'
+    assert caller.reconcile(setup['work_id']).status=='UNKNOWN'
+    version=rows(flow_engine,old.case_heads)[0]['case_version']
+    assert caller.retry(setup['work_id'],version).status=='UNKNOWN'
+    assert snapshot(flow_engine)==before
+    evidence(request.node.nodeid,result=asdict(initial),before=before,after=snapshot(flow_engine))
+
+
+def test_lost_t2_reply_restores_t3_from_original_fact_without_another_send(flow_engine,identities,enabled,request):
+    setup=ready(flow_engine,identities)
+    unknown=service(flow_engine,identities,mock=LostReply(flow_engine)).send(setup['work_id'])
+    assert unknown.status=='UNKNOWN'
+    original_fact=rows(flow_engine,facts)
+    assert len(original_fact)==1 and original_fact[0]['status']=='SENT'
+    class QueryOnly(CoreMockNotification):
+        def deliver(self,*args):pytest.fail('Recovery attempted another send')
+    recovered=service(flow_engine,identities,mock=QueryOnly(flow_engine)).reconcile(setup['work_id'])
+    assert recovered.status=='SENT',asdict(recovered)
+    assert rows(flow_engine,facts)==original_fact
+    after=snapshot(flow_engine)
+    assert service(flow_engine,identities).reconcile(setup['work_id']).status=='SENT'
+    assert snapshot(flow_engine)==after
+    evidence(request.node.nodeid,unknown=asdict(unknown),recovered=asdict(recovered),fact=original_fact)
+
+
+@pytest.mark.parametrize('caller',['founder','customer_a','customer_b',None])
+def test_retry_needs_current_founder_and_preserves_original_delivery_identity(
+        flow_engine,identities,enabled,request,caller):
+    setup=ready(flow_engine,identities)
+    failed=service(flow_engine,identities,mock=NoEffect(flow_engine)).send(setup['work_id'])
+    assert failed.status=='NO_EFFECT_FAILED',asdict(failed)
+    before=snapshot(flow_engine)
+    head=rows(flow_engine,old.case_heads)[0]
+    retried=service(flow_engine,identities,caller).retry(setup['work_id'],head['case_version'])
+    if caller!='founder':
+        assert retried.status=='UNKNOWN' and snapshot(flow_engine)==before
+    else:
+        assert retried.status=='READY'
+        assert service(flow_engine,identities).send(setup['work_id']).status=='SENT'
+        control=rows(flow_engine,controls)[0]
+        assert control['notification_work_id']==setup['work_id']
+        assert control['notification_id']==setup['control']['notification_id']
+        assert control['logical_key']==setup['control']['logical_key']
+        assert control['attempt_count']==2
+        saved=sorted(rows(flow_engine,facts),key=lambda row:row['attempt_count'])
+        assert [row['status'] for row in saved]==['NO_EFFECT_FAILED','SENT']
+        assert len({row['reservation_id'] for row in saved})==2
+        assert len({row['logical_key'] for row in saved})==1
+        assert rows(flow_engine,life.effects)==[]
+    evidence(request.node.nodeid,caller=caller,result=asdict(retried),before=before,after=snapshot(flow_engine))
+
+
+@pytest.mark.parametrize('fault',['service_disabled','service_revision','owner_disabled','owner_store'])
+def test_delivery_current_authority_cannot_be_borrowed_from_saved_intent(
+        flow_engine,identities,enabled,request,fault):
+    setup=ready(flow_engine,identities)
+    with CustomerUnitOfWork(flow_engine,write=True) as uow:
+        if fault.startswith('service'):
+            uow.execute(update(life.authorities).where(life.authorities.c.component_id==COMPONENT).values(
+                **({'enabled':False} if fault=='service_disabled' else {'enabled':False,'revision':2})))
+        else:
+            uow.execute(update(old.principals).where(old.principals.c.principal_id==setup['control']['owner_id']).values(
+                **({'enabled':False} if fault=='owner_disabled' else {'store_id':'unrelated_store'})))
+        uow.commit()
+    before=snapshot(flow_engine)
+    denied=service(flow_engine,identities).send(setup['work_id'])
+    assert denied.status=='UNKNOWN' and snapshot(flow_engine)==before and rows(flow_engine,facts)==[]
+    evidence(request.node.nodeid,fault=fault,result=asdict(denied),before=before,after=snapshot(flow_engine))

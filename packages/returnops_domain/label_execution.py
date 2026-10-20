@@ -105,8 +105,8 @@ class LabelExecutionService:
         head = authorization[1]; before = closure(uow,head['case_id'])
         self._final(uow,authorization,head,before,work_id,key,row,phase)
         latest = None
-        from .lifecycle_schema import ARTIFACT, version
-        if row is not None and version(uow.connection)==ARTIFACT and row['confirmed_effect_status']=='SUCCEEDED':
+        from .lifecycle_schema import ARTIFACT, ARTIFACT_VERSIONS, version
+        if row is not None and version(uow.connection) in ARTIFACT_VERSIONS and row['confirmed_effect_status']=='SUCCEEDED':
             from .label_artifact_tables import artifacts
             from .generated_evidence import verify_certificate
             completed=uow.execute(select(artifacts.c.evidence_id).where(

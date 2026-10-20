@@ -157,7 +157,7 @@ class GroupingTests(unittest.TestCase):
         foundation = runner.build_steps("environment", part="foundation", root=self.root)
         self.assertEqual([argv for _, argv in foundation], expected[:-1])
 
-    def test_six_groups_use_each_explicit_file_once_and_preserve_in_group_order(self):
+    def test_seven_groups_use_each_explicit_file_once_and_preserve_in_group_order(self):
         selected = []
         default = runner.build_steps("environment")
         for part, files in self.manifest["groups"].items():
@@ -169,14 +169,14 @@ class GroupingTests(unittest.TestCase):
                                                "-q", "--tb=short", "-x", "-p",
                                                "tools.checks.lifecycle_progress"])
                 selected.extend(steps[-1][1][4:-5])
-        self.assertEqual(len(selected), 54)
-        self.assertEqual(len(set(selected)), 54)
+        self.assertEqual(len(selected), 64)
+        self.assertEqual(len(set(selected)), 64)
         self.assertEqual(set(selected), runner._collection_inventory(self.root))
 
-    def test_matrix_is_exactly_seven_includes_and_cli_does_not_spawn(self):
+    def test_matrix_is_exactly_eight_includes_and_cli_does_not_spawn(self):
         expected = {"include": [{"part": part} for part in (
             "foundation", "execution", "founder_manual", "founder_revision",
-            "label_artifact", "label_execution_bridge", "lifecycle_core")]}
+            "label_artifact", "label_execution_bridge", "lifecycle_core", "notification")]}
         self.assertEqual(runner.ci_matrix(self.root), expected)
         output = io.StringIO()
         with patch.object(runner, "ROOT", self.root), patch.object(runner.subprocess, "run") as execute:

@@ -267,6 +267,8 @@ def test_PMP06_expired_preview_replacement_and_manual_serialize(flow_engine, ide
 
 
 @pytest.mark.parametrize('later_notification', [False, True])
+# Historical v1 synthetic delivery compatibility; actual v2 delivery has separate oracles.
+@pytest.mark.parametrize('flow_engine',['0013_label_artifact_result'],indirect=True)
 def test_PMP05_direct_domain_original_event_replay_is_read_only(flow_engine, identities, enabled, request, later_notification):
     from returnops_domain.lifecycle_guards import LifecycleGuards
     from synthetic_sources import notify

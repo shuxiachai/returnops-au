@@ -32,7 +32,10 @@ def test_real_0005_upgrade_and_repeat_preserve_all_existing_business_bytes(flow_
     artifact_added = label_artifact_tables.metadata.tables
     assert set(artifact_added) == {'label_artifact_permissions','lifecycle_label_artifact_controls',
         'lifecycle_label_artifact_claims','generated_label_artifacts','generated_label_artifact_contents'}
-    added = {**artifact_added, **lifecycle.metadata.tables, **preview.metadata.tables, **preparation.metadata.tables,
+    from returnops_domain import notification_tables
+    notification_added=notification_tables.metadata.tables
+    assert set(notification_added)=={'notification_delivery_controls','core_mock_notification_facts'}
+    added = {**notification_added, **artifact_added, **lifecycle.metadata.tables, **preview.metadata.tables, **preparation.metadata.tables,
              **execution.metadata.tables, **label_added}
     assert {name: value for name,value in after.items() if name not in added} == before
     assert set(after)-set(before) == set(added)
@@ -42,5 +45,5 @@ def test_real_0005_upgrade_and_repeat_preserve_all_existing_business_bytes(flow_
     assert view['order_lookup_block']['status'] == 'CONFLICT'
     assert bool(view['statements']) is (not remove)
     with flow_engine.connect() as connection:
-        assert connection.execute(text('SELECT version_num FROM alembic_version')).scalar_one() == '0013_label_artifact_result'
+        assert connection.execute(text('SELECT version_num FROM alembic_version')).scalar_one() == '0014_notification_delivery'
     assert business_fingerprints(flow_engine) == after

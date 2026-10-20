@@ -13,8 +13,10 @@ PREPARATION = '0010_execution_preparation'
 EXECUTION = '0011_return_execution'
 LABEL = '0012_label_execution'
 ARTIFACT = '0013_label_artifact_result'
-CURRENT = ARTIFACT
-LABEL_VERSIONS = frozenset({LABEL, ARTIFACT})
+NOTIFICATION = '0014_notification_delivery'
+CURRENT = NOTIFICATION
+ARTIFACT_VERSIONS = frozenset({ARTIFACT, NOTIFICATION})
+LABEL_VERSIONS = frozenset({LABEL, *ARTIFACT_VERSIONS})
 EXECUTION_VERSIONS = frozenset({EXECUTION, *LABEL_VERSIONS})
 PREPARATION_VERSIONS = frozenset({PREPARATION, *EXECUTION_VERSIONS})
 APPROVAL_VERSIONS = frozenset({APPROVAL, *PREPARATION_VERSIONS})
@@ -53,8 +55,11 @@ def version(connection):
     if revisions[0] in LABEL_VERSIONS:
         from .label_execution_tables import metadata
         expected.update(metadata.tables)
-    if revisions[0] == ARTIFACT:
+    if revisions[0] in ARTIFACT_VERSIONS:
         from .label_artifact_tables import metadata
+        expected.update(metadata.tables)
+    if revisions[0] == NOTIFICATION:
+        from .notification_tables import metadata
         expected.update(metadata.tables)
     if names != expected:
         return None
@@ -81,8 +86,12 @@ def version(connection):
         from .label_execution_schema import descriptor
         if not descriptor(connection):
             return None
-    if revisions[0] == ARTIFACT:
+    if revisions[0] in ARTIFACT_VERSIONS:
         from .label_artifact_schema import descriptor
+        if not descriptor(connection):
+            return None
+    if revisions[0] == NOTIFICATION:
+        from .notification_schema import descriptor
         if not descriptor(connection):
             return None
     return revisions[0]

@@ -118,6 +118,11 @@ def accepted_reject(uow, head, record_id, component):
     note_work = uow.execute(select(t.work).where(t.work.c.case_id == head['case_id'],
         t.work.c.purpose == 'NOTIFICATION', t.work.c.generation == claim.generation,
         t.work.c.target_hash == target(original_head, note_state, 'NOTIFICATION'))).mappings().one_or_none()
+    if note_work is None:
+        reject(uow)
+    from .notification_intent import accepted_initial_format
+    note_format, note_payload, note_component = accepted_initial_format(
+        uow, head, note_work, note_row, row, component, 'REJECTED', MESSAGE, expected_payload)
     if (any(binding[k] != v or note_binding[k] != v for k, v in identity.items())
             or work['component_id'] != component or work['purpose'] != 'OUTCOME'
             or work['case_id'] != head['case_id'] or work['state'] != 'DONE' or work['epoch'] < 1
@@ -138,11 +143,11 @@ def accepted_reject(uow, head, record_id, component):
             or note_row['recorded_at'] != event['accepted_at'] or note['notification_id'] != note_row['object_id']
             or note['case_id'] != head['case_id'] or note['case_version'] != claim.case_version
             or note['status'] != 'PENDING' or note['outcome'] != 'REJECTED' or note['attempt_count'] != 0
-            or note['message'] != MESSAGE or note['next_steps'] != []
+            or note['message'] != note_format['message'] or note['next_steps'] != note_format['next_steps']
             or note['updated_at'] != timestamp(event['accepted_at'])
             or note_origin['actor'] != {'kind':'SERVICE', 'component_id':component}
             or note_origin['event_type'] != 'NOTIFICATION_REVISION_RECORDED'
-            or note_origin['payload_hash'] != digest(expected_payload, 'audit-payload/v1')
+            or note_origin['payload_hash'] != digest(note_payload, 'audit-payload/v1')
             or note_origin['correlation_id'] != origin['correlation_id']
             or note_origin['occurred_at'] != note['updated_at'] or note_origin['case_version'] != claim.case_version
             or event['event_kind'] != 'OUTCOME' or event['status'] != 'NOTIFICATION_PENDING'
@@ -156,7 +161,7 @@ def accepted_reject(uow, head, record_id, component):
             or event['pre_input_version'] != claim.input_version or event['input_version'] != claim.input_version
             or (review['event']['case_version'] if preview is None else preview['row']['post_case_version']) != claim.case_version
             or review['event']['generation'] != claim.generation or review['event']['input_version'] != claim.input_version
-            or note_work is None or note_work['component_id'] != component
+            or note_work is None or note_work['component_id'] != note_component
             or note_work['store_id'] != head['store_id'] or note_work['owner_id'] != head['owner_principal_id']
             or note_work['input_version'] != claim.input_version or note_work['target_record_id'] is not None
             or not note_work['idempotency_key'] or note_work['created_at'] != event['accepted_at']):

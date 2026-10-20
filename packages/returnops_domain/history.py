@@ -29,6 +29,9 @@ def append_revision(uow, case_id, kind, object_id, object_version, content, now)
     return {"record_id": record_id, "kind": kind, "object_id": object_id, "object_version": object_version}
 
 def read_revision(uow, row):
+    if row['kind']=='OUTCOME_MESSAGE':
+        from .notification_projection import verify_message
+        verify_message(uow,row)
     if row['kind']=='EVIDENCE':
         from .generated_evidence import is_generated_resource,verify_certificate
         if is_generated_resource(uow,row['object_id']):
@@ -71,8 +74,8 @@ def _cursor(uow, snapshot, kind, limit, object_id=None, object_version=None, las
 
 def case_view(uow, actor, case_id, now, *, snapshot_ttl=900):
     head = uow.execute(select(t.case_heads).where(t.case_heads.c.case_id == case_id)).mappings().one()
-    from .lifecycle_schema import ARTIFACT,version
-    if version(uow.connection)==ARTIFACT:
+    from .lifecycle_schema import ARTIFACT, ARTIFACT_VERSIONS,version
+    if version(uow.connection) in ARTIFACT_VERSIONS:
         from .founder_integrity import CaseProof
         CaseProof(uow,head)
     snapshot = _snapshot(uow, actor, head, now, snapshot_ttl)
@@ -100,12 +103,21 @@ def case_view(uow, actor, case_id, now, *, snapshot_ttl=900):
         questions = uow.execute(select(t.questions).where(t.questions.c.question_set_id == head["current_question_set_id"], t.questions.c.case_id == case_id)).mappings().one_or_none()
         if questions is None or questions["input_version"] != head["input_version"]: raise FlowError("INTERNAL_ERROR")
         result["clarification"] = {"question_set_id": questions["question_set_id"], "input_version": questions["input_version"], "questions": decode_document(questions["questions"])}
+    messages=list(uow.execute(select(t.history).where(t.history.c.case_id==case_id,
+        t.history.c.kind=='OUTCOME_MESSAGE',t.history.c.recorded_sequence<=snapshot['highwater'],
+        t.history.c.case_version<=snapshot['case_version'])).mappings())
+    if len(messages)>1:
+        raise FlowError('INTERNAL_ERROR')
+    if messages:
+        projected=read_revision(uow,messages[0])
+        if 'content' in projected:
+            result['outcome_message']=projected['content']['message']
     validate("CustomerCaseView", result, internal=True)
     return result
 
 def history_page(uow, actor, case_id, query, now, *, snapshot_ttl=900):
-    from .lifecycle_schema import ARTIFACT,version
-    if version(uow.connection)==ARTIFACT:
+    from .lifecycle_schema import ARTIFACT, ARTIFACT_VERSIONS,version
+    if version(uow.connection) in ARTIFACT_VERSIONS:
         from .founder_integrity import CaseProof
         CaseProof(uow,uow.execute(select(t.case_heads).where(t.case_heads.c.case_id==case_id)).mappings().one())
     query = validate("CustomerHistoryQuery", query); kind = query["kind"]; limit = query.get("limit", 20)
