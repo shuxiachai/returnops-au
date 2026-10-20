@@ -512,15 +512,409 @@ def test_PMP05_replay_final_fact_and_receipt_seals(flow_engine, identities, enab
 
 
 
+def _pmp06_result(value):
+    """Closed result projection; never retain the receipt or arbitrary strings."""
+    status = getattr(value, 'status', None)
+    code = getattr(value, 'safe_code', None)
+    audit = getattr(value, 'audit', None)
+    return dict(
+        status=status if type(status) is str and status in {'ACCEPTED', 'DENIED', 'UNKNOWN'} else 'OTHER_STATUS',
+        safe_code=code if type(code) is str and code in {
+            'UNAUTHENTICATED', 'FORBIDDEN', 'NOT_FOUND', 'VALIDATION_ERROR',
+            'STALE_CASE_VERSION', 'IDEMPOTENCY_CONFLICT', 'INVALID_STATE',
+            'REQUEST_TOO_LARGE', 'UNSUPPORTED_MEDIA_TYPE', 'INTERNAL_ERROR'} else None,
+        audit=audit if type(audit) is str and audit in {
+            'NOT_ATTEMPTED', 'RECORDED', 'NOT_RECORDED', 'UNKNOWN'} else 'OTHER_AUDIT',
+        receipt_present=getattr(value, 'receipt', None) is not None)
+
+
+def _pmp06_lines(diagnostic):
+    """Project bounded ASCII records again at the output boundary."""
+    import json
+    maximum = (1 << 63) - 1
+    stages = {'create_control', 'validate_control', 'inventory', 'case_proof',
+              'notification_descriptor', 'notification_ownership'}
+    event_names = {'fence_call', 'fence_return', 'fence_error', 'commit_call',
+                   'native_commit_begin', 'uow_commit_return', 'uow_commit_error'}
+    error_types = {'OperationalError', 'InterfaceError', 'DBAPIError', 'FlowError',
+                   'AssertionError', 'AcceptanceOutcomeUnknown', 'OTHER_EXCEPTION'}
+
+    def number(value, upper=maximum, lower=0):
+        return value if type(value) is int and lower <= value <= upper else None
+
+    def enum(value, choices):
+        return value if type(value) is str and value in choices else None
+
+    def entries(value, limit):
+        return value[:limit] if type(value) is list else []
+
+    def error(value):
+        state = value.get('sqlstate')
+        if (type(state) is not str or len(state) != 5
+                or any(c not in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789' for c in state)):
+            state = None
+        return dict(error_type=enum(value.get('error_type'), error_types), sqlstate=state)
+
+    if type(diagnostic) is not dict:
+        diagnostic = {}
+    transactions = diagnostic.get('transactions')
+    events = diagnostic.get('events')
+    results = diagnostic.get('results')
+    costs = diagnostic.get('costs')
+    if type(costs) is not dict:
+        costs = {}
+    cost_rows = costs.get('rows')
+    records = [('FENCE_DIAGNOSTIC', dict(kind='summary',
+        overflow_count=number(diagnostic.get('overflow_count')),
+        observer_error_count=number(diagnostic.get('observer_error_count')),
+        cleanup_incomplete=diagnostic.get('cleanup_incomplete') if type(diagnostic.get('cleanup_incomplete')) is bool else None,
+        output_truncated=any(type(value) is list and len(value) > limit
+            for value, limit in ((transactions, 8), (events, 64), (cost_rows, 54)))))]
+    for row in entries(transactions, 8):
+        if type(row) is not dict:
+            continue
+        records.append(('FENCE_DIAGNOSTIC', dict(kind='transaction',
+            token=number(row.get('token'), 8, 1),
+            label=enum(row.get('label'), {'holder', 'first', 'second', 'unknown'}),
+            phase=enum(row.get('phase'), {'holder', 'accept', 'denial', 'unknown'}),
+            backend_pid=number(row.get('backend_pid'), 2147483647, 1),
+            hold_lower_bound_ns=number(row.get('hold_lower_bound_ns')),
+            hold_upper_bound_ns=number(row.get('hold_upper_bound_ns')),
+            commit_checks_inclusive_ns=number(row.get('commit_checks_inclusive_ns')))))
+    for row in entries(events, 64):
+        if type(row) is not dict or enum(row.get('event'), event_names) is None:
+            continue
+        records.append(('FENCE_DIAGNOSTIC', dict(kind='event',
+            token=number(row.get('token'), 8, 1), event=row['event'],
+            monotonic_ns=number(row.get('monotonic_ns')), **error(row))))
+    if type(results) is dict:
+        for label in ('first', 'second'):
+            row = results.get(label)
+            if type(row) is not dict:
+                continue
+            records.append(('FENCE_DIAGNOSTIC', dict(kind='result', label=label,
+                status=enum(row.get('status'), {'ACCEPTED', 'DENIED', 'UNKNOWN', 'OTHER_STATUS'}),
+                safe_code=enum(row.get('safe_code'), {
+                    'UNAUTHENTICATED', 'FORBIDDEN', 'NOT_FOUND', 'VALIDATION_ERROR',
+                    'STALE_CASE_VERSION', 'IDEMPOTENCY_CONFLICT', 'INVALID_STATE',
+                    'REQUEST_TOO_LARGE', 'UNSUPPORTED_MEDIA_TYPE', 'INTERNAL_ERROR'}),
+                audit=enum(row.get('audit'), {
+                    'NOT_ATTEMPTED', 'RECORDED', 'NOT_RECORDED', 'UNKNOWN', 'OTHER_AUDIT'}),
+                receipt_present=row.get('receipt_present') if type(row.get('receipt_present')) is bool else None,
+                **error(row))))
+    records.append(('FENCE_COST', dict(kind='summary', inclusive_totals_overlap=True,
+        overflow_count=number(costs.get('overflow_count')),
+        observer_error_count=number(costs.get('observer_error_count')))))
+    for row in entries(cost_rows, 54):
+        if type(row) is not dict or enum(row.get('stage'), stages) is None:
+            continue
+        token = number(row.get('token'), 8, 1)
+        pid = number(row.get('backend_pid'), 2147483647, 1) if token is not None else None
+        records.append(('FENCE_COST', dict(kind='stage', stage=row['stage'], token=token,
+            backend_pid=pid, binding_unavailable=token is None or pid is None,
+            count=number(row.get('count')), inclusive_ns=number(row.get('inclusive_ns')),
+            unmeasured_count=number(row.get('unmeasured_count')))))
+    records[0][1]['output_truncated'] |= len(records) > 128
+    output = []
+    for prefix, value in records[:128]:
+        line = 'RETURNOPS_PMP06_' + prefix + ' ' + json.dumps(value, sort_keys=True, ensure_ascii=True)
+        if not line.isascii() or len(line) > 1024:
+            raise ValueError('PMP06 diagnostic bound')
+        output.append(line)
+    return output
+
+
+def _pmp06_emit(capsys, diagnostic):
+    """Even a broken formatter/capture/output cannot replace the real failure."""
+    def failed():
+        try:
+            count = diagnostic.get('observer_error_count')
+            diagnostic['observer_error_count'] = min((1 << 63) - 1,
+                (count if type(count) is int and count >= 0 else 0) + 1)
+        except BaseException:
+            pass
+    try:
+        lines = _pmp06_lines(diagnostic)
+    except BaseException:
+        failed()
+        lines = ['RETURNOPS_PMP06_FENCE_DIAGNOSTIC {"kind":"formatter_error","observer_error_count":1}']
+    try:
+        with capsys.disabled():
+            for line in lines:
+                print(line, flush=True)
+    except BaseException:
+        failed()
+
+
+def _pmp06_observed_overlap(engine, monkeypatch, calls, diagnostic):
+    """Observe only this existing race; forward every operation exactly once.
+
+    No SQL, UoW, barrier, polling, timeout or retry is added. Connection and
+    actual transaction identity distinguish lifetimes, including pooled PIDs.
+    Cost totals are inclusive and overlap. All observations are best effort.
+    """
+    from threading import Lock, local
+    from time import monotonic_ns
+    from sqlalchemy import event as sqlalchemy_event
+    from returnops_domain import customer_uow, manual_decision
+    from test_founder_approve_late_postgresql import _install_fence_cost_observer, _safe_fence_error
+    maximum = (1 << 63) - 1
+    mutex, context = Lock(), local()
+    transactions, transaction_rows, events, results = {}, [], [], {}
+    counters = dict(overflow_count=0, observer_error_count=0)
+    original_fence = customer_uow.acquire_fence
+    original_commit = CustomerUnitOfWork.commit
+    original_denial = manual_decision.record_denial
+    overlap = None
+    snapshot_costs = None
+    manager = None
+    listener_attempted = False
+
+    def bump(name):
+        try:
+            with mutex:
+                counters[name] = min(maximum, counters[name] + 1)
+        except BaseException:
+            # A failed recorder must not interrupt or mask the actual call.
+            try:
+                counters['observer_error_count'] = min(maximum, counters['observer_error_count'] + 1)
+            except BaseException:
+                pass
+
+    def observe(callback, *args, **kwargs):
+        try:
+            return callback(*args, **kwargs)
+        except BaseException:
+            bump('observer_error_count')
+            return None
+
+    def transaction(connection):
+        if connection is None or connection.engine is not engine:
+            return None
+        current = connection.get_transaction()  # Local SQLAlchemy state; no SQL.
+        if current is None:
+            return None
+        with mutex:
+            previous = transactions.get(connection)
+            if previous is not None and previous['_transaction'] is current:
+                return previous
+            if len(transaction_rows) >= 8:
+                counters['overflow_count'] = min(maximum, counters['overflow_count'] + 1)
+                transactions.pop(connection, None)
+                return None
+            label = getattr(context, 'label', 'holder')
+            phase = getattr(context, 'phase', 'holder')
+            row = dict(token=len(transaction_rows) + 1,
+                label=label if label in {'holder', 'first', 'second'} else 'unknown',
+                phase=phase if phase in {'holder', 'accept', 'denial'} else 'unknown',
+                backend_pid=None, _transaction=current)
+            transactions[connection] = row
+            transaction_rows.append(row)
+            return row
+
+    def record(row, name, **fields):
+        stamp = monotonic_ns()
+        if type(stamp) is not int or not 0 <= stamp <= maximum:
+            raise ValueError('PMP06 clock bound')
+        with mutex:
+            if len(events) == 64:
+                counters['overflow_count'] = min(maximum, counters['overflow_count'] + 1)
+                return
+            events.append(dict(token=row['token'] if row is not None else None,
+                               event=name, monotonic_ns=stamp, **fields))
+
+    def fence(connection, *, write):
+        if not observe(lambda: connection.engine is engine):
+            return original_fence(connection, write=write)
+        row = observe(transaction, connection)
+        observe(record, row, 'fence_call')
+        try:
+            result = original_fence(connection, write=write)
+        except BaseException as error:
+            fields = observe(_safe_fence_error, error) or {}
+            observe(record, row, 'fence_error', **fields)
+            raise
+        observe(record, row, 'fence_return')
+        return result
+
+    def commit(uow):
+        connection = observe(lambda: uow.connection)
+        if not observe(lambda: connection.engine is engine):
+            return original_commit(uow)
+        row = observe(transaction, connection)
+        observe(record, row, 'commit_call')
+        try:
+            result = original_commit(uow)
+        except BaseException as error:
+            fields = observe(_safe_fence_error, error) or {}
+            observe(record, row, 'uow_commit_error', **fields)
+            raise
+        # Keep the original token after native commit ends the transaction.
+        observe(record, row, 'uow_commit_return')
+        return result
+
+    def commit_begin(connection):
+        if not observe(lambda: connection.engine is engine):
+            return
+        row = observe(transaction, connection)
+        observe(record, row, 'native_commit_begin')
+
+    def denial(*args, **kwargs):
+        target = args[0] if args else kwargs.get('engine')
+        if target is not engine:
+            return original_denial(*args, **kwargs)
+        previous = observe(lambda: getattr(context, 'phase', 'unknown'))
+        observe(setattr, context, 'phase', 'denial')
+        try:
+            return original_denial(*args, **kwargs)
+        finally:
+            observe(setattr, context, 'phase', previous)
+
+    def save_result(label, value):
+        if label in {'first', 'second'}:
+            with mutex:
+                results[label] = value
+
+    def invoke(label, call):
+        observe(setattr, context, 'label', label)
+        observe(setattr, context, 'phase', 'accept')
+        try:
+            value = call()
+        except BaseException as error:
+            observe(save_result, label, observe(_safe_fence_error, error) or {})
+            raise
+        else:
+            observe(save_result, label, observe(_pmp06_result, value) or {})
+            return value
+        finally:
+            observe(delattr, context, 'label')
+            observe(delattr, context, 'phase')
+
+    class Patches:
+        """Also restore attempted patches if pytest installation/undo raises."""
+        def __init__(self, scoped):
+            self.scoped, self.saved = scoped, []
+
+        def setattr(self, owner, name, value):
+            if len(self.saved) >= 16:
+                bump('overflow_count')
+                raise RuntimeError('PMP06 patch bound')
+            self.saved.append((owner, name, getattr(owner, name)))
+            if self.scoped is None:
+                setattr(owner, name, value)
+            else:
+                self.scoped.setattr(owner, name, value)
+
+        def restore(self):
+            for owner, name, value in reversed(self.saved):
+                observe(setattr, owner, name, value)
+            self.saved.clear()
+
+    patches = Patches(None)
+
+    def cleanup():
+        nonlocal listener_attempted, manager
+        if listener_attempted:
+            observe(sqlalchemy_event.remove, engine, 'commit', commit_begin)
+            # A partial registration or a failed removal is local observer
+            # cleanup, never a second business attempt.
+            present = observe(sqlalchemy_event.contains, engine, 'commit', commit_begin)
+            if present:
+                observe(sqlalchemy_event.remove, engine, 'commit', commit_begin)
+            listener_attempted = observe(sqlalchemy_event.contains, engine, 'commit', commit_begin) is not False
+        if manager is not None:
+            observe(manager.__exit__, None, None, None)
+            manager = None
+        patches.restore()
+
+    def freeze():
+        # The unchanged overlap helper joins workers before return or raise.
+        if type(overlap) is dict:
+            participants = overlap.get('participants')
+            holder = overlap.get('holder_backend_pid')
+            if (type(participants) is list and len(participants) == 2
+                    and all(type(item) in {tuple, list} and len(item) == 2
+                        and type(item[0]) is str and item[0] in {'first', 'second'}
+                        and type(item[1]) is int and 1 <= item[1] <= 2147483647 for item in participants)
+                    and {item[0] for item in participants} == {'first', 'second'}
+                    and type(holder) is int and 1 <= holder <= 2147483647
+                    and len({holder, *(item[1] for item in participants)}) == 3):
+                for label, pid in [('holder', holder), *participants]:
+                    phase = 'holder' if label == 'holder' else 'accept'
+                    row = next((row for row in transaction_rows
+                                if row['label'] == label and row['phase'] == phase), None)
+                    if row is not None:
+                        row['backend_pid'] = pid
+            else:
+                bump('observer_error_count')
+        projected = []
+        for row in transaction_rows:
+            value = {key: row[key] for key in ('token', 'label', 'phase', 'backend_pid')}
+            times = {}
+            for item in events:
+                if item['token'] == row['token']:
+                    times.setdefault(item['event'], []).append(item['monotonic_ns'])
+            names = ('fence_call', 'fence_return', 'commit_call', 'native_commit_begin', 'uow_commit_return')
+            if (all(len(times.get(name, [])) == 1 for name in names)
+                    and not {'fence_error', 'uow_commit_error'} & times.keys()):
+                start, acquired, checking, releasing, returned = (times[name][0] for name in names)
+                if start <= acquired <= checking <= releasing <= returned:
+                    value.update(hold_lower_bound_ns=releasing-acquired,
+                        hold_upper_bound_ns=returned-start, commit_checks_inclusive_ns=releasing-checking)
+            projected.append(value)
+        costs = observe(snapshot_costs) if snapshot_costs is not None else None
+        if type(costs) is dict and type(costs.get('rows')) is list:
+            # Retained transaction tokens also cover a reused Connection object.
+            known = {row['token']: row['backend_pid'] for row in transaction_rows}
+            for row in costs['rows'][:54]:
+                if type(row) is dict:
+                    row['backend_pid'] = known.get(row.get('token'))
+        diagnostic.update(format=1, transactions=projected, events=list(events),
+                          results=dict(results), costs=costs, **counters)
+
+    try:
+        try:
+            manager = monkeypatch.context()
+            scoped = manager.__enter__()
+            patches = Patches(scoped)
+            patches.setattr(customer_uow, 'acquire_fence', fence)
+            patches.setattr(CustomerUnitOfWork, 'commit', commit)
+            patches.setattr(manual_decision, 'record_denial', denial)
+            snapshot_costs = _install_fence_cost_observer(patches, transactions, mutex)
+            listener_attempted = True
+            sqlalchemy_event.listen(engine, 'commit', commit_begin)
+        except BaseException:
+            bump('observer_error_count')
+            observe(cleanup)
+            # Failed observation installation never causes a second business
+            # attempt. Run the original helper once with a fresh local scope.
+            patches = Patches(None)
+            snapshot_costs = None
+        result, overlap = _overlap_at_actual_fence(engine, patches,
+            {label: (lambda label=label, call=call: invoke(label, call))
+             for label, call in calls.items()})
+        return result, overlap
+    finally:
+        observe(cleanup)
+        observe(freeze)
+        # Even an unavailable freeze exposes a bounded observation error count.
+        observe(diagnostic.update, cleanup_incomplete=listener_attempted, **counters)
+
+
 @pytest.mark.parametrize('same_key', [True, False])
-def test_PMP06_two_actual_backends_have_one_manual_intent(flow_engine, identities, enabled, request, monkeypatch, same_key):
+def test_PMP06_two_actual_backends_have_one_manual_intent(flow_engine, identities, enabled, request, monkeypatch, same_key, capsys):
     case, body, action, at = ready(flow_engine, identities)
     before = snapshot(flow_engine)
     keys = {'first':'shared_revision', 'second':'shared_revision' if same_key else 'second_revision'}
     calls = {name:(lambda name=name:service(flow_engine, identities, clock=lambda:at).accept(
         case, body, keys[name], 'concurrent_revision')) for name in keys}
-    results, overlap = _overlap_at_actual_fence(flow_engine, monkeypatch, calls)
-    assert sorted(result.status for result in results.values()) == (['ACCEPTED', 'ACCEPTED'] if same_key else ['ACCEPTED', 'DENIED'])
+    diagnostic = {}
+    try:
+        results, overlap = _pmp06_observed_overlap(flow_engine, monkeypatch, calls, diagnostic)
+        assert sorted(result.status for result in results.values()) == (['ACCEPTED', 'ACCEPTED'] if same_key else ['ACCEPTED', 'DENIED'])
+    except BaseException:
+        _pmp06_emit(capsys, diagnostic)
+        raise
     accepted = next(result for result in results.values() if result.status == 'ACCEPTED')
     assert_manual(flow_engine, case, body, accepted, before=before, action=action)
     if same_key:

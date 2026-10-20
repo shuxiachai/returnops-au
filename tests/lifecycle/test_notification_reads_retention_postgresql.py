@@ -18,6 +18,7 @@ from starlette.concurrency import run_in_threadpool
 from notification_helpers import ready, service, rows, snapshot, evidence
 from returnops_api.main import create_app
 from returnops_domain import customer_tables as old, founder_tables, lifecycle_tables as life
+from returnops_domain.canonical import decode_document
 from returnops_domain.label_artifact_tables import artifacts, contents
 from returnops_domain.label_execution_tables import ledger as label_facts
 from returnops_domain.notification_mock import CoreMockNotification
@@ -217,6 +218,35 @@ def _get(client, path, identities, role='customer_a', params=None, schema=None):
     return body
 
 
+def _complete_audit_pages(get_page, expected, case_id):
+    """Consume opaque cursors within the bound of the retained audit snapshot."""
+    limit = 100
+    max_pages = max(1, (len(expected) + limit - 1) // limit)
+    assert all(event['case_id'] == case_id for event in expected)
+    assert len({event['event_id'] for event in expected}) == len(expected)
+    events, event_ids, cursors = [], set(), set()
+    cursor = None
+    for page_number in range(max_pages):
+        page = get_page(cursor)
+        items = page['items']
+        assert len(items) <= limit
+        assert items or not expected
+        assert items == expected[len(events):len(events) + limit]
+        for event in items:
+            assert event['case_id'] == case_id and event['event_id'] not in event_ids
+            event_ids.add(event['event_id'])
+        events.extend(items)
+        next_cursor = page.get('next_cursor')
+        if next_cursor is None:
+            assert events == expected
+            return events, page_number + 1
+        assert len(events) < len(expected)
+        assert next_cursor not in cursors
+        cursors.add(next_cursor)
+        cursor = next_cursor
+    raise AssertionError('Audit pagination exceeded the retained snapshot bound')
+
+
 @pytest.mark.parametrize('kind', KINDS)
 def test_notification_actual_current_and_history_publish_only_sent(
         flow_engine, identities, enabled, request, kind):
@@ -233,14 +263,25 @@ def test_notification_actual_current_and_history_publish_only_sent(
     sent = service(flow_engine, identities).send(setup['work_id'])
     assert sent.status == 'SENT', asdict(sent)
     before = _business(flow_engine)
+    expected_rows = sorted((row for row in rows(flow_engine, old.audit)
+                            if row['case_id'] == case), key=lambda row: row['sequence'])
+    assert [row['sequence'] for row in expected_rows] == list(range(1, len(expected_rows) + 1))
+    expected_audit = [decode_document(row['body']) for row in expected_rows]
     with _client(flow_engine, identities) as (client, probe):
         current = _get(client, path, identities, schema='CustomerCaseView')
         page = _get(client, path + '/history', identities,
                     params={'kind': 'OUTCOME_MESSAGE'}, schema='CustomerHistoryPage')
         founder = _get(client, '/v1/founder/cases/' + case, identities,
                        role='founder', schema='CaseView')
-        audit = _get(client, '/v1/founder/cases/' + case + '/audit', identities,
-                     role='founder', params={'limit':100}, schema='AuditPage')
+        def get_audit_page(cursor):
+            params = {'limit': 100}
+            if cursor is not None:
+                params['cursor'] = cursor
+            return _get(client, '/v1/founder/cases/' + case + '/audit', identities,
+                        role='founder', params=params, schema='AuditPage')
+        audit_events, audit_pages = _complete_audit_pages(get_audit_page, expected_audit, case)
+    if kind == 'manual_assessment':
+        assert len(expected_audit) > 100 and audit_pages > 1
     assert len(page['items']) == 1
     message = page['items'][0]['content']
     validate('CustomerOutcomeMessage', message)
@@ -248,7 +289,7 @@ def test_notification_actual_current_and_history_publish_only_sent(
     assert message['outcome'] == setup['control']['outcome']
     assert message['message'] in current['outcome_message']
     assert current['status'] == founder['status'] == TERMINAL[message['outcome']]
-    customer_events=[event for event in audit['items']
+    customer_events=[event for event in audit_events
                      if event['event_type']=='NOTIFICATION_CUSTOMER_MESSAGE_RECORDED']
     assert len(customer_events)==1
     assert customer_events[0]['history_refs'][0]['kind']=='NOTIFICATION'
@@ -258,7 +299,8 @@ def test_notification_actual_current_and_history_publish_only_sent(
              current_status=current['status'], actual_pdf_calls=probe.pdf,
              notification_read_calls=probe.notification,
              pending_pdf_calls=pending_probe.pdf,
-             pending_notification_calls=pending_probe.notification)
+              pending_notification_calls=pending_probe.notification,
+              audit_events=len(audit_events), audit_pages=audit_pages)
 
 
 @pytest.mark.parametrize('role,status,code', [

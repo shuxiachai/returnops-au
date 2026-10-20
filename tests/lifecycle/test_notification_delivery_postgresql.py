@@ -9,6 +9,7 @@ from returnops_domain.errors import AcceptanceOutcomeUnknown
 from returnops_domain.notification_mock import CoreMockNotification
 from returnops_domain.notification_tables import controls, facts
 from returnops_domain.notification_profile import COMPONENT
+from returnops_domain.wire import validate
 from notification_helpers import ready, service, rows, snapshot, evidence, pdf_call_counts, _diagnostic_uow
 
 
@@ -27,6 +28,12 @@ class LostReply(CoreMockNotification):
 class NoSend(CoreMockNotification):
     def deliver(self,reservation_id):
         return None
+
+
+def _validate_audit_events(audits):
+    """Validate the complete retained collection without imposing a page limit."""
+    for event in audits:
+        validate('AuditEvent', event, internal=True)
 
 
 def _emit_send_diagnostics(capsys, kind, domain, mock):
@@ -113,7 +120,6 @@ def test_actual_producers_send_one_independent_fact_and_terminal_outcome(
     assert head['status']==('COMPLETED' if kind=='return' else 'REJECTED' if kind=='reject' else 'MANUAL_HANDLED')
     from returnops_domain.canonical import decode_document, digest
     from returnops_domain.notification_customer_origin import EVENT, customer_payload, history_ref
-    from returnops_domain.wire import validate
     messages=[row for row in rows(flow_engine,old.history) if row['kind']=='OUTCOME_MESSAGE']
     assert len(messages)==1
     audits=[decode_document(row['body']) for row in rows(flow_engine,old.audit)]
@@ -123,7 +129,9 @@ def test_actual_producers_send_one_independent_fact_and_terminal_outcome(
     assert customer_audits[0]['history_refs']==[history_ref(accepted)]
     assert accepted['kind']=='NOTIFICATION'
     assert customer_audits[0]['payload_hash']==digest(customer_payload(control,saved[0],messages[0]),'audit-payload/v1')
-    validate('AuditPage',{'items':audits},internal=True)
+    _validate_audit_events(audits)
+    if kind=='manual_assessment':
+        assert len(audits)>100
     assert all(calls[name]==0 for name in ('render','text_line','assembly','expected_pdf',
                                           'return_provider','label_provider','artifact_retrieval'))
     after=snapshot(flow_engine)
