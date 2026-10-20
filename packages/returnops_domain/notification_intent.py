@@ -3,6 +3,7 @@ from sqlalchemy import select
 from . import customer_tables as old, lifecycle_tables as life
 from .audit import timestamp
 from .canonical import digest, encode_document, decode_document
+from .errors import FlowError
 from .lifecycle_schema import NOTIFICATION, version
 from .lifecycle_state import reject
 from .lifecycle_sources import Sources
@@ -43,6 +44,18 @@ def accepted_initial_format(uow, head, note_work, note_row, source_row, producer
     return dict(message=legacy_message, next_steps=[]), legacy_payload, producer
 
 
+def _body_hash(body):
+    """Preserve strict v2 hashes; bind finite-history bodies under a closed profile."""
+    try:
+        return digest(body, 'notification-source-body/v2')
+    except FlowError as error:
+        if error.code != 'VALIDATION_ERROR':
+            raise
+    from . import founder_codec as finite
+    return digest(dict(profile=finite.PROFILE, history_domain=finite.HISTORY_DOMAIN,
+                       content_hash=finite.digest(body)), 'notification-source-body/finite-v2')
+
+
 def _inventory(uow, head, initial_record_id):
     sources = Sources(uow, head, COMPONENT)
     cutoff = one(uow, old.history, record_id=initial_record_id)['recorded_sequence']
@@ -51,7 +64,7 @@ def _inventory(uow, head, initial_record_id):
         if row['recorded_sequence'] > cutoff:
             continue
         _, body = sources.read(row['record_id'], {row['kind']}, current_actor=False)
-        records.append(dict(record=canonical_rows(dict(row)), content_hash=digest(body, 'notification-source-body/v2'),
+        records.append(dict(record=canonical_rows(dict(row)), content_hash=_body_hash(body),
                             origin_hash=sources.proof.origin(row)['event_hash']))
     return records
 
