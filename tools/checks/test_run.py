@@ -7,6 +7,7 @@ import io
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import tempfile
@@ -106,6 +107,290 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(steps[-3][1], [runner.sys.executable, "-B", "-m", "pytest", "tests/investigation", "-q"])
         self.assertEqual(steps[-2][1], [runner.sys.executable, "-B", "-m", "pytest", "tests/founder", "-q"])
         self.assertEqual(steps[-1][1], [runner.sys.executable, "-B", "-m", "pytest", "tests/lifecycle", "-q", "--tb=short", "-x", "-p", "tools.checks.lifecycle_progress"])
+
+
+class GroupingTests(unittest.TestCase):
+    """Only empty synthetic file inventories and mocked subprocess boundaries."""
+
+    def setUp(self):
+        evidence = os.environ.get("RETURNOPS_DIAGNOSTIC_EVIDENCE_DIR")
+        if evidence:
+            Path(evidence).mkdir(parents=True, exist_ok=True)
+        self.root = Path(tempfile.mkdtemp(prefix="synthetic-manifest-", dir=evidence))
+        self.manifest = json.loads((runner.ROOT / runner.MANIFEST).read_text(encoding="utf-8"))
+        self.path = self.root / runner.MANIFEST
+        self.path.parent.mkdir(parents=True)
+        for files in self.manifest["groups"].values():
+            for name in files:
+                target = self.root / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text("# Synthetic empty file; never collected.\n", encoding="utf-8")
+        (self.root / "pyproject.toml").write_text(
+            (runner.ROOT / "pyproject.toml").read_text(encoding="utf-8"), encoding="utf-8")
+        self.save()
+        self.overrides = patch.dict(os.environ, {"PYTEST_ADDOPTS": "", "PYTEST_PLUGINS": ""})
+        self.overrides.start()
+        self.addCleanup(self.overrides.stop)
+
+    def save(self):
+        self.path.write_text(json.dumps(self.manifest), encoding="utf-8")
+
+    def assert_rejected_without_subprocess(self, argv):
+        with patch.object(runner, "ROOT", self.root), patch.object(runner.subprocess, "run") as execute:
+            with patch.dict(os.environ, {"DATABASE_URL": "postgresql+psycopg://ci:synthetic@localhost/returnops_f02_ci"}):
+                with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as error:
+                    runner.main(argv)
+        self.assertEqual(error.exception.code, 2)
+        execute.assert_not_called()
+
+    def test_default_keeps_exact_eight_argv_and_foundation_keeps_first_seven(self):
+        python = [sys.executable, "-B"]
+        expected = [
+            python + ["-m", "alembic", "upgrade", "head"],
+            python + ["-m", "alembic", "current"],
+            *[python + ["-m", "pytest", "tests/" + name, "-q"]
+              for name in ("environment", "storage", "customer", "investigation", "founder")],
+            python + ["-m", "pytest", "tests/lifecycle", "-q", "--tb=short", "-x",
+                      "-p", "tools.checks.lifecycle_progress"],
+        ]
+        self.assertEqual([argv for _, argv in runner.build_steps("environment")], expected)
+        foundation = runner.build_steps("environment", part="foundation", root=self.root)
+        self.assertEqual([argv for _, argv in foundation], expected[:-1])
+
+    def test_six_groups_use_each_explicit_file_once_and_preserve_in_group_order(self):
+        selected = []
+        default = runner.build_steps("environment")
+        for part, files in self.manifest["groups"].items():
+            with self.subTest(part=part):
+                steps = runner.build_steps("environment", part=part, root=self.root)
+                self.assertEqual(steps[:2], default[:2])
+                self.assertEqual(len(steps), 3)
+                self.assertEqual(steps[-1][1], [sys.executable, "-B", "-m", "pytest", *files,
+                                               "-q", "--tb=short", "-x", "-p",
+                                               "tools.checks.lifecycle_progress"])
+                selected.extend(steps[-1][1][4:-5])
+        self.assertEqual(len(selected), 54)
+        self.assertEqual(len(set(selected)), 54)
+        self.assertEqual(set(selected), runner._collection_inventory(self.root))
+
+    def test_matrix_is_exactly_seven_includes_and_cli_does_not_spawn(self):
+        expected = {"include": [{"part": part} for part in (
+            "foundation", "execution", "founder_manual", "founder_revision",
+            "label_artifact", "label_execution_bridge", "lifecycle_core")]}
+        self.assertEqual(runner.ci_matrix(self.root), expected)
+        output = io.StringIO()
+        with patch.object(runner, "ROOT", self.root), patch.object(runner.subprocess, "run") as execute:
+            with contextlib.redirect_stdout(output):
+                self.assertEqual(runner.main(["ci-matrix"]), 0)
+        self.assertEqual(json.loads(output.getvalue()), expected)
+        execute.assert_not_called()
+
+    def test_invalid_parameters_never_spawn(self):
+        for arguments in (["environment", "--part", "unknown"], ["offline", "--part", "foundation"],
+                          ["ci-matrix", "--part", "foundation"], ["ci-gate", "--extra"]):
+            with self.subTest(arguments=arguments):
+                self.assert_rejected_without_subprocess(arguments)
+        with self.assertRaises(ValueError):
+            runner.build_steps("offline", part="foundation")
+
+    def test_malformed_and_duplicate_json_keys_never_spawn(self):
+        valid = self.path.read_text(encoding="utf-8")
+        self.path.unlink()
+        self.assert_rejected_without_subprocess(["ci-matrix"])
+        cases = [
+            "{", "[]", "null",
+            valid.replace('"version": 1', '"version": 1, "version": 1'),
+            valid.replace('"groups": {', '"groups": {"execution": [],'),
+        ]
+        for raw in cases:
+            with self.subTest(raw=raw[:25]):
+                self.path.write_text(raw, encoding="utf-8")
+                self.assert_rejected_without_subprocess(["ci-matrix"])
+
+    def test_manifest_unknown_missing_empty_and_wrong_types_never_spawn(self):
+        original = json.dumps(self.manifest)
+        mutations = [
+            lambda m: m.update(extra=True),
+            lambda m: m.update(version=True),
+            lambda m: m.update(version=2),
+            lambda m: m["groups"].pop("execution"),
+            lambda m: m["groups"].update(unknown=[]),
+            lambda m: m["groups"].update(execution=[]),
+            lambda m: m["groups"].update(execution="not an array"),
+            lambda m: m["groups"]["execution"].__setitem__(0, None),
+        ]
+        for mutate in mutations:
+            self.manifest = json.loads(original)
+            mutate(self.manifest)
+            self.save()
+            self.assert_rejected_without_subprocess(["environment", "--part", "foundation"])
+
+    def test_duplicate_omitted_extra_and_missing_files_never_spawn(self):
+        original = json.dumps(self.manifest)
+        self.manifest["groups"]["execution"][0] = self.manifest["groups"]["founder_manual"][0]
+        self.save()
+        self.assert_rejected_without_subprocess(["ci-matrix"])
+        self.manifest = json.loads(original)
+        self.manifest["groups"]["execution"].pop()
+        self.save()
+        self.assert_rejected_without_subprocess(["ci-matrix"])
+        self.manifest = json.loads(original)
+        self.save()
+        missing = self.root / self.manifest["groups"]["execution"][0]
+        missing.unlink()
+        self.assert_rejected_without_subprocess(["ci-matrix"])
+        missing.write_text("# synthetic\n", encoding="utf-8")
+        extra = self.root / "tests/lifecycle/nested"
+        extra.mkdir()
+        (extra / "additional_test.py").write_text("# synthetic\n", encoding="utf-8")
+        self.assert_rejected_without_subprocess(["environment", "--part", "execution"])
+
+    def test_noncanonical_or_external_paths_never_spawn(self):
+        for name in ("../test_external.py", "/test_absolute.py", "C:/test_absolute.py",
+                     "tests\\lifecycle\\test_bad.py", "tests/lifecycle/../test_bad.py",
+                     "tests/lifecycle/./test_bad.py", "tests//lifecycle/test_bad.py",
+                     "tests/lifecycle/test_missing.py", "tests/lifecycle/conftest.py",
+                     "tests/lifecycle/test_bad.py::test_function", "tests/lifecycle/test_\x00.py"):
+            with self.subTest(name=name):
+                self.manifest["groups"]["execution"][0] = name
+                self.save()
+                self.assert_rejected_without_subprocess(["ci-matrix"])
+
+    def test_symlink_or_junction_inventory_never_spawns(self):
+        # Mock the platform metadata only; no link creation or privilege needed.
+        with patch.object(Path, "is_symlink", return_value=True):
+            self.assert_rejected_without_subprocess(["ci-matrix"])
+        with patch.object(Path, "is_junction", return_value=True):
+            self.assert_rejected_without_subprocess(["ci-matrix"])
+
+    def test_unsupported_collection_configuration_never_spawns(self):
+        config = self.root / "pyproject.toml"
+        raw = config.read_text(encoding="utf-8")
+        for option in ('python_files = ["*.py"]\n', 'addopts = "-k filtered"\n'):
+            config.write_text(raw.replace('addopts = "--strict-markers"\n', option), encoding="utf-8")
+            self.assert_rejected_without_subprocess(["ci-matrix"])
+        config.write_text(raw, encoding="utf-8")
+        for name in ("pytest.ini", ".pytest.ini", "pytest.toml", ".pytest.toml", "setup.cfg", "tox.ini"):
+            added = self.root / name
+            added.write_text("# synthetic config\n", encoding="utf-8")
+            self.assert_rejected_without_subprocess(["ci-matrix"])
+            added.unlink()
+        nested = self.root / "tests/lifecycle/pyproject.toml"
+        nested.write_text("# synthetic config\n", encoding="utf-8")
+        self.assert_rejected_without_subprocess(["ci-matrix"])
+        nested.unlink()
+        conftest = self.root / "tests/lifecycle/conftest.py"
+        for raw in ("collect_ignore = ['test_omitted.py']\n",
+                    "def pytest_collection_modifyitems(items):\n    items.clear()\n"):
+            conftest.write_text(raw, encoding="utf-8")
+            self.assert_rejected_without_subprocess(["ci-matrix"])
+        conftest.unlink()
+        for key in ("PYTEST_ADDOPTS", "PYTEST_PLUGINS"):
+            with patch.dict(os.environ, {key: "synthetic-override"}):
+                self.assert_rejected_without_subprocess(["ci-matrix"])
+
+    def test_exit_124_and_125_are_preserved_without_running_later_steps(self):
+        steps = runner.build_steps("environment", part="execution", root=self.root)
+        for code in (124, 125):
+            with self.subTest(code=code), patch.object(runner.subprocess, "run") as execute:
+                execute.side_effect = [subprocess.CompletedProcess([], 0),
+                                       subprocess.CompletedProcess([], code)]
+                with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                    self.assertEqual(runner.run_steps(steps, root=self.root), code)
+                self.assertEqual(execute.call_count, 2)
+
+    def test_conftest_imported_hook_bindings_and_star_imports_never_spawn(self):
+        conftest = self.root / "tests/lifecycle/conftest.py"
+        imports = (
+            "import synthetic_hooks as pytest_collection_modifyitems\n",
+            "import synthetic_hooks as collect_ignore\n",
+            "import pytest_synthetic_hooks.child\n",
+            "import collect_ignore\n",
+            "from synthetic_hooks import trim as pytest_collection_modifyitems\n",
+            "from synthetic_hooks import hidden as collect_ignore_glob\n",
+            "from synthetic_hooks import pytest_collection_modifyitems\n",
+            "from synthetic_hooks import collect_ignore\n",
+            "from synthetic_hooks import *\n",
+        )
+        for source in imports:
+            with self.subTest(source=source):
+                conftest.write_text(source, encoding="utf-8")
+                self.assert_rejected_without_subprocess(["ci-matrix"])
+        # Check actual binding names, not the spelling of an unbound source name.
+        # This is AST inspection only; synthetic_hooks is never imported.
+        conftest.write_text(
+            "from synthetic_hooks import pytest_collection_modifyitems as inert_name\n",
+            encoding="utf-8")
+        self.assertEqual(runner.load_lifecycle_groups(self.root), self.manifest["groups"])
+
+    def successful_needs(self):
+        matrix = runner.ci_matrix(self.root)
+        needs = {job: {"result": "success", "outputs": {}} for job in
+                 ("offline-contract-models", "environment-plan", "environment-checks")}
+        needs["environment-plan"]["outputs"]["matrix"] = json.dumps(matrix)
+        return needs, matrix
+
+    def test_gate_requires_each_dependency_success_and_the_full_exact_matrix(self):
+        needs, matrix = self.successful_needs()
+        runner.validate_ci_needs(json.dumps(needs), matrix)
+        for job in needs:
+            for result in ("failure", "cancelled", "skipped", "", None, True):
+                altered = json.loads(json.dumps(needs))
+                altered[job]["result"] = result
+                with self.subTest(job=job, result=result), self.assertRaises(ValueError):
+                    runner.validate_ci_needs(json.dumps(altered), matrix)
+            altered = json.loads(json.dumps(needs))
+            del altered[job]
+            with self.assertRaises(ValueError):
+                runner.validate_ci_needs(json.dumps(altered), matrix)
+        for value in ({}, {"include": matrix["include"][:-1]},
+                      {"include": matrix["include"] + matrix["include"][:1]},
+                      {"include": list(reversed(matrix["include"]))}):
+            needs["environment-plan"]["outputs"]["matrix"] = json.dumps(value)
+            with self.assertRaises(ValueError):
+                runner.validate_ci_needs(json.dumps(needs), matrix)
+
+    def test_gate_bad_or_missing_payload_never_spawns_and_success_is_local_only(self):
+        needs, _ = self.successful_needs()
+        valid = json.dumps(needs)
+        for raw in ("", "null", "{}", valid.replace('"result": "success"', '"result": "success", "result": "success"', 1)):
+            with patch.dict(os.environ, {"CI_NEEDS_JSON": raw}):
+                self.assert_rejected_without_subprocess(["ci-gate"])
+        with patch.dict(os.environ, {"CI_NEEDS_JSON": valid}), patch.object(runner, "ROOT", self.root):
+            with patch.object(runner.subprocess, "run") as execute, contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(runner.main(["ci-gate"]), 0)
+            execute.assert_not_called()
+
+    def test_workflow_has_separate_services_foundation_preflight_and_strict_image_gate(self):
+        text = (runner.ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        jobs = dict(re.findall(r"^  ([a-z][a-z-]+):\n(.*?)(?=^  [a-z][a-z-]+:\n|\Z)",
+                               text.split("\njobs:\n", 1)[1], re.M | re.S))
+        self.assertEqual(set(jobs), {"offline-contract-models", "environment-plan",
+                                     "environment-checks", "api-environment"})
+        matrix = jobs["environment-checks"]
+        self.assertIn("    needs: environment-plan\n", matrix)
+        self.assertIn("      fail-fast: false\n", matrix)
+        self.assertIn("      matrix: ${{ fromJSON(needs.environment-plan.outputs.matrix) }}\n", matrix)
+        self.assertIn("    timeout-minutes: 170\n", matrix)
+        self.assertEqual(text.count("    services:\n"), 1)
+        self.assertIn("        image: postgres:17-bookworm@sha256:051f7b7b3abdd564d5d1bd1e8c4b9c1b6e77087d1dd22020ede611c096a272e0\n", matrix)
+        self.assertIn("DATABASE_URL: postgresql+psycopg://returnops_ci:ci_synthetic_only@localhost:5432/returnops_f02_ci", matrix)
+        self.assertIn("MANUAL_EVIDENCE_DIR: ${{ runner.temp }}/a201-pass-manual-${{ matrix.part }}-evidence", matrix)
+        self.assertIn("        if: matrix.part == 'foundation'\n", matrix)
+        self.assertLess(matrix.index("unset MANUAL_EVIDENCE_DIR"), matrix.index("run.py environment --part"))
+        self.assertIn('run: python -B tools/checks/run.py environment --part "$ENVIRONMENT_PART"', matrix)
+        gate = jobs["api-environment"]
+        self.assertIn("    name: API and PostgreSQL environment\n", gate)
+        self.assertIn("    if: ${{ always() }}\n", gate)
+        self.assertIn("    needs: [offline-contract-models, environment-plan, environment-checks]\n", gate)
+        self.assertIn("CI_NEEDS_JSON: ${{ toJSON(needs) }}", gate)
+        self.assertEqual(gate.count("    if:"), 1)
+        self.assertLess(gate.index("run.py ci-gate"), gate.index("docker build"))
+        self.assertEqual(text.count("docker build --tag returnops-a1-ci ."), 1)
+        self.assertEqual(text.count("docker run --rm -i --workdir /tmp --entrypoint python returnops-a1-ci -I -B - < tools/checks/probe-installed.py"), 1)
+        self.assertNotIn("continue-on-error", text)
+        self.assertNotIn("sparse-checkout", text)
+
 
 PROGRESS_SPEC = importlib.util.spec_from_file_location(
     "lifecycle_progress_for_unit_tests", Path(__file__).with_name("lifecycle_progress.py")
