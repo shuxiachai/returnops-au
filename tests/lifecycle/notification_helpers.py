@@ -27,6 +27,43 @@ def provision(engine, identities):
         uow.commit()
 
 
+def _diagnostic_uow(observed):
+    """Bounded code locations only; preserve the real UoW and every failure."""
+    import sys
+    safe_codes={'UNAUTHENTICATED','FORBIDDEN','NOT_FOUND','VALIDATION_ERROR','STALE_CASE_VERSION',
+        'IDEMPOTENCY_CONFLICT','INVALID_STATE','REQUEST_TOO_LARGE','UNSUPPORTED_MEDIA_TYPE','INTERNAL_ERROR'}
+    def capture(stage,error):
+        if error is None:
+            return
+        if len(observed['events']) >= 8:
+            observed['dropped'] += 1
+            return
+        frames=[]
+        trace=error.__traceback__
+        traversed=0
+        while trace is not None and traversed < 64:
+            frame=trace.tb_frame
+            module=frame.f_globals.get('__name__','')
+            if type(module) is str and module.startswith('returnops_domain.'):
+                frames.append({'module':module,'function':frame.f_code.co_name,'line':trace.tb_lineno})
+            trace=trace.tb_next
+            traversed+=1
+        from returnops_domain.errors import FlowError
+        entry={'stage':stage,'type':type(error).__name__,'frames':frames[-12:],
+               'frames_truncated':len(frames)>12 or trace is not None}
+        if isinstance(error,FlowError) and error.code in safe_codes:
+            entry['safe_code']=error.code
+        observed['events'].append(entry)
+    class DiagnosticUow(CustomerUnitOfWork):
+        def poison(self):
+            capture('poison',sys.exception())
+            return super().poison()
+        def __exit__(self,kind,value,trace):
+            capture('exit',value)
+            return super().__exit__(kind,value,trace)
+    return DiagnosticUow
+
+
 def ready(engine, identities, kind='reject', *, grants=True):
     """Return case_id/work_id and actual original producer result, never fake SENT."""
     artifact=None
@@ -37,8 +74,10 @@ def ready(engine, identities, kind='reject', *, grants=True):
         assert artifact.status=='COMMITTED',asdict(artifact)
         provision(engine,identities)
         head=next(row for row in rows(engine,old.case_heads) if row['case_id']==args['case_id'])
-        accepted=service(engine,identities).produce_return(args['case_id'],head['case_version'])
-        assert accepted.status=='READY',asdict(accepted)
+        observed={'events':[],'dropped':0}
+        accepted=service(engine,identities,uow_factory=_diagnostic_uow(observed)).produce_return(
+            args['case_id'],head['case_version'])
+        assert accepted.status=='READY',{'result':asdict(accepted),'diagnostics':observed}
         case=args['case_id']
     elif kind=='reject':
         from reject_helpers import ready as prepare,attempt

@@ -14,7 +14,7 @@ from .customer_uow import CustomerUnitOfWork
 from .errors import AcceptanceOutcomeUnknown, FlowError
 from .lifecycle_events import OutcomeAccepted
 from .lifecycle_guards import LifecycleGuards
-from .lifecycle_schema import version, APPROVAL_VERSIONS
+from .lifecycle_schema import version, APPROVAL_VERSIONS, NOTIFICATION
 from .lifecycle_state import current, installed, reject
 from .manual_target import one
 from .reject_denial import COMPONENT, OPERATION, authorize, record_denial
@@ -147,7 +147,6 @@ class FounderRejectService:
         uow.execute(t.sources.insert().values(record_id=decision_id, case_id=head['case_id'],
             **asdict(claim), source_hash=decision_hash, target_record_id=source['record']['record_id'], slot='PRIMARY'))
         from .notification_intent import initial_format, initial_payload
-        from .lifecycle_schema import NOTIFICATION, version
         note_payload = (initial_payload(COMPONENT, 'REJECTED', decision_id, decision_hash)
                         if version(uow.connection) == NOTIFICATION else payload)
         note = dict(notification_id=identifier('reject_notification'), case_id=head['case_id'],
