@@ -533,7 +533,9 @@ def _pmp06_lines(diagnostic):
     import json
     maximum = (1 << 63) - 1
     stages = {'create_control', 'validate_control', 'inventory', 'case_proof',
-              'notification_descriptor', 'notification_ownership'}
+              'notification_descriptor', 'notification_ownership', 'generated_namespace',
+              'preview_descriptor', 'preparation_descriptor', 'return_descriptor',
+              'label_descriptor', 'artifact_descriptor'}
     event_names = {'fence_call', 'fence_return', 'fence_error', 'commit_call',
                    'native_commit_begin', 'uow_commit_return', 'uow_commit_error'}
     error_types = {'OperationalError', 'InterfaceError', 'DBAPIError', 'FlowError',
@@ -569,7 +571,7 @@ def _pmp06_lines(diagnostic):
         observer_error_count=number(diagnostic.get('observer_error_count')),
         cleanup_incomplete=diagnostic.get('cleanup_incomplete') if type(diagnostic.get('cleanup_incomplete')) is bool else None,
         output_truncated=any(type(value) is list and len(value) > limit
-            for value, limit in ((transactions, 8), (events, 64), (cost_rows, 54)))))]
+            for value, limit in ((transactions, 8), (events, 64), (cost_rows, 108)))))]
     for row in entries(transactions, 8):
         if type(row) is not dict:
             continue
@@ -603,17 +605,26 @@ def _pmp06_lines(diagnostic):
                 receipt_present=row.get('receipt_present') if type(row.get('receipt_present')) is bool else None,
                 **error(row))))
     records.append(('FENCE_COST', dict(kind='summary', inclusive_totals_overlap=True,
+        stage_record_format='batch_v1',
         overflow_count=number(costs.get('overflow_count')),
-        observer_error_count=number(costs.get('observer_error_count')))))
-    for row in entries(cost_rows, 54):
+        observer_error_count=number(costs.get('observer_error_count')),
+        install_failed=costs.get('install_failed') if type(costs.get('install_failed')) is bool else None,
+        cleanup_incomplete=costs.get('cleanup_incomplete') if type(costs.get('cleanup_incomplete')) is bool else None)))
+    batch = []
+    for row in entries(cost_rows, 108):
         if type(row) is not dict or enum(row.get('stage'), stages) is None:
             continue
         token = number(row.get('token'), 8, 1)
         pid = number(row.get('backend_pid'), 2147483647, 1) if token is not None else None
-        records.append(('FENCE_COST', dict(kind='stage', stage=row['stage'], token=token,
+        batch.append(dict(kind='stage', stage=row['stage'], token=token,
             backend_pid=pid, binding_unavailable=token is None or pid is None,
             count=number(row.get('count')), inclusive_ns=number(row.get('inclusive_ns')),
-            unmeasured_count=number(row.get('unmeasured_count')))))
+            unmeasured_count=number(row.get('unmeasured_count'))))
+        if len(batch) == 3:
+            records.append(('FENCE_COST', dict(kind='stage_batch', rows=batch)))
+            batch = []
+    if batch:
+        records.append(('FENCE_COST', dict(kind='stage_batch', rows=batch)))
     records[0][1]['output_truncated'] |= len(records) > 128
     output = []
     for prefix, value in records[:128]:
@@ -866,7 +877,7 @@ def _pmp06_observed_overlap(engine, monkeypatch, calls, diagnostic):
         if type(costs) is dict and type(costs.get('rows')) is list:
             # Retained transaction tokens also cover a reused Connection object.
             known = {row['token']: row['backend_pid'] for row in transaction_rows}
-            for row in costs['rows'][:54]:
+            for row in costs['rows'][:108]:
                 if type(row) is dict:
                     row['backend_pid'] = known.get(row.get('token'))
         diagnostic.update(format=1, transactions=projected, events=list(events),
@@ -886,10 +897,14 @@ def _pmp06_observed_overlap(engine, monkeypatch, calls, diagnostic):
         except BaseException:
             bump('observer_error_count')
             observe(cleanup)
+            if snapshot_costs is not None:
+                # Owned cost patches are not in the parent scope. Finish them
+                # before the unobserved fallback; retain this drained snapshot.
+                stopped_costs = observe(snapshot_costs)
+                snapshot_costs = lambda: stopped_costs
             # Failed observation installation never causes a second business
             # attempt. Run the original helper once with a fresh local scope.
             patches = Patches(None)
-            snapshot_costs = None
         result, overlap = _overlap_at_actual_fence(engine, patches,
             {label: (lambda label=label, call=call: invoke(label, call))
              for label, call in calls.items()})
@@ -1094,6 +1109,8 @@ def test_PMP06_other_founder_decisions_compete_in_both_real_fence_orders(flow_en
 @pytest.mark.parametrize('first', ['retention', 'manual'])
 def test_PMP07_retention_and_manual_both_actual_fence_orders(flow_engine, identities, enabled, request, monkeypatch, removed, first):
     from returnops_domain.retention import RetentionService
+    from returnops_domain.notification_profile import COMPONENT as NOTIFICATION_COMPONENT
+    from returnops_domain.notification_tables import controls
     case, body, action, at = ready(flow_engine, identities)
     source, = [row for row in case_rows(flow_engine, old.history, case) if row['kind'] == removed]
     caller = service(flow_engine, identities, clock=lambda:at)
@@ -1113,19 +1130,81 @@ def test_PMP07_retention_and_manual_both_actual_fence_orders(flow_engine, identi
     assert state['available'] is False and state['preview_id'] is None
     decisions = [row for row in case_rows(flow_engine, old.history, case) if row['kind'] == 'DECISION']
     notes = [row for row in case_rows(flow_engine, old.history, case) if row['kind'] == 'NOTIFICATION']
-    works = [row for row in case_rows(flow_engine, t.work, case) if row['component_id'] == COMPONENT]
+    case_works = case_rows(flow_engine, t.work, case)
+    works = [row for row in case_works if row['component_id'] == COMPONENT]
+    notification_works = [row for row in case_works if row['purpose'] == 'NOTIFICATION']
+    case_controls = case_rows(flow_engine, controls, case)
     if first == 'retention':
         assert result.status == 'DENIED' and result.audit == 'NOT_RECORDED' and not decisions and not notes and not works
         assert saved['consuming_decision_record_id'] is None and saved['consumed_at'] is None
+        assert not notification_works and not case_controls
+        assert all(state[field] is None for field in
+            ('notification_work_id', 'notification_id', 'notification_record_id'))
     else:
         assert result.status == 'ACCEPTED'
+        assert len(decisions) == len(notes) == 1
         decision, = decisions
         note, = notes
         assert decision['retention_state'] == note['retention_state'] == 'DELETED'
         assert decision['object_id'] == result.receipt['decision_id']
         assert saved['consuming_decision_record_id'] == decision['record_id']
         assert saved['consumed_at'] == decision['recorded_at']
-        notification, = [row for row in works if row['purpose'] == 'NOTIFICATION']
+        # Enumerate every notification-purpose work before checking its owner:
+        # a wrong or mixed owner must not disappear behind a producer filter.
+        assert len(notification_works) == 1
+        notification, = notification_works
+        assert notification['component_id'] == NOTIFICATION_COMPONENT
+        assert notification['case_id'] == case and notification['work_id'] == state['notification_work_id']
+        outcome_works = [row for row in case_works if row['purpose'] == 'OUTCOME']
+        assert len(outcome_works) == 1
+        outcome_work, = outcome_works
+        assert outcome_work['component_id'] == COMPONENT and outcome_work['case_id'] == case
+        assert outcome_work['state'] == 'DONE' and outcome_work['claim_id'] is not None
+        outcome_events = [row for row in case_rows(flow_engine, t.events, case) if row['event_kind'] == 'OUTCOME']
+        assert len(outcome_events) == 1
+        outcome_event, = outcome_events
+        assert outcome_event['case_id'] == case and outcome_event['work_id'] == outcome_work['work_id']
+        assert outcome_event['record_id'] == outcome_event['source_id'] == decision['record_id']
+        assert outcome_event['source_hash'] == decision['content_sha256']
+        assert outcome_event['status'] == 'NOTIFICATION_PENDING'
+        assert len(case_controls) == 1
+        control, = case_controls
+        head, = case_rows(flow_engine, old.case_heads, case)
+        assert head['case_id'] == state['case_id'] == decision['case_id'] == note['case_id'] == case
+        assert control['case_id'] == case
+        assert control['store_id'] == notification['store_id'] == outcome_work['store_id'] == head['store_id']
+        assert control['owner_id'] == notification['owner_id'] == outcome_work['owner_id'] == head['owner_principal_id']
+        assert control['notification_work_id'] == notification['work_id'] == state['notification_work_id']
+        assert control['notification_id'] == note['object_id'] == state['notification_id']
+        assert control['initial_notification_record_id'] == note['record_id'] == state['notification_record_id']
+        assert control['outcome_record_id'] == decision['record_id'] == state['outcome_record_id']
+        assert control['outcome_event_id'] == outcome_event['event_id']
+        # The notification owner changes; the original manual producer does not.
+        assert control['producer_id'] == COMPONENT and control['outcome'] == state['outcome'] == 'MANUAL_HANDLED'
+        assert control['logical_key'] == notification['idempotency_key']
+        assert control['available'] is False and control['state'] == 'RETAINED' and control['source_manifest'] is None
+        bindings = case_rows(flow_engine, t.sources, case)
+        decision_bindings = [row for row in bindings if row['record_id'] == decision['record_id']]
+        note_bindings = [row for row in bindings if row['record_id'] == note['record_id']]
+        assert len(decision_bindings) == len(note_bindings) == 1
+        decision_binding, = decision_bindings
+        note_binding, = note_bindings
+        assert decision_binding['case_id'] == note_binding['case_id'] == case
+        assert decision_binding['work_id'] == note_binding['work_id'] == outcome_work['work_id']
+        assert decision_binding['slot'] == 'PRIMARY' and note_binding['slot'] == 'NOTIFICATION'
+        assert note_binding['target_record_id'] == decision['record_id']
+        assert decision_binding['source_hash'] == decision['content_sha256']
+        assert note_binding['source_hash'] == note['content_sha256']
+        assert decision_binding['claim_id'] == note_binding['claim_id'] == outcome_work['claim_id']
+        assert decision_binding['epoch'] == note_binding['epoch'] == outcome_work['epoch']
+        assert decision_binding['authority_revision'] == note_binding['authority_revision'] == outcome_work['authority_revision']
+        assert decision_binding['case_version'] == note_binding['case_version'] == outcome_work['claimed_case_version']
+        assert outcome_event['pre_case_version'] == outcome_work['claimed_case_version']
+        original_generation = outcome_work['generation']
+        assert control['generation'] == notification['generation'] == outcome_event['generation'] == original_generation
+        assert decision_binding['generation'] == note_binding['generation'] == original_generation
+        assert state['generation'] == original_generation + 1
+        assert control['input_version'] == notification['input_version'] == outcome_work['input_version'] == outcome_event['input_version']
         assert notification['state'] == 'PAUSED' and notification['epoch'] == 1
         assert all(notification[field] is None for field in
             ('claim_id', 'claimed_case_version', 'lease_expires_at', 'authority_revision'))
@@ -1136,7 +1215,7 @@ def test_PMP07_retention_and_manual_both_actual_fence_orders(flow_engine, identi
         if row['kind'] in {'PROPOSAL', 'REVIEW', 'DECISION', 'NOTIFICATION'}}
     assert not [row for row in rows(flow_engine, old.history_contents) if row['record_id'] in derivative_ids]
     assert not rows(flow_engine, t.effects)
-    assert not [row for row in case_rows(flow_engine, t.work, case) if row['purpose'] in {'EXECUTION', 'EFFECT'}]
+    assert not [row for row in case_works if row['purpose'] in {'EXECUTION', 'EFFECT'}]
     recovery = caller.recover(case, body, 'retained_manual')
     replay = caller.accept(case, body, 'retained_manual', 'retained_replay')
     assert recovery.status == 'UNKNOWN' and replay.status == 'DENIED'

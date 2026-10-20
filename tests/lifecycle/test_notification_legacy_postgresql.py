@@ -100,11 +100,12 @@ def test_legacy_customer_messages_and_tombstones_keep_original_reads_after_migra
              old_items=old_items,migrated_items=_legacy_read_oracle(identities,case,3))
 
 
-@pytest.mark.parametrize('insertion',['before_admission','after_admission'])
+@pytest.mark.parametrize('insertion',['before_admission','after_admission','before_commit'])
 def test_legacy_customer_row_blocks_modern_admission_before_commit_and_sender(
         flow_engine,identities,enabled,request,monkeypatch,insertion):
     from returnops_domain import notification_intent as intent
     from returnops_domain import notification_customer_origin as customer_origin
+    from returnops_domain import notification_sources as notification_sources
     from returnops_domain.notification_mock import CoreMockNotification
     from notification_helpers import pdf_call_counts
     case,body=ready(flow_engine,identities)
@@ -113,46 +114,111 @@ def test_legacy_customer_row_blocks_modern_admission_before_commit_and_sender(
             _legacy_message(uow,case)
             uow.commit()
     before=snapshot(flow_engine)
-    observed={'initial_returned':False,'commit':False,'final_denial':False,'sender':0}
+    observed={'initial_returned':False,'commit':False,'commit_returned':False,
+        'final_denial':False,'admission_denial':False,'early_denial':False,'sender':0,
+        'create_calls':0,'check_calls':0,'validate_calls':0,'commit_calls':0,'injections':0,
+        'check_code':None,'early_code':None,'staged_acceptance':False,'staged_receipt':False}
     actual_create=intent.create_control
     actual_check=customer_origin.forbid_existing_messages
+    actual_validate=notification_sources.validate_control
+    producer_uow=None
     def checked(uow,case_id):
+        if uow is not producer_uow:
+            return actual_check(uow,case_id)
+        observed['check_calls']+=1
         try:
             return actual_check(uow,case_id)
-        except FlowError:
+        except FlowError as error:
             observed['final_denial']=observed['commit']
+            observed['admission_denial']=not observed['commit']
+            observed['check_code']=error.code
+            raise
+    def validated(*args,**kwargs):
+        if args[0] is not producer_uow:
+            return actual_validate(*args,**kwargs)
+        observed['validate_calls']+=1
+        try:
+            return actual_validate(*args,**kwargs)
+        except FlowError as error:
+            observed['early_denial']=not observed['commit'] and observed['initial_returned']
+            observed['early_code']=error.code
             raise
     def injected(*args,**kwargs):
+        nonlocal producer_uow
+        if producer_uow is None:
+            producer_uow=args[0]
+        assert args[0] is producer_uow
+        observed['create_calls']+=1
         result=actual_create(*args,**kwargs)
         observed['initial_returned']=True
         if insertion=='after_admission':
             _legacy_message(args[0],case)
+            observed['injections']+=1
         return result
     class ObservedUow(CustomerUnitOfWork):
         def commit(self):
+            if self is not producer_uow:
+                return super().commit()
             observed['commit']=True
-            return super().commit()
+            observed['commit_calls']+=1
+            if insertion=='before_commit':
+                # The real service has already constructed its acceptance/receipt.
+                # Inject only now, after apply's immediate proof, before its original checks.
+                acceptance=self.execute(select(old.acceptances).where(
+                    old.acceptances.c.operation=='recordFounderDecision',
+                    old.acceptances.c.resource_kind=='CASE',old.acceptances.c.resource_id==case,
+                    old.acceptances.c.request_key=='original-reject-key')).mappings().one()
+                receipt=self.execute(select(old.receipts).where(
+                    old.receipts.c.acceptance_id==acceptance['acceptance_id'])).mappings().one()
+                observed['staged_acceptance']=True
+                observed['staged_receipt']=receipt['available'] and receipt['body'] is not None
+                _legacy_message(self,case)
+                observed['injections']+=1
+            result=super().commit()
+            observed['commit_returned']=True
+            return result
     def forbidden_send(*args,**kwargs):
         observed['sender']+=1
         pytest.fail('Blocked modern admission reached T2')
     monkeypatch.setattr(customer_origin,'forbid_existing_messages',checked)
     monkeypatch.setattr(intent,'create_control',injected)
+    monkeypatch.setattr(notification_sources,'validate_control',validated)
     monkeypatch.setattr(CoreMockNotification,'deliver',forbidden_send)
     with pdf_call_counts() as calls:
         result=attempt(flow_engine,identities,case,body,uow_factory=ObservedUow)
-    assert result.status=='DENIED' and not result.receipt
-    assert observed['sender']==0 and not rows(flow_engine,controls) and not rows(flow_engine,facts)
-    assert observed['initial_returned']==(insertion=='after_admission')
-    if insertion=='after_admission':
-        assert observed['final_denial']
     after=snapshot(flow_engine)
-    for table in (old.history,old.history_contents,life.state,life.work,life.sources,life.events,life.effects):
+    for table in (old.history,old.history_contents,life.state,life.work,life.sources,life.events,life.effects,
+                  old.acceptances,old.receipts,old.receipt_refs):
         assert after[table.name]==before[table.name],table.name
     for old_head,new_head in zip(before[old.case_heads.name],after[old.case_heads.name],strict=True):
         assert {k:v for k,v in old_head.items() if k not in {'audit_head','audit_sequence'}}=={
             k:v for k,v in new_head.items() if k not in {'audit_head','audit_sequence'}}
     assert all(calls[name]==0 for name in ('render','text_line','assembly','expected_pdf',
                                           'return_provider','label_provider','artifact_retrieval'))
+    assert observed['sender']==0 and not rows(flow_engine,controls) and not rows(flow_engine,facts)
     _legacy_read_oracle(identities,case,int(insertion=='before_admission'))
+    assert result.status=='DENIED' and not result.receipt
+    assert observed['create_calls']==1 and not observed['commit_returned']
+    assert observed['initial_returned']==(insertion!='before_admission')
+    assert observed['injections']==int(insertion!='before_admission')
+    assert observed['commit']==(insertion=='before_commit')
+    assert observed['commit_calls']==int(insertion=='before_commit')
+    assert observed['check_calls']==(2 if insertion=='before_commit' else 1)
+    assert observed['admission_denial']==(insertion=='before_admission')
+    assert observed['early_denial']==(insertion=='after_admission')
+    assert observed['staged_acceptance']==(insertion=='before_commit')
+    assert observed['staged_receipt']==(insertion=='before_commit')
+    if insertion=='after_admission':
+        assert observed['validate_calls']==1 and observed['early_code']=='INTERNAL_ERROR'
+        assert observed['check_code'] is None and not observed['final_denial']
+        assert result.safe_code=='INTERNAL_ERROR'
+    else:
+        assert observed['check_code']=='INVALID_STATE' and observed['early_code'] is None
+        assert result.safe_code=='INVALID_STATE'
+        if insertion=='before_commit':
+            assert observed['validate_calls']>=1
+            assert observed['final_denial']
+        else:
+            assert observed['validate_calls']==0 and not observed['final_denial']
     evidence(request.node.nodeid,insertion=insertion,observed=observed,before=before,after=after,
              actual_calls=calls,denial_audit_may_be_appended=True)

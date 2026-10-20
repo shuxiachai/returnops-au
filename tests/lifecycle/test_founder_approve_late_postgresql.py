@@ -338,33 +338,117 @@ def _safe_fence_error(error):
 
 
 def _install_fence_cost_observer(scoped, transactions, mutex):
-    """Count inclusive work in existing transaction contexts; never query or cache proof.
+    """Twelve late-bound stages; scoped is signature compatibility only.
 
-    Nested totals overlap and MUST NOT be summed as exclusive transaction time.
-    At most eight existing transaction tokens plus an unavailable bucket, six
-    stages and depth 32 are retained. Instrumentation faults cannot replace a
-    real return value or exception.
+    Own at most twelve patches, separately from the caller's base/overlap
+    journal. Inclusive totals overlap. The finisher exists before resolution,
+    disables residual wrappers, restores by identity, and drains 108 buckets.
     """
-    from returnops_domain import founder_integrity, notification_intent, notification_schema, notification_sources
     stages = ('create_control', 'validate_control', 'inventory', 'case_proof',
-              'notification_descriptor', 'notification_ownership')
+              'notification_descriptor', 'notification_ownership', 'generated_namespace',
+              'preview_descriptor', 'preparation_descriptor', 'return_descriptor',
+              'label_descriptor', 'artifact_descriptor')
     maximum = (1 << 63) - 1
     context, aggregates = local(), {}
     counters = dict(overflow_count=0, observer_error_count=0)
+    flags = dict(install_failed=False, cleanup_incomplete=False)
+    journal = []
+    active = finished = False
+    active_frames = 0
 
     def increment(name):
-        with mutex:
-            counters[name] = min(maximum, counters[name] + 1)
+        try:
+            with mutex:
+                counters[name] = min(maximum, counters[name] + 1)
+        except BaseException:
+            try:
+                counters['observer_error_count'] = min(maximum, counters['observer_error_count'] + 1)
+            except BaseException:
+                pass
 
-    def wrap(original, stage, position, argument, raw_connection=False):
+    def uncertain():
+        flags['cleanup_incomplete'] = True
+        increment('observer_error_count')
+
+    def restore():
+        # One bounded pass. Never overwrite a replacement we do not own.
+        for owner, name, original, wrapper in reversed(journal):
+            try:
+                current = getattr(owner, name)
+                if current is original:
+                    continue
+                if current is not wrapper:
+                    uncertain()
+                    continue
+                try:
+                    setattr(owner, name, original)
+                except BaseException:
+                    uncertain()
+                if getattr(owner, name) is not original:
+                    uncertain()
+            except BaseException:
+                uncertain()
+
+    def finish():
+        nonlocal active, finished
+        active = False
+        if not finished:
+            finished = True
+            restore()
+            if active_frames:
+                # The normal caller joins first. A premature finish is not a
+                # complete timing snapshot, even if all attributes restored.
+                uncertain()
+        rows = []
+        try:
+            with mutex:
+                known = {value['token']: value for value in transactions.values()
+                         if type(value) is dict and type(value.get('token')) is int}
+                for (token, stage), counts in aggregates.items():
+                    pid = known.get(token, {}).get('backend_pid')
+                    if type(pid) is not int or not 1 <= pid <= 2147483647:
+                        pid = None
+                    rows.append(dict(token=token, backend_pid=pid, stage=stage, **counts))
+                aggregates.clear()
+                result = dict(rows=rows, **counters, **flags)
+                counters.update(overflow_count=0, observer_error_count=0)
+                return result
+        except BaseException:
+            increment('observer_error_count')
+            return dict(rows=[], **counters, **flags)
+
+    def namespace_connection(value):
+        # A raw Connection's .connection is a DBAPI proxy, not this map's key.
+        if type(value) is Connection:
+            return value
+        if type(value) is not CustomerUnitOfWork:
+            return None
+        attributes = type.__getattribute__(CustomerUnitOfWork, '__dict__')
+        if ('connection' in attributes
+                or type(attributes.get('__dict__')) is not GetSetDescriptorType):
+            return None
+        stored = object.__getattribute__(value, '__dict__')
+        connection = stored.get('connection') if type(stored) is dict else None
+        return connection if type(connection) is Connection else None
+
+    def wrap(original, stage, position, argument, mode):
         def observed(*args, **kwargs):
-            previous = getattr(context, 'depth', 0)
-            context.depth = previous + 1
+            nonlocal active_frames
+            if not active:
+                return original(*args, **kwargs)
+            previous = None
             key, started = None, None
+            entered = False
             try:
                 try:
+                    with mutex:
+                        active_frames += 1
+                        entered = True
+                    previous = getattr(context, 'depth', 0)
+                    context.depth = previous + 1
                     value = args[position] if len(args) > position else kwargs.get(argument)
-                    connection = value if raw_connection else getattr(value, 'connection', None)
+                    connection = (namespace_connection(value) if mode == 'namespace' else
+                                  value if mode == 'raw' else getattr(value, 'connection', None))
                     with mutex:
                         existing = transactions.get(connection)
                         token = existing.get('token') if type(existing) is dict else None
@@ -377,10 +461,8 @@ def _install_fence_cost_observer(scoped, transactions, mutex):
                         started = monotonic_ns()
                     else:
                         increment('overflow_count')
-                except Exception:
+                except BaseException:
                     increment('observer_error_count')
-                # Exactly one forwarding call, including unavailable/overflow
-                # observations. A bare finally preserves exception identity.
                 return original(*args, **kwargs)
             finally:
                 try:
@@ -400,48 +482,65 @@ def _install_fence_cost_observer(scoped, transactions, mutex):
                                 row['unmeasured_count'] = min(maximum, row['unmeasured_count'] + 1)
                             else:
                                 row['inclusive_ns'] = min(maximum, row['inclusive_ns'] + duration)
-                except Exception:
+                except BaseException:
                     increment('observer_error_count')
                 finally:
-                    if previous:
-                        context.depth = previous
-                    else:
-                        del context.depth
+                    try:
+                        if previous is not None:
+                            if previous:
+                                context.depth = previous
+                            else:
+                                del context.depth
+                        if entered:
+                            with mutex:
+                                active_frames -= 1
+                    except BaseException:
+                        increment('observer_error_count')
         return observed
 
-    for owner, name, stage, position, argument, raw in (
-            (notification_intent, 'create_control', stages[0], 0, 'uow', False),
-            (notification_sources, 'validate_control', stages[1], 0, 'uow', False),
-            (notification_intent, '_inventory', stages[2], 0, 'uow', False),
-            (founder_integrity.CaseProof, '__init__', stages[3], 1, 'uow', False),
-            (notification_schema, 'descriptor', stages[4], 0, 'connection', True),
-            (notification_schema, '_ownership', stages[5], 0, 'connection', True)):
-        scoped.setattr(owner, name, wrap(getattr(owner, name), stage, position, argument, raw))
-
-    def snapshot_costs():
-        # Called after both workers join and scoped patches are restored. Read
-        # only the original observer's PID binding; never fill it from SQL.
-        with mutex:
-            known = {value['token']: value for value in transactions.values()
-                     if type(value) is dict and type(value.get('token')) is int}
-            rows = []
-            for (token, stage), counts in aggregates.items():
-                pid = known.get(token, {}).get('backend_pid')
-                if type(pid) is not int or not 1 <= pid <= 2147483647:
-                    pid = None
-                rows.append(dict(token=token, backend_pid=pid, stage=stage, **counts))
-            result = dict(rows=rows, **counters)
-            aggregates.clear()
-            counters.update(overflow_count=0, observer_error_count=0)
-            return result
-    return snapshot_costs
+    try:
+        from types import GetSetDescriptorType
+        from sqlalchemy.engine import Connection
+        from returnops_domain.customer_uow import CustomerUnitOfWork
+        from returnops_domain import (founder_integrity, notification_intent, notification_schema,
+            notification_sources, generated_evidence, lifecycle_schema, execution_preparation_schema,
+            return_execution_schema, label_execution_schema, label_artifact_schema)
+        targets = (
+            (notification_intent, 'create_control', 0, 'uow', 'uow'),
+            (notification_sources, 'validate_control', 0, 'uow', 'uow'),
+            (notification_intent, '_inventory', 0, 'uow', 'uow'),
+            (founder_integrity.CaseProof, '__init__', 1, 'uow', 'uow'),
+            (notification_schema, 'descriptor', 0, 'connection', 'raw'),
+            (notification_schema, '_ownership', 0, 'connection', 'raw'),
+            (generated_evidence, 'namespace_active', 0, 'uow', 'namespace'),
+            (lifecycle_schema, '_preview_descriptor', 0, 'connection', 'raw'),
+            (execution_preparation_schema, 'descriptor', 0, 'connection', 'raw'),
+            (return_execution_schema, 'descriptor', 0, 'connection', 'raw'),
+            (label_execution_schema, 'descriptor', 0, 'connection', 'raw'),
+            (label_artifact_schema, 'descriptor', 0, 'connection', 'raw'))
+        for stage, (owner, name, position, argument, mode) in zip(stages, targets):
+            original = getattr(owner, name)
+            wrapper = wrap(original, stage, position, argument, mode)
+            journal.append((owner, name, original, wrapper))
+            setattr(owner, name, wrapper)
+            if getattr(owner, name) is not wrapper:
+                raise RuntimeError('Cost observer installation identity')
+        active = True
+    except BaseException:
+        active = False
+        flags['install_failed'] = True
+        increment('observer_error_count')
+        restore()
+    return finish
 
 
 def _fence_cost_lines(diagnostic):
     """Only fixed ASCII names and bounded numbers cross this output boundary."""
     import json
     stages = ('create_control', 'validate_control', 'inventory', 'case_proof',
-              'notification_descriptor', 'notification_ownership')
+              'notification_descriptor', 'notification_ownership', 'generated_namespace',
+              'preview_descriptor', 'preparation_descriptor', 'return_descriptor',
+              'label_descriptor', 'artifact_descriptor')
     maximum = (1 << 63) - 1
 
     def number(value, upper=maximum, lower=0):
@@ -460,8 +559,10 @@ def _fence_cost_lines(diagnostic):
     output = [line(dict(kind='summary', inclusive_totals_overlap=True,
         overflow_count=number(diagnostic.get('overflow_count')),
         observer_error_count=number(diagnostic.get('observer_error_count')),
-        output_truncated=len(rows) > 54))]
-    for row in rows[:54]:
+        install_failed=diagnostic.get('install_failed') if type(diagnostic.get('install_failed')) is bool else None,
+        cleanup_incomplete=diagnostic.get('cleanup_incomplete') if type(diagnostic.get('cleanup_incomplete')) is bool else None,
+        output_truncated=len(rows) > 108))]
+    for row in rows[:108]:
         if type(row) is not dict or type(row.get('stage')) is not str or row['stage'] not in stages:
             continue
         token = number(row.get('token'), 8, 1)
