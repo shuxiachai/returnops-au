@@ -29,10 +29,12 @@ from returnops_api import database, main
 from returnops_api.settings import ConfigurationError, Settings, require_environment_database
 
 
-EXPECTED_REVISION = "0011_return_execution"
+EXPECTED_REVISION = "0013_label_artifact_result"
 EXPECTED_TABLES = ['accepted_order_contents', 'accepted_order_projections', 'alembic_version', 'case_heads', 'case_investigation_state', 'case_records', 'customer_acceptances', 'customer_audit_events', 'customer_clarification_sets', 'customer_evidence', 'customer_evidence_contents', 'customer_history_contents', 'customer_history_cursors', 'customer_history_revisions', 'customer_history_snapshots', 'customer_intake_sessions', 'customer_intake_work', 'customer_principals', 'customer_processing_failures', 'customer_receipt_refs', 'customer_receipts', 'customer_scope_audit_events', 'customer_scope_audit_heads', 'customer_sessions', 'discarded_order_invocations', 'founder_history_encodings', 'founder_list_members', 'founder_read_cursors', 'founder_read_snapshots', 'investigation_clarification_inputs', 'investigation_inputs', 'investigation_policy_events', 'investigation_provider_grants', 'investigation_question_groups', 'investigation_services', 'investigation_work', 'order_lookup_blocks', 'order_lookup_contents', 'order_lookup_receipts', 'original_statement_contents', 'original_statement_records']
 EXPECTED_TABLES = sorted(EXPECTED_TABLES + ['case_lifecycle_state', 'lifecycle_authorities', 'lifecycle_work', 'lifecycle_source_bindings', 'lifecycle_event_receipts', 'lifecycle_effect_refs', 'lifecycle_action_previews', 'lifecycle_execution_preparations'])
 EXPECTED_TABLES = sorted(EXPECTED_TABLES + ['lifecycle_return_execution_controls', 'return_provider_permissions', 'core_mock_return_ledger'])
+EXPECTED_TABLES = sorted(EXPECTED_TABLES + ['lifecycle_label_execution_controls', 'label_provider_permissions', 'core_mock_label_ledger', 'lifecycle_label_artifact_work'])
+EXPECTED_TABLES = sorted(EXPECTED_TABLES + ['label_artifact_permissions', 'lifecycle_label_artifact_controls', 'lifecycle_label_artifact_claims', 'generated_label_artifacts', 'generated_label_artifact_contents'])
 SECRET = "environment-test-secret-do-not-log"
 STUB_URL = f"postgresql+psycopg://environment_user:{SECRET}@stub.invalid/environment"
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -153,6 +155,16 @@ def application_with_engine(
     monkeypatch.setattr(return_execution_schema, 'descriptor', lambda connection:
         engine.failure != 'execution_descriptor' if isinstance(connection, DiagnosticConnection)
         else original_execution(connection))
+    from returnops_domain import label_execution_schema
+    original_label = label_execution_schema.descriptor
+    monkeypatch.setattr(label_execution_schema, 'descriptor', lambda connection:
+        engine.failure != 'label_descriptor' if isinstance(connection, DiagnosticConnection)
+        else original_label(connection))
+    from returnops_domain import label_artifact_schema
+    original_artifact = label_artifact_schema.descriptor
+    monkeypatch.setattr(label_artifact_schema, 'descriptor', lambda connection:
+        engine.failure != 'artifact_descriptor' if isinstance(connection, DiagnosticConnection)
+        else original_artifact(connection))
     return main.create_app()
 
 
@@ -248,7 +260,7 @@ def test_readiness_rejects_invalid_revision_sets(
     assert engine.disposed
 
 
-@pytest.mark.parametrize("failure", ["connect", "probe", "revision", "preview_descriptor", "preparation_descriptor", "execution_descriptor"])
+@pytest.mark.parametrize("failure", ["connect", "probe", "revision", "preview_descriptor", "preparation_descriptor", "execution_descriptor", "label_descriptor", "artifact_descriptor"])
 def test_database_failures_return_503_without_disclosing_configuration(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,

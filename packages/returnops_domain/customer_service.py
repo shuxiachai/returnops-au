@@ -150,12 +150,28 @@ class CustomerFlow:
         try:
             with self.uow_factory(self.engine,write=False) as uow:
                 actor = self._authorize(uow,"getEvidenceContent",evidence_id)
-                meta = uow.execute(select(t.evidence).where(t.evidence.c.evidence_id==evidence_id)).mappings().one()
-                raw = uow.execute(select(t.evidence_contents.c.body).where(t.evidence_contents.c.evidence_id==evidence_id)).scalar_one_or_none()
-                if raw is None or len(raw)!=meta["size_bytes"] or sha256(bytes(raw)).hexdigest()!=meta["sha256"]:
-                    raise FlowError("INTERNAL_ERROR")
-                self._same_authority(uow,actor,"getEvidenceContent",evidence_id); uow.commit()
-                return ResponseResult(200,(bytes(raw),meta["media_type"]))
+                from .generated_evidence import is_generated_resource,resolve
+                if is_generated_resource(uow,evidence_id):
+                    snapshot=resolve(uow,evidence_id)
+                    if not snapshot.available or snapshot.content is None:raise FlowError('NOT_FOUND')
+                    raw,media=snapshot.content,snapshot.media_type
+                else:
+                    meta = uow.execute(select(t.evidence).where(t.evidence.c.evidence_id==evidence_id)).mappings().one()
+                    raw = uow.execute(select(t.evidence_contents.c.body).where(t.evidence_contents.c.evidence_id==evidence_id)).scalar_one_or_none()
+                    if raw is None or len(raw)!=meta["size_bytes"] or sha256(bytes(raw)).hexdigest()!=meta["sha256"]:
+                        raise FlowError("INTERNAL_ERROR")
+                    media=meta['media_type']
+                self._same_authority(uow,actor,"getEvidenceContent",evidence_id)
+                if is_generated_resource(uow,evidence_id):
+                    from .approval_admission_sources import session_bounds,check_session_time
+                    from .return_execution_sources import database_now
+                    if self.authority(uow.connection,'getSession')!=actor:raise FlowError('UNAUTHENTICATED')
+                    bounds=session_bounds(uow,actor)
+                    check_session_time(database_now(uow),bounds)
+                uow.commit()
+                result=ResponseResult(200,(bytes(raw),media))
+            # Neither generated nor customer bytes escape before close is known.
+            return result
         except (AcceptanceOutcomeUnknown, StorageError, SQLAlchemyError):
             failed = True
         if failed: raise FlowError("INTERNAL_ERROR") from None
@@ -171,6 +187,8 @@ class CustomerFlow:
         return result
 
     def _eligible_evidence(self,uow,actor,evidence_ids,now):
+        from .generated_evidence import is_generated_resource
+        if any(is_generated_resource(uow,value) for value in evidence_ids):raise FlowError('INVALID_STATE')
         rows = uow.execute(select(t.evidence).where(t.evidence.c.evidence_id.in_(evidence_ids))).mappings().all() if evidence_ids else []
         by_id = {r["evidence_id"]:r for r in rows}; eligible=[]
         for evidence_id in evidence_ids:

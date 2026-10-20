@@ -29,6 +29,13 @@ def append_revision(uow, case_id, kind, object_id, object_version, content, now)
     return {"record_id": record_id, "kind": kind, "object_id": object_id, "object_version": object_version}
 
 def read_revision(uow, row):
+    if row['kind']=='EVIDENCE':
+        from .generated_evidence import is_generated_resource,verify_certificate
+        if is_generated_resource(uow,row['object_id']):
+            seal=verify_certificate(uow,row['object_id'])
+            if seal['evidence_record']!=dict(row):
+                # Window ranking adds a read-only position column.
+                if any(row[n]!=v for n,v in seal['evidence_record'].items()):raise FlowError('INTERNAL_ERROR')
     result = {name: row[name] for name in ("record_id", "case_id", "kind", "object_id", "object_version", "case_version", "recorded_sequence", "content_sha256", "retention_state")}
     result["recorded_at"] = timestamp(row["recorded_at"])
     if row["retention_state"] == "AVAILABLE":
@@ -64,6 +71,10 @@ def _cursor(uow, snapshot, kind, limit, object_id=None, object_version=None, las
 
 def case_view(uow, actor, case_id, now, *, snapshot_ttl=900):
     head = uow.execute(select(t.case_heads).where(t.case_heads.c.case_id == case_id)).mappings().one()
+    from .lifecycle_schema import ARTIFACT,version
+    if version(uow.connection)==ARTIFACT:
+        from .founder_integrity import CaseProof
+        CaseProof(uow,head)
     snapshot = _snapshot(uow, actor, head, now, snapshot_ttl)
     result = {name: head[name] for name in ("case_id", "case_version", "input_version", "status")}
     result.update(created_at=timestamp(head["created_at"]), updated_at=timestamp(head["updated_at"]), collection_windows={})
@@ -93,6 +104,10 @@ def case_view(uow, actor, case_id, now, *, snapshot_ttl=900):
     return result
 
 def history_page(uow, actor, case_id, query, now, *, snapshot_ttl=900):
+    from .lifecycle_schema import ARTIFACT,version
+    if version(uow.connection)==ARTIFACT:
+        from .founder_integrity import CaseProof
+        CaseProof(uow,uow.execute(select(t.case_heads).where(t.case_heads.c.case_id==case_id)).mappings().one())
     query = validate("CustomerHistoryQuery", query); kind = query["kind"]; limit = query.get("limit", 20)
     object_id, object_version = query.get("object_id"), query.get("object_version")
     last_sequence, last_record_id = 0, None
