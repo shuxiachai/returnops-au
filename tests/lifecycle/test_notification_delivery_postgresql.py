@@ -8,7 +8,7 @@ from returnops_domain.errors import AcceptanceOutcomeUnknown
 from returnops_domain.notification_mock import CoreMockNotification
 from returnops_domain.notification_tables import controls, facts
 from returnops_domain.notification_profile import COMPONENT
-from notification_helpers import ready, service, rows, snapshot, evidence, pdf_call_counts
+from notification_helpers import ready, service, rows, snapshot, evidence, pdf_call_counts, _diagnostic_uow
 
 
 class NoEffect(CoreMockNotification):
@@ -34,9 +34,13 @@ def test_actual_producers_send_one_independent_fact_and_terminal_outcome(
         flow_engine,identities,enabled,request,kind):
     setup=ready(flow_engine,identities,kind)
     before=snapshot(flow_engine)
+    domain_observed={'events':[],'dropped':0}
+    mock_observed={'events':[],'dropped':0}
     with pdf_call_counts() as calls:
-        delivered=service(flow_engine,identities).send(setup['work_id'])
-    assert delivered.status=='SENT',asdict(delivered)
+        delivered=service(flow_engine,identities,uow_factory=_diagnostic_uow(domain_observed),
+            mock=CoreMockNotification(flow_engine,uow_factory=_diagnostic_uow(mock_observed))).send(setup['work_id'])
+    assert delivered.status=='SENT',{'result':asdict(delivered),
+        'domain_diagnostics':domain_observed,'mock_diagnostics':mock_observed}
     saved=rows(flow_engine,facts)
     assert len(saved)==1 and saved[0]['status']=='SENT'
     control=rows(flow_engine,controls)[0]

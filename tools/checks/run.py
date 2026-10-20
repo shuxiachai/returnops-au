@@ -26,7 +26,7 @@ LIFECYCLE_GROUPS = {
     "label_artifact": 8,
     "label_execution_bridge": 8,
     "lifecycle_core": 14,
-    "notification": 10,
+    "notification": 12,
 }
 PARTS = ("foundation", *LIFECYCLE_GROUPS)
 MANIFEST = Path("tools/checks/lifecycle-groups.json")

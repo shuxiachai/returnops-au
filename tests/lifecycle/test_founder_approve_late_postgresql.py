@@ -10,11 +10,11 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
 from datetime import datetime, timedelta, timezone
 from queue import Queue
-from threading import local
-from time import monotonic, sleep
+from threading import Lock, local
+from time import monotonic, monotonic_ns, sleep
 
 import pytest
-from sqlalchemy import select, text, update
+from sqlalchemy import event as sqlalchemy_event, select, text, update
 
 from returnops_domain import customer_tables as old, lifecycle_tables as lifecycle
 from returnops_domain.canonical import decode_document
@@ -321,13 +321,144 @@ def test_AP12_late_denial_reauthorizes_after_business_rollback(
         before=original_before, fresh=item, after=after, result=asdict(result))
 
 
-def _overlap_at_actual_fence(engine, monkeypatch, calls, *, first=None):
+def _safe_fence_error(error):
+    """Fixed exception categories and SQLSTATE only; never exception text."""
+    kind = type(error).__name__
+    if kind not in {'OperationalError', 'InterfaceError', 'DBAPIError', 'FlowError',
+                    'AssertionError', 'AcceptanceOutcomeUnknown'}:
+        kind = 'OTHER_EXCEPTION'
+    try:
+        state = getattr(getattr(error, 'orig', None), 'sqlstate', None)
+    except Exception:
+        state = None
+    if (type(state) is not str or len(state) != 5
+            or any(character not in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789' for character in state)):
+        state = None
+    return dict(error_type=kind, sqlstate=state)
+
+
+def _observed_fence_overlap(engine, monkeypatch, calls, first, diagnostic):
+    """Optional observation of the existing race; no new SQL or lock operations.
+
+    The engine commit event precedes the native commit. Its successful UOW
+    return follows it. These bound release; neither is a database timestamp.
+    """
+    from returnops_domain import customer_uow
+    assert type(diagnostic) is dict and not diagnostic
+    assert set(calls) == {'revision', 'competitor'} and first in calls
+    original_fence, original_commit = customer_uow.acquire_fence, CustomerUnitOfWork.commit
+    context, mutex = local(), Lock()
+    transactions, events, results = {}, [], {}
+    overlap = None
+
+    def transaction(connection):
+        with mutex:
+            if connection not in transactions:
+                transactions[connection] = dict(token=len(transactions)+1,
+                    label=getattr(context, 'label', 'holder'), backend_pid=None)
+            return transactions[connection]
+
+    def record(connection, event, **fields):
+        value = transaction(connection)
+        with mutex:
+            events.append(dict(token=value['token'], event=event,
+                               monotonic_ns=monotonic_ns(), **fields))
+
+    def fence(connection, *, write):
+        if connection.engine is not engine:
+            return original_fence(connection, write=write)
+        record(connection, 'fence_call')
+        try:
+            result = original_fence(connection, write=write)
+        except BaseException as error:
+            record(connection, 'fence_error', **_safe_fence_error(error))
+            raise
+        record(connection, 'fence_return')
+        return result
+
+    def commit_begin(connection):
+        if connection in transactions:
+            record(connection, 'native_commit_begin')
+
+    def commit(uow):
+        connection = uow.connection
+        if connection not in transactions:
+            return original_commit(uow)
+        try:
+            result = original_commit(uow)
+        except BaseException as error:
+            record(connection, 'uow_commit_error', **_safe_fence_error(error))
+            raise
+        record(connection, 'uow_commit_return')
+        return result
+
+    def invoke(label, call):
+        context.label = label
+        try:
+            result = call()
+            code = getattr(result, 'safe_code', None)
+            codes = {'UNAUTHENTICATED', 'FORBIDDEN', 'NOT_FOUND', 'VALIDATION_ERROR',
+                     'STALE_CASE_VERSION', 'IDEMPOTENCY_CONFLICT', 'INVALID_STATE',
+                     'REQUEST_TOO_LARGE', 'UNSUPPORTED_MEDIA_TYPE', 'INTERNAL_ERROR'}
+            status = getattr(result, 'status', None)
+            with mutex:
+                results[label] = dict(status=status if status in {'ACCEPTED', 'DENIED', 'UNKNOWN'} else 'OTHER',
+                    safe_code=code if code in codes else None,
+                    receipt_present=getattr(result, 'receipt', None) is not None)
+            return result
+        finally:
+            del context.label
+
+    try:
+        # The nested helper patches only this local context. Undo it and both
+        # transparent wrappers before returning or publishing any diagnostic.
+        with monkeypatch.context() as scoped:
+            scoped.setattr(customer_uow, 'acquire_fence', fence)
+            scoped.setattr(CustomerUnitOfWork, 'commit', commit)
+            sqlalchemy_event.listen(engine, 'commit', commit_begin)
+            try:
+                result, overlap = _overlap_at_actual_fence(engine, scoped,
+                    {label:(lambda label=label:invoke(label, calls[label])) for label in calls},
+                    first=first)
+                return result, overlap
+            finally:
+                sqlalchemy_event.remove(engine, 'commit', commit_begin)
+    finally:
+        # Reuse only the PIDs obtained by the original helper's real queries.
+        # Later denial-audit transactions are intentionally left unbound.
+        if overlap is not None:
+            bindings = {'holder':overlap['holder_backend_pid'], **dict(overlap['participants'])}
+            for label, pid in bindings.items():
+                original = next((value for value in transactions.values() if value['label'] == label), None)
+                if original is not None:
+                    original['backend_pid'] = pid
+        bounds = []
+        for value in transactions.values():
+            times = {}
+            for entry in events:
+                if entry['token'] == value['token']:
+                    times.setdefault(entry['event'], []).append(entry['monotonic_ns'])
+            names = ('fence_call', 'fence_return', 'native_commit_begin', 'uow_commit_return')
+            if all(len(times.get(name, [])) == 1 for name in names) and 'uow_commit_error' not in times:
+                start, acquired, releasing, returned = (times[name][0] for name in names)
+                if start <= acquired <= releasing <= returned:
+                    bounds.append(dict(token=value['token'], hold_lower_bound_ns=releasing-acquired,
+                                       hold_upper_bound_ns=returned-start))
+        diagnostic.update(format=1, first=first,
+            pid_binding='original_overlap_queries' if overlap is not None else 'unavailable',
+            transactions=list(transactions.values()), events=events, results=results,
+            successful_commit_hold_bounds=bounds)
+
+
+def _overlap_at_actual_fence(engine, monkeypatch, calls, *, first=None, diagnostic=None):
     """Observe both real connections waiting before releasing the holder.
 
     Normal 5-second lock timeouts and 10-second statement timeouts remain intact.
     On any observation/assertion failure, holder exit releases its fence before
     ThreadPoolExecutor joins workers. No unbounded barrier remains to strand them.
     """
+    if diagnostic is not None:
+        return _observed_fence_overlap(engine, monkeypatch, calls, first, diagnostic)
     from returnops_domain import customer_uow
     original = customer_uow.acquire_fence
     participants = Queue()

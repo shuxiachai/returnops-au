@@ -82,23 +82,34 @@ local PostgreSQL and Docker remain paused.
 | 01–02 | `test_notification_delivery_postgresql.py`: actual completed return, rejection, PASS/ESCALATE manual, order failure/block, intake and assessment failure producers |
 | 03 | `test_notification_execution_proof_postgresql.py`: actual complete chain, corrupt/missing proof, stale generation and independent fact aliases |
 | 04 | `test_notification_guards_postgresql.py`, fact-alias tests: direct guard bypass and final receipt/authority closure |
-| 05–06 | `test_notification_transactions_postgresql.py`: T1/T2/T3 commit/close uncertainty and rollback; independent installed recovery still pending |
+| 05–06 | `test_notification_transactions_postgresql.py`: T1/T2/T3 commit/close uncertainty and rollback; installed restart/query recovery is selected in the process tests but remains unexecuted |
 | 07 | Delivery tests: real no-effect fact, current Founder retry, original identity and one success |
-| 08 | Actual installed two-process contention, barrier and stale lease oracles still pending |
-| 09 | Closed profile and independent fact offline files: 62 tests passed locally on their recorded exact hashes; recipient/source integration remains cloud evidence |
-| 10 | Existing explicit legacy late-effect regressions retained; modern late-observation coverage still pending |
+| 08 | `test_notification_process_postgresql.py`: two planned send/reconcile cases use two installed processes, observed PostgreSQL advisory-lock waiters, one fact/acceptance and installed restart/query recovery. These cases are unexecuted; stale epoch, lease and authority variants and whole AC08 acceptance remain pending |
+| 09 | Recorded separate offline runs: 25 closed-profile tests and 52 fact/source-inventory tests, including finite-number body binding. Recipient/source integration still requires cloud evidence |
+| 10 | `test_notification_late_postgresql.py`: 16 planned, unexecuted cases cover real lost-reply recovery, a winning T3, old no-effect observations after Founder retry, another real case's fact, authority revocation and PDF/statement retention. Legacy late-effect regressions remain labelled compatibility evidence; whole AC10 remains pending |
 | 11–12 | `test_notification_reads_retention_postgresql.py`: existing real HTTP GET paths, safe SENT, scopes, snapshots and source/PDF tombstones; cloud execution pending |
 | 13 | Schema and legacy tests: exact migration preservation, ownership/ACL negatives, empty new tables and explicitly labelled v1 compatibility samples |
 | 14 | Updated exact lifecycle inventory and normal CI; actual full cloud outcome and final independent review pending |
 
-The CI inventory retains the original 54 lifecycle files and adds the ten
+The CI inventory retains the original 54 lifecycle files and adds the twelve
 notification test files exactly once. The new `notification` group is separate
-from the six original groups. Explicit historical fixtures keep the original
+from the six original groups, whose membership and order are unchanged: 66
+test files across the same eight PostgreSQL parts including foundation. The
+installed-process helper is not a test file or an extra matrix part.
+Explicit historical fixtures keep the original
 0013/0007 assertions where they synthesize v1 notification transitions. Such
 fixtures are not evidence of a historical real sender. Latest-head actual
 producer checks use 0014 and assert the fixed v2 work owner/control.
 
-An installed package import/profile probe is included, but it does not prove
-installed business execution or concurrent processes. Publication as a Draft,
+The process tests run the installed package outside the checkout and bind its
+loaded module bytes to the candidate. The late-observation hook first completes
+and closes a real query, then runs a real competing action before returning the
+original fact. Both retain complete state/fact/source/audit snapshots and
+provider/send/render call checks. Their selection and static review are not
+execution evidence. Real reject/manual entry points require preapproval states;
+no post-execution reject/manual composite is fabricated to fill a coverage gap.
+
+An installed package import/profile probe alone does not prove installed
+business execution or concurrent processes. Publication as a Draft,
 static review and offline success do not complete AC08/10/14, whole A2.06,
 member review, original S/F acceptance, or Ready/merge.

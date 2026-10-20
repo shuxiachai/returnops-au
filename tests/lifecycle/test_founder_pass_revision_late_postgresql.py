@@ -5,6 +5,7 @@ actual pg_stat_activity advisory-wait observer, never elapsed time as evidence.
 """
 from dataclasses import asdict
 from datetime import timedelta
+import json
 
 import pytest
 from sqlalchemy import delete, select, update
@@ -260,7 +261,7 @@ def test_RVP06_two_actual_backends_have_one_revision_intent(flow_engine, identit
 
 @pytest.mark.parametrize('competitor', ['approve', 'reject'])
 @pytest.mark.parametrize('first', ['revision', 'competitor'])
-def test_RVP06_founder_decisions_compete_in_both_real_fence_orders(flow_engine, identities, enabled, request, monkeypatch, competitor, first):
+def test_RVP06_founder_decisions_compete_in_both_real_fence_orders(flow_engine, identities, enabled, request, monkeypatch, competitor, first, capsys):
     from approve_helpers import approve, provision as provision_approval, assert_approved_without_effects
     from reject_helpers import service as reject, provision as provision_reject, assert_rejected
     case, body, action, at = ready(flow_engine, identities)
@@ -275,9 +276,18 @@ def test_RVP06_founder_decisions_compete_in_both_real_fence_orders(flow_engine, 
         other_body = {**body, 'decision':'REJECT'}
     caller = service(flow_engine, identities, clock=lambda:at)
     before = snapshot(flow_engine)
-    results, overlap = _overlap_at_actual_fence(flow_engine, monkeypatch, dict(
-        revision=lambda:caller.accept(case, body, 'race_revision', 'decision_race'),
-        competitor=lambda:other.accept(case, other_body, 'race_other', 'decision_race')), first=first)
+    diagnostic = {}
+    try:
+        results, overlap = _overlap_at_actual_fence(flow_engine, monkeypatch, dict(
+            revision=lambda:caller.accept(case, body, 'race_revision', 'decision_race'),
+            competitor=lambda:other.accept(case, other_body, 'race_other', 'decision_race')),
+            first=first, diagnostic=diagnostic)
+    finally:
+        # Emit safe timing evidence even if the original assertion fails. The
+        # existing evidence file still carries the complete successful result.
+        diagnostic['competitor_kind'] = competitor
+        with capsys.disabled():
+            print('RETURNOPS_REVISION_FENCE_OBSERVATION ' + json.dumps(diagnostic, sort_keys=True), flush=True)
     assert results[first].status == 'ACCEPTED'
     loser = 'competitor' if first == 'revision' else 'revision'
     assert results[loser].status == 'DENIED' and results[loser].receipt is None
