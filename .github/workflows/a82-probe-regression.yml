@@ -1,0 +1,65 @@
+name: A82 finite installed probe regression
+
+on:
+  push:
+    branches: [diag/81-a82-remaining-20261020]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a82-finite-probe-regression-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  regression:
+    if: github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUTF8: '1'
+      DATABASE_URL: postgresql+psycopg://returnops_ci:ci_synthetic_only@localhost:5432/returnops_f02_ci
+    services:
+      postgres:
+        image: postgres:17-bookworm@sha256:051f7b7b3abdd564d5d1bd1e8c4b9c1b6e77087d1dd22020ede611c096a272e0
+        env:
+          POSTGRES_USER: returnops_ci
+          POSTGRES_PASSWORD: ci_synthetic_only
+          POSTGRES_DB: returnops_f02_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U returnops_ci -d returnops_f02_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 3
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Install complete locked dependencies and exact local package
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install --no-deps --no-build-isolation -e .
+          python -m pip check
+      - name: Migrate only the disposable normal CI database
+        run: python -B -m alembic upgrade head
+      - name: Run only the twelve frozen installed probe cases once
+        env:
+          A82_SERVICE_ID: ${{ job.services.postgres.id }}
+        run: python -B tools/a82_probe_regression/run.py
+      - name: Retain bounded safe regression evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: a82-probe-regression-${{ github.run_id }}-${{ github.run_attempt }}
+          path: a82-safe-artifact/*.json
+          if-no-files-found: error
+          retention-days: 7
+          overwrite: false
+          include-hidden-files: false

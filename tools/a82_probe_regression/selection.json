@@ -1,0 +1,28 @@
+{
+  "nodes": [
+    "tests/lifecycle/test_label_execution_process_postgresql.py::test_LE_G6_G11_installed_two_processes_observe_actual_PG_fence_and_one_effect[execute-same]",
+    "tests/lifecycle/test_label_execution_process_postgresql.py::test_LE_G6_G11_installed_two_processes_observe_actual_PG_fence_and_one_effect[execute-original_key]",
+    "tests/lifecycle/test_label_execution_process_postgresql.py::test_LE_G6_G11_installed_two_processes_observe_actual_PG_fence_and_one_effect[execute-expected_version]",
+    "tests/lifecycle/test_label_execution_process_postgresql.py::test_LE_G6_G11_installed_two_processes_observe_actual_PG_fence_and_one_effect[reconcile-same]",
+    "tests/lifecycle/test_label_execution_process_postgresql.py::test_LE_G8_G11_new_installed_process_observation_is_readonly[absent]",
+    "tests/lifecycle/test_label_execution_process_postgresql.py::test_LE_G8_G11_new_installed_process_observation_is_readonly[confirmed]",
+    "tests/lifecycle/test_return_label_bridge_process_postgresql.py::test_RB_G7_G11_installed_processes_wait_on_actual_pg_fence[same]",
+    "tests/lifecycle/test_return_label_bridge_process_postgresql.py::test_RB_G7_G11_installed_processes_wait_on_actual_pg_fence[original_key]",
+    "tests/lifecycle/test_return_label_bridge_process_postgresql.py::test_RB_G7_G11_installed_processes_wait_on_actual_pg_fence[expected_version]",
+    "tests/lifecycle/test_return_label_bridge_process_postgresql.py::test_RB_G9_G11_new_process_recovery_is_readonly[absent]",
+    "tests/lifecycle/test_return_label_bridge_process_postgresql.py::test_RB_G9_G11_new_process_recovery_is_readonly[accepted]",
+    "tests/lifecycle/test_label_artifact_process_postgresql.py::test_LA_P07_P13_two_actual_installed_processes_one_claim_and_completion"
+  ],
+  "formal_commit": "9d55cafdec52cb40950a5c9d87cdb3b3ee84bdcd",
+  "formal_paths": [
+    "tests/lifecycle/label_artifact_probe.py",
+    "tests/lifecycle/test_label_artifact_process_postgresql.py",
+    "tests/lifecycle/label_execution_probe.py",
+    "tests/lifecycle/test_label_execution_process_postgresql.py",
+    "tests/lifecycle/return_label_bridge_probe.py",
+    "tests/lifecycle/test_return_label_bridge_process_postgresql.py",
+    "tests/lifecycle/label_artifact_binding.py",
+    "tests/unit/test_label_artifact_binding.py",
+    "tests/unit/test_installed_probe_binding.py"
+  ]
+}
