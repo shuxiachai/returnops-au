@@ -1,4 +1,5 @@
 """PMP02/04/05/06/07: full final seals and observed two-backend fences."""
+from contextlib import contextmanager
 from dataclasses import asdict
 from datetime import timedelta
 
@@ -31,8 +32,156 @@ def _original_manual_event(engine, case):
     return OutcomeAccepted(saved['event_id'], claim, saved['record_id'], note['record_id']), saved
 
 
+@contextmanager
+def _observe_manual_review_proofs(monkeypatch, case, event, original, original_work, review_id, control):
+    """Transparent real-proof observation; exception objects stay in test memory."""
+    from returnops_domain import notification_intent, notification_sources, pass_manual_sources
+    from returnops_domain.lifecycle_sources import Sources
+    from returnops_domain.notification_profile import COMPONENT as NOTIFIER
+    original_control = notification_sources.validate_control
+    original_inventory = notification_intent._inventory
+    original_read, original_manual = Sources.read, pass_manual_sources.accepted_manual
+    observed = dict(stage='apply', controls=[], inventories=[], reads=[], manual=[],
+                    active_controls=[], active_inventories=[])
+
+    def entry(group, exact, **extra):
+        value = dict(stage=observed['stage'], exact=exact, returned=False, error=None, **extra)
+        observed[group].append(value)
+        return value
+
+    def invoke(value, function, *args, **kwargs):
+        try:
+            result = function(*args, **kwargs)
+        except BaseException as error:
+            value['error'] = error
+            raise
+        value['returned'] = True
+        return result
+
+    def validate(uow, head, saved, **kwargs):
+        value = entry('controls', head['case_id'] == case and saved['case_id'] == case
+            and saved['notification_work_id'] == control['notification_work_id']
+            and saved['outcome_record_id'] == event.record_id)
+        observed['active_controls'].append(value)
+        try:
+            return invoke(value, original_control, uow, head, saved, **kwargs)
+        finally:
+            observed['active_controls'].pop()
+
+    def inventory(uow, head, initial_record_id):
+        parent = observed['active_controls'][-1] if observed['active_controls'] else None
+        value = entry('inventories', head['case_id'] == case
+            and initial_record_id == control['initial_notification_record_id'],
+            control=parent)
+        observed['active_inventories'].append(value)
+        try:
+            return invoke(value, original_inventory, uow, head, initial_record_id)
+        finally:
+            observed['active_inventories'].pop()
+
+    def read(sources, record_id, kinds, **kwargs):
+        if record_id != review_id:
+            return original_read(sources, record_id, kinds, **kwargs)
+        parent = observed['active_inventories'][-1] if observed['active_inventories'] else None
+        value = entry('reads', sources.head['case_id'] == case and kinds == {'REVIEW'}
+            and kwargs.get('current_actor', True) is False and sources.component_id == NOTIFIER,
+            inventory=parent)
+        result = invoke(value, original_read, sources, record_id, kinds, **kwargs)
+        value['binding_valid'] = (type(result) is tuple and len(result) == 2
+            and hasattr(result[0], 'get') and result[0].get('record_id') == review_id
+            and result[0].get('case_id') == case and result[0].get('kind') == 'REVIEW')
+        return result
+
+    def manual(uow, head, record_id, component):
+        value = entry('manual', head['case_id'] == case and record_id == event.record_id
+            and component == COMPONENT,
+            context='control_outcome' if observed['active_controls'] else 'direct')
+        result = invoke(value, original_manual, uow, head, record_id, component)
+        value['binding_valid'] = (type(result) is dict and result.get('event') == original
+                                  and result.get('work') == original_work)
+        return result
+
+    with monkeypatch.context() as scoped:
+        scoped.setattr(notification_sources, 'validate_control', validate)
+        scoped.setattr(notification_intent, '_inventory', inventory)
+        scoped.setattr(Sources, 'read', read)
+        scoped.setattr(pass_manual_sources, 'accepted_manual', manual)
+        yield observed
+
+
+def _review_corruption_rejected_by_notification_inventory(flow_engine, identities, request, monkeypatch):
+    """Modern positive replay, then the exact damaged-review rejection chain."""
+    from returnops_domain.lifecycle_guards import LifecycleGuards
+    from returnops_domain.notification_tables import controls
+    case, body, action, at = ready(flow_engine, identities)
+    accepted = attempt(flow_engine, identities, case, body, at)
+    assert_manual(flow_engine, case, body, accepted, action=action)
+    event, original = _original_manual_event(flow_engine, case)
+    original_work, = [row for row in case_rows(flow_engine, t.work, case)
+                      if row['work_id'] == event.claim.work_id]
+    review, = [row for row in case_rows(flow_engine, old.history, case) if row['kind'] == 'REVIEW']
+    control, = [row for row in rows(flow_engine, controls)
+                if row['case_id'] == case and row['outcome_record_id'] == event.record_id]
+    with _observe_manual_review_proofs(monkeypatch, case, event, original, original_work,
+                                      review['record_id'], control) as observed:
+        positive_before = snapshot(flow_engine)
+        with CustomerUnitOfWork(flow_engine, write=True) as uow:
+            assert LifecycleGuards(COMPONENT).apply(uow, event, at) == original
+            observed['stage'] = 'commit'
+            uow.commit()
+        assert snapshot(flow_engine) == positive_before
+        assert not observed['active_controls'] and not observed['active_inventories']
+        assert observed['controls'] and all(value['exact'] and value['returned']
+            and value['error'] is None for value in observed['controls'])
+        assert observed['inventories'] and all(value['exact'] and value['returned']
+            and value['error'] is None and any(value['control'] is parent for parent in observed['controls'])
+            for value in observed['inventories'])
+        inventory_reads = [value for value in observed['reads'] if value['inventory'] is not None]
+        assert inventory_reads and all(value['exact'] and value['returned'] and value['binding_valid']
+            and value['error'] is None and any(value['inventory'] is parent for parent in observed['inventories'])
+            for value in inventory_reads)
+        assert {value['stage'] for value in inventory_reads} == {'apply', 'commit'}
+        assert observed['manual'] and all(value['exact'] and value['returned']
+            and value['binding_valid'] and value['error'] is None for value in observed['manual'])
+        assert {(value['stage'], value['context']) for value in observed['manual']} >= {
+            ('apply', 'control_outcome'), ('apply', 'direct'),
+            ('commit', 'control_outcome'), ('commit', 'direct')}
+        positive_counts = {group:len(observed[group]) for group in ('controls', 'inventories', 'reads', 'manual')}
+        for group in positive_counts:
+            observed[group].clear()
+        observed['stage'] = 'apply'
+
+        with CustomerUnitOfWork(flow_engine, write=True) as uow:
+            assert uow.execute(update(old.history_contents).where(old.history_contents.c.record_id == review['record_id']).values(body=b'{}')).rowcount == 1
+            uow.commit()
+        before = snapshot(flow_engine)
+        with CustomerUnitOfWork(flow_engine, write=True) as uow:
+            with pytest.raises(FlowError) as denied:
+                LifecycleGuards(COMPONENT).apply(uow, event, at)
+            observed['stage'] = 'commit'
+            with pytest.raises(FlowError) as commit_denied:
+                uow.commit()
+        assert denied.value.code == commit_denied.value.code == 'INTERNAL_ERROR'
+        assert not observed['active_controls'] and not observed['active_inventories']
+        assert len(observed['controls']) == len(observed['inventories']) == len(observed['reads']) == 1
+        control_error, inventory_error, read_error = (
+            observed['controls'][0], observed['inventories'][0], observed['reads'][0])
+        assert all(value['exact'] and value['stage'] == 'apply' and not value['returned']
+            and value['error'] is denied.value for value in (control_error, inventory_error, read_error))
+        assert inventory_error['control'] is control_error and read_error['inventory'] is inventory_error
+        assert observed['manual'] == []
+        assert snapshot(flow_engine) == before
+    evidence(request.node.nodeid, before=before, after=snapshot(flow_engine), fault='review',
+        event=asdict(event), positive_snapshot=positive_before, positive_proof_counts=positive_counts,
+        negative_guard_chain=['validate_control', '_inventory', 'Sources.read exact REVIEW'],
+        negative_code=denied.value.code, negative_manual_proof_calls=0,
+        commit_denial=commit_denied.value.code, entrypoint='LifecycleGuards.apply')
+
+
 @pytest.mark.parametrize('fault', ['review', 'preview', 'claim'])
 def test_PMP05_direct_domain_replay_rejects_corrupt_original_proof(flow_engine, identities, enabled, request, monkeypatch, fault):
+    if fault == 'review':
+        return _review_corruption_rejected_by_notification_inventory(flow_engine, identities, request, monkeypatch)
     from returnops_domain import pass_manual_sources
     from returnops_domain.lifecycle_guards import LifecycleGuards
     case, body, action, at = ready(flow_engine, identities)

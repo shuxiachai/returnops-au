@@ -1,5 +1,6 @@
 """Cloud-only actual three-outcome delivery, query recovery and no-effect retry."""
 from dataclasses import asdict
+import json
 import pytest
 from sqlalchemy import select, update
 from returnops_domain import customer_tables as old, lifecycle_tables as life
@@ -28,10 +29,67 @@ class NoSend(CoreMockNotification):
         return None
 
 
+def _emit_send_diagnostics(capsys, kind, domain, mock):
+    """Emit bounded safe observer fields directly, never a pytest object repr."""
+    kinds = {'return', 'reject', 'manual_pass', 'manual_escalated',
+             'manual_failure', 'manual_block', 'manual_intake', 'manual_assessment'}
+    types = {'FlowError', 'AcceptanceOutcomeUnknown', 'OperationalError', 'InterfaceError',
+             'DBAPIError', 'StatementError', 'DataError', 'IntegrityError', 'ProgrammingError',
+             'ValueError', 'TypeError', 'KeyError', 'IndexError', 'AssertionError', 'RuntimeError'}
+    codes = {'UNAUTHENTICATED', 'FORBIDDEN', 'NOT_FOUND', 'VALIDATION_ERROR',
+             'STALE_CASE_VERSION', 'IDEMPOTENCY_CONFLICT', 'INVALID_STATE',
+             'REQUEST_TOO_LARGE', 'UNSUPPORTED_MEDIA_TYPE', 'INTERNAL_ERROR'}
+    alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_'
+
+    def count(value):
+        return value if type(value) is int and 0 <= value <= 1000000 else None
+
+    def name(value, *, module=False):
+        allowed = alphabet + ('.' if module else '<>')
+        limit = 160 if module else 64
+        if (type(value) is str and 0 < len(value) <= limit
+                and all(character in allowed for character in value)
+                and (not module or value.startswith('returnops_domain.'))):
+            return value
+        return 'UNAVAILABLE'
+
+    safe_kind = kind if type(kind) is str and kind in kinds else 'OTHER'
+    with capsys.disabled():
+        for scope, observed in (('domain', domain), ('mock', mock)):
+            observed = observed if type(observed) is dict else {}
+            events = observed.get('events', [])
+            events = events if type(events) is list else []
+            base = dict(format=1, kind=safe_kind, scope=scope)
+            records = [dict(**base, part='container', events=min(len(events), 8),
+                            events_omitted=count(max(0, len(events)-8)),
+                            dropped=count(observed.get('dropped')))]
+            for index, entry in enumerate(events[:8]):
+                entry = entry if type(entry) is dict else {}
+                frames = entry.get('frames', [])
+                frames = frames if type(frames) is list else []
+                stage, error_type, code = (entry.get(key) for key in ('stage', 'type', 'safe_code'))
+                records.append(dict(**base, part='event', event_index=index,
+                    stage=stage if type(stage) is str and stage in {'poison', 'exit'} else 'OTHER',
+                    type=error_type if type(error_type) is str and error_type in types else 'OTHER_EXCEPTION',
+                    safe_code=code if type(code) is str and code in codes else None,
+                    frames=min(len(frames), 12), frames_omitted=count(max(0, len(frames)-12)),
+                    frames_truncated=entry.get('frames_truncated') if type(entry.get('frames_truncated')) is bool else None))
+                for frame_index, frame in enumerate(frames[:12]):
+                    frame = frame if type(frame) is dict else {}
+                    records.append(dict(**base, part='frame', event_index=index, frame_index=frame_index,
+                        module=name(frame.get('module'), module=True), function=name(frame.get('function')),
+                        line=count(frame.get('line'))))
+            for record in records:
+                line = 'RETURNOPS_NOTIFICATION_SEND_DIAGNOSTIC ' + json.dumps(
+                    record, ensure_ascii=True, sort_keys=True, separators=(',', ':'))
+                assert len(line) <= 1024
+                print(line, flush=True)
+
+
 @pytest.mark.parametrize('kind',['return','reject','manual_pass','manual_escalated',
                                 'manual_failure','manual_block','manual_intake','manual_assessment'])
 def test_actual_producers_send_one_independent_fact_and_terminal_outcome(
-        flow_engine,identities,enabled,request,kind):
+        flow_engine,identities,enabled,request,kind,capsys):
     setup=ready(flow_engine,identities,kind)
     before=snapshot(flow_engine)
     domain_observed={'events':[],'dropped':0}
@@ -39,6 +97,8 @@ def test_actual_producers_send_one_independent_fact_and_terminal_outcome(
     with pdf_call_counts() as calls:
         delivered=service(flow_engine,identities,uow_factory=_diagnostic_uow(domain_observed),
             mock=CoreMockNotification(flow_engine,uow_factory=_diagnostic_uow(mock_observed))).send(setup['work_id'])
+    if delivered.status != 'SENT':
+        _emit_send_diagnostics(capsys, kind, domain_observed, mock_observed)
     assert delivered.status=='SENT',{'result':asdict(delivered),
         'domain_diagnostics':domain_observed,'mock_diagnostics':mock_observed}
     saved=rows(flow_engine,facts)
