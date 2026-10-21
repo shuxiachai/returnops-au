@@ -3,6 +3,7 @@ from copy import deepcopy
 from dataclasses import asdict
 import pytest
 from sqlalchemy import inspect, select, text, update
+from sqlalchemy.inspection import _inspects
 from returnops_domain import customer_tables as old, lifecycle_tables as life, storage
 from returnops_domain.customer_uow import CustomerUnitOfWork
 from returnops_domain.errors import AcceptanceOutcomeUnknown
@@ -259,6 +260,12 @@ class _C12ReturnCatalogConnection:
                 self.errors.append(error)
                 raise
         return self.connection.execute(statement, parameters) if parameters else self.connection.execute(statement)
+
+
+# inspect() dispatches on type(subject).__mro__; __getattr__ cannot reach the Connection registrar.
+@_inspects(_C12ReturnCatalogConnection)
+def _c12_inspect_wrapped_connection(observed):
+    return inspect(observed.connection)
 
 
 @pytest.mark.parametrize('flow_engine,expected_revision', [
