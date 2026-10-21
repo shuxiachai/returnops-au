@@ -274,3 +274,306 @@ def test_LE_G1_descriptor_batch_reads_fresh_after_success_and_after_failure():
     assert label_schema.descriptor(connection) is True and len(connection.calls)==3
     separate=_LabelCatalogConnection(connection.rows)
     assert label_schema.descriptor(separate) is True and len(separate.calls)==1
+
+
+# C12: fresh descriptor batches. Synthetic catalog evidence is not PostgreSQL evidence.
+def _c12_schema(kind):
+    from returnops_domain import return_execution_schema, label_artifact_schema, notification_schema
+    return {'return': return_execution_schema, 'artifact': label_artifact_schema,
+            'notification': notification_schema}[kind]
+
+
+def _c12_parameters(kind):
+    return {
+        'return': dict(control_name='lifecycle_return_execution_controls',
+                       permission_name='return_provider_permissions', ledger_name='core_mock_return_ledger'),
+        'artifact': dict(permission_name='label_artifact_permissions', control_name='lifecycle_label_artifact_controls',
+                         claim_name='lifecycle_label_artifact_claims', artifact_name='generated_label_artifacts',
+                         content_name='generated_label_artifact_contents'),
+        'notification': dict(control_name='notification_delivery_controls', fact_name='core_mock_notification_facts'),
+    }[kind]
+
+
+def _c12_catalog_rows(kind):
+    """Complete synthetic rows from real frozen metadata; no connection or engine."""
+    from sqlalchemy import LargeBinary
+    schema = _c12_schema(kind)
+    result = []
+    for table in schema.metadata.tables.values():
+        columns = []
+        for column in table.columns:
+            sql_type = ('timestamp with time zone' if isinstance(column.type, DateTime) else
+                        'bigint' if isinstance(column.type, BigInteger) else
+                        'boolean' if isinstance(column.type, Boolean) else
+                        'bytea' if isinstance(column.type, LargeBinary) else
+                        f'character varying({column.type.length})')
+            columns.append(dict(name=column.name, type=sql_type, notnull=not column.nullable,
+                                default=None, identity='', generated='',
+                                collation='default' if isinstance(column.type, String) else None))
+        constraints = [dict(name=table.name + '_pkey', type='p',
+                            definition='PRIMARY KEY (' + ', '.join(c.name for c in table.primary_key) + ')')]
+        constraints.extend(dict(name=name, type='c', definition=value)
+                           for name, value in schema.CHECKS[table.name].items())
+        keys = {table.name + '_pkey': (True, tuple(c.name for c in table.primary_key))}
+        for constraint in table.constraints:
+            if constraint.__class__.__name__ == 'UniqueConstraint':
+                names = tuple(c.name for c in constraint.columns)
+                constraints.append(dict(name=constraint.name, type='u', definition='UNIQUE (' + ', '.join(names) + ')'))
+                keys[constraint.name] = (True, names)
+        for constraint in table.foreign_key_constraints:
+            elements = list(constraint.elements)
+            constraints.append(dict(name=constraint.name, type='f', definition='FOREIGN KEY (' +
+                ', '.join(e.parent.name for e in elements) + ') REFERENCES ' + elements[0].column.table.name +
+                '(' + ', '.join(e.column.name for e in elements) + ')'))
+        constraints = [{**item, 'validated': True, 'deferrable': False, 'deferred': False} for item in constraints]
+        keys.update({index.name: (index.unique, tuple(c.name for c in index.columns)) for index in table.indexes})
+        indexes = [dict(name=name, definition=f"CREATE {'UNIQUE ' if unique else ''}INDEX {name} "
+                        f"ON descriptor_probe.{table.name} USING btree ({', '.join(names)})",
+                        valid=True, ready=True, immediate=True, nulls_not_distinct=False)
+                   for name, (unique, names) in keys.items()]
+        result.append(dict(table_name=table.name, schema='descriptor_probe', kind='r', persistence='p',
+                           rls=False, force_rls=False, options=None, triggers=0, columns=columns,
+                           constraints=constraints, indexes=indexes))
+    return result
+
+
+class _C12CatalogResult:
+    def __init__(self, connection, step, rows):
+        self.connection, self.step, self.rows = connection, step, rows
+
+    def scalars(self):
+        self.connection.fail(self.step, 'scalars')
+        return self
+
+    def mappings(self):
+        self.connection.fail(self.step, 'mappings')
+        return self
+
+    def all(self):
+        self.connection.fail(self.step, 'all')
+        return deepcopy(self.rows)
+
+
+class _C12CatalogConnection:
+    def __init__(self, kind, rows=None, *, error=None, error_step='structural', error_stage='execute'):
+        from returnops_domain.customer_tables import evidence
+        from returnops_domain.label_artifact_tables import NAMESPACE_CHECK
+        self.kind = kind
+        self.rows = _c12_catalog_rows(kind) if rows is None else rows
+        self.calls = []
+        self.error, self.error_step, self.error_stage = error, error_step, error_stage
+        self.dialect = postgresql.dialect()
+        self.ownership_rows = [dict(table_name=name, table_owner=17, baseline_owner=17,
+                                   owner_only_acl=True, column_acl=False)
+                               for name in _c12_parameters('notification').values()]
+        names = {c.name for c in evidence.constraints if c.__class__.__name__ == 'CheckConstraint'} | {NAMESPACE_CHECK}
+        self.namespace_rows = [dict(conname=name, contype='c', convalidated=True, condeferrable=False,
+                                   condeferred=False, expression="((evidence_id)::text !~ '^glabel_[0-9a-f]{64}$'::text)"
+                                   if name == NAMESPACE_CHECK else 'synthetic existing check')
+                               for name in sorted(names)]
+
+    def fail(self, step, stage):
+        if self.error is not None and (step, stage) == (self.error_step, self.error_stage):
+            raise self.error
+
+    def execute(self, statement, parameters=None):
+        sql = str(statement)
+        if 'SELECT jsonb_build_object(' in sql:
+            step, rows = 'structural', self.rows
+        elif 'relation.relowner AS table_owner' in sql:
+            step, rows = 'ownership', self.ownership_rows
+        else:
+            assert "r.relname='customer_evidence'" in sql
+            step, rows = 'namespace', self.namespace_rows
+        self.calls.append((step, sql, dict(parameters or {})))
+        self.fail(step, 'execute')
+        return _C12CatalogResult(self, step, rows)
+
+
+@pytest.mark.parametrize('kind,order', [(kind, order) for kind, size in
+    [('return', 3), ('artifact', 5), ('notification', 2)] for order in permutations(range(size))])
+def test_C12_batches_accept_each_row_order_and_only_fixed_binds(kind, order):
+    rows = _c12_catalog_rows(kind)
+    connection = _C12CatalogConnection(kind, [rows[i] for i in order])
+    assert _c12_schema(kind).descriptor(connection) is True
+    expected_steps = {'return': ['structural'], 'artifact': ['structural', 'namespace'],
+                      'notification': ['ownership', 'structural']}[kind]
+    assert [call[0] for call in connection.calls] == expected_steps
+    _, sql, parameters = next(call for call in connection.calls if call[0] == 'structural')
+    assert parameters == _c12_parameters(kind)
+    assert "'table_name', r.relname" in sql and 'n.nspname=current_schema()' in sql
+    assert 'a.attrelid=r.oid' in sql and 'ORDER BY a.attnum' in sql
+    assert all(':' + name in sql for name in parameters)
+    assert all(name not in sql for name in parameters.values())
+
+
+@pytest.mark.parametrize('kind', ['return', 'artifact', 'notification'])
+@pytest.mark.parametrize('fault', ['missing', 'duplicate', 'extra', 'unknown', 'null_row', 'list_row',
+                                   'missing_name', 'int_name', 'bool_name', 'null_name'])
+def test_C12_batches_reject_bad_row_identity_before_table_validation(kind, fault):
+    rows = _c12_catalog_rows(kind)
+    if fault == 'missing': rows.pop()
+    elif fault == 'duplicate': rows[-1] = deepcopy(rows[0])
+    elif fault == 'extra': rows.append(deepcopy(rows[0]))
+    elif fault == 'unknown': rows[0]['table_name'] = 'unexpected_relation'
+    elif fault == 'null_row': rows[0] = None
+    elif fault == 'list_row': rows[0] = []
+    elif fault == 'missing_name': del rows[0]['table_name']
+    else: rows[0]['table_name'] = {'int_name': 1, 'bool_name': True, 'null_name': None}[fault]
+    connection = _C12CatalogConnection(kind, rows)
+    assert _c12_schema(kind).descriptor(connection) is False
+    assert [c[0] for c in connection.calls] == (['ownership', 'structural'] if kind == 'notification' else ['structural'])
+
+
+@pytest.mark.parametrize('kind,table_index', [(kind, index) for kind, size in
+    [('return', 3), ('artifact', 5), ('notification', 2)] for index in range(size)])
+@pytest.mark.parametrize('fault', ['kind', 'persistence', 'rls', 'force_rls', 'options', 'triggers',
+    'column_type', 'notnull', 'default', 'identity', 'generated', 'collation', 'column_order',
+    'missing_constraint', 'constraint_definition', 'validated', 'deferrable', 'deferred',
+    'extra_index', 'index_definition', 'valid', 'ready', 'immediate', 'nulls_not_distinct'])
+def test_C12_batches_keep_every_table_structural_rejection(kind, table_index, fault):
+    rows = _c12_catalog_rows(kind)
+    row = rows[table_index]
+    if fault in {'kind', 'persistence', 'rls', 'force_rls', 'options', 'triggers'}:
+        row[fault] = {'kind': 'v', 'persistence': 'u', 'rls': True, 'force_rls': True,
+                      'options': ['fillfactor=70'], 'triggers': 1}[fault]
+    elif fault in {'column_type', 'notnull', 'default', 'identity', 'generated', 'collation'}:
+        field = 'type' if fault == 'column_type' else fault
+        row['columns'][0][field] = {'column_type': 'text', 'notnull': False, 'default': '0',
+                                   'identity': 'a', 'generated': 's', 'collation': 'C'}[fault]
+    elif fault == 'column_order': row['columns'].reverse()
+    elif fault == 'missing_constraint': row['constraints'].pop()
+    elif fault == 'constraint_definition': row['constraints'][0]['definition'] = 'PRIMARY KEY (wrong_id)'
+    elif fault in {'validated', 'deferrable', 'deferred'}: row['constraints'][0][fault] = fault != 'validated'
+    elif fault == 'extra_index': row['indexes'].append(deepcopy(row['indexes'][0]))
+    elif fault == 'index_definition': row['indexes'][0]['definition'] = 'CREATE INDEX wrong_index'
+    else: row['indexes'][0][fault] = fault == 'nulls_not_distinct'
+    connection = _C12CatalogConnection(kind, rows)
+    assert _c12_schema(kind).descriptor(connection) is False
+    assert [c[0] for c in connection.calls] == (['ownership', 'structural'] if kind == 'notification' else ['structural'])
+
+
+@pytest.mark.parametrize('kind', ['return', 'artifact', 'notification'])
+@pytest.mark.parametrize('anchor', ["SELECT jsonb_build_object(", "r.relname='lifecycle_execution_preparations'",
+                                   "'identity', a.attidentity, 'generated', a.attgenerated)"])
+@pytest.mark.parametrize('fault', ['missing', 'duplicate'])
+def test_C12_batches_check_exact_query_anchors_without_structural_io(monkeypatch, kind, anchor, fault):
+    schema = _c12_schema(kind)
+    connection = _C12CatalogConnection(kind)
+    source = schema.CATALOG.text
+    changed = source.replace(anchor, 'changed_anchor', 1) if fault == 'missing' else source + ' ' + anchor
+    monkeypatch.setattr(schema, 'CATALOG', text(changed))
+    assert schema.descriptor(connection) is False
+    assert [c[0] for c in connection.calls] == (['ownership'] if kind == 'notification' else [])
+
+
+@pytest.mark.parametrize('kind', ['return', 'artifact', 'notification'])
+@pytest.mark.parametrize('fault', ['missing', 'duplicate', 'extra', 'unknown'])
+def test_C12_batches_snapshot_exact_metadata_once_after_ownership(monkeypatch, kind, fault):
+    schema = _c12_schema(kind)
+    connection = _C12CatalogConnection(kind)
+    original_names = tuple(schema.metadata.tables)
+    tables = list(schema.metadata.tables.values())
+    if fault == 'missing': tables.pop()
+    elif fault == 'duplicate': tables[-1] = tables[0]
+    elif fault == 'extra': tables.append(tables[0])
+    else: tables[0] = SimpleNamespace(name='unexpected_relation')
+    calls = []
+    class Once:
+        def __iter__(self):
+            return iter(original_names)
+        def values(self):
+            calls.append('values')
+            assert calls == ['values']
+            return iter(tables)
+    monkeypatch.setattr(schema, 'metadata', SimpleNamespace(tables=Once()))
+    assert schema.descriptor(connection) is False
+    assert calls == ['values']
+    assert [c[0] for c in connection.calls] == (['ownership'] if kind == 'notification' else [])
+
+
+@pytest.mark.parametrize('kind,step,stage', [
+    (kind, 'structural', stage) for kind in ['return', 'artifact', 'notification']
+    for stage in ['execute', 'scalars', 'all']] + [
+    (kind, step, stage) for kind, step in [('artifact', 'namespace'), ('notification', 'ownership')]
+    for stage in ['execute', 'mappings', 'all']])
+def test_C12_batches_propagate_the_original_stage_error_without_retry(kind, step, stage):
+    from sqlalchemy.exc import OperationalError
+    error = OperationalError('synthetic catalog query', {}, RuntimeError('synthetic driver failure'))
+    connection = _C12CatalogConnection(kind, error=error, error_step=step, error_stage=stage)
+    with pytest.raises(OperationalError) as caught:
+        _c12_schema(kind).descriptor(connection)
+    assert caught.value is error
+    expected = {'return': ['structural'], 'artifact': ['structural', 'namespace'],
+                'notification': ['ownership', 'structural']}[kind]
+    assert [c[0] for c in connection.calls] == expected[:expected.index(step) + 1]
+
+
+@pytest.mark.parametrize('kind', ['return', 'artifact', 'notification'])
+def test_C12_batches_are_fresh_after_success_failure_and_on_independent_connections(kind):
+    schema = _c12_schema(kind)
+    connection = _C12CatalogConnection(kind)
+    original = deepcopy(connection.rows)
+    assert schema.descriptor(connection) is True
+    connection.rows[0]['columns'][0]['default'] = 'changed'
+    assert schema.descriptor(connection) is False
+    connection.rows = original
+    assert schema.descriptor(connection) is True
+    assert sum(c[0] == 'structural' for c in connection.calls) == 3
+    separate = _C12CatalogConnection(kind)
+    assert schema.descriptor(separate) is True
+    assert sum(c[0] == 'structural' for c in separate.calls) == 1
+    if kind == 'artifact':
+        assert [c[0] for c in connection.calls] == ['structural', 'namespace', 'structural', 'structural', 'namespace']
+    if kind == 'notification':
+        assert [c[0] for c in connection.calls] == ['ownership', 'structural'] * 3
+
+
+@pytest.mark.parametrize('fault', ['owner', 'table_acl', 'column_acl', 'missing', 'duplicate', 'unknown'])
+def test_C12_notification_ownership_denial_stops_before_structural_query(fault):
+    connection = _C12CatalogConnection('notification')
+    if fault == 'owner': connection.ownership_rows[0]['table_owner'] = 99
+    elif fault == 'table_acl': connection.ownership_rows[0]['owner_only_acl'] = False
+    elif fault == 'column_acl': connection.ownership_rows[0]['column_acl'] = True
+    elif fault == 'missing': connection.ownership_rows.pop()
+    elif fault == 'duplicate': connection.ownership_rows[-1] = deepcopy(connection.ownership_rows[0])
+    else: connection.ownership_rows[0]['table_name'] = 'unexpected_relation'
+    assert _c12_schema('notification').descriptor(connection) is False
+    assert [c[0] for c in connection.calls] == ['ownership']
+
+
+@pytest.mark.parametrize('fault', ['expression', 'validated', 'deferrable', 'deferred', 'missing', 'extra'])
+def test_C12_artifact_namespace_checks_still_run_last(fault):
+    from returnops_domain.label_artifact_tables import NAMESPACE_CHECK
+    connection = _C12CatalogConnection('artifact')
+    row = next(r for r in connection.namespace_rows if r['conname'] == NAMESPACE_CHECK)
+    if fault == 'expression': row['expression'] = 'true'
+    elif fault == 'validated': row['convalidated'] = False
+    elif fault == 'deferrable': row['condeferrable'] = True
+    elif fault == 'deferred': row['condeferred'] = True
+    elif fault == 'missing': connection.namespace_rows.remove(row)
+    else: connection.namespace_rows.append({**row, 'conname': 'unexpected_namespace_check'})
+    assert _c12_schema('artifact').descriptor(connection) is False
+    assert [c[0] for c in connection.calls] == ['structural', 'namespace']
+
+
+@pytest.mark.parametrize('fault', ['return_ledger_fk', 'artifact_bytea', 'artifact_composite_fk', 'notification_bytea'])
+def test_C12_batches_keep_binary_and_foreign_key_boundaries(fault):
+    kind = 'return' if fault == 'return_ledger_fk' else 'notification' if fault == 'notification_bytea' else 'artifact'
+    connection = _C12CatalogConnection(kind)
+    assert _c12_schema(kind).descriptor(connection) is True
+    connection.calls.clear()
+    if fault == 'return_ledger_fk':
+        row = next(r for r in connection.rows if r['table_name'] == 'core_mock_return_ledger')
+        assert not any(c['type'] == 'f' for c in row['constraints'])
+        row['constraints'].append(dict(name='forbidden_ledger_fk', type='f', definition='FOREIGN KEY (effect_key) REFERENCES case_heads(case_id)',
+                                       validated=True, deferrable=False, deferred=False))
+    elif fault.endswith('bytea'):
+        column = next(c for r in connection.rows for c in r['columns'] if c['type'] == 'bytea')
+        column['type'] = 'text'
+    else:
+        constraint = next(c for r in connection.rows for c in r['constraints']
+                          if c['type'] == 'f' and ', ' in c['definition'].split(') REFERENCES ')[0])
+        constraint['definition'] = 'FOREIGN KEY (wrong_id) REFERENCES case_heads(case_id)'
+    assert _c12_schema(kind).descriptor(connection) is False
+    assert [c[0] for c in connection.calls] == (['ownership', 'structural'] if kind == 'notification' else ['structural'])

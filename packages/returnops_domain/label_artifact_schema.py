@@ -5,15 +5,44 @@ from .label_artifact_tables import metadata, CHECKS, NAMESPACE_CHECK, GENERATED_
 
 
 def descriptor(connection):
-    for table in metadata.tables.values():
-        sql = CATALOG.text.replace("r.relname='lifecycle_execution_preparations'", 'r.relname=:table_name')
-        sql = sql.replace("'identity', a.attidentity, 'generated', a.attgenerated)",
-            "'identity', a.attidentity, 'generated', a.attgenerated, 'collation', (SELECT collname FROM pg_collation WHERE oid=a.attcollation))")
-        query = text(sql)
-        rows = connection.execute(query, {'table_name': table.name}).scalars().all()
-        if len(rows) != 1:
+    tables = tuple(metadata.tables.values())
+    parameters = dict(permission_name='label_artifact_permissions',
+                      control_name='lifecycle_label_artifact_controls',
+                      claim_name='lifecycle_label_artifact_claims',
+                      artifact_name='generated_label_artifacts',
+                      content_name='generated_label_artifact_contents')
+    names = set(parameters.values())
+    if len(tables) != 5 or {table.name for table in tables} != names:
+        return False
+    sql = CATALOG.text
+    replacements = (
+        ('SELECT jsonb_build_object(', "SELECT jsonb_build_object('table_name', r.relname,"),
+        ("r.relname='lifecycle_execution_preparations'",
+         'r.relname IN (:permission_name, :control_name, :claim_name, :artifact_name, :content_name)'),
+        ("'identity', a.attidentity, 'generated', a.attgenerated)",
+         "'identity', a.attidentity, 'generated', a.attgenerated, 'collation', (SELECT collname FROM pg_collation WHERE oid=a.attcollation))"),
+    )
+    for original, replacement in replacements:
+        if sql.count(original) != 1:
             return False
-        row = rows[0]
+        sql = sql.replace(original, replacement, 1)
+    # One fresh statement snapshot; no catalog result survives this invocation.
+    rows = connection.execute(text(sql), parameters).scalars().all()
+    if len(rows) != 5:
+        return False
+    found = set()
+    for row in rows:
+        if not isinstance(row, dict) or not isinstance(row.get('table_name'), str):
+            return False
+        name = row['table_name']
+        if name in found or name not in names:
+            return False
+        found.add(name)
+    if found != names:
+        return False
+    by_name = {row['table_name']: row for row in rows}
+    for table in tables:
+        row = by_name[table.name]
         if any(row[key] != value for key, value in dict(kind='r', persistence='p', rls=False,
                 force_rls=False, options=None, triggers=0).items()):
             return False
