@@ -6,7 +6,24 @@ Owner C; Reviewer A. Traceability: C1.01–C1.05, FR-006/007,
 NFR-001/007/009, AH-08, UC-02, [C model chain](../18-member-c-model-chain.md)
 and [F.01](../09-interface-contract-v1.md).
 
-Status: **PENDING_A_SOURCE_REVIEW; documentation only, not runtime data.**
+Status updated 21 October 2026: **SOURCE_SELECTION_DISPOSITION_RECORDED;
+EXACT_BYTES_REVIEW_AND_RUNTIME_ADMISSION_PENDING.**
+
+[A's 12 October disposition](https://github.com/shuxiachai/returnops-au/pull/61#pullrequestreview-5486256534)
+at `652196224254cc6b59d9463a3a00e8fb45d34359` permits the three selected
+ACCC sources **for next passage capture only**, preserving their qualifications;
+STORE-C1-01 remains synthetic. It supersedes this packet's old
+`PENDING_A_SOURCE_REVIEW` label, not the separate final-byte admission gate.
+[PR #68](https://github.com/shuxiachai/returnops-au/pull/68) subsequently adopted
+the loader, tests and pending context candidate (reviewed `4dc60bd`, merged
+`437b4eb`). Its [exact contextual capture and coverage record](../../experiments/c1_grounding_candidate/candidates/accc-20261012/README.md)
+is now the entry point for final review, rather than this historical selection
+plan. `accc-context-20261018-v2` still has pending reviewer/evidence fields and
+no trusted runtime approval pin. No source, corpus or manifest bytes change in
+this Codex-assisted status correction.
+
+The original 11 October selection rationale follows; completed preparation
+and remaining admission work are separated in section 3.
 Prepared with Codex assistance from live primary sources and main
 `d2e809d1a127e0e38bab4111394752541ad6b8c6`. No personal signature or legal
 determination is asserted. This does not expand the frozen research appendix.
@@ -42,21 +59,25 @@ data, production store policy, Gold labels, or broad web crawler is needed.
 
 ## 3. Review and admission checklist
 
-All unchecked items are outstanding; a documentation merge does not check them.
+Updated 21 October: checked entries describe bounded preparation evidence only.
+They do not approve a runtime corpus. The original selection gate is distinct
+from final context, category/conflict and exact-byte review.
 
-- [ ] A dispositions each source and the surrounding context: include, revise,
-  or exclude, with reviewer, date, exact revision and reasons.
-- [ ] C captures minimal approved passage bytes with source ID/type, canonical
+- [x] A dispositions the source selection for next capture only, with the
+  exact source, reviewer, date and retained-context conditions linked above.
+- [x] C captures candidate (not approved-for-runtime) passage bytes with source ID/type, canonical
   URL, publisher version or explicit null, access date and a stable human-readable
   section locator. Store policy and external guidance remain distinct.
-- [ ] C records exact UTF-8 passage content hashes and a versioned manifest of
+- [x] C records exact UTF-8 passage content hashes and a versioned manifest of
   the candidate file bytes; local snapshot versions never masquerade as publisher
   versions. No hash is claimed for a page that has not been captured.
 - [ ] A reviews the final bytes, category mapping and known-conflict pairs; a
   changed source/hash requires renewed review, not silent replacement.
-- [ ] A/C approve a separate loader increment with rejection tests for unreviewed,
-  missing, changed or malformed sources and wrong corpus version. The current
-  synthetic-only loader and fixture labels are not weakened in this packet.
+- [x] A technically reviews and adopts the separate preparation loader/tests
+  through #68, including rejection of pending/missing/changed/malformed sources
+  and wrong versions. This adoption does not admit the pending candidate.
+- [ ] Integration supplies a separately trusted pin only after authentic
+  exact-byte/context/conflict review; inventory hashes are not approval pins.
 - [ ] C reruns typed retrieval/citation and public pilot tests on that separately
   versioned increment and reports raw misses/errors, without changing Gold labels.
 
@@ -82,7 +103,10 @@ the proposed real-source increment.
 | C2 | Independently assess support, material conflict and injection; VALID metadata alone never creates PASS or approval |
 | A + C | Recorded non-author review of exact integrated source and reproducible positive/negative tests; formal F.01/F.02 and original S/F prerequisites remain distinct |
 
-Next review decision requested from A: disposition this source selection, then
-review exact passage extraction and admission behavior as a separate increment.
+Next review decision requested from A: review the exact contextual candidate
+bytes, category/known-conflict coverage and remaining omissions linked above;
+request corrections or record a bounded exact-version disposition. Source
+selection and preparation-loader adoption need not be requested again. Runtime
+admission still needs genuine final review and a separately trusted pin.
 No public API, wire field, A/B implementation, deadline or Gold protocol changes
 are proposed. KAN-23 remains In Progress, not Done.
