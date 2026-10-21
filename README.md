@@ -10,6 +10,47 @@
 
 # ReturnOps AU
 
+## C handoff adopted — 20 October 2026 (Sydney)
+
+This dated receipt supersedes the older C **current-status** statements below;
+their source hashes, test results and pending decisions remain historical
+evidence. In particular, **PR #79 is merged, not Draft or awaiting approval**.
+
+A (`shuxiachai`) merged [PR #79](https://github.com/shuxiachai/returnops-au/pull/79)
+at **20 October 00:41:51 Australia/Sydney** (19 October 13:41:51 UTC):
+
+- Reviewed head: `e6354bf3b881f9c2fa5f8fe011fa34966f9f8e41`, covered by
+  [A's exact-source technical approval](https://github.com/shuxiachai/returnops-au/pull/79#pullrequestreview-5570342865).
+- Adopted main commit: [`e35c61d272040d2aad18b5931d7bb4eed04e3a34`](https://github.com/shuxiachai/returnops-au/commit/e35c61d272040d2aad18b5931d7bb4eed04e3a34).
+  Its tree is `f1e31c1caf7b543ffa5cba46e695c7f726bd9121`, identical to the
+  reviewed head; there are no additional implementation changes in the adoption.
+- [PR checks 39213546758](https://github.com/shuxiachai/returnops-au/actions/runs/39213546758)
+  and the separate [actual-main checks 39262355437](https://github.com/shuxiachai/returnops-au/actions/runs/39262355437)
+  both completed successfully, attempt 1. Main's API/PostgreSQL job completed
+  at 20 October 01:43:09 Sydney (19 October 14:43:09 UTC). These are distinct
+  exact-source runs, not a relabelled local composite or a new C live-model run.
+
+**Adopted scope:** C's four-file handoff documentation and synthetic regression
+component, following the earlier C1/C2/evaluation preparation adoptions in
+#68/#69/#70. The old local transport/image/capture lab is still **not** imported.
+This status-only follow-up changes no A/B implementation, public contract,
+workflow, candidate corpus, frozen owner/reviewer or S/F dependency. The earlier
+approval covers the recorded component source, not this later documentation edit.
+
+**Still required:** exact corpus/context/conflict disposition and trusted pin;
+approved provider/model/input flow and budget; retained-input/current-state
+wiring; E.01/private Gold and genuine blind A/B timing/review/arbitration;
+prerequisite-qualified R.02/R.03, real C3 image evidence, personal explanation
+and joint acceptance. A merge or green CI does not satisfy these conditions.
+The remaining-effort estimate below is not reduced merely by this adoption.
+
+Jira [KAN-24](https://lucastaooo.atlassian.net/browse/KAN-24) records technical
+progress separately from feature acceptance. Preserve the existing status and
+original acceptance conditions; do not mark the whole feature Done. The existing
+[C handoff evidence](docs/reviews/c-local-handoff-20261015.md) retains the earlier
+reproduction receipts. No main merge, live invocation or human sign-off is
+performed by this Codex-assisted status follow-up.
+
 ## C handoff integration on adopted main — 19 October 2026, after 06:34 UTC
 
 This is the newest C status receipt; older dated notices below remain historical.
