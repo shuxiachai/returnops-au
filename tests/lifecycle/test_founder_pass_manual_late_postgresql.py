@@ -657,7 +657,7 @@ def _pmp06_emit(capsys, diagnostic):
         failed()
 
 
-def _pmp06_observed_overlap(engine, monkeypatch, calls, diagnostic):
+def _pmp06_observed_overlap(engine, monkeypatch, calls, diagnostic, detail=None):
     """Observe only this existing race; forward every operation exactly once.
 
     No SQL, UoW, barrier, polling, timeout or retry is added. Connection and
@@ -723,7 +723,7 @@ def _pmp06_observed_overlap(engine, monkeypatch, calls, diagnostic):
             transaction_rows.append(row)
             return row
 
-    def record(row, name, **fields):
+    def record(row, name, connection=None, **fields):
         stamp = monotonic_ns()
         if type(stamp) is not int or not 0 <= stamp <= maximum:
             raise ValueError('PMP06 clock bound')
@@ -733,19 +733,21 @@ def _pmp06_observed_overlap(engine, monkeypatch, calls, diagnostic):
                 return
             events.append(dict(token=row['token'] if row is not None else None,
                                event=name, monotonic_ns=stamp, **fields))
+        if detail is not None:
+            observe(detail.boundary, connection, row, name, stamp)
 
     def fence(connection, *, write):
         if not observe(lambda: connection.engine is engine):
             return original_fence(connection, write=write)
         row = observe(transaction, connection)
-        observe(record, row, 'fence_call')
+        observe(record, row, 'fence_call', connection=connection)
         try:
             result = original_fence(connection, write=write)
         except BaseException as error:
             fields = observe(_safe_fence_error, error) or {}
-            observe(record, row, 'fence_error', **fields)
+            observe(record, row, 'fence_error', connection=connection, **fields)
             raise
-        observe(record, row, 'fence_return')
+        observe(record, row, 'fence_return', connection=connection)
         return result
 
     def commit(uow):
@@ -753,22 +755,22 @@ def _pmp06_observed_overlap(engine, monkeypatch, calls, diagnostic):
         if not observe(lambda: connection.engine is engine):
             return original_commit(uow)
         row = observe(transaction, connection)
-        observe(record, row, 'commit_call')
+        observe(record, row, 'commit_call', connection=connection)
         try:
             result = original_commit(uow)
         except BaseException as error:
             fields = observe(_safe_fence_error, error) or {}
-            observe(record, row, 'uow_commit_error', **fields)
+            observe(record, row, 'uow_commit_error', connection=connection, **fields)
             raise
         # Keep the original token after native commit ends the transaction.
-        observe(record, row, 'uow_commit_return')
+        observe(record, row, 'uow_commit_return', connection=connection)
         return result
 
     def commit_begin(connection):
         if not observe(lambda: connection.engine is engine):
             return
         row = observe(transaction, connection)
-        observe(record, row, 'native_commit_begin')
+        observe(record, row, 'native_commit_begin', connection=connection)
 
     def denial(*args, **kwargs):
         target = args[0] if args else kwargs.get('engine')
@@ -884,6 +886,8 @@ def _pmp06_observed_overlap(engine, monkeypatch, calls, diagnostic):
                           results=dict(results), costs=costs, **counters)
 
     try:
+        if detail is not None:
+            observe(detail.install, engine, CustomerUnitOfWork)
         try:
             manager = monkeypatch.context()
             scoped = manager.__enter__()
@@ -891,7 +895,8 @@ def _pmp06_observed_overlap(engine, monkeypatch, calls, diagnostic):
             patches.setattr(customer_uow, 'acquire_fence', fence)
             patches.setattr(CustomerUnitOfWork, 'commit', commit)
             patches.setattr(manual_decision, 'record_denial', denial)
-            snapshot_costs = _install_fence_cost_observer(patches, transactions, mutex)
+            snapshot_costs = _install_fence_cost_observer(patches, transactions, mutex,
+                detail=detail.stage if detail is not None else None)
             listener_attempted = True
             sqlalchemy_event.listen(engine, 'commit', commit_begin)
         except BaseException:
@@ -910,6 +915,8 @@ def _pmp06_observed_overlap(engine, monkeypatch, calls, diagnostic):
              for label, call in calls.items()})
         return result, overlap
     finally:
+        if detail is not None:
+            observe(detail.cleanup)
         observe(cleanup)
         observe(freeze)
         # Even an unavailable freeze exposes a bounded observation error count.
@@ -924,12 +931,31 @@ def test_PMP06_two_actual_backends_have_one_manual_intent(flow_engine, identitie
     calls = {name:(lambda name=name:service(flow_engine, identities, clock=lambda:at).accept(
         case, body, keys[name], 'concurrent_revision')) for name in keys}
     diagnostic = {}
+    detail = None
+    detail_initialization_failed = False
     try:
-        results, overlap = _pmp06_observed_overlap(flow_engine, monkeypatch, calls, diagnostic)
+        from pmp06_cost_diagnostic import enabled_detail
+        detail = enabled_detail(request.node.nodeid)
+    except BaseException:
+        detail_initialization_failed = True
+    try:
+        results, overlap = _pmp06_observed_overlap(flow_engine, monkeypatch, calls, diagnostic, detail=detail)
         assert sorted(result.status for result in results.values()) == (['ACCEPTED', 'ACCEPTED'] if same_key else ['ACCEPTED', 'DENIED'])
     except BaseException:
         _pmp06_emit(capsys, diagnostic)
         raise
+    finally:
+        try:
+            if detail is not None:
+                detail.emit(capsys, diagnostic)
+            elif detail_initialization_failed:
+                # Only report after the original helper has joined workers.
+                # Import/constructor failure cannot suppress the original case.
+                with capsys.disabled():
+                    print('RETURNOPS_PMP06_COST_DIAGNOSTIC '
+                          '{"kind":"coverage","complete":false,"installation":true}', flush=True)
+        except BaseException:
+            pass
     accepted = next(result for result in results.values() if result.status == 'ACCEPTED')
     assert_manual(flow_engine, case, body, accepted, before=before, action=action)
     if same_key:

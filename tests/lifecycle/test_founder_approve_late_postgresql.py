@@ -337,7 +337,7 @@ def _safe_fence_error(error):
     return dict(error_type=kind, sqlstate=state)
 
 
-def _install_fence_cost_observer(scoped, transactions, mutex):
+def _install_fence_cost_observer(scoped, transactions, mutex, detail=None):
     """Twelve late-bound stages; scoped is signature compatibility only.
 
     Own at most twelve patches, separately from the caller's base/overlap
@@ -482,6 +482,13 @@ def _install_fence_cost_observer(scoped, transactions, mutex):
                                 row['unmeasured_count'] = min(maximum, row['unmeasured_count'] + 1)
                             else:
                                 row['inclusive_ns'] = min(maximum, row['inclusive_ns'] + duration)
+                        if detail is not None:
+                            # Reuse this stage's original clock pair. The sink
+                            # runs outside the cost mutex and cannot mask work.
+                            try:
+                                detail(connection, key[0], stage, started, duration)
+                            except BaseException:
+                                increment('observer_error_count')
                 except BaseException:
                     increment('observer_error_count')
                 finally:
