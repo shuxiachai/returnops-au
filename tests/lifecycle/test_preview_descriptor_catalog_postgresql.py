@@ -180,11 +180,13 @@ def test_PC01_preview_catalog_matches_legacy_reflection_decision(flow_engine, va
     legacy_expected, new_expected, ddl = VARIANTS[variant]
     schema = flow_engine._customer_test_schema
     with flow_engine.connect() as connection:
-        assert version(connection) == NOTIFICATION
         quote = connection.dialect.identifier_preparer.quote
         names = SimpleNamespace(schema=quote(schema), shadow=quote(schema + '_shadow'))
+        # Begin before the first statement: SQLAlchemy 2.0 autobegins on execute,
+        # after which an explicit begin() raises InvalidRequestError.
         transaction = connection.begin()
         try:
+            assert version(connection) == NOTIFICATION
             for statement in ddl(names):
                 connection.execute(text(statement))
             legacy = _outcome(legacy_preview_descriptor, connection)
