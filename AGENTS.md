@@ -34,8 +34,8 @@ public-documentation investigation direction, not an approved replacement.
 Root handover files remain local; earlier snapshots below are historical.
 
 > **Course**: USYD ELEC5620 Model-Based Software Engineering (Semester 2, 2026)  
-> **Course Root**: `d:/AAA树下/硕士/26S2/5620`  
-> **Project Repository**: `d:/AAA树下/硕士/26S2/5620/assignment/returnops-au`  
+> **Course Root**: `<course-root>`<br>
+> **Project Repository**: `<repository-root>`<br>
 > **Topic**: ReturnOps AU (One-Person AI Company in E-Commerce & Retail)  
 > **Target Rating**: 10/10 Project (Academic excellence + Portfolio value)
 

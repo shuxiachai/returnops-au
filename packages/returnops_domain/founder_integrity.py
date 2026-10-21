@@ -33,6 +33,8 @@ class CaseProof:
     """
     def __init__(self, uow, head):
         self.head = head
+        from .generated_evidence import namespace_active
+        generated_active=namespace_active(uow)
         self.revisions = {row['record_id']: row for row in uow.execute(
             select(t.history).where(t.history.c.case_id == head['case_id'])
             .order_by(t.history.c.recorded_sequence)).mappings()}
@@ -60,7 +62,8 @@ class CaseProof:
                         or revision['case_version'] > event['case_version']):
                     raise FlowError()
                 seen.add(ref['record_id'])
-                if event['event_type'] in ORIGINS.get(revision['kind'], set()):
+                generated_candidate = (generated_active and revision['kind'] == 'EVIDENCE' and event['event_type'] == 'GENERATED_LABEL_EVIDENCE_BOUND')
+                if event['event_type'] in ORIGINS.get(revision['kind'], set()) or generated_candidate:
                     if (event['case_version'] != revision['case_version']
                             or event['occurred_at'] != timestamp(revision['recorded_at'])
                             or revision['object_id'] not in event['object_ids']
@@ -71,6 +74,25 @@ class CaseProof:
             previous = event['event_hash']
         if head['audit_sequence'] != len(self.events) or head['audit_head'] != previous:
             raise FlowError()
+        # A new SERVICE origin is recognized only through the full low-level
+        # generated certificate, never through an event-name allowlist.
+        from .generated_evidence import is_generated_id
+        candidates = [(r,self.origins.get(r['record_id'])) for r in self.revisions.values()
+            if generated_active and r['kind']=='EVIDENCE' and (is_generated_id(r['object_id']) or
+                self.origins.get(r['record_id'],{}).get('event_type')=='GENERATED_LABEL_EVIDENCE_BOUND')]
+        for record,event in candidates:
+            from .generated_evidence import validate_generated_origin
+            if event is None: raise FlowError()
+            validate_generated_origin(uow,self,record,event)
+        if generated_active and any(e['event_type']=='GENERATED_LABEL_EVIDENCE_BOUND' and
+                (len(e['history_refs'])!=1 or e['history_refs'][0]['record_id'] not in {r['record_id'] for r,_ in candidates})
+                for e in self.events): raise FlowError()
+        if generated_active:
+            from .label_artifact_tables import artifacts
+            from .label_execution_tables import artifact_work
+            work_ids=select(artifact_work.c.work_id).where(artifact_work.c.case_id==head['case_id'])
+            stored=set(uow.execute(select(artifacts.c.evidence_record_id).where(artifacts.c.work_id.in_(work_ids))).scalars())
+            if stored!={r['record_id'] for r,_ in candidates}:raise FlowError()
 
     def origin(self, row):
         event = self.origins.get(row['record_id'])

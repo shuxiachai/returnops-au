@@ -337,6 +337,122 @@ class GroundingCandidateTests(unittest.TestCase):
         damaged["passages"][0]["passage"]["content"] = normalized
         self.assert_error("INVALID_CORPUS", lambda: candidate(damaged))
 
+    def test_qualifier_only_query_preserves_complete_synthetic_paragraphs(self):
+        content = (
+            "SYNTHETIC FICTION. The imaginary workshop inspects cobalt widgets.\r\n\r\n"
+            "Qualification: an auroralatch observation requires a second inspection.\n\n"
+            "Exception: a decorative mark alone does not establish a broken widget.  "
+        )
+        item = entry("passage-context", content)
+        item["passage"]["location"] = "fictional rule; qualification; exception"
+        other = entry("passage-unrelated", "SYNTHETIC FICTION. A separate zephyr rule.")
+        query = request(query="auroralatch")
+        engine = candidate(document([item, other]), top_k=1)
+        result = engine.retrieve(query)
+        self.assert_wire("RetrievalResult", result)
+        self.assertNotIn(query["query"], content.split("\r\n\r\n", 1)[0])
+        self.assertEqual(result["passages"], [{**item["passage"], "retrieved_at": AT}])
+        self.assertEqual(result["passages"][0]["content_sha256"],
+                         sha256(content.encode("utf-8")).hexdigest())
+        self.assertEqual(result, engine.retrieve(query))
+        self.assertEqual(result, candidate(document([other, item]), top_k=1).retrieve(query))
+
+    def test_qualifier_query_isolated_across_all_three_synthetic_categories(self):
+        items = []
+        for category, name, detail in (
+            (FAULTY, "fault", "inspect the fictional latch"),
+            (WRONG, "wrong", "compare the imaginary ordered and delivered colours"),
+            (MIND, "mind", "check the fictional courtesy-offer conditions"),
+        ):
+            content = (
+                f"SYNTHETIC FICTION. This is the imaginary {name} widget rule.\n\n"
+                f"Qualification: within the quartzwindow, {detail}.\n\n"
+                "Exception: this invented exercise grants no operational authority."
+            )
+            items.append(entry(f"passage-{name}-context", content, categories=[category]))
+        engine = candidate(document(items), top_k=1)
+        # Every category has the query token, but only in its qualification.
+        # A missing category filter would select one tied passage for all three.
+        for item in items:
+            category = item["issue_categories"][0]
+            passage = item["passage"]
+            with self.subTest(category=category):
+                self.assertNotIn("quartzwindow", passage["content"].split("\n\n", 1)[0])
+                result = engine.retrieve(request(query="quartzwindow", issue_category=category))
+                self.assert_wire("RetrievalResult", result)
+                self.assertEqual(result["passages"], [{**passage, "retrieved_at": AT}])
+                self.assertEqual(result["passages"][0]["content_sha256"],
+                                 sha256(passage["content"].encode("utf-8")).hexdigest())
+                self.assertEqual(result["conflicts"], [])
+
+    def test_multi_paragraph_conflict_keeps_full_nonmatching_counterpart(self):
+        guidance = entry("passage-guidance", (
+            "SYNTHETIC FICTION. A cobalt widget may require an inspection.\n\n"
+            "Qualification: inspect its fictional moonstone latch before a conclusion."
+        ))
+        guidance["passage"]["source_type"] = "REVIEWED_CONSUMER_GUIDANCE"
+        store = entry("passage-store", (
+            "SYNTHETIC FICTION. This imaginary shop excludes every scratched widget.\n\n"
+            "Exception: this deliberately conflicting example is not an adopted policy."
+        ))
+        other_category = entry("passage-other-category", (
+            "SYNTHETIC FICTION. A cobalt courtesy offer has separate conditions."
+        ), categories=[MIND])
+        conflict = {
+            "conflict_id": "conflict-fictional-context",
+            "passage_ids": [guidance["passage"]["passage_id"], store["passage"]["passage_id"]],
+            "issue_categories": [FAULTY],
+            "message": "Synthetic rules disagree; preserve both complete texts for independent review.",
+        }
+        engine = candidate(document([guidance, store, other_category], [conflict]), top_k=1)
+        result = engine.retrieve(request())
+        self.assert_wire("RetrievalResult", result)
+        self.assertNotIn("cobalt", store["passage"]["content"].casefold())
+        self.assertEqual(result["passages"], [
+            {**guidance["passage"], "retrieved_at": AT},
+            {**store["passage"], "retrieved_at": AT},
+        ])
+        self.assertEqual(result["conflicts"], [conflict["message"]])
+        separate = engine.retrieve(request(issue_category=MIND))
+        self.assert_wire("RetrievalResult", separate)
+        self.assertEqual(separate["passages"], [{**other_category["passage"], "retrieved_at": AT}])
+        self.assertEqual(separate["conflicts"], [])
+        missing = engine.retrieve(request(query="unfindablelexeme"))
+        self.assert_wire("RetrievalResult", missing)
+        self.assertEqual((missing["status"], missing["passages"], missing["conflicts"]),
+                         ("NO_MATCH", [], []))
+
+    def test_multi_paragraph_citation_binds_qualifiers_location_and_generation(self):
+        main = "SYNTHETIC FICTION. Inspect the cobalt widget."
+        content = main + "\n\nQualification: record the imaginary latch condition before any conclusion."
+        item = entry("passage-context", content)
+        item["passage"]["location"] = "fictional inspection rule and qualification"
+        source = document([item])
+        engine = candidate(source)
+        passage = engine.retrieve(request())["passages"][0]
+        full = engine.verify_citations(verification([citation(passage)]))
+        self.assert_wire("CitationVerificationResult", full)
+        self.assertEqual(full["checks"][0]["result"], "VALID")
+        for changes, outcome in (
+            ({"content_sha256": sha256(main.encode("utf-8")).hexdigest()}, "HASH_MISMATCH"),
+            ({"location": "fictional inspection rule only"}, "LOCATION_MISMATCH"),
+        ):
+            with self.subTest(outcome=outcome):
+                checked = engine.verify_citations(verification([citation(passage, **changes)]))
+                self.assert_wire("CitationVerificationResult", checked)
+                self.assertEqual(checked["checks"][0]["result"], outcome)
+        newer_source = deepcopy(source)
+        newer_source["corpus_version"] = "synthetic-c1-context-v2"
+        newer_source["passages"][0]["passage"]["corpus_version"] = newer_source["corpus_version"]
+        newer = candidate(newer_source)
+        self.assert_error("CORPUS_UNAVAILABLE", lambda: newer.retrieve(request()))
+        self.assert_error("CORPUS_UNAVAILABLE", lambda: newer.verify_citations(
+            verification([citation(passage)])))
+        stale = newer.verify_citations(verification(
+            [citation(passage)], corpus_version=newer_source["corpus_version"]))
+        self.assert_wire("CitationVerificationResult", stale)
+        self.assertEqual(stale["checks"][0]["result"], "VERSION_MISMATCH")
+
     def test_corpus_manifest_hash_preserves_raw_json_whitespace(self):
         source = document()
         compact = raw(source)

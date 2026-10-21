@@ -15,7 +15,7 @@ from .lifecycle_events import (LifecycleClaim, ProposalAccepted, ProposalFailed,
     OutcomeAccepted, NotificationObserved, EffectObserved)
 from .lifecycle_sources import Sources, authority
 from .lifecycle_state import current, installed, invalidate, reject, MAX_VERSION
-from .lifecycle_schema import version as schema_version, APPROVAL_VERSIONS
+from .lifecycle_schema import version as schema_version, APPROVAL_VERSIONS, NOTIFICATION
 
 PURPOSES = {ProposalAccepted: 'PROPOSAL', ProposalFailed: 'PROPOSAL', EscalateReviewAccepted: 'REVIEW', PassReviewAccepted: 'REVIEW', ApprovalAccepted: 'APPROVAL', RevisionRequested: 'REVISION',
             OutcomeAccepted: 'OUTCOME', NotificationObserved: 'NOTIFICATION', EffectObserved: 'EFFECT'}
@@ -61,6 +61,13 @@ class LifecycleGuards:
             reject(uow, 'NOT_FOUND')
         grant = authority(uow, head, self.component_id, purpose)
         state = current(uow, head, initialize=initialize)
+        if purpose == 'NOTIFICATION' and schema_version(uow.connection) == NOTIFICATION:
+            from .notification_profile import COMPONENT
+            from .notification_tables import controls
+            if (self.component_id != COMPONENT or state is None
+                    or not uow.execute(select(controls.c.notification_work_id).where(
+                        controls.c.notification_work_id == state['notification_work_id'])).first()):
+                reject(uow)  # Original v1 work remains HOLD; never rebind it.
         if state is None:
             reject(uow)
         return head, state, grant
@@ -202,6 +209,24 @@ class LifecycleGuards:
                         or proof.origin(original)['event_id'] != accepted['source_audit_event_id']):
                     reject(uow)
                 original_content = read_revision(uow,original,proof)
+                if schema_revision == NOTIFICATION and purpose in {'OUTCOME','NOTIFICATION'}:
+                    from .notification_tables import controls
+                    from .notification_sources import validate_control
+                    from .manual_target import one
+                    saved_control = uow.execute(select(controls).where(controls.c.outcome_record_id == event.record_id
+                        if purpose == 'OUTCOME' else controls.c.notification_work_id == work['work_id'])).mappings().one_or_none()
+                    if saved_control is None and purpose == 'NOTIFICATION':
+                        reject(uow)
+                    if saved_control is not None:
+                        validate_control(uow,head,dict(saved_control))
+                        def replay_notification():
+                            h = one(uow,old.case_heads,case_id=head['case_id'])
+                            c = one(uow,controls,notification_work_id=saved_control['notification_work_id'])
+                            if c != dict(saved_control): reject(uow)
+                            validate_control(uow,h,c)
+                            authority(uow,h,self.component_id,purpose)
+                        uow.before_commit(replay_notification)
+
                 if type(event) is PassReviewAccepted:
                     from .pass_review_sources import accepted_review
                     seal = accepted_review(uow,head,None,self.component_id,record_id=event.record_id,current=False)
@@ -353,7 +378,7 @@ class LifecycleGuards:
                 row, body, binding = sources.bound(event.record_id,work,claim,{'NOTIFICATION'})
                 if binding['target_record_id'] != state['outcome_record_id']:
                     reject(uow)
-                new_status = self._notification(uow,head,state,sources,row,body)
+                new_status = self._notification(uow,head,state,sources,row,body,work,event,now)
             else:
                 row, body, binding = sources.bound(event.record_id,work,claim,{'OPERATION'})
                 self._effect(uow,head,state,sources,row,body,binding,work)
@@ -369,8 +394,10 @@ class LifecycleGuards:
                 reject(uow,'STALE_CASE_VERSION')
             after = uow.execute(select(t.state).where(t.state.c.case_id == head['case_id'])).mappings().one()
             if purpose=='OUTCOME':
+                from .notification_profile import COMPONENT as notification_component
+                note_component = notification_component if schema_revision == NOTIFICATION else self.component_id
                 work_id=identifier('notification_work')
-                uow.execute(t.work.insert().values(work_id=work_id,case_id=head['case_id'],component_id=self.component_id,
+                uow.execute(t.work.insert().values(work_id=work_id,case_id=head['case_id'],component_id=note_component,
                     store_id=head['store_id'],owner_id=head['owner_principal_id'],purpose='NOTIFICATION',
                     input_version=head['input_version'],generation=after['generation'],
                     target_hash=target(head,after,'NOTIFICATION'),target_record_id=None,state='PENDING',
@@ -404,15 +431,47 @@ class LifecycleGuards:
                 event_type='LIFECYCLE_EVENT_ACCEPTED',correlation_id=event.event_id,
                 payload={'event':event_kind,'work_id':work['work_id'],'source_record_id':row['record_id'],'generation':after['generation']},
                 object_ids=[row['object_id'],work['work_id']],history_refs=[],now=now)
+            notification_final = None
+            if schema_revision == NOTIFICATION and purpose in {'OUTCOME','NOTIFICATION'}:
+                from .notification_tables import controls
+                from .notification_sources import validate_control, check_retry_authority
+                from .manual_target import one
+                current_head = one(uow, old.case_heads, case_id=head['case_id'])
+                if purpose == 'OUTCOME':
+                    from .notification_intent import create_control
+                    intended = one(uow,t.work,work_id=after['notification_work_id'])
+                    create_control(uow,current_head,state,after,intended,receipt,self.component_id)
+                notification_control = one(uow,controls,notification_work_id=after['notification_work_id'])
+                validate_control(uow,current_head,notification_control)
+                def notification_final():
+                    h = one(uow,old.case_heads,case_id=head['case_id'])
+                    saved = one(uow,controls,notification_work_id=after['notification_work_id'])
+                    if saved != notification_control:
+                        reject(uow)
+                    validate_control(uow,h,saved)
+                    if purpose == 'NOTIFICATION' and saved['retry_record_id'] == row['record_id']:
+                        from .canonical import decode_document
+                        entry = next(item for item in decode_document(saved['retry_authorization'])
+                                     if item['record_id'] == row['record_id'])
+                        check_retry_authority(uow,h,entry,self.clock())
+                    authority(uow,h,self.component_id,purpose)
+                    # Last Domain callback: sample the original claim lease once more,
+                    # so the control proof above cannot hide an expiry before commit.
+                    if self.clock() >= work['lease_expires_at']:
+                        reject(uow)
             sealed_work = dict(uow.execute(select(t.work).where(t.work.c.work_id == work['work_id'])).mappings().one())
             sealed_sources = [dict(item) for item in uow.execute(select(t.sources).where(
                 t.sources.c.work_id == work['work_id'],t.sources.c.epoch == claim.epoch)
                 .order_by(t.sources.c.slot)).mappings()]
             sealed_notification = (dict(uow.execute(select(t.work).where(
                 t.work.c.work_id==after['notification_work_id'])).mappings().one()) if purpose=='OUTCOME' else None)
+            # The Domain's own final re-check runs first, so a retained-source fault
+            # is refused there; the notification control's final check follows.
             uow.before_commit(lambda: self._before_commit(uow,work,claim,receipt,work['lease_expires_at'],
                 sealed_work,dict(after),sealed_sources,sealed_notification,head['status'],schema_revision,
                 revision_context,reject_context,approval_context,manual_context))
+            if notification_final is not None:
+                uow.before_commit(notification_final)
             return receipt
         except FlowError:
             uow.poison()
@@ -526,7 +585,9 @@ class LifecycleGuards:
             if body['status']=='SUCCEEDED' and body['result']['type']=='GENERATE_LABEL':
                 self._label(uow,h,body['result']['label_evidence_id'],binding['artifact_sha256'])
         # Provenance/PDF validation may take time. The final time sample belongs
-        # after that work, immediately before this UoW attempts its commit.
+        # after that work. On 0014 OUTCOME/NOTIFICATION the notification control's
+        # final check runs after this callback and samples the same lease again
+        # as the last Domain step before this UoW attempts its commit.
         if self.clock() >= lease:
             reject(uow)
         # Expensive source verification cannot outlive or replace this authority.
@@ -749,6 +810,10 @@ class LifecycleGuards:
         else:
             if head['status'] not in {'ACTION_IN_PROGRESS','RECONCILING'} or event.record_id != event.notification_record_id:
                 reject(uow)
+            if schema_version(uow.connection) == NOTIFICATION:
+                from .notification_intent import RETURN_PRODUCER
+                if self.component_id != RETURN_PRODUCER:
+                    reject(uow)
             self._return_sources(uow,head,state,sources,event.return_record_id,event.label_record_id)
             outcome = 'RETURN_CREATED'
         notification_row, notification, binding = sources.bound(event.notification_record_id,work,claim,{'NOTIFICATION'},
@@ -766,7 +831,12 @@ class LifecycleGuards:
             preview_id=state['preview_id'] if outcome == 'RETURN_CREATED' else None))
         return 'NOTIFICATION_PENDING'
 
-    def _notification(self, uow, head, state, sources, row, body):
+    def _notification(self, uow, head, state, sources, row, body, work, event, now):
+        if schema_version(uow.connection) == NOTIFICATION:
+            from .notification_sources import apply_observation
+            status = apply_observation(uow,head,state,row,body,work,event,now)
+            uow.execute(update(t.state).where(t.state.c.case_id==head['case_id']).values(notification_record_id=row['record_id']))
+            return status
         old_row, previous = sources.read(state['notification_record_id'],{'NOTIFICATION'},current_actor=False)
         if (body['notification_id'] != state['notification_id'] or body['outcome'] != state['outcome']
                 or notification_hash(body) != state['notification_hash'] or row['object_version'] != old_row['object_version']+1
@@ -837,6 +907,12 @@ class LifecycleGuards:
         validate_evidence(bytes(raw),'label.pdf','application/pdf')
 
     def _return_sources(self, uow, head, state, sources, return_id, label_id):
+        if schema_version(uow.connection) == NOTIFICATION:
+            from .notification_execution import completed_pair
+            pair = completed_pair(uow,head)
+            if return_id != pair['return_record_id'] or label_id != pair['label_record_id']:
+                reject(uow)
+            return
         if return_id is None or label_id is None or return_id == label_id:
             reject(uow)
         latest = {}

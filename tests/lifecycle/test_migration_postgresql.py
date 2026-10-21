@@ -28,8 +28,24 @@ def test_upgrade_real_0006_acceptance_to_empty_sidecars_repeat_preserves_every_o
     before=fingerprints(flow_engine)
     migrate(flow_engine);migrate(flow_engine)
     after=fingerprints(flow_engine)
-    added = {**t.metadata.tables, **preview_tables.metadata.tables, **execution_preparation_tables.metadata.tables,
-             **return_execution_tables.metadata.tables}
+    from returnops_domain import label_execution_tables
+    label_added = label_execution_tables.metadata.tables
+    assert set(label_added) == {
+        'core_mock_label_ledger', 'label_provider_permissions',
+        'lifecycle_label_artifact_work', 'lifecycle_label_execution_controls',
+    }
+    from returnops_domain import label_artifact_tables
+    artifact_added = label_artifact_tables.metadata.tables
+    assert set(artifact_added) == {
+        'label_artifact_permissions', 'lifecycle_label_artifact_controls',
+        'lifecycle_label_artifact_claims', 'generated_label_artifacts',
+        'generated_label_artifact_contents',
+    }
+    from returnops_domain import notification_tables
+    notification_added=notification_tables.metadata.tables
+    assert set(notification_added)=={'notification_delivery_controls','core_mock_notification_facts'}
+    added = {**notification_added, **artifact_added, **t.metadata.tables, **preview_tables.metadata.tables, **execution_preparation_tables.metadata.tables,
+             **return_execution_tables.metadata.tables, **label_added}
     assert {name:value for name,value in after.items() if name not in added}==before
     assert set(after)-set(before)==set(added)
     with flow_engine.connect() as connection:

@@ -35,11 +35,27 @@ class SameConnectionIdentities(_Reader):
         if failed: raise SecurityStoreUnavailable() from None
         return result
 
+class _DomainReads:
+    """Same-connection read context; a scope hint never admits a write."""
+    def __init__(self,connection):self.connection,self.failed=connection,False
+    def poison(self):self.failed=True
+    def execute(self,statement,parameters=None):
+        if self.failed or not getattr(statement,'is_select',False):
+            self.poison();raise FlowError('INTERNAL_ERROR')
+        return self.connection.execute(statement,parameters or {})
+
 class SameConnectionResources(_Reader):
     def get_case(self, case_id):
         row = self.one(select(t.case_heads).where(t.case_heads.c.case_id == case_id))
         return None if row is None else CaseResource(row["case_id"], row["store_id"], row["owner_principal_id"], row["available"])
     def get_evidence(self, evidence_id):
+        from returnops_domain.generated_evidence import is_generated_resource,scope_hint
+        context=_DomainReads(self.connection)
+        if is_generated_resource(context,evidence_id):
+            snapshot=scope_hint(context,evidence_id)
+            if snapshot is None:return None
+            return EvidenceResource(snapshot.evidence_id,snapshot.store_id,EvidenceKind.GENERATED,
+                None,snapshot.case_id,snapshot.available,None)
         row = self.one(select(t.evidence).where(t.evidence.c.evidence_id == evidence_id))
         if row is None: return None
         if row["status"] not in {"STAGED", "BOUND"}: raise SecurityStoreUnavailable()
@@ -58,7 +74,19 @@ class CurrentRequestAuthority:
         authenticator = Authenticator(self.config, SameConnectionIdentities(connection))
         service = AuthorizationService(authenticator, SameConnectionResources(connection), clock=self.clock)
         failure = None
-        try: grant = service.authorize(self.authorization, operation, resource_id)
+        try:
+            grant = service.authorize(self.authorization, operation, resource_id)
+            if operation=='getEvidenceContent':
+                from returnops_domain.generated_evidence import is_generated_resource,resolve
+                context=_DomainReads(connection)
+                if is_generated_resource(context,resource_id):
+                    # F.03 has already accepted the minimal scope. Only this
+                    # authorized path reads/verifies the certificate and bytes.
+                    snapshot=resolve(context,resource_id)
+                    if (not snapshot.available or snapshot.case_id!=grant.case_id
+                            or snapshot.store_id!=grant.store_id):raise FlowError('INVALID_STATE')
+                    if service.authorize(self.authorization,operation,resource_id)!=grant:
+                        raise FlowError('UNAUTHENTICATED')
         except SecurityError as error: failure = (error.code, error.status_code)
         if failure is not None: raise FlowError(failure[0], status=failure[1]) from None
         principal = grant.principal

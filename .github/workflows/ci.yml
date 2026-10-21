@@ -3,6 +3,7 @@ name: F.02 checks
 on:
   pull_request:
   push:
+    branches: [main]
 
 permissions:
   contents: read
@@ -46,6 +47,10 @@ jobs:
         run: python -B -m pytest tests/storage/test_records.py -q
       - name: Check bounded attachment parsers and customer codecs without a database
         run: python -B -m pytest tests/customer/test_evidence_validation.py tests/customer/test_codec_and_dto.py tests/customer/test_foundation_guards.py -q
+      - name: Check mock label PDF renderer and validator without a database
+        run: python -B -m pytest tests/unit/test_label_pdf.py tests/unit/test_label_pdf_validation.py -q
+      - name: Check notification profile and independent fact integrity without a database
+        run: python -B -m pytest --noconftest tests/lifecycle/test_notification_profile_offline.py tests/lifecycle/test_notification_fact_offline.py tests/lifecycle/test_notification_customer_origin_offline.py -q
       - name: Build and import installed packages outside checkout
         run: python -B tools/checks/check-installed.py
       - name: Check PR against its base WBS
@@ -58,11 +63,33 @@ jobs:
         # No independent agreed baseline is selected for an arbitrary branch push.
         run: python -B tools/checks/run.py offline --skip-baseline
 
-  api-environment:
-    name: API and PostgreSQL environment
+  environment-plan:
+    name: Plan PostgreSQL environment parts
     runs-on: ubuntu-24.04
-    # Both source/PR jobs hit 75 minutes; preserve full suites with measured PR pace plus 30% margin.
+    timeout-minutes: 15
+    outputs:
+      matrix: ${{ steps.parts.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Validate complete lifecycle file coverage and emit matrix
+        id: parts
+        run: |
+          matrix="$(python -B tools/checks/run.py ci-matrix)"
+          printf 'matrix=%s\n' "$matrix" >> "$GITHUB_OUTPUT"
+
+  environment-checks:
+    name: PostgreSQL / ${{ matrix.part }}
+    needs: environment-plan
+    runs-on: ubuntu-24.04
     timeout-minutes: 170
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.environment-plan.outputs.matrix) }}
     env:
       # Disposable CI service credentials; never use these outside this job.
       DATABASE_URL: postgresql+psycopg://returnops_ci:ci_synthetic_only@localhost:5432/returnops_f02_ci
@@ -92,12 +119,13 @@ jobs:
           python -m pip install --require-hashes -r requirements-dev.lock
           python -m pip install --no-deps --no-build-isolation -e .
           python -m pip check
-      - name: Check affected manual notification fixtures before the full suite
-        # These 12 existing nodes also remain in the complete lifecycle run below.
+      - name: Check historical manual notification fixtures before the full suite
+        if: matrix.part == 'foundation'
+        # These 12 nodes also remain in their complete lifecycle file groups.
         run: |
           unset MANUAL_EVIDENCE_DIR
           python -B -m pytest \
-            'tests/lifecycle/test_guards_postgresql.py::test_saved_notification_pending_failed_sent_keeps_identity_and_has_no_effects[head-MANUAL_HANDLING-MANUAL_HANDLED]' \
+            'tests/lifecycle/test_guards_postgresql.py::test_saved_notification_pending_failed_sent_keeps_identity_and_has_no_effects[0013_label_artifact_result-MANUAL_HANDLING-MANUAL_HANDLED]' \
             'tests/lifecycle/test_guards_postgresql.py::test_notification_cannot_change_frozen_identity_or_payload' \
             'tests/lifecycle/test_guards_postgresql.py::test_new_decision_rechecks_causal_founder_current_principal' \
             'tests/lifecycle/test_guards_postgresql.py::test_notification_retry_uses_current_service_not_expired_original_human_authority' \
@@ -105,11 +133,30 @@ jobs:
             'tests/lifecycle/test_guards_postgresql.py::test_outcome_atomically_saves_stable_unclaimed_notification_intent_without_grant' \
             'tests/lifecycle/test_transaction_postgresql.py::test_supported_same_uow_notification_reclaim_invalidates_earlier_commit_proof' \
             -q --tb=short -x
-      - name: Migrate and check disposable PostgreSQL environment
+      - name: Migrate and check the complete environment part
         env:
-          # Per-node temporary evidence is not a persisted/downloaded artifact.
-          MANUAL_EVIDENCE_DIR: ${{ runner.temp }}/a201-pass-manual-full-evidence
-        run: python -B tools/checks/run.py environment
+          # Each matrix job has a fresh service, checkout and temporary evidence directory.
+          MANUAL_EVIDENCE_DIR: ${{ runner.temp }}/a201-pass-manual-${{ matrix.part }}-evidence
+          ENVIRONMENT_PART: ${{ matrix.part }}
+        run: python -B tools/checks/run.py environment --part "$ENVIRONMENT_PART"
+
+  api-environment:
+    name: API and PostgreSQL environment
+    if: ${{ always() }}
+    needs: [offline-contract-models, environment-plan, environment-checks]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 170
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Require every dependency and all seven environment parts to succeed
+        env:
+          CI_NEEDS_JSON: ${{ toJSON(needs) }}
+        run: python -B tools/checks/run.py ci-gate
       - name: Build runtime image and import installed packages outside app directory
         run: |
           docker build --tag returnops-a1-ci .

@@ -90,6 +90,8 @@ def test_real_new_interpreter_reuses_saved_work_acceptance(flow_engine,identitie
     assert len(rows(flow_engine,t.events))==1
 
 
+# Historical v1 synthetic delivery compatibility; actual v2 delivery has separate oracles.
+@pytest.mark.parametrize('flow_engine',['0013_label_artifact_result'],indirect=True)
 def test_supported_same_uow_notification_reclaim_invalidates_earlier_commit_proof(flow_engine,identities,enabled):
     from returnops_domain import founder_codec as finite
     from returnops_domain.lifecycle_events import NotificationObserved

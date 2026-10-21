@@ -5,11 +5,18 @@ from .founder_integrity import CaseProof, read_revision
 from .lifecycle_state import reject
 
 
-def authority(uow, head, component_id, purpose):
-    grant = uow.execute(select(t.authorities).where(t.authorities.c.store_id == head['store_id'],
-        t.authorities.c.component_id == component_id, t.authorities.c.purpose == purpose).with_for_update()).mappings().one_or_none()
-    owner = uow.execute(select(old.principals).where(
-        old.principals.c.principal_id == head['owner_principal_id']).with_for_update()).mappings().one_or_none()
+def authority(uow, head, component_id, purpose, *, lock_rows=True):
+    if type(lock_rows) is not bool or (not lock_rows and getattr(uow, 'write', None) is not False):
+        reject(uow)
+    grant_query = select(t.authorities).where(t.authorities.c.store_id == head['store_id'],
+        t.authorities.c.component_id == component_id, t.authorities.c.purpose == purpose)
+    if lock_rows:
+        grant_query = grant_query.with_for_update()
+    grant = uow.execute(grant_query).mappings().one_or_none()
+    owner_query = select(old.principals).where(old.principals.c.principal_id == head['owner_principal_id'])
+    if lock_rows:
+        owner_query = owner_query.with_for_update()
+    owner = uow.execute(owner_query).mappings().one_or_none()
     if (grant is None or not grant['enabled'] or owner is None or not owner['enabled']
             or owner['role'] != 'CUSTOMER' or owner['store_id'] != head['store_id']):
         reject(uow, 'FORBIDDEN')

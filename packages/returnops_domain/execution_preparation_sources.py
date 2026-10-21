@@ -34,6 +34,16 @@ def source_closure(uow, case_id):
     result = approval_closure(uow, case_id)
     result[preparations.name] = [dict(row) for row in uow.execute(select(preparations)
         .where(preparations.c.case_id == case_id).order_by(preparations.c.preparation_id)).mappings()]
+    from .lifecycle_schema import LABEL_VERSIONS, version
+    if version(uow.connection) in LABEL_VERSIONS:
+        from .return_execution_tables import controls as returns, ledger as return_ledger
+        from .label_execution_tables import controls as labels, ledger as label_ledger, artifact_work
+        for table in (returns, labels, label_ledger, artifact_work):
+            result[table.name] = [dict(row) for row in uow.execute(select(table).where(
+                table.c.case_id == case_id).order_by(*table.primary_key.columns)).mappings()]
+        keys = select(returns.c.effect_key).where(returns.c.case_id == case_id)
+        result[return_ledger.name] = [dict(row) for row in uow.execute(select(return_ledger).where(
+            return_ledger.c.effect_key.in_(keys)).order_by(return_ledger.c.effect_key)).mappings()]
     return result
 
 

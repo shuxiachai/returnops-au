@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "groups": {
+    "execution": [
+      "tests/lifecycle/test_approval_admission_late_postgresql.py",
+      "tests/lifecycle/test_approval_admission_offline.py",
+      "tests/lifecycle/test_approval_admission_postgresql.py",
+      "tests/lifecycle/test_create_return_execution_late_postgresql.py",
+      "tests/lifecycle/test_create_return_execution_offline.py",
+      "tests/lifecycle/test_create_return_execution_postgresql.py",
+      "tests/lifecycle/test_create_return_execution_process_postgresql.py",
+      "tests/lifecycle/test_denial_audit_postgresql.py",
+      "tests/lifecycle/test_effects_postgresql.py",
+      "tests/lifecycle/test_execution_preparation_late_postgresql.py",
+      "tests/lifecycle/test_execution_preparation_offline.py",
+      "tests/lifecycle/test_execution_preparation_postgresql.py",
+      "tests/lifecycle/test_execution_preparation_process_postgresql.py"
+    ],
+    "founder_manual": [
+      "tests/lifecycle/test_founder_approve_late_postgresql.py",
+      "tests/lifecycle/test_founder_approve_offline.py",
+      "tests/lifecycle/test_founder_approve_postgresql.py",
+      "tests/lifecycle/test_founder_pass_manual_late_postgresql.py",
+      "tests/lifecycle/test_founder_pass_manual_offline.py",
+      "tests/lifecycle/test_founder_pass_manual_postgresql.py"
+    ],
+    "founder_revision": [
+      "tests/lifecycle/test_founder_pass_revision_late_postgresql.py",
+      "tests/lifecycle/test_founder_pass_revision_postgresql.py",
+      "tests/lifecycle/test_founder_reject_offline.py",
+      "tests/lifecycle/test_founder_reject_postgresql.py",
+      "tests/lifecycle/test_founder_revision_postgresql.py"
+    ],
+    "label_artifact": [
+      "tests/lifecycle/test_label_artifact_casewide_retention_postgresql.py",
+      "tests/lifecycle/test_label_artifact_pdf_validation_postgresql.py",
+      "tests/lifecycle/test_label_artifact_postgresql.py",
+      "tests/lifecycle/test_label_artifact_process_postgresql.py",
+      "tests/lifecycle/test_label_artifact_retention_postgresql.py",
+      "tests/lifecycle/test_label_artifact_review_regressions_postgresql.py",
+      "tests/lifecycle/test_label_artifact_schema_postgresql.py",
+      "tests/lifecycle/test_label_artifact_transactions_postgresql.py"
+    ],
+    "label_execution_bridge": [
+      "tests/lifecycle/test_label_execution_late_postgresql.py",
+      "tests/lifecycle/test_label_execution_offline.py",
+      "tests/lifecycle/test_label_execution_postgresql.py",
+      "tests/lifecycle/test_label_execution_process_postgresql.py",
+      "tests/lifecycle/test_return_label_bridge_late_postgresql.py",
+      "tests/lifecycle/test_return_label_bridge_offline.py",
+      "tests/lifecycle/test_return_label_bridge_postgresql.py",
+      "tests/lifecycle/test_return_label_bridge_process_postgresql.py"
+    ],
+    "lifecycle_core": [
+      "tests/lifecycle/test_guards_postgresql.py",
+      "tests/lifecycle/test_inputs_postgresql.py",
+      "tests/lifecycle/test_manual_postgresql.py",
+      "tests/lifecycle/test_migration_postgresql.py",
+      "tests/lifecycle/test_pass_review_postgresql.py",
+      "tests/lifecycle/test_pass_review_ready_publication.py",
+      "tests/lifecycle/test_preview_descriptor_catalog_postgresql.py",
+      "tests/lifecycle/test_proposal_fixed.py",
+      "tests/lifecycle/test_proposal_manual_postgresql.py",
+      "tests/lifecycle/test_proposal_runtime_postgresql.py",
+      "tests/lifecycle/test_proposal_sources_postgresql.py",
+      "tests/lifecycle/test_proposal_tcp_postgresql.py",
+      "tests/lifecycle/test_reads_postgresql.py",
+      "tests/lifecycle/test_review_escalation_postgresql.py",
+      "tests/lifecycle/test_transaction_postgresql.py"
+    ],
+    "notification": [
+      "tests/lifecycle/test_notification_customer_origin_offline.py",
+      "tests/lifecycle/test_notification_delivery_postgresql.py",
+      "tests/lifecycle/test_notification_execution_proof_postgresql.py",
+      "tests/lifecycle/test_notification_fact_alias_postgresql.py",
+      "tests/lifecycle/test_notification_fact_offline.py",
+      "tests/lifecycle/test_notification_guards_postgresql.py",
+      "tests/lifecycle/test_notification_late_postgresql.py",
+      "tests/lifecycle/test_notification_legacy_postgresql.py",
+      "tests/lifecycle/test_notification_process_postgresql.py",
+      "tests/lifecycle/test_notification_profile_offline.py",
+      "tests/lifecycle/test_notification_reads_retention_postgresql.py",
+      "tests/lifecycle/test_notification_schema_postgresql.py",
+      "tests/lifecycle/test_notification_transactions_postgresql.py"
+    ]
+  }
+}
