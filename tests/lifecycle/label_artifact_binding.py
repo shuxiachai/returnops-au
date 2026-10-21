@@ -22,7 +22,7 @@ COMPONENT_NAMES = {
     'label': LEGACY_NAMES | {LABEL_NAME},
     'bridge': LEGACY_NAMES | {LABEL_NAME, BRIDGE_NAME},
 }
-REVISION = '0013_label_artifact_result'
+REVISION = '0014_notification_delivery'
 IDENTITY_SQL = (
     "SELECT current_database(), oid, current_user, session_user, inet_server_port(), "
     "current_setting('server_version_num')::integer, current_schema() "

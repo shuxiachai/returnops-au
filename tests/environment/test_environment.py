@@ -29,15 +29,31 @@ from returnops_api import database, main
 from returnops_api.settings import ConfigurationError, Settings, require_environment_database
 
 
-EXPECTED_REVISION = "0013_label_artifact_result"
+EXPECTED_REVISION = "0014_notification_delivery"
 EXPECTED_TABLES = ['accepted_order_contents', 'accepted_order_projections', 'alembic_version', 'case_heads', 'case_investigation_state', 'case_records', 'customer_acceptances', 'customer_audit_events', 'customer_clarification_sets', 'customer_evidence', 'customer_evidence_contents', 'customer_history_contents', 'customer_history_cursors', 'customer_history_revisions', 'customer_history_snapshots', 'customer_intake_sessions', 'customer_intake_work', 'customer_principals', 'customer_processing_failures', 'customer_receipt_refs', 'customer_receipts', 'customer_scope_audit_events', 'customer_scope_audit_heads', 'customer_sessions', 'discarded_order_invocations', 'founder_history_encodings', 'founder_list_members', 'founder_read_cursors', 'founder_read_snapshots', 'investigation_clarification_inputs', 'investigation_inputs', 'investigation_policy_events', 'investigation_provider_grants', 'investigation_question_groups', 'investigation_services', 'investigation_work', 'order_lookup_blocks', 'order_lookup_contents', 'order_lookup_receipts', 'original_statement_contents', 'original_statement_records']
 EXPECTED_TABLES = sorted(EXPECTED_TABLES + ['case_lifecycle_state', 'lifecycle_authorities', 'lifecycle_work', 'lifecycle_source_bindings', 'lifecycle_event_receipts', 'lifecycle_effect_refs', 'lifecycle_action_previews', 'lifecycle_execution_preparations'])
 EXPECTED_TABLES = sorted(EXPECTED_TABLES + ['lifecycle_return_execution_controls', 'return_provider_permissions', 'core_mock_return_ledger'])
 EXPECTED_TABLES = sorted(EXPECTED_TABLES + ['lifecycle_label_execution_controls', 'label_provider_permissions', 'core_mock_label_ledger', 'lifecycle_label_artifact_work'])
 EXPECTED_TABLES = sorted(EXPECTED_TABLES + ['label_artifact_permissions', 'lifecycle_label_artifact_controls', 'lifecycle_label_artifact_claims', 'generated_label_artifacts', 'generated_label_artifact_contents'])
+EXPECTED_TABLES = sorted(EXPECTED_TABLES + ['notification_delivery_controls','core_mock_notification_facts'])
 SECRET = "environment-test-secret-do-not-log"
 STUB_URL = f"postgresql+psycopg://environment_user:{SECRET}@stub.invalid/environment"
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+NOTIFICATION_OWNERSHIP_QUERY = " ".join("""
+    SELECT relation.relname AS table_name, relation.relowner AS table_owner,
+           original.relowner AS baseline_owner,
+           COALESCE(relation.relacl, acldefault('r', relation.relowner))
+               = acldefault('r', relation.relowner) AS owner_only_acl,
+           EXISTS (SELECT 1 FROM pg_attribute attribute
+                   WHERE attribute.attrelid=relation.oid AND attribute.attnum>0
+                     AND NOT attribute.attisdropped AND attribute.attacl IS NOT NULL) AS column_acl
+    FROM pg_class relation
+    JOIN pg_namespace namespace ON namespace.oid=relation.relnamespace
+    JOIN pg_class original ON original.relnamespace=relation.relnamespace
+         AND original.relname='lifecycle_work' AND original.relkind='r'
+    WHERE namespace.nspname=current_schema()
+      AND relation.relname IN (:control_name, :fact_name)
+""".upper().split())
 
 
 class ScalarValues:
@@ -52,7 +68,7 @@ class ScalarValues:
 
 
 class QueryResult:
-    """Minimal SQLAlchemy result protocol for the two read-only health queries."""
+    """Minimal SQLAlchemy result protocol for read-only readiness queries."""
 
     def __init__(self, values: list[Any]) -> None:
         self.values = values
@@ -95,6 +111,25 @@ class DiagnosticConnection:
         self.engine.statements.append(sql)
         # A readiness request must not migrate, stamp or write application data.
         assert sql.startswith("SELECT "), f"Non-read-only health query: {sql}"
+        if sql == NOTIFICATION_OWNERSHIP_QUERY:
+            assert args == ({
+                "control_name": "notification_delivery_controls",
+                "fact_name": "core_mock_notification_facts",
+            },) and not kwargs, "Unexpected notification ownership parameters"
+            rows = [
+                dict(table_name=name, table_owner=10000, baseline_owner=10000,
+                     owner_only_acl=True, column_acl=False)
+                for name in ("notification_delivery_controls", "core_mock_notification_facts")
+            ]
+            if self.engine.failure == "notification_owner":
+                rows[-1]["table_owner"] = 10001
+            elif self.engine.failure == "notification_table_acl":
+                rows[-1]["owner_only_acl"] = False
+            elif self.engine.failure == "notification_column_acl":
+                rows[-1]["column_acl"] = True
+            elif self.engine.failure == "notification_missing_table":
+                rows.pop()
+            return QueryResult(rows)
         if "ALEMBIC_VERSION" in sql:
             if self.engine.failure == "revision":
                 raise SQLAlchemyError(f"Version query failed: {STUB_URL}")
@@ -165,6 +200,14 @@ def application_with_engine(
     monkeypatch.setattr(label_artifact_schema, 'descriptor', lambda connection:
         engine.failure != 'artifact_descriptor' if isinstance(connection, DiagnosticConnection)
         else original_artifact(connection))
+    from returnops_domain import notification_schema
+    original_notification = notification_schema.descriptor
+    # Exercise the real owner/ACL predicate against controlled catalog rows.
+    # Physical columns/constraints/indexes remain covered by isolated PG tests,
+    # matching the existing descriptor doubles above.
+    monkeypatch.setattr(notification_schema, 'descriptor', lambda connection:
+        notification_schema._ownership(connection) and engine.failure != 'notification_descriptor'
+        if isinstance(connection, DiagnosticConnection) else original_notification(connection))
     return main.create_app()
 
 
@@ -240,6 +283,7 @@ def test_readiness_accepts_only_the_expected_single_revision(
         assert response.json() == {"status": "ready"}
     assert "SELECT 1" in engine.statements
     assert any("ALEMBIC_VERSION" in sql for sql in engine.statements)
+    assert NOTIFICATION_OWNERSHIP_QUERY in engine.statements
     assert engine.disposed
 
 
@@ -260,7 +304,12 @@ def test_readiness_rejects_invalid_revision_sets(
     assert engine.disposed
 
 
-@pytest.mark.parametrize("failure", ["connect", "probe", "revision", "preview_descriptor", "preparation_descriptor", "execution_descriptor", "label_descriptor", "artifact_descriptor"])
+@pytest.mark.parametrize("failure", [
+    "connect", "probe", "revision", "preview_descriptor", "preparation_descriptor",
+    "execution_descriptor", "label_descriptor", "artifact_descriptor",
+    "notification_descriptor", "notification_owner", "notification_table_acl",
+    "notification_column_acl", "notification_missing_table",
+])
 def test_database_failures_return_503_without_disclosing_configuration(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,

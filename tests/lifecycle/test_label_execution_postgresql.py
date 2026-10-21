@@ -314,3 +314,87 @@ def test_LE_G3_missing_original_N2_origin_is_not_replaced_by_bridge_audit(flow_e
     # Existing CaseProof reports an unavailable original origin as INTERNAL_ERROR.
     assert result.status=='UNKNOWN' and snapshot(flow_engine)==before and rows(flow_engine,controls)==[]
     evidence(request.node.nodeid,result=asdict(result),before=before,after=snapshot(flow_engine),hostile_rehashed_origin_fixture=True)
+
+
+@pytest.mark.parametrize('flow_engine',['0012_label_execution','0013_label_artifact_result','0014_notification_delivery'],indirect=True)
+def test_LE_G1_descriptor_batch_is_one_fresh_query_on_supported_versions(flow_engine):
+    from returnops_domain.label_execution_schema import descriptor
+    calls=[]
+    with flow_engine.connect() as connection:
+        class Counted:
+            dialect=connection.dialect
+            def execute(self,statement,parameters):
+                calls.append((str(statement),dict(parameters)))
+                return connection.execute(statement,parameters)
+        assert descriptor(Counted()) is True
+        assert len(calls)==1 and len(calls[0][1])==4
+        assert version(connection)==connection.execute(text('SELECT version_num FROM alembic_version')).scalar_one()
+
+
+@pytest.mark.parametrize('table_name',['lifecycle_label_execution_controls','label_provider_permissions',
+                                     'core_mock_label_ledger','lifecycle_label_artifact_work'])
+def test_LE_G1_descriptor_batch_observes_each_table_ddl_and_rollback_fresh(flow_engine,table_name):
+    from returnops_domain.label_execution_schema import descriptor
+    with flow_engine.connect() as connection:
+        assert descriptor(connection) is True
+        with connection.begin_nested() as changed:
+            connection.execute(text('ALTER TABLE '+connection.dialect.identifier_preparer.quote(table_name)+
+                                    ' ADD COLUMN label_batch_probe integer'))
+            assert descriptor(connection) is False
+            changed.rollback()
+        assert descriptor(connection) is True
+
+
+def test_LE_G1_descriptor_batch_does_not_mix_same_named_tables_from_other_schema(flow_engine):
+    from uuid import uuid4
+    from returnops_domain.label_execution_schema import descriptor
+    with flow_engine.connect() as connection:
+        original=connection.execute(text('SELECT current_schema()')).scalar_one()
+        shadow='label_batch_shadow_'+uuid4().hex
+        quote=connection.dialect.identifier_preparer.quote
+        connection.execute(text('CREATE SCHEMA '+quote(shadow)))
+        for table in metadata.tables.values():
+            connection.execute(text('CREATE TABLE '+quote(shadow)+'.'+quote(table.name)+' (id integer)'))
+        connection.execute(text('SET LOCAL search_path TO '+quote(original)+', '+quote(shadow)))
+        assert descriptor(connection) is True
+        connection.execute(text('SET LOCAL search_path TO '+quote(shadow)+', '+quote(original)))
+        assert descriptor(connection) is False
+        connection.execute(text('DROP TABLE '+quote(shadow)+'.label_provider_permissions'))
+        assert descriptor(connection) is False
+        connection.execute(text('SET LOCAL search_path TO '+quote(original)+', '+quote(shadow)))
+        assert descriptor(connection) is True
+        # Closing this uncommitted transaction also removes the temporary schema.
+
+
+def test_LE_G1_descriptor_batch_structural_failure_denies_without_business_effect(flow_engine,identities,enabled,request):
+    args,_=ready(flow_engine,identities)
+    with flow_engine.begin() as connection:
+        connection.execute(text('ALTER TABLE label_provider_permissions ADD COLUMN label_batch_probe integer'))
+    before=snapshot(flow_engine)
+    result=execute(service(flow_engine,identities),args)
+    assert result.status=='DENIED' and result.safe_code=='INVALID_STATE'
+    assert snapshot(flow_engine)==before and rows(flow_engine,controls)==rows(flow_engine,ledger)==rows(flow_engine,artifact_work)==[]
+    evidence(request.node.nodeid,result=asdict(result),before=before,after=snapshot(flow_engine))
+
+
+def test_LE_G1_descriptor_batch_raw_sql_error_stays_unknown_without_business_effect(flow_engine,identities,enabled,request):
+    from sqlalchemy import event
+    args,_=ready(flow_engine,identities);before=snapshot(flow_engine);queries=[];mock_calls=[]
+    def fail_catalog(connection,cursor,statement,parameters,context,executemany):
+        if statement.startswith("SELECT jsonb_build_object('table_name', r.relname,"):
+            queries.append('label catalog')
+            return "SELECT CAST('label_batch_query_error' AS integer)",{}
+        return statement,parameters
+    def forbidden_mock(*args,**kwargs):
+        mock_calls.append('mock')
+        raise AssertionError('Catalog failure must precede mock construction')
+    event.listen(flow_engine,'before_cursor_execute',fail_catalog,retval=True)
+    try:
+        result=execute(service(flow_engine,identities,mock_factory=forbidden_mock),args)
+    finally:
+        event.remove(flow_engine,'before_cursor_execute',fail_catalog)
+    assert queries==['label catalog'] and mock_calls==[]
+    assert result.status=='UNKNOWN' and result.safe_code is None
+    # The failed service transaction has closed; these reads use normal connections.
+    assert snapshot(flow_engine)==before and rows(flow_engine,controls)==rows(flow_engine,ledger)==rows(flow_engine,artifact_work)==[]
+    evidence(request.node.nodeid,result=asdict(result),queries=queries,mock_calls=mock_calls,before=before,after=snapshot(flow_engine))

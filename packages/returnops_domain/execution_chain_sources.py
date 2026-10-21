@@ -154,13 +154,17 @@ def _return_chain_proof(uow, actor, head, row, original_key, *, creating=False):
 
 
 def historical_bridge(uow, actor, head, row, root):
+    return retained_bridge(uow, actor.principal_id, head, row, root)
+
+
+def retained_bridge(uow, principal_id, head, row, root):
     """Original immutable bridge metadata, plus retained bodies when available.
 
     Metadata-only proof after retention does not rebuild commands or operations.
     The original input/generation are used for the unchanged bridge identity.
     """
     from . import customer_tables as old
-    from .return_label_sources import identity, retained_acceptance, KIND
+    from .return_label_sources import retained_identity, retained_acceptance, KIND
     receipts = list(uow.execute(select(life.events).where(life.events.c.case_id == head['case_id'],
         life.events.c.event_kind == KIND)).mappings())
     if row['status'] != 'SUCCEEDED' or row['result_record_id'] is None:
@@ -175,7 +179,7 @@ def historical_bridge(uow, actor, head, row, root):
         state={'generation':row['generation']},
         root={'approval':{'record':dict(approval_record)}} if root is None else root)
     historical_head = {**head, 'input_version':row['input_version']}
-    ids = identity(actor, historical_head, source)
+    ids = retained_identity(principal_id, historical_head, source)
     accepted = retained_acceptance(uow, historical_head, source, ids)
     if (accepted is None and receipts) or (accepted is not None and
             [entry['event_id'] for entry in receipts] != [ids['event_id']]):

@@ -10,11 +10,11 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
 from datetime import datetime, timedelta, timezone
 from queue import Queue
-from threading import local
-from time import monotonic, sleep
+from threading import Lock, local
+from time import monotonic, monotonic_ns, sleep
 
 import pytest
-from sqlalchemy import select, text, update
+from sqlalchemy import event as sqlalchemy_event, select, text, update
 
 from returnops_domain import customer_tables as old, lifecycle_tables as lifecycle
 from returnops_domain.canonical import decode_document
@@ -321,13 +321,389 @@ def test_AP12_late_denial_reauthorizes_after_business_rollback(
         before=original_before, fresh=item, after=after, result=asdict(result))
 
 
-def _overlap_at_actual_fence(engine, monkeypatch, calls, *, first=None):
+def _safe_fence_error(error):
+    """Fixed exception categories and SQLSTATE only; never exception text."""
+    kind = type(error).__name__
+    if kind not in {'OperationalError', 'InterfaceError', 'DBAPIError', 'FlowError',
+                    'AssertionError', 'AcceptanceOutcomeUnknown'}:
+        kind = 'OTHER_EXCEPTION'
+    try:
+        state = getattr(getattr(error, 'orig', None), 'sqlstate', None)
+    except Exception:
+        state = None
+    if (type(state) is not str or len(state) != 5
+            or any(character not in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789' for character in state)):
+        state = None
+    return dict(error_type=kind, sqlstate=state)
+
+
+def _install_fence_cost_observer(scoped, transactions, mutex):
+    """Twelve late-bound stages; scoped is signature compatibility only.
+
+    Own at most twelve patches, separately from the caller's base/overlap
+    journal. Inclusive totals overlap. The finisher exists before resolution,
+    disables residual wrappers, restores by identity, and drains 108 buckets.
+    """
+    stages = ('create_control', 'validate_control', 'inventory', 'case_proof',
+              'notification_descriptor', 'notification_ownership', 'generated_namespace',
+              'preview_descriptor', 'preparation_descriptor', 'return_descriptor',
+              'label_descriptor', 'artifact_descriptor')
+    maximum = (1 << 63) - 1
+    context, aggregates = local(), {}
+    counters = dict(overflow_count=0, observer_error_count=0)
+    flags = dict(install_failed=False, cleanup_incomplete=False)
+    journal = []
+    active = finished = False
+    active_frames = 0
+
+    def increment(name):
+        try:
+            with mutex:
+                counters[name] = min(maximum, counters[name] + 1)
+        except BaseException:
+            try:
+                counters['observer_error_count'] = min(maximum, counters['observer_error_count'] + 1)
+            except BaseException:
+                pass
+
+    def uncertain():
+        flags['cleanup_incomplete'] = True
+        increment('observer_error_count')
+
+    def restore():
+        # One bounded pass. Never overwrite a replacement we do not own.
+        for owner, name, original, wrapper in reversed(journal):
+            try:
+                current = getattr(owner, name)
+                if current is original:
+                    continue
+                if current is not wrapper:
+                    uncertain()
+                    continue
+                try:
+                    setattr(owner, name, original)
+                except BaseException:
+                    uncertain()
+                if getattr(owner, name) is not original:
+                    uncertain()
+            except BaseException:
+                uncertain()
+
+    def finish():
+        nonlocal active, finished
+        active = False
+        if not finished:
+            finished = True
+            restore()
+            if active_frames:
+                # The normal caller joins first. A premature finish is not a
+                # complete timing snapshot, even if all attributes restored.
+                uncertain()
+        rows = []
+        try:
+            with mutex:
+                known = {value['token']: value for value in transactions.values()
+                         if type(value) is dict and type(value.get('token')) is int}
+                for (token, stage), counts in aggregates.items():
+                    pid = known.get(token, {}).get('backend_pid')
+                    if type(pid) is not int or not 1 <= pid <= 2147483647:
+                        pid = None
+                    rows.append(dict(token=token, backend_pid=pid, stage=stage, **counts))
+                aggregates.clear()
+                result = dict(rows=rows, **counters, **flags)
+                counters.update(overflow_count=0, observer_error_count=0)
+                return result
+        except BaseException:
+            increment('observer_error_count')
+            return dict(rows=[], **counters, **flags)
+
+    def namespace_connection(value):
+        # A raw Connection's .connection is a DBAPI proxy, not this map's key.
+        if type(value) is Connection:
+            return value
+        if type(value) is not CustomerUnitOfWork:
+            return None
+        attributes = type.__getattribute__(CustomerUnitOfWork, '__dict__')
+        if ('connection' in attributes
+                or type(attributes.get('__dict__')) is not GetSetDescriptorType):
+            return None
+        stored = object.__getattribute__(value, '__dict__')
+        connection = stored.get('connection') if type(stored) is dict else None
+        return connection if type(connection) is Connection else None
+
+    def wrap(original, stage, position, argument, mode):
+        def observed(*args, **kwargs):
+            nonlocal active_frames
+            if not active:
+                return original(*args, **kwargs)
+            previous = None
+            key, started = None, None
+            entered = False
+            try:
+                try:
+                    with mutex:
+                        active_frames += 1
+                        entered = True
+                    previous = getattr(context, 'depth', 0)
+                    context.depth = previous + 1
+                    value = args[position] if len(args) > position else kwargs.get(argument)
+                    connection = (namespace_connection(value) if mode == 'namespace' else
+                                  value if mode == 'raw' else getattr(value, 'connection', None))
+                    with mutex:
+                        existing = transactions.get(connection)
+                        token = existing.get('token') if type(existing) is dict else None
+                    if type(token) is not int or not 1 <= token <= 8:
+                        if token is not None:
+                            increment('overflow_count')
+                        token = None
+                    key = (token, stage)
+                    if previous < 32:
+                        started = monotonic_ns()
+                    else:
+                        increment('overflow_count')
+                except BaseException:
+                    increment('observer_error_count')
+                return original(*args, **kwargs)
+            finally:
+                try:
+                    if key is not None:
+                        duration = monotonic_ns() - started if started is not None else None
+                        if type(duration) is not int or not 0 <= duration <= maximum:
+                            if started is not None:
+                                increment('overflow_count')
+                            duration = None
+                        with mutex:
+                            row = aggregates.setdefault(key, dict(count=0, inclusive_ns=0, unmeasured_count=0))
+                            if row['count'] == maximum or (duration is not None
+                                    and row['inclusive_ns'] > maximum - duration):
+                                counters['overflow_count'] = min(maximum, counters['overflow_count'] + 1)
+                            row['count'] = min(maximum, row['count'] + 1)
+                            if duration is None:
+                                row['unmeasured_count'] = min(maximum, row['unmeasured_count'] + 1)
+                            else:
+                                row['inclusive_ns'] = min(maximum, row['inclusive_ns'] + duration)
+                except BaseException:
+                    increment('observer_error_count')
+                finally:
+                    try:
+                        if previous is not None:
+                            if previous:
+                                context.depth = previous
+                            else:
+                                del context.depth
+                        if entered:
+                            with mutex:
+                                active_frames -= 1
+                    except BaseException:
+                        increment('observer_error_count')
+        return observed
+
+    try:
+        from types import GetSetDescriptorType
+        from sqlalchemy.engine import Connection
+        from returnops_domain.customer_uow import CustomerUnitOfWork
+        from returnops_domain import (founder_integrity, notification_intent, notification_schema,
+            notification_sources, generated_evidence, lifecycle_schema, execution_preparation_schema,
+            return_execution_schema, label_execution_schema, label_artifact_schema)
+        targets = (
+            (notification_intent, 'create_control', 0, 'uow', 'uow'),
+            (notification_sources, 'validate_control', 0, 'uow', 'uow'),
+            (notification_intent, '_inventory', 0, 'uow', 'uow'),
+            (founder_integrity.CaseProof, '__init__', 1, 'uow', 'uow'),
+            (notification_schema, 'descriptor', 0, 'connection', 'raw'),
+            (notification_schema, '_ownership', 0, 'connection', 'raw'),
+            (generated_evidence, 'namespace_active', 0, 'uow', 'namespace'),
+            (lifecycle_schema, '_preview_descriptor', 0, 'connection', 'raw'),
+            (execution_preparation_schema, 'descriptor', 0, 'connection', 'raw'),
+            (return_execution_schema, 'descriptor', 0, 'connection', 'raw'),
+            (label_execution_schema, 'descriptor', 0, 'connection', 'raw'),
+            (label_artifact_schema, 'descriptor', 0, 'connection', 'raw'))
+        for stage, (owner, name, position, argument, mode) in zip(stages, targets):
+            original = getattr(owner, name)
+            wrapper = wrap(original, stage, position, argument, mode)
+            journal.append((owner, name, original, wrapper))
+            setattr(owner, name, wrapper)
+            if getattr(owner, name) is not wrapper:
+                raise RuntimeError('Cost observer installation identity')
+        active = True
+    except BaseException:
+        active = False
+        flags['install_failed'] = True
+        increment('observer_error_count')
+        restore()
+    return finish
+
+
+def _fence_cost_lines(diagnostic):
+    """Only fixed ASCII names and bounded numbers cross this output boundary."""
+    import json
+    stages = ('create_control', 'validate_control', 'inventory', 'case_proof',
+              'notification_descriptor', 'notification_ownership', 'generated_namespace',
+              'preview_descriptor', 'preparation_descriptor', 'return_descriptor',
+              'label_descriptor', 'artifact_descriptor')
+    maximum = (1 << 63) - 1
+
+    def number(value, upper=maximum, lower=0):
+        return value if type(value) is int and lower <= value <= upper else None
+
+    def line(value):
+        encoded = 'RETURNOPS_REVISION_FENCE_COST ' + json.dumps(value, sort_keys=True, ensure_ascii=True)
+        assert len(encoded) <= 1024 and encoded.isascii()
+        return encoded
+
+    if type(diagnostic) is not dict:
+        diagnostic = {}
+    rows = diagnostic.get('rows')
+    if type(rows) is not list:
+        rows = []
+    output = [line(dict(kind='summary', inclusive_totals_overlap=True,
+        overflow_count=number(diagnostic.get('overflow_count')),
+        observer_error_count=number(diagnostic.get('observer_error_count')),
+        install_failed=diagnostic.get('install_failed') if type(diagnostic.get('install_failed')) is bool else None,
+        cleanup_incomplete=diagnostic.get('cleanup_incomplete') if type(diagnostic.get('cleanup_incomplete')) is bool else None,
+        output_truncated=len(rows) > 108))]
+    for row in rows[:108]:
+        if type(row) is not dict or type(row.get('stage')) is not str or row['stage'] not in stages:
+            continue
+        token = number(row.get('token'), 8, 1)
+        pid = number(row.get('backend_pid'), 2147483647, 1) if token is not None else None
+        output.append(line(dict(kind='stage', stage=row['stage'], token=token, backend_pid=pid,
+            binding_unavailable=token is None or pid is None, count=number(row.get('count')),
+            inclusive_ns=number(row.get('inclusive_ns')),
+            unmeasured_count=number(row.get('unmeasured_count')))))
+    return output
+
+
+def _observed_fence_overlap(engine, monkeypatch, calls, first, diagnostic, *, cost=False, cost_diagnostic=None):
+    """Optional observation of the existing race; no new SQL or lock operations.
+
+    The engine commit event precedes the native commit. Its successful UOW
+    return follows it. These bound release; neither is a database timestamp.
+    """
+    from returnops_domain import customer_uow
+    assert type(diagnostic) is dict and not diagnostic
+    assert set(calls) == {'revision', 'competitor'} and first in calls
+    original_fence, original_commit = customer_uow.acquire_fence, CustomerUnitOfWork.commit
+    context, mutex = local(), Lock()
+    transactions, events, results = {}, [], {}
+    overlap = None
+    snapshot_costs = None
+    if cost:
+        assert type(cost_diagnostic) is dict and not cost_diagnostic
+
+    def transaction(connection):
+        with mutex:
+            if connection not in transactions:
+                transactions[connection] = dict(token=len(transactions)+1,
+                    label=getattr(context, 'label', 'holder'), backend_pid=None)
+            return transactions[connection]
+
+    def record(connection, event, **fields):
+        value = transaction(connection)
+        with mutex:
+            events.append(dict(token=value['token'], event=event,
+                               monotonic_ns=monotonic_ns(), **fields))
+
+    def fence(connection, *, write):
+        if connection.engine is not engine:
+            return original_fence(connection, write=write)
+        record(connection, 'fence_call')
+        try:
+            result = original_fence(connection, write=write)
+        except BaseException as error:
+            record(connection, 'fence_error', **_safe_fence_error(error))
+            raise
+        record(connection, 'fence_return')
+        return result
+
+    def commit_begin(connection):
+        if connection in transactions:
+            record(connection, 'native_commit_begin')
+
+    def commit(uow):
+        connection = uow.connection
+        if connection not in transactions:
+            return original_commit(uow)
+        try:
+            result = original_commit(uow)
+        except BaseException as error:
+            record(connection, 'uow_commit_error', **_safe_fence_error(error))
+            raise
+        record(connection, 'uow_commit_return')
+        return result
+
+    def invoke(label, call):
+        context.label = label
+        try:
+            result = call()
+            code = getattr(result, 'safe_code', None)
+            codes = {'UNAUTHENTICATED', 'FORBIDDEN', 'NOT_FOUND', 'VALIDATION_ERROR',
+                     'STALE_CASE_VERSION', 'IDEMPOTENCY_CONFLICT', 'INVALID_STATE',
+                     'REQUEST_TOO_LARGE', 'UNSUPPORTED_MEDIA_TYPE', 'INTERNAL_ERROR'}
+            status = getattr(result, 'status', None)
+            with mutex:
+                results[label] = dict(status=status if status in {'ACCEPTED', 'DENIED', 'UNKNOWN'} else 'OTHER',
+                    safe_code=code if code in codes else None,
+                    receipt_present=getattr(result, 'receipt', None) is not None)
+            return result
+        finally:
+            del context.label
+
+    try:
+        # The nested helper patches only this local context. Undo it and both
+        # transparent wrappers before returning or publishing any diagnostic.
+        with monkeypatch.context() as scoped:
+            scoped.setattr(customer_uow, 'acquire_fence', fence)
+            scoped.setattr(CustomerUnitOfWork, 'commit', commit)
+            if cost:
+                snapshot_costs = _install_fence_cost_observer(scoped, transactions, mutex)
+            sqlalchemy_event.listen(engine, 'commit', commit_begin)
+            try:
+                result, overlap = _overlap_at_actual_fence(engine, scoped,
+                    {label:(lambda label=label:invoke(label, calls[label])) for label in calls},
+                    first=first)
+                return result, overlap
+            finally:
+                sqlalchemy_event.remove(engine, 'commit', commit_begin)
+    finally:
+        # Reuse only the PIDs obtained by the original helper's real queries.
+        # Later denial-audit transactions are intentionally left unbound.
+        if overlap is not None:
+            bindings = {'holder':overlap['holder_backend_pid'], **dict(overlap['participants'])}
+            for label, pid in bindings.items():
+                original = next((value for value in transactions.values() if value['label'] == label), None)
+                if original is not None:
+                    original['backend_pid'] = pid
+        bounds = []
+        for value in transactions.values():
+            times = {}
+            for entry in events:
+                if entry['token'] == value['token']:
+                    times.setdefault(entry['event'], []).append(entry['monotonic_ns'])
+            names = ('fence_call', 'fence_return', 'native_commit_begin', 'uow_commit_return')
+            if all(len(times.get(name, [])) == 1 for name in names) and 'uow_commit_error' not in times:
+                start, acquired, releasing, returned = (times[name][0] for name in names)
+                if start <= acquired <= releasing <= returned:
+                    bounds.append(dict(token=value['token'], hold_lower_bound_ns=releasing-acquired,
+                                       hold_upper_bound_ns=returned-start))
+        diagnostic.update(format=1, first=first,
+            pid_binding='original_overlap_queries' if overlap is not None else 'unavailable',
+            transactions=list(transactions.values()), events=events, results=results,
+            successful_commit_hold_bounds=bounds)
+        if snapshot_costs is not None:
+            cost_diagnostic.update(snapshot_costs())
+
+
+def _overlap_at_actual_fence(engine, monkeypatch, calls, *, first=None, diagnostic=None, cost=False, cost_diagnostic=None):
     """Observe both real connections waiting before releasing the holder.
 
     Normal 5-second lock timeouts and 10-second statement timeouts remain intact.
     On any observation/assertion failure, holder exit releases its fence before
     ThreadPoolExecutor joins workers. No unbounded barrier remains to strand them.
     """
+    if diagnostic is not None:
+        return _observed_fence_overlap(engine, monkeypatch, calls, first, diagnostic,
+                                      cost=cost, cost_diagnostic=cost_diagnostic)
     from returnops_domain import customer_uow
     original = customer_uow.acquire_fence
     participants = Queue()

@@ -3,6 +3,7 @@ from copy import deepcopy
 from dataclasses import asdict
 import pytest
 from sqlalchemy import inspect, select, text, update
+from sqlalchemy.inspection import _inspects
 from returnops_domain import customer_tables as old, lifecycle_tables as life, storage
 from returnops_domain.customer_uow import CustomerUnitOfWork
 from returnops_domain.errors import AcceptanceOutcomeUnknown
@@ -234,3 +235,141 @@ def test_RE_G4_each_domain_write_rolls_back_without_erasing_independent_effect(f
     assert result.status == 'UNKNOWN' and len(writes) == point and calls == []
     assert snapshot(flow_engine) == before and len(successes(flow_engine)) == (phase == 'T3')
     evidence(request.node.nodeid, phase=phase, point=point, attempted_writes=writes, result=asdict(result), before=before, after=snapshot(flow_engine))
+
+
+# C12 cloud-only additions; the shared flow_engine consumes its indirect request.param.
+class _C12ReturnCatalogConnection:
+    def __init__(self, connection, *, fail_structural=False):
+        self.connection = connection
+        self.calls = []
+        self.fail_structural = fail_structural
+        self.errors = []
+
+    def __getattr__(self, name):
+        return getattr(self.connection, name)
+
+    def execute(self, statement, parameters=None):
+        parameters = dict(parameters or {})
+        self.calls.append((str(statement), parameters))
+        expected = dict(control_name='lifecycle_return_execution_controls',
+                        permission_name='return_provider_permissions', ledger_name='core_mock_return_ledger')
+        if self.fail_structural and parameters == expected and 'SELECT jsonb_build_object(' in str(statement):
+            try:
+                return self.connection.execute(text('SELECT 1 / 0'))
+            except Exception as error:
+                self.errors.append(error)
+                raise
+        return self.connection.execute(statement, parameters) if parameters else self.connection.execute(statement)
+
+
+# inspect() dispatches on type(subject).__mro__; __getattr__ cannot reach the Connection registrar.
+@_inspects(_C12ReturnCatalogConnection)
+def _c12_inspect_wrapped_connection(observed):
+    return inspect(observed.connection)
+
+
+@pytest.mark.parametrize('flow_engine,expected_revision', [
+    ('0011_return_execution', '0011_return_execution'),
+    ('0012_label_execution', '0012_label_execution'),
+    ('0013_label_artifact_result', '0013_label_artifact_result'),
+    ('0014_notification_delivery', '0014_notification_delivery'),
+], indirect=['flow_engine'])
+def test_C12_return_batch_supported_versions_have_one_real_structural_query(flow_engine, expected_revision):
+    from returnops_domain.return_execution_schema import descriptor
+    with flow_engine.connect() as connection:
+        assert version(connection) == expected_revision
+        observed = _C12ReturnCatalogConnection(connection)
+        assert descriptor(observed) is True
+        assert len(observed.calls) == 1
+        sql, parameters = observed.calls[0]
+        assert parameters == dict(control_name='lifecycle_return_execution_controls',
+                                  permission_name='return_provider_permissions', ledger_name='core_mock_return_ledger')
+        assert 'n.nspname=current_schema()' in sql and "'table_name', r.relname" in sql
+
+
+@pytest.mark.parametrize('table_name', ['lifecycle_return_execution_controls', 'return_provider_permissions',
+                                       'core_mock_return_ledger'])
+def test_C12_return_batch_rereads_every_table_after_ddl_and_rollback(flow_engine, table_name):
+    from returnops_domain.return_execution_schema import descriptor
+    with flow_engine.connect() as connection:
+        quote = connection.dialect.identifier_preparer.quote
+        transaction = connection.begin()
+        observed = _C12ReturnCatalogConnection(connection)
+        try:
+            assert version(connection) == '0014_notification_delivery'
+            assert descriptor(observed) is True
+            connection.execute(text('ALTER TABLE ' + quote(table_name) + ' ADD COLUMN c12_unexpected integer'))
+            assert descriptor(observed) is False and version(connection) is None
+        finally:
+            transaction.rollback()
+        assert descriptor(observed) is True and version(connection) == '0014_notification_delivery'
+        assert len(observed.calls) == 3
+
+
+@pytest.mark.parametrize('table_name', ['lifecycle_return_execution_controls', 'return_provider_permissions',
+                                       'core_mock_return_ledger'])
+def test_C12_return_batch_cannot_borrow_a_same_named_relation_from_another_schema(flow_engine, table_name):
+    from uuid import uuid4
+    from returnops_domain.return_execution_schema import descriptor
+    with flow_engine.connect() as connection:
+        quote = connection.dialect.identifier_preparer.quote
+        current_schema = quote(flow_engine._customer_test_schema)
+        shadow = quote('c12_shadow_' + uuid4().hex)
+        transaction = connection.begin()
+        observed = _C12ReturnCatalogConnection(connection)
+        try:
+            assert descriptor(observed) is True
+            connection.execute(text('CREATE SCHEMA ' + shadow))
+            connection.execute(text('CREATE TABLE ' + shadow + '.' + quote(table_name) +
+                                    ' (LIKE ' + current_schema + '.' + quote(table_name) + ' INCLUDING ALL)'))
+            connection.execute(text('SET LOCAL search_path TO ' + current_schema + ', ' + shadow))
+            connection.execute(text('ALTER TABLE ' + current_schema + '.' + quote(table_name) +
+                                    ' RENAME TO c12_displaced_relation'))
+            assert descriptor(observed) is False and version(connection) is None
+        finally:
+            transaction.rollback()
+        assert descriptor(observed) is True
+        assert len(observed.calls) == 3
+
+
+def test_C12_return_batch_propagates_real_driver_failure_and_reads_after_rollback(flow_engine):
+    from sqlalchemy.exc import DBAPIError
+    from returnops_domain.return_execution_schema import descriptor
+    before = snapshot(flow_engine)
+    with flow_engine.connect() as connection:
+        transaction = connection.begin()
+        observed = _C12ReturnCatalogConnection(connection, fail_structural=True)
+        try:
+            with pytest.raises(DBAPIError) as caught:
+                descriptor(observed)
+            assert len(observed.calls) == len(observed.errors) == 1
+            assert caught.value is observed.errors[0]
+        finally:
+            transaction.rollback()
+        observed.fail_structural = False
+        assert descriptor(observed) is True and len(observed.calls) == 2
+    assert snapshot(flow_engine) == before
+
+
+@pytest.mark.parametrize('entry', ['execute', 'reconcile'])
+def test_C12_return_catalog_driver_failure_keeps_unknown_without_retry_or_effect(flow_engine, identities, enabled, request, entry):
+    arguments, _ = ready(flow_engine, identities)
+    before = snapshot(flow_engine)
+    observed_connections = []
+    mock_calls = []
+    class Fault(CustomerUnitOfWork):
+        def __enter__(self):
+            super().__enter__()
+            self.connection = _C12ReturnCatalogConnection(self.connection, fail_structural=True)
+            observed_connections.append(self.connection)
+            return self
+    def no_mock(*args):
+        mock_calls.append('unexpected')
+        raise AssertionError('A failed catalog read cannot authorize a provider call')
+    caller = service(flow_engine, identities, uow_factory=Fault, mock_factory=no_mock)
+    result = execute(caller, arguments) if entry == 'execute' else reconcile(caller, arguments)
+    assert result.status == 'UNKNOWN'
+    assert sum(len(connection.errors) for connection in observed_connections) == 1
+    assert mock_calls == [] and successes(flow_engine) == [] and snapshot(flow_engine) == before
+    evidence(request.node.nodeid, entry=entry, result=asdict(result), before=before, after=snapshot(flow_engine),
+             catalog_errors=1, automatic_retry=False, provider_calls=mock_calls)

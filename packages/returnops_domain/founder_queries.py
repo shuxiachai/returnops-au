@@ -7,7 +7,7 @@ from . import customer_tables as t, founder_tables as f, investigation_tables as
 from .audit import identifier, timestamp
 from .canonical import decode_document, digest
 from .errors import FlowError
-from .founder_integrity import CaseProof, lookup_receipt, read_revision
+from .founder_integrity import CaseProof, lookup_receipt, read_revision as _read_revision
 from .storage import original_statement_records
 from .wire import validate
 from . import founder_codec as finite
@@ -15,6 +15,13 @@ from . import founder_codec as finite
 WINDOWS = (('STATEMENT', 'statements'), ('EVIDENCE', 'evidence'), ('DECISION', 'decisions'),
            ('APPROVAL', 'approvals'), ('OPERATION', 'operations'), ('NOTIFICATION', 'notifications'))
 SUMMARY = ('case_id', 'case_version', 'input_version', 'status')
+
+
+def read_revision(uow,row,proof):
+    if row['kind']=='NOTIFICATION':
+        from .notification_projection import verify_founder_note
+        verify_founder_note(uow,proof.head,row)
+    return _read_revision(uow,row,proof)
 
 
 def page_query(query):

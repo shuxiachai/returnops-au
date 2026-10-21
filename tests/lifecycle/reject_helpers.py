@@ -55,10 +55,23 @@ def assert_rejected(engine, case, body, result):
     assert head['status'] == 'NOTIFICATION_PENDING' and head['case_version'] == body['expected_case_version']+1
     assert state['outcome'] == 'REJECTED' and state['proposal_record_id'] and state['review_record_id']
     assert all(state[k] is None for k in ('preview_id', 'approval_record_id', 'return_record_id', 'label_record_id'))
-    works = [r for r in rows(engine, t.work) if r['case_id'] == case and r['component_id'] == COMPONENT]
+    from returnops_domain.lifecycle_schema import NOTIFICATION,version
+    from returnops_domain.notification_profile import COMPONENT as delivery_component
+    with engine.connect() as connection:
+        modern=version(connection)==NOTIFICATION
+    expected_notification_component=delivery_component if modern else COMPONENT
+    works = [r for r in rows(engine,t.work) if r['case_id']==case
+             and r['component_id'] in {COMPONENT,expected_notification_component}]
     assert len(works) == 2
     outcome = next(r for r in works if r['purpose'] == 'OUTCOME')
     notification = next(r for r in works if r['purpose'] == 'NOTIFICATION')
+    assert outcome['component_id']==COMPONENT and notification['component_id']==expected_notification_component
+    if modern:
+        from returnops_domain.notification_tables import controls,facts
+        saved,=[row for row in rows(engine,controls) if row['case_id']==case]
+        assert saved['notification_work_id']==notification['work_id'] and saved['state']=='READY'
+        assert saved['attempt_count']==0 and saved['producer_id']==COMPONENT
+        assert not [row for row in rows(engine,facts) if row['case_id']==case]
     assert outcome['state'] == 'DONE' and outcome['epoch'] == 1 and outcome['claim_id']
     assert state['generation'] == outcome['generation'] and head['input_version'] == outcome['input_version']
     assert notification['state'] == 'PENDING' and notification['epoch'] == 0

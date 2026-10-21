@@ -9,7 +9,7 @@ from sqlalchemy import select
 from . import customer_tables as old, lifecycle_tables as life
 from .audit import timestamp
 from .canonical import digest,decode_document
-from .lifecycle_schema import ARTIFACT, version
+from .lifecycle_schema import ARTIFACT, ARTIFACT_VERSIONS, version
 from .lifecycle_sources import authority
 from .lifecycle_state import reject, MAX_VERSION
 from .manual_target import one
@@ -45,7 +45,7 @@ def hash_rows(value, domain):
 def authorize(uow, callback, case_id, *, store, lock_rows=True):
     if type(lock_rows) is not bool or (not lock_rows and getattr(uow, 'write', None) is not False):
         reject(uow)
-    if version(uow.connection) != ARTIFACT: reject(uow)
+    if version(uow.connection) not in ARTIFACT_VERSIONS: reject(uow)
     actor=callback(uow.connection,'getSession')
     if actor.role!='FOUNDER': reject(uow,'FORBIDDEN')
     if callback(uow.connection,'getFounderCase',case_id)!=actor: reject(uow,'UNAUTHENTICATED')

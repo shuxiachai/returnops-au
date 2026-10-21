@@ -47,7 +47,8 @@ def accepted_input(uow, head, intake_id, proof):
     return dict(work=work, fact=fact, receipt=receipt, origin=origin)
 
 
-def read_target(uow, head, state, request, component, *, original_state=None, consumer=None):
+def read_target(uow, head, state, request, component, *, original_state=None, consumer=None,
+                accepted_case_version=None):
     """Return a seal of accepted facts, not an assertion supplied by the caller.
 
     The optional original state is internal precommit context. The original
@@ -80,6 +81,20 @@ def read_target(uow, head, state, request, component, *, original_state=None, co
     if value['input_version'] != head['input_version'] or value['case_id'] != head['case_id']:
         reject(uow)
     accepted_version = head['case_version'] - (original_state is not None)
+    if accepted_case_version is not None:
+        from .notification_tables import controls
+        from .notification_profile import COMPONENT as notification_component
+        from .lifecycle_schema import NOTIFICATION, version
+        accepted = one(uow, t.events, record_id=consumer)
+        control = one(uow, controls, outcome_record_id=consumer)
+        note_work = one(uow, t.work, work_id=control['notification_work_id'])
+        if (version(uow.connection) != NOTIFICATION or accepted['event_kind'] != 'OUTCOME'
+                or original_state is None or accepted['pre_case_version'] != accepted_case_version
+                or request['expected_case_version'] != accepted_case_version
+                or control['producer_id'] != component or control['outcome'] != 'MANUAL_HANDLED'
+                or control['case_id'] != head['case_id'] or note_work['component_id'] != notification_component):
+            reject(uow)
+        accepted_version = accepted_case_version
     if origin['event_type'] != 'FIXED_PROPOSAL_FAILED' and (
             row['case_version'] != accepted_version or state['generation'] != head['input_version']):
         # Prior to a proposal, every generation came from one accepted input.
