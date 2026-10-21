@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "historical_local_composite_run",
+  "publication_scope": "README, dependent rehearsal test, review instructions and this receipt only. Dependency implementation files are not included in the published delta.",
+  "standalone_branch_validated": false,
+  "historical_readme_not_published_readme": true,
+  "raw_logs_included": false,
+  "raw_log_note": "Log names in the retained original receipt identify locally retained files, not links to artifacts in this PR.",
+  "dependencies": [
+    {
+      "pr": 68,
+      "commit": "af44d6e02cf479e94b695ee85a8b823540974bf7",
+      "files": [
+        "experiments/c1_grounding_candidate/admission.py",
+        "experiments/c1_grounding_candidate/candidates/accc-20261012/README.md",
+        "experiments/c1_grounding_candidate/candidates/accc-20261012/admission-manifest.json",
+        "experiments/c1_grounding_candidate/candidates/accc-20261012/corpus.json",
+        "tests/contracts/test_c1_corpus_admission.py"
+      ]
+    },
+    {
+      "pr": 69,
+      "commit": "2ac04423f7c8c4cb66094838e08619a2fd65c672",
+      "files": [
+        "experiments/c2_risk_candidate/README.md",
+        "experiments/c2_risk_candidate/__init__.py",
+        "experiments/c2_risk_candidate/reviewer.py",
+        "tests/contracts/test_c2_risk_preparation.py"
+      ]
+    },
+    {
+      "pr": 70,
+      "commit": "7c6739fbb27c05f17e5c537e99615a9630e43d2d",
+      "files": [
+        "experiments/evaluation_candidate/README.md",
+        "experiments/evaluation_candidate/__init__.py",
+        "experiments/evaluation_candidate/scoring.py",
+        "tests/contracts/test_evaluation_preparation.py"
+      ]
+    }
+  ],
+  "observed_results": {
+    "contract_tests": 212,
+    "new_rehearsal_tests": 9,
+    "static_groups": 6,
+    "markdown_files": 84,
+    "local_link_targets": 676,
+    "mermaid_blocks": 14,
+    "model_checker_tests": 12,
+    "runner_self_tests": 7,
+    "synthetic_order_tests": 64,
+    "security_tests": 244,
+    "records_tests": 36
+  },
+  "separate_main_only_linux_run": {
+    "base_sha": "a0f7fb884dfbc478c82fffc5912934cb8c0deda2",
+    "composite_or_draft_validation": false,
+    "customer_tests_passed": 82,
+    "installed_wheel_probes_passed": 5,
+    "image_id": "sha256:fbd7dcb7681e8a453a4be72100bfd4dd96557f384139e4ee076402641d1942b9",
+    "platform": "linux/arm64",
+    "raw_logs_included": false
+  },
+  "retained_native_macos_customer_result": {
+    "passed": 59,
+    "failed": 23,
+    "limitation": "Current attachment resource-isolation worker supports Linux/Windows, not Darwin. Limits were not disabled."
+  },
+  "original_receipt": {
+    "started_at": "2026-10-15T04:53:19.561837+00:00",
+    "base_sha": "a0f7fb884dfbc478c82fffc5912934cb8c0deda2",
+    "python": "3.12.7 | packaged by Anaconda, Inc. | (main, Oct  4 2024, 08:22:19) [Clang 14.0.6 ]",
+    "working_delta_sha256": {
+      "README.md": "f183d7e0dac538e7d28f86a0188b9ed75208bd60eabc39c29167c31fbe90566a",
+      "experiments/c1_grounding_candidate/admission.py": "c924c722e04c7be72142cc24f0fe80e1b636b05d24376229259d486b2a78b24d",
+      "experiments/c1_grounding_candidate/candidates/accc-20261012/README.md": "ee634adf5a6923baf3bb289648df7af90c1ebf333601b07f833f1c3a42560bc8",
+      "experiments/c1_grounding_candidate/candidates/accc-20261012/admission-manifest.json": "513316cc78e08ec85e9ddeab6ac7d9b911d2368c6bf5e72249dca171c428b5fe",
+      "experiments/c1_grounding_candidate/candidates/accc-20261012/corpus.json": "52ebe3e701e2bb9a684228ad39df8f82caf4e56499e681527c9a88735d771b0a",
+      "experiments/c2_risk_candidate/README.md": "e97cf7077b3360d6103e9f184289906caa860012ffde3a3f4c3751b317ce4b5e",
+      "experiments/c2_risk_candidate/__init__.py": "e40674f4adf0aa5bc5b748b974daa4997dfbe8f5c2aa78a59e5211e8b603cc30",
+      "experiments/c2_risk_candidate/reviewer.py": "c99e39619b7ca6dcea207028f0b3727de5dda0f4177edae450025184bd9558b1",
+      "experiments/evaluation_candidate/README.md": "cd51d6e81603751b5dc205a1eae5ccc45741a99c9d84557f981a093a0c778ef5",
+      "experiments/evaluation_candidate/__init__.py": "8cd14d85c0642c5d2e2fc66e6a5d49902ff49f755ca57db4b19916d74e59c2f9",
+      "experiments/evaluation_candidate/scoring.py": "b6d8ad881e2f80afe65def28c4c4bee015078f03c669c56529a44b1068eb3244",
+      "tests/contracts/test_c1_corpus_admission.py": "7075838e311f9163cec924bebb9222d876933bdbef542b11333e6e083a64a0ee",
+      "tests/contracts/test_c2_risk_preparation.py": "00617105d2e09891a5b239bbcc9641375932286e1929dd48944048fae5287b12",
+      "tests/contracts/test_c_handoff_rehearsal.py": "2c8275e93db0fe97e5c2daa4fa4c8afd8811881baaac25700688b45294485d80",
+      "tests/contracts/test_evaluation_preparation.py": "7b2d10d948a88bfee31b2d42aacb1e7f4e17fbbf7ec5f4eed640d2938384c828"
+    },
+    "steps": [
+      {
+        "name": "dependencies",
+        "exit_code": 0,
+        "log": "dependencies.log"
+      },
+      {
+        "name": "offline",
+        "exit_code": 0,
+        "log": "offline.log"
+      },
+      {
+        "name": "security",
+        "exit_code": 0,
+        "log": "security.log"
+      },
+      {
+        "name": "records",
+        "exit_code": 0,
+        "log": "records.log"
+      }
+    ],
+    "scope": "Local offline evidence only; no PG17, real model, Gate 1/2 or human acceptance.",
+    "not_covered_by_this_runner": [
+      "Customer attachment parser: requires supported Linux/Windows isolation; see separate Linux receipt.",
+      "Installed wheel probe: separate receipt required.",
+      "PostgreSQL/HTTP environment, live model calls, runtime gates and semantic evaluation."
+    ],
+    "source_unchanged_during_run": true,
+    "finished_at": "2026-10-15T04:53:36.040236+00:00",
+    "source_inventory_sha256": "5f88de873bed38ba6b50f988373d115a98f4e7232c96b2cc5a2c3ceb27611104",
+    "passed_all_steps": true
+  }
+}

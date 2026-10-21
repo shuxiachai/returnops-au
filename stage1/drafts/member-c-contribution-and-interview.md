@@ -1,6 +1,8 @@
 # C：真实贡献、模型讲解与提交前核对
 
-> **2026-10-19 路径整合补录（MC-PER-0.4 证据迁移）。** 按 A 对 [PR #17 的限定评审](https://github.com/shuxiachai/returnops-au/pull/17#pullrequestreview-5565657365)，把该分支 9 月 18–20 日增量移入本正式文件；旧 `docs/reports/member-c-contribution-and-interview.md` 保持兼容入口。以下 10 月 9 日通知和 9 月版本记录保留，日期中的分支、提交、待办与课程状态只描述各自快照，不覆盖 [Stage 1 已采用归档](../README.md)或 README 的较新项目通知。本次以 main `c85efc07676e58b51f88da5d7c457d79f1f4ad80` 整合路径；不是对该 main 重跑 PG17、个人讲解、联合验收或新课程提交。A 要求对整合后的准确 diff 和正常检查再次评审；本记录不预填通过。
+> **2026-10-21 PR #17 再整合。** 按 [A 的准确版本评审](https://github.com/shuxiachai/returnops-au/pull/17#pullrequestreview-5596152615)，普通合并 main `55075f05246eb59f27233f5582b276435f1cf60d`，保留全部 main README 行、本正式入口、旧兼容 stub 与六份原始支持证据。下方 `c85efc0` 是 10 月 19 日历史基线。此轮由 Codex 辅助整理、合并及本地核验；不代填本人复述、签字或贡献比例，也不是新 PG17 复现、联合验收或课程提交。新的准确 head 仍须正常 PR 检查和 A 定向复审，不沿用旧 head 的通过记录。
+
+> **历史补录：2026-10-19 路径整合（MC-PER-0.4 证据迁移）。** 按 A 对 [PR #17 的限定评审](https://github.com/shuxiachai/returnops-au/pull/17#pullrequestreview-5565657365)，把该分支 9 月 18–20 日增量移入本正式文件；旧 `docs/reports/member-c-contribution-and-interview.md` 保持兼容入口。以下 10 月 9 日通知和 9 月版本记录保留，日期中的分支、提交、待办与课程状态只描述各自快照，不覆盖 [Stage 1 已采用归档](../README.md)或 README 的较新项目通知。当时以 main `c85efc07676e58b51f88da5d7c457d79f1f4ad80` 整合路径；不是对该 main 重跑 PG17、个人讲解、联合验收或新课程提交。该 19 日路径迁移、回执整理和检查使用了 Codex 辅助，不是 C 独立操作或本人确认。A 要求对整合后的准确 diff 和正常检查再次评审；本记录不预填通过。
 
 > **2026-10-09 当前入口补录（保留以下历史）。** 原 C 模型 PR #12 已合并；下面 9 月记录中的“候选/待合并”限定属于当时的版本，不能作为当前分支状态。主分支已通过 PR #40 将本文件及 C 报告稿迁入 `stage1/drafts/`，报告与演示归档见 [Stage 1 索引](../README.md)。最新团队变动、C1/C2/C3/评测任务及待评审项见 [README 的 10 月 9 日交接](../../README.md#current-c-handoff--2026-10-09)。
 >

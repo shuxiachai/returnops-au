@@ -1,0 +1,72 @@
+name: A203 affected legacy regression
+
+on:
+  push:
+    branches: [test/81-a203-legacy-20261019]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a203-legacy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  formal:
+    if: github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    # Hosted job maximum is six hours; the original per-process four-hour
+    # collection/execution ceilings remain unchanged. Expiry remains STOP.
+    timeout-minutes: 360
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUTF8: '1'
+    services:
+      postgres:
+        image: postgres:17-bookworm@sha256:051f7b7b3abdd564d5d1bd1e8c4b9c1b6e77087d1dd22020ede611c096a272e0
+        env:
+          POSTGRES_USER: returnops_ci
+          POSTGRES_PASSWORD: ci_a203_formal_synthetic_only
+          POSTGRES_DB: returnops_f02_a203_artifact_v04_20261018
+        ports:
+          - 55433:5432
+        options: >-
+          --health-cmd "pg_isready -U returnops_ci -d $POSTGRES_DB"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        env:
+          GIT_CONFIG_COUNT: '1'
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: 'false'
+        with:
+          path: checkout
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Install locked dependencies only
+        working-directory: checkout
+        run: python -m pip install --require-hashes -r requirements-dev.lock
+      - name: Prove exact source and run artifact168 then authority37 once
+        env:
+          FORMAL_PASSWORD: ci_a203_formal_synthetic_only
+          FORMAL_SERVICE_ID: ${{ job.services.postgres.id }}
+          FORMAL_SERVICE_PORT: ${{ job.services.postgres.ports[5432] }}
+          FORMAL_SERVICE_IMAGE: postgres:17-bookworm@sha256:051f7b7b3abdd564d5d1bd1e8c4b9c1b6e77087d1dd22020ede611c096a272e0
+        run: python -B checkout/tools/a203_formal_cloud/runner.py
+      - name: Export already written safe records without SQL
+        if: always()
+        run: python -B checkout/tools/a203_formal_cloud/export_safe.py
+      - name: Retain safe formal evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: a203-formal-legacy-${{ github.run_id }}-${{ github.run_attempt }}
+          path: formal/upload/*.json
+          if-no-files-found: error
+          retention-days: 7
+          overwrite: false
+          include-hidden-files: false
