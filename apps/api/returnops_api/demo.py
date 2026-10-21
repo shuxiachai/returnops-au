@@ -60,6 +60,7 @@ def main():
     issue.add_argument('--fixed-proposal',action='store_true',help='Explicitly grant this synthetic store the fixed no-model PROPOSAL component only.')
     serve=commands.add_parser('serve');serve.add_argument('--auth-file',required=True);serve.add_argument('--port',type=int,default=8000)
     serve.add_argument('--fixed-proposal',action='store_true',help='Enable the synthetic fixed-proposal worker; this does not grant store authority.')
+    serve.add_argument('--founder-decisions',action='store_true',help='Register the Founder decision POST (A2.07); authority still comes only from the server-side registry and grants.')
     args=parser.parse_args()
     if args.command=='provision':
         provision(args.private_dir,store=args.store,customer_one=args.customer_one,customer_two=args.customer_two,founder=args.founder,order_investigation=args.order_investigation,fixed_proposal=args.fixed_proposal)
@@ -68,6 +69,7 @@ def main():
         if not Path(args.auth_file).is_absolute() or not 1024<=args.port<=65535: parser.error('Use an absolute private auth file and an unprivileged port.')
         os.environ['RETURNOPS_AUTH_FILE']=args.auth_file
         os.environ['RETURNOPS_FIXED_PROPOSAL_DEMO']='1' if args.fixed_proposal else '0'
+        os.environ['RETURNOPS_FOUNDER_DECISIONS']='1' if args.founder_decisions else '0'
         import uvicorn
         uvicorn.run('returnops_api.main:create_app',factory=True,host='127.0.0.1',port=args.port,access_log=False,log_level='warning')
 
