@@ -25,7 +25,7 @@ LIFECYCLE_GROUPS = {
     "founder_revision": 5,
     "label_artifact": 8,
     "label_execution_bridge": 8,
-    "lifecycle_core": 14,
+    "lifecycle_core": 15,
     "notification": 13,
 }
 PARTS = ("foundation", *LIFECYCLE_GROUPS)
