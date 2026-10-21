@@ -431,6 +431,7 @@ class LifecycleGuards:
                 event_type='LIFECYCLE_EVENT_ACCEPTED',correlation_id=event.event_id,
                 payload={'event':event_kind,'work_id':work['work_id'],'source_record_id':row['record_id'],'generation':after['generation']},
                 object_ids=[row['object_id'],work['work_id']],history_refs=[],now=now)
+            notification_final = None
             if schema_revision == NOTIFICATION and purpose in {'OUTCOME','NOTIFICATION'}:
                 from .notification_tables import controls
                 from .notification_sources import validate_control, check_retry_authority
@@ -454,16 +455,23 @@ class LifecycleGuards:
                                      if item['record_id'] == row['record_id'])
                         check_retry_authority(uow,h,entry,self.clock())
                     authority(uow,h,self.component_id,purpose)
-                uow.before_commit(notification_final)
+                    # Last Domain callback: sample the original claim lease once more,
+                    # so the control proof above cannot hide an expiry before commit.
+                    if self.clock() >= work['lease_expires_at']:
+                        reject(uow)
             sealed_work = dict(uow.execute(select(t.work).where(t.work.c.work_id == work['work_id'])).mappings().one())
             sealed_sources = [dict(item) for item in uow.execute(select(t.sources).where(
                 t.sources.c.work_id == work['work_id'],t.sources.c.epoch == claim.epoch)
                 .order_by(t.sources.c.slot)).mappings()]
             sealed_notification = (dict(uow.execute(select(t.work).where(
                 t.work.c.work_id==after['notification_work_id'])).mappings().one()) if purpose=='OUTCOME' else None)
+            # The Domain's own final re-check runs first, so a retained-source fault
+            # is refused there; the notification control's final check follows.
             uow.before_commit(lambda: self._before_commit(uow,work,claim,receipt,work['lease_expires_at'],
                 sealed_work,dict(after),sealed_sources,sealed_notification,head['status'],schema_revision,
                 revision_context,reject_context,approval_context,manual_context))
+            if notification_final is not None:
+                uow.before_commit(notification_final)
             return receipt
         except FlowError:
             uow.poison()
@@ -577,7 +585,9 @@ class LifecycleGuards:
             if body['status']=='SUCCEEDED' and body['result']['type']=='GENERATE_LABEL':
                 self._label(uow,h,body['result']['label_evidence_id'],binding['artifact_sha256'])
         # Provenance/PDF validation may take time. The final time sample belongs
-        # after that work, immediately before this UoW attempts its commit.
+        # after that work. On 0014 OUTCOME/NOTIFICATION the notification control's
+        # final check runs after this callback and samples the same lease again
+        # as the last Domain step before this UoW attempts its commit.
         if self.clock() >= lease:
             reject(uow)
         # Expensive source verification cannot outlive or replace this authority.
