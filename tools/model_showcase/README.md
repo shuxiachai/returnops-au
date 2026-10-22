@@ -38,6 +38,8 @@ RETURNOPS_MODEL_PROVIDER_ID        contract Id naming the provider record
 RETURNOPS_MODEL_DEADLINE_SECONDS   optional, 1-50, default 20
 RETURNOPS_MODEL_DIALECT            optional, only chat-completions
 RETURNOPS_MODEL_PROXY_URL          optional explicit http(s)://host:port proxy
+RETURNOPS_MODEL_ALLOW_PRIVATE_HTTP optional 0/1; 1 allows plain http to a private IPv4
+                                   address with a port (the course proxy behind the VPN)
 ```
 
 ```text

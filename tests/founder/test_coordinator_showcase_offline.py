@@ -63,8 +63,27 @@ def test_settings_from_environment_and_secret_hygiene():
     for text in (repr(settings), str(settings), settings.model_dump_json(), repr(settings.transport())):
         assert KEY not in text
     assert settings.worker_settings() == ShowcaseSettings('campus_proxy', 'campus-qwen')
+    assert settings.allow_private_http is False
     with pytest.raises(Exception):
         settings.model_id = 'other'
+
+
+@pytest.mark.parametrize('url', ['http://10.167.60.148:8000/v1', 'http://172.31.0.9:8000/v1/', 'http://192.168.1.20:8443/v1'])
+def test_settings_allow_private_ipv4_http_only_with_explicit_opt_in(url):
+    settings = ModelSettings.from_environment({**ENV, 'RETURNOPS_MODEL_BASE_URL': url, 'RETURNOPS_MODEL_ALLOW_PRIVATE_HTTP': '1'})
+    assert settings.base_url == url.rstrip('/') and settings.allow_private_http is True
+    assert KEY not in repr(settings.transport())
+    with pytest.raises(ConfigurationError) as caught:
+        ModelSettings.from_environment({**ENV, 'RETURNOPS_MODEL_BASE_URL': url})
+    assert 'RETURNOPS_MODEL_BASE_URL' in str(caught.value) and url not in str(caught.value)
+
+
+@pytest.mark.parametrize('url', ['http://8.8.8.8:8000/v1', 'http://10.167.60.148/v1', 'http://127.0.0.1:8000/v1',
+                                 'http://model.example.invalid:8000/v1', 'http://[fd00::1]:8000/v1', 'http://100.64.0.1:8000/v1'])
+def test_settings_private_http_opt_in_rejects_other_http_targets(url):
+    with pytest.raises(ConfigurationError) as caught:
+        ModelSettings.from_environment({**ENV, 'RETURNOPS_MODEL_BASE_URL': url, 'RETURNOPS_MODEL_ALLOW_PRIVATE_HTTP': '1'})
+    assert 'RETURNOPS_MODEL_BASE_URL' in str(caught.value) and url not in str(caught.value)
 
 
 @pytest.mark.parametrize('name', ['RETURNOPS_MODEL_BASE_URL', 'RETURNOPS_MODEL_API_KEY', 'RETURNOPS_MODEL_ID',
@@ -81,6 +100,9 @@ def test_settings_missing_required_value_fails(name):
 @pytest.mark.parametrize('name, value', [
     ('RETURNOPS_MODEL_BASE_URL', 'http://model.example.invalid/v1'),
     ('RETURNOPS_MODEL_BASE_URL', 'http://127.0.0.1:9/v1'),
+    ('RETURNOPS_MODEL_BASE_URL', 'http://10.167.60.148:8000/v1'),
+    ('RETURNOPS_MODEL_ALLOW_PRIVATE_HTTP', 'yes'),
+    ('RETURNOPS_MODEL_ALLOW_PRIVATE_HTTP', 'true'),
     ('RETURNOPS_MODEL_BASE_URL', 'https://user:' + KEY + '@model.example.invalid/v1'),
     ('RETURNOPS_MODEL_BASE_URL', 'https://model.example.invalid/v1?key=' + KEY),
     ('RETURNOPS_MODEL_BASE_URL', 'https://model.example.invalid/v1#' + KEY),
@@ -226,6 +248,9 @@ def test_transport_total_deadline_bounds_a_stalled_opener():
 @pytest.mark.parametrize('kwargs', [
     dict(base_url='http://model.example.invalid/v1'), dict(base_url='http://127.0.0.1:8080/v1'),
     dict(base_url='http://localhost:8080/v1', allow_insecure_loopback=True),
+    dict(base_url='http://10.167.60.148:8000/v1'), dict(base_url='http://8.8.8.8:8000/v1', allow_private_http=True),
+    dict(base_url='http://10.167.60.148/v1', allow_private_http=True),
+    dict(base_url='http://127.0.0.1:8080/v1', allow_private_http=True),
     dict(base_url='https://u:p@model.example.invalid/v1'), dict(base_url='https://model.example.invalid/v1?x=1'),
     dict(api_key='plain-string'), dict(api_key=SecretStr('')), dict(api_key=SecretStr('a b')),
     dict(model_id=''), dict(model_id='m' * 121), dict(deadline_seconds=0), dict(deadline_seconds=51),
@@ -237,6 +262,17 @@ def test_transport_construction_rejects_unsafe_configuration(kwargs):
     with pytest.raises(ValueError) as caught:
         ChatCompletionsTransport(values.pop('base_url'), values.pop('api_key'), values.pop('model_id'), **values)
     assert KEY not in str(caught.value)
+
+
+def test_transport_accepts_private_ipv4_http_only_with_explicit_opt_in():
+    seen = []
+    def opener(request, timeout):
+        seen.append(request.full_url)
+        return FakeResponse(completion())
+    transport = ChatCompletionsTransport('http://10.167.60.148:8000/v1', SecretStr(KEY), 'campus-qwen',
+                                         allow_private_http=True, urlopen=opener)
+    transport(invocation())
+    assert seen == ['http://10.167.60.148:8000/v1/chat/completions']
 
 
 def test_transport_rejects_a_foreign_invocation():
