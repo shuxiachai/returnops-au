@@ -110,13 +110,14 @@ The showcase does call a network model, so it is not "offline" in the literal se
 | Name | Meaning |
 | --- | --- |
 | `RETURNOPS_MODEL_SHOWCASE` | `0` (default) or `1`, exactly like `RETURNOPS_FIXED_PROPOSAL_DEMO`; anything else fails startup. `create_app(enable_model_showcase=...)` takes a boolean for tests. |
-| `RETURNOPS_MODEL_BASE_URL` | Required when on. https only, no userinfo, query or fragment. |
+| `RETURNOPS_MODEL_BASE_URL` | Required when on. https only, no userinfo, query or fragment. Plain http is accepted only for an RFC 1918 IPv4 address with an explicit port, and only with `RETURNOPS_MODEL_ALLOW_PRIVATE_HTTP=1`. |
 | `RETURNOPS_MODEL_API_KEY` | Required when on. Secret. |
 | `RETURNOPS_MODEL_ID` | Required when on. At most 120 characters. |
 | `RETURNOPS_MODEL_PROVIDER_ID` | Required when on. Contract `Id`. |
 | `RETURNOPS_MODEL_DEADLINE_SECONDS` | Optional, 1-50, default 20. |
 | `RETURNOPS_MODEL_DIALECT` | Optional, only `chat-completions`. |
 | `RETURNOPS_MODEL_PROXY_URL` | Optional explicit `http(s)://host:port` proxy. Without it no system proxy is used. |
+| `RETURNOPS_MODEL_ALLOW_PRIVATE_HTTP` | Optional, `0` (default) or `1`. `1` lets the base URL be plain http to a private IPv4 address (10/8, 172.16/12, 192.168/16) with a port. Added on 22 October 2026 because the course's ELEC5620 API Proxy is published as `http://10.x.x.x:8000/v1`, reachable only through the university VPN, which carries the traffic; the key still goes only to that address and never to a public or loopback http URL. |
 
 With the flag on, missing or invalid settings stop startup with a message that names the variable but never its value. The worker starts only when the API also starts its other processors (an auth configuration is present and `enable_processor` is true); it is stopped last at shutdown, in its own `try`, and `stop()` returns within one second without waiting for an in-flight model call, whose reply is then discarded. `demo.py serve --model-showcase` sets only the flag; there is no key argument. `compose.yaml` passes the variable names, without values, to the `api` service only, not to the shared anchor that `migrate` also uses.
 

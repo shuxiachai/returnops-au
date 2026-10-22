@@ -4,7 +4,9 @@ FR-002; NFR-003/007/008/009; docs/44. The dialect is the chat-completions JSON
 dialect used by common model gateways. urllib only: the runtime image has no
 HTTP client dependency. The base URL is https without userinfo, query or
 fragment; plain http is accepted only for 127.0.0.1 when a test passes
-allow_insecure_loopback=True. Authorization is an unredirected header and every
+allow_insecure_loopback=True, or for an RFC 1918 IPv4 address with an explicit
+port when allow_private_http=True (the course proxy at a 10.x address is
+reachable only through the university VPN, which carries the traffic). Authorization is an unredirected header and every
 3xx is a REDIRECT failure. One total deadline covers connect and read, and the
 response body is capped at 256 KiB. No system proxy is used unless proxy_url is
 given. Every failure is one closed code, raised without the request, response,
@@ -14,6 +16,7 @@ surrounding ```json or ``` fence around the model's text; nothing else.
 """
 from __future__ import annotations
 from dataclasses import dataclass, field
+from ipaddress import IPv4Address, ip_network
 import json
 import ssl
 from threading import Event, Thread
@@ -31,6 +34,7 @@ FAILURE_CODES = frozenset({'TRANSPORT', 'TIMEOUT', 'REDIRECT', 'HTTP_4XX', 'HTTP
 TRANSIENT_CODES = frozenset({'TRANSPORT', 'TIMEOUT', 'HTTP_429', 'HTTP_5XX'})
 MAX_RESPONSE_BYTES = 256 * 1024
 MAX_TOKENS_VALUE = 9007199254740991
+PRIVATE_IPV4_NETWORKS = tuple(ip_network(block) for block in ('10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'))
 
 
 class ModelTransportError(Exception):
@@ -62,7 +66,15 @@ def _plain(value, limit):
     return type(value) is str and 1 <= len(value) <= limit and value.isascii() and value.isprintable() and not any(c.isspace() for c in value)
 
 
-def validate_base_url(raw, *, allow_insecure_loopback=False):
+def _private_ipv4(hostname):
+    try:
+        address = IPv4Address(hostname)
+    except ValueError:
+        return False
+    return any(address in block for block in PRIVATE_IPV4_NETWORKS)
+
+
+def validate_base_url(raw, *, allow_insecure_loopback=False, allow_private_http=False):
     """Return the normalized base URL or raise ValueError without echoing it."""
     failed = False
     try:
@@ -74,7 +86,11 @@ def validate_base_url(raw, *, allow_insecure_loopback=False):
             raise ValueError
         if parts.scheme == 'https':
             pass
-        elif not (parts.scheme == 'http' and allow_insecure_loopback is True and parts.hostname == '127.0.0.1' and port is not None):
+        elif parts.scheme != 'http' or port is None:
+            raise ValueError
+        elif allow_insecure_loopback is True and parts.hostname == '127.0.0.1':
+            pass
+        elif not (allow_private_http is True and _private_ipv4(parts.hostname)):
             raise ValueError
     except (ValueError, TypeError):
         failed = True
@@ -167,14 +183,15 @@ def parse_chat_completion(raw):
 class ChatCompletionsTransport:
     """Callable ModelInvocation -> ModelReply; one POST to {base_url}/chat/completions."""
     def __init__(self, base_url, api_key, model_id, *, deadline_seconds=20, proxy_url=None,
-                 allow_insecure_loopback=False, urlopen=None):
+                 allow_insecure_loopback=False, allow_private_http=False, urlopen=None):
         if type(api_key) is not SecretStr or not _plain(api_key.get_secret_value(), 512):
             raise ValueError('The model API key must be a non-empty secret without whitespace.')
         if type(model_id) is not str or not 1 <= len(model_id) <= 120 or not model_id.isascii() or not model_id.isprintable():
             raise ValueError('The model ID must be 1-120 printable ASCII characters.')
         if type(deadline_seconds) not in (int, float) or not 0 < deadline_seconds <= MAX_DEADLINE_SECONDS:
             raise ValueError('The model deadline must be greater than 0 and at most 50 seconds.')
-        self._endpoint = validate_base_url(base_url, allow_insecure_loopback=allow_insecure_loopback) + '/chat/completions'
+        self._endpoint = validate_base_url(base_url, allow_insecure_loopback=allow_insecure_loopback,
+                                           allow_private_http=allow_private_http) + '/chat/completions'
         self._key = api_key
         self.model_id, self.deadline_seconds = model_id, deadline_seconds
         if urlopen is None:

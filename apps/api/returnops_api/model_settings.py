@@ -31,6 +31,7 @@ class ModelSettings(BaseModel):
     deadline_seconds: int = 20
     dialect: str = DIALECT
     proxy_url: str | None = None
+    allow_private_http: bool = False
 
     @classmethod
     def from_environment(cls, environ=None) -> "ModelSettings":
@@ -39,12 +40,16 @@ class ModelSettings(BaseModel):
         if missing:
             _fail("Set " + ", ".join(missing) + " for the model showcase (RETURNOPS_MODEL_SHOWCASE=1).")
         failed = False
+        private_http = env.get("RETURNOPS_MODEL_ALLOW_PRIVATE_HTTP") or "0"
+        if private_http not in ("0", "1"):
+            _fail("Set RETURNOPS_MODEL_ALLOW_PRIVATE_HTTP to 0 or 1.")
         try:
-            base_url = validate_base_url(env["RETURNOPS_MODEL_BASE_URL"])
+            base_url = validate_base_url(env["RETURNOPS_MODEL_BASE_URL"], allow_private_http=private_http == "1")
         except ValueError:
             failed = True
         if failed:
-            _fail("Set RETURNOPS_MODEL_BASE_URL to an https URL without credentials, query or fragment.")
+            _fail("Set RETURNOPS_MODEL_BASE_URL to an https URL without credentials, query or fragment"
+                  " (plain http only to a private IPv4 address with a port, and only with RETURNOPS_MODEL_ALLOW_PRIVATE_HTTP=1).")
         key = env["RETURNOPS_MODEL_API_KEY"]
         if not (1 <= len(key) <= 512 and key.isascii() and key.isprintable() and not any(c.isspace() for c in key)):
             _fail("Set RETURNOPS_MODEL_API_KEY to a non-empty key without whitespace.")
@@ -74,11 +79,13 @@ class ModelSettings(BaseModel):
             if failed:
                 _fail("Set RETURNOPS_MODEL_PROXY_URL to http(s)://host:port without credentials.")
         return cls(base_url=base_url, api_key=SecretStr(key), model_id=model_id, provider_id=provider_id,
-                   deadline_seconds=int(deadline), dialect=dialect, proxy_url=proxy)
+                   deadline_seconds=int(deadline), dialect=dialect, proxy_url=proxy,
+                   allow_private_http=private_http == "1")
 
     def transport(self) -> ChatCompletionsTransport:
         return ChatCompletionsTransport(self.base_url, self.api_key, self.model_id,
-                                   deadline_seconds=self.deadline_seconds, proxy_url=self.proxy_url)
+                                   deadline_seconds=self.deadline_seconds, proxy_url=self.proxy_url,
+                                   allow_private_http=self.allow_private_http)
 
     def worker_settings(self) -> ShowcaseSettings:
         return ShowcaseSettings(provider_id=self.provider_id, model_id=self.model_id)

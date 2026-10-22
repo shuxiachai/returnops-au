@@ -46,6 +46,7 @@ services:
       RETURNOPS_MODEL_DEADLINE_SECONDS:
       RETURNOPS_MODEL_DIALECT:
       RETURNOPS_MODEL_PROXY_URL:
+      RETURNOPS_MODEL_ALLOW_PRIVATE_HTTP:
     depends_on:
       db:
         condition: service_healthy
