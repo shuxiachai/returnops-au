@@ -32,8 +32,9 @@ def test_keyword_registers_exactly_one_decision_post(monkeypatch):
                      enable_founder_decisions=True)
     route, = _decision_routes(app)
     assert route.methods == {'POST'} and route.operation_id == OPERATION
-    # The four Founder reads and the health routes are untouched.
-    assert sum(1 for r in app.routes if getattr(r, 'path', '').startswith('/v1/founder/')) == 5
+    # The four Founder reads, the F.06 analytics GET and the health routes are untouched.
+    # F.06: the default-registered analytics GET adds the sixth /v1/founder/ route.
+    assert sum(1 for r in app.routes if getattr(r, 'path', '').startswith('/v1/founder/')) == 6
 
 
 @pytest.mark.parametrize('value, expected', [('0', 0), ('1', 1)])

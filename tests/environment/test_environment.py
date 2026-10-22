@@ -336,12 +336,14 @@ def test_environment_app_has_only_frozen_customer_and_founder_reads_and_no_ident
         "/v1/evidence/{evidence_id}/content", "/v1/cases", "/v1/cases/{case_id}",
         "/v1/cases/{case_id}/history", "/v1/cases/{case_id}/clarifications",
         "/v1/founder/cases", "/v1/founder/cases/{case_id}",
-        "/v1/founder/cases/{case_id}/history", "/v1/founder/cases/{case_id}/audit"}
+        "/v1/founder/cases/{case_id}/history", "/v1/founder/cases/{case_id}/audit",
+        "/v1/founder/analytics"}  # F.06 registers the read-only analytics GET by default.
     with TestClient(app) as client:
-        for path in ("/docs", "/redoc", "/openapi.json", "/v1/login", "/v1/founder/analytics"):
+        for path in ("/docs", "/redoc", "/openapi.json", "/v1/login"):
             assert client.get(path).status_code == 404
         assert client.get("/v1/session").status_code == 503  # no configured key/default identity
         assert client.get("/v1/founder/cases").status_code == 503
+        assert client.get("/v1/founder/analytics").status_code == 503  # F.06: same no-key answer as the reads
 
 
 @pytest.fixture

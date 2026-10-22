@@ -58,7 +58,8 @@ assert len(founder_metadata.tables) == 4
 app = create_app(engine=object(), enable_processor=False)
 assert {route.path for route in app.routes if route.path.startswith('/v1/founder')} == {
     '/v1/founder/cases', '/v1/founder/cases/{case_id}',
-    '/v1/founder/cases/{case_id}/history', '/v1/founder/cases/{case_id}/audit'}
+    '/v1/founder/cases/{case_id}/history', '/v1/founder/cases/{case_id}/audit',
+    '/v1/founder/analytics'}  # F.06 read-only analytics GET
 print("PASS installed Founder read composition and isolated 0006 metadata (no database execution)")
 
 from returnops_domain.lifecycle_guards import LifecycleGuards
