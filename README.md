@@ -10,6 +10,34 @@
 
 # ReturnOps AU
 
+## C local proof follow-up — 22 October 2026, 12:54 UTC
+
+Tracking: [KAN-23](https://lucastaooo.atlassian.net/browse/KAN-23) /
+[KAN-41](https://lucastaooo.atlassian.net/browse/KAN-41).
+This dated C-only notice supersedes the older C status snapshots below;
+their source-specific results remain history. **PR #17 is merged. PR #61
+remains open at `be21f39bc502100ddd96c129bc9116b6fdcfceba`.** Its
+[normal CI run](https://github.com/shuxiachai/returnops-au/actions/runs/39770369525)
+has finished with 11 successful jobs, one failed Founder revision job and the
+dependent failed final gate. It is not ready to claim green/accepted.
+
+C now has [new local proof and E.10 dispositions](docs/reviews/member-c-r02-review-20261022.md#6-local-proof-follow-up--22-october-2026):
+five unchanged R04 same/different-key pairs passed on isolated PG17.11;
+two preparation/restart and six installed label-process cases passed. This
+does **not** reproduce or fix the cloud lock timeout. The R.02 cancellation
+and cleanup defects still reproduce in memory; A's disposition remains needed.
+
+The same clean `be21f39` checkout passed 263 focused C offline tests and generated
+the 13-file synthetic evidence bundle. A source archive passed the 116 C1/C2
+tests, pilot and example human-time accounting; it correctly refused new
+Git-provenance evidence without `.git`. See the [C reproduction boundary](experiments/evaluation_candidate/README.md#clean-checkout-versus-source-archive--22-october-2026).
+
+Only C documentation is updated on this separate review branch; PR #61's head,
+A/B implementation, source-admission pins and WBS remain unchanged. No Actions
+rerun, live model, Gold, measured human timing, personal sign-off, main merge or
+Done transition is claimed. Future integration still needs exact-source review
+and required checks; these local results do not replace them.
+
 ## C follow-up — 22 October 2026 evening (Sydney)
 
 Tracking: [KAN-41](https://lucastaooo.atlassian.net/browse/KAN-41) and

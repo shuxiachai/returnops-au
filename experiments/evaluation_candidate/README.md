@@ -47,6 +47,39 @@ live model, database, Gold or actual human timing was used.
 
 ### Run the complete offline evidence rehearsal
 
+#### Clean checkout versus source archive — 22 October 2026
+
+C verified a new clean Git clone pinned to
+`be21f39bc502100ddd96c129bc9116b6fdcfceba`, separately from a `git archive`
+of the same source. Keep the complete source layout and run from its root;
+`experiments` is not included in the application wheel and its schema paths
+are repository-relative. A single copied script is not a standalone package.
+
+- **Git checkout:** 34 grounding + 36 admission + 46 C2 + 147 evaluation
+  unittest methods passed (263 total, not new independent acceptance scenarios).
+  The pilot, 13-file evidence CLI and example human-time CLI also ran.
+- **Source archive, no `.git`:** the same 116 C1/C2 methods, pilot and synthetic
+  human-time command passed. The evidence CLI refused with exit 1 and published
+  no bundle because Git source identity was unavailable. This is an intentional
+  boundary, not proof that a ZIP is a fully reproducible evidence checkout.
+- C1/C2 require the locked `jsonschema[format]` dependencies; an existing
+  matching Python environment is sufficient and editable application installation
+  is unnecessary for these narrow checks. Do not use `-S` for C1/C2.
+- Evaluation and human-time accounting use only stdlib. They were executed with
+  Python 3.12 `-S -B` (without site-packages); the evidence command additionally
+  needs Git and its documented macOS/Linux file primitives. Evaluation tests
+  that exercise actual source identity also require `.git`.
+
+For a source ZIP submission, retain the generated evidence and its exact source
+manifest separately; do not fabricate a Git identity or silently relax this
+check. Rebuilding that evidence requires the matching Git checkout or recovery
+bundle. This narrow archive check is not the full application deployment or
+final Canvas submission rehearsal. All inputs here are synthetic, not Gold or
+actual timed human answers; the pilot is not permission to admit real corpus
+bytes. See the [dated proof packet](../../docs/reviews/member-c-r02-review-20261022.md#6-local-proof-follow-up--22-october-2026).
+
+#### Evidence command
+
 From a Git source checkout, with Python 3.12 and Git available, on macOS/Linux:
 
 ```bash

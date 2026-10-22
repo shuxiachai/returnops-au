@@ -184,3 +184,124 @@ Publication is to a C review branch and the existing discussion threads only;
 PR #17/#61 heads and in-progress checks are left intact. No workflow is disabled
 or skipped. A later PR/merge must still receive its own required exact-source
 checks and review. Do not infer merge approval from this branch publication.
+
+## 6. Local proof follow-up — 22 October 2026
+
+Tracking KAN-23 / KAN-41. Codex-assisted technical verification, not C's human
+review signature. This closes selected evidence-reading/reproduction gaps,
+not the original E.10/R.02 acceptance dependencies. No A-owned implementation,
+test, timeout, database target whitelist, workflow or public contract changed.
+
+### Exact source, isolation and current CI
+
+Executed a fresh local Git clone, detached and clean at PR #61 head
+`be21f39bc502100ddd96c129bc9116b6fdcfceba`. The C publication branch remains a
+separate older-base documentation branch; the tests below identify the source
+actually run, not its publication head. Runtime tree IDs at the executed head
+and checked main `f6de49d6252527fe875f1658b3954e05705099f1` are identical:
+
+| Subtree | Git tree ID |
+|---|---|
+| `packages` | `8b97d11d2c108be95a2ae27b6d7f19285e2dab51` |
+| `tests` | `f41b521a69683a733a4ce5480371a8bc57b6ebc3` |
+| `tools` | `5df6039a6e993a38bc79c8c0d755a7a40034f1dd` |
+| `.github` | `2a275981dc158c47cc364da6200bfbbe5616da92` |
+
+At 12:54 UTC, [PR #61 run 39770369525](https://github.com/shuxiachai/returnops-au/actions/runs/39770369525)
+is completed/failure: 11 successful jobs; Founder revision failed; the final
+gate failed because not all eight environment parts succeeded. The gate is
+the consequence, not a second independently diagnosed defect. Main's
+[Founder revision job 119808171760](https://github.com/shuxiachai/returnops-au/actions/runs/39773813972/job/119808171760)
+passed 513 tests, including both R04 parameters, on the same relevant source.
+Neither that job nor local passes repair PR #61's failed check or prove a fix.
+
+Local PostgreSQL used the already-cached pinned image
+`postgres@sha256:051f7b7b3abdd564d5d1bd1e8c4b9c1b6e77087d1dd22020ede611c096a272e0`
+(17.11), new task-owned containers/databases and tmpfs storage. No existing
+database or volume was reused. Linux test image
+`returnops-c-offline-check:20261018` used CPython 3.12.14, pytest 9.1.1,
+SQLAlchemy 2.0.52 and psycopg 3.3.5; this is not claimed identical to CI's
+whole environment. Source was mounted read-only; test installation fixtures
+build the local source offline into their own temporary target, without
+dependency downloads or machine installation. Networks were internal/none,
+with no provider access. Only synthetic fixture identities were generated.
+
+### R04: five bounded repetitions, failure not reproduced
+
+Ran the existing node without edits, five times, each with its same-key and
+different-key parameter:
+
+```sh
+python -B -m pytest \
+  tests/lifecycle/test_founder_reject_postgresql.py::test_R04_independent_process_competition \
+  -q -p no:cacheprovider
+```
+
+Results: **2 passed** in each of 7.62, 7.64, 7.70, 7.96 and 7.72 seconds;
+10 successful parameter executions. Separate evidence destinations retain
+each pair's original JSON outputs/snapshots and logs. No local lock timeout
+was seen. No load injection, assertion relaxation or timeout change was used.
+These bounded isolated runs do not estimate a flake rate or replicate CI load.
+
+The failed CI reports a 5-second advisory-lock timeout and fails the
+same-key all-ACCEPTED assertion. `CustomerUnitOfWork.__enter__` sets that
+timeout; failure before assigning `uow` can produce a safe denial through the
+reject error path. A database-global fence plus scheduling/load is a plausible
+explanation, **not a confirmed cause**: the failed job does not retain both
+caller outputs or identify the holder and duration. Preserve the strict
+same-key receipt expectation; ask A for a bounded diagnostic of the exact
+holder/returned outcomes rather than accepting DENIED as success or blindly
+increasing timeouts. PR #61's pending head was left unchanged.
+
+R04 also has two evidence limits already disclosed in docs/42: its file-start
+barrier does not observe actual PostgreSQL waiters, and its function-name
+profiler does not cover current `CoreReturnMock.perform`, `CoreLabelMock.perform`
+or `CoreMockNotification.deliver`. Zero counters alone therefore do not prove
+zero provider calls. This confirms a test-evidence limit, **not observed duplicate
+effects or a new proven business defect**. A can strengthen actual-entry/ledger
+observation separately without weakening receipt/state assertions.
+
+### E.10 follow-through: two specific reading gaps resolved
+
+| Existing tests at executed SHA | Verified evidence | New local result |
+|---|---|---|
+| EP_G4_G8_G9, both parameters | Outcomes PREPARED/REPLAYED or PREPARED/DENIED; observed PG waiters; exact full-table deltas; a third installed process replays the durable identity without changing the snapshot | 2 passed |
+| LE_G6_G11, four parameters | `launch`/`completed` use separate installed processes and parent/child DB identity; observed PG waiters; actual `CoreLabelMock.perform` dispatch/query counters; exact ledger/history/audit deltas | 4 passed |
+| LE_G8_G11, absent/confirmed | New installed-process observation is read-only and source-bound | 2 passed |
+
+Commands selected the existing files
+`test_execution_preparation_process_postgresql.py` and
+`test_label_execution_process_postgresql.py`. Initial combined run:
+**2 passed / 6 failed** in 43.33 seconds because the generic isolated DB
+address was outside the label probe's explicit allowed targets. This setup
+failure is retained. After creating a new, still isolated database matching
+the existing local label profile (`127.0.0.1:55433`, allowed database name and
+observed OID), unchanged label tests passed **6/6 in 60.76 seconds**. No target
+guard was bypassed. The eight successful evidence JSON files include the
+observed waiters, real mock counters and installed-source hashes.
+
+This narrows docs/42's "outcome assertions/helpers not read" items; it does not
+change A's document or assert all E.10 scenarios, real carriers, R.02 recovery,
+browser integration or clean final application deployment have passed.
+
+### C delivery and remaining R.02 defects
+
+On the clean executed checkout, host Python 3.12.7 with existing locked
+dependencies passed 34 grounding, 36 corpus-admission and 46 C2 tests; stdlib
+`-S` execution passed 147 evaluation tests (263 unittest methods in total).
+The pilot ran, the synthetic evidence command produced 13 files, and the
+synthetic human-time example ran. Evidence manifest SHA256:
+`f55e658777b6cec3e7b48dc9492266c3d2a8ad651c327147f23fb3961e8cca63`.
+The 12 indexed file hashes are independently checked in the local checkpoint.
+A same-source archive without `.git` passed the 116 C1/C2 tests, pilot and
+human-time example but correctly refused evidence generation with exit 1.
+The [C README](../../experiments/evaluation_candidate/README.md#clean-checkout-versus-source-archive--22-october-2026)
+now makes that packaging boundary explicit.
+
+The focused R.02/C2 suite passed **100 tests / 82 subtests in 1.18s** on the
+clean source; counts overlap the other suites. The existing in-memory failure
+probe still reproduced **R02-C-01 and R02-C-02**. Their previous successful-path
+tests do not establish these defects are fixed. No user key, live model, private
+Gold or actual participant timing was used. Corpus admission, C2 production
+routing, real Risk/C3 evidence, joint acceptance and C's personal explanation
+remain separate outstanding items. A's owner disposition is still required.
