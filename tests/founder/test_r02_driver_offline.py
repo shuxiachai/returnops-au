@@ -548,7 +548,7 @@ def test_api_child_composition_and_environment_come_from_one_place():
 
 def test_tools_r02_boundary_and_encoding():
     modules = {path.stem for path in TOOLS.glob('*.py')}
-    assert modules == {'api_child', 'catalogue', 'driver', 'grants', 'scenario'}
+    assert modules == {'api_child', 'catalogue', 'demo_identities', 'driver', 'grants', 'scenario'}
     test_modules = {path.stem for folder in ('lifecycle', 'founder') for path in (ROOT / 'tests' / folder).glob('*.py')}
     for path in sorted(path for path in TOOLS.iterdir() if path.is_file()):
         raw = path.read_bytes()

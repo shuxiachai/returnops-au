@@ -12,9 +12,14 @@ needs (CHILD_ENVIRONMENT), not every variable of the caller.
 The private auth file holds only issuer/audience/signing key. It is created
 0600 (O_EXCL) inside a 0700 temporary directory that the driver removes; it
 must never be uploaded as a CI artifact.
+
+Demo mode only (driver --api-port/--keep-api): api_process(port=N) binds the
+fixed loopback port N instead of port 0 and refuses a port that is already in
+use; hold() keeps the child running until Ctrl+C or until it exits by itself.
+The default (port=None, no hold) is unchanged.
 """
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import base64
 import json
 import os
@@ -58,6 +63,7 @@ class ApiChild:
     pid: int
     composition: dict
     environment_names: tuple
+    process: object = field(default=None, repr=False, compare=False)
 
 
 def require_private_runtime():
@@ -109,11 +115,42 @@ def _stop(process):
             process.wait(timeout=5)
 
 
-@contextmanager
-def api_process(auth_file, log_path, *, ready_seconds=30.0):
+def reserve_port(port=None):
+    """Port 0 (default) lets the OS choose; a fixed demo port must be free on loopback.
+
+    On Windows SO_EXCLUSIVEADDRUSE makes the probe fail if any socket, including
+    a wildcard listener, already holds the port (tools/environment/native_check.py).
+    The probe is closed before the child binds, so a race remains possible.
+    """
     with socket.socket() as listener:
-        listener.bind(('127.0.0.1', 0))
-        port = listener.getsockname()[1]
+        if port is not None and os.name == 'nt':
+            listener.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        if port is None:
+            listener.bind(('127.0.0.1', 0))
+        else:
+            try:
+                listener.bind(('127.0.0.1', port))
+            except OSError:
+                raise ApiChildError('API_PORT_UNAVAILABLE') from None
+        return listener.getsockname()[1]
+
+
+def hold(api, *, interval=1.0, sleep=time.sleep):
+    """Keep the child running until Ctrl+C ('INTERRUPTED') or until it exits ('EXITED').
+
+    The caller's api_process context then stops it as usual (terminate, then kill).
+    """
+    try:
+        while api.process.poll() is None:
+            sleep(interval)
+    except KeyboardInterrupt:
+        return 'INTERRUPTED'
+    return 'EXITED'
+
+
+@contextmanager
+def api_process(auth_file, log_path, *, ready_seconds=30.0, port=None):
+    port = reserve_port(port)
     env = child_environment(os.environ, auth_file, port)
     url = 'http://127.0.0.1:' + str(port)
     with open(log_path, 'wb') as output:
@@ -133,6 +170,6 @@ def api_process(auth_file, log_path, *, ready_seconds=30.0):
                     time.sleep(.05)
             if not ready:
                 raise ApiChildError('API_CHILD_NOT_READY')
-            yield ApiChild(url, process.pid, dict(COMPOSITION), tuple(sorted(env)))
+            yield ApiChild(url, process.pid, dict(COMPOSITION), tuple(sorted(env)), process)
         finally:
             _stop(process)
