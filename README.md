@@ -10,6 +10,29 @@
 
 # ReturnOps AU
 
+## C technical review and handoff — 22 October 2026 (Sydney)
+
+C's [R.02 technical review packet](docs/reviews/member-c-r02-review-20261022.md)
+checks main `4aec7c0de6536075f6691567a3f609b8f3093279` without changing A/B
+code. Local R.02/C2 checks passed **100 tests and 82 subtests**. The downloaded
+R.02 receipt from [run 39724718286](https://github.com/shuxiachai/returnops-au/actions/runs/39724718286/job/119645897403)
+has 32/32 checks true; all three code-tree digests match that main. This is
+CI-artifact verification, not a new local PostgreSQL run or human acceptance.
+
+Two failure-path findings are sent to A: interruption can publish a nonterminal
+`RUNNING` receipt; cleanup/log-screening failures can leave private files and
+unscreened output behind. The packet includes an isolated reproduction and
+acceptance checklist. No actual credential leak was observed.
+
+The [C2 README handoff](experiments/c2_risk_candidate/README.md#22-october-handoff--near-term-delivery)
+now separates the five-outcome contract from runtime routing and lists the
+remaining decisions. A's Gate 2 deferral is a team scheduling note, not a tutor
+waiver: the real Risk model, admitted corpus, pilot/Gold, C3 and original WBS
+conditions remain outstanding unless explicitly resolved. Personal explanation,
+review signatures and joint acceptance are not prefilled. This C-only review
+branch is not a merge request or a replacement for the pending PR #17/#61
+heads; any later integration still needs exact-source review and required CI.
+
 ## Deploy from zero - 22 October 2026 (Sydney)
 
 Owner A (`shuxiachai`, Jingbo Chai). This chapter puts in order the commands

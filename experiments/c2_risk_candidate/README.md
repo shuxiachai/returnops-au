@@ -113,6 +113,52 @@ provenance, current-version/expiry revalidation after await and acceptance into
 Domain remain A's integration responsibilities. No extra generic transport
 wrapper is needed: `ModelInvocation → ModelReply` is already the internal port.
 
+## 22 October handoff — near-term delivery
+
+[A's KAN-24 scope note](https://lucastaooo.atlassian.net/browse/KAN-24?focusedCommentId=10141)
+keeps real-model Risk in deferred Gate 2 / KAN-39 and asks for C2.04 contract/
+routing evidence, C2.05 handoff and C's two-minute grounding/risk-design segment.
+This is scheduling, not a course waiver or completion of these WBS items.
+The frozen owners, reviewers, nine features and all 89 S/F rows stay unchanged.
+
+| Outcome / condition | Consumer obligation from frozen C2.04 | Evidence boundary |
+|---|---|---|
+| `PASS` | Domain verifies the current retained inputs/review; Founder still approves exact scope | Output shape and bindings tested; no automatic approval |
+| `PASS_WITH_WARNING` | Preserve visible findings and the same current-version/approval guards | Warning preservation tested, not semantic correctness of a live model |
+| `REVISE` | Return requests to Assessment; generate a new proposal and review | Contract handoff; not proof that the production consumer is connected |
+| `NEEDS_INFORMATION` | Coordinator/intake asks questions; reevaluate the new input | Old review must not authorize a changed case |
+| `ESCALATE` | Founder manual handling; the escalated proposal cannot be approved | Return to automation requires a new proposal/review |
+| Technical failure | Existing processing-failure/ErrorEnvelope path | Not a sixth business outcome; never fallback `PASS` |
+
+Relevant test nodes: `test_five_outcomes_are_structured_without_operation_authority`,
+`test_blocking_conflict_cannot_be_warning_only`,
+`test_timeout_and_transport_error_are_not_business_outcomes`
+([component tests](../../tests/contracts/test_c2_risk_preparation.py));
+`test_new_proposal_and_input_versions_reject_old_handoff` and
+`test_real_c1_citation_failure_cannot_be_promoted_to_pass`
+([handoff tests](../../tests/contracts/test_c_handoff_rehearsal.py)).
+These prove local component/binding behavior, not all consumer routes.
+
+The [C review packet](../../docs/reviews/member-c-r02-review-20261022.md)
+records 100 tests / 82 subtests across R.02 offline and these C2 files, plus
+independently checked no-LLM CI receipt provenance. It does not add a live
+provider, qualify the controlled PASS stub as independent Risk, or accept Gate 1.
+The [spoken draft and display notes](https://github.com/shuxiachai/returnops-au/issues/66#issuecomment-6333101141)
+are ready for C to practise; no rehearsal or duration measurement is claimed.
+
+Before the next runtime increment A must identify the actual admitted corpus
+pin, approved model/adapter/data flow and post-await/current-state ownership,
+then record the original Gate 1/A1.08/R.03 dependencies. Please also confirm
+whether deferred AI/Gold/C3 work is still due for this course delivery or has an
+explicit tutor disposition; until then it remains an unresolved requirement,
+not cancelled scope. C can maintain local contract tests and review evidence
+independently, but cannot manufacture these decisions or personal acceptance.
+
+A's new [PR #94](https://github.com/shuxiachai/returnops-au/pull/94) is a
+default-off advisory Coordinator candidate, not this independent reviewer.
+Its live result is still pending; neither that candidate nor the R.02 stub
+establishes C2 model-quality or full three-role integration evidence.
+
 ## Reproduce offline checks
 
 From repository root with the existing locked dependencies:
