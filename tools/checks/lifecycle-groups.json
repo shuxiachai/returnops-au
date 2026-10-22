@@ -58,6 +58,7 @@
       "tests/lifecycle/test_migration_postgresql.py",
       "tests/lifecycle/test_pass_review_postgresql.py",
       "tests/lifecycle/test_pass_review_ready_publication.py",
+      "tests/lifecycle/test_preview_descriptor_catalog_postgresql.py",
       "tests/lifecycle/test_proposal_fixed.py",
       "tests/lifecycle/test_proposal_manual_postgresql.py",
       "tests/lifecycle/test_proposal_runtime_postgresql.py",
@@ -66,6 +67,21 @@
       "tests/lifecycle/test_reads_postgresql.py",
       "tests/lifecycle/test_review_escalation_postgresql.py",
       "tests/lifecycle/test_transaction_postgresql.py"
+    ],
+    "notification": [
+      "tests/lifecycle/test_notification_customer_origin_offline.py",
+      "tests/lifecycle/test_notification_delivery_postgresql.py",
+      "tests/lifecycle/test_notification_execution_proof_postgresql.py",
+      "tests/lifecycle/test_notification_fact_alias_postgresql.py",
+      "tests/lifecycle/test_notification_fact_offline.py",
+      "tests/lifecycle/test_notification_guards_postgresql.py",
+      "tests/lifecycle/test_notification_late_postgresql.py",
+      "tests/lifecycle/test_notification_legacy_postgresql.py",
+      "tests/lifecycle/test_notification_process_postgresql.py",
+      "tests/lifecycle/test_notification_profile_offline.py",
+      "tests/lifecycle/test_notification_reads_retention_postgresql.py",
+      "tests/lifecycle/test_notification_schema_postgresql.py",
+      "tests/lifecycle/test_notification_transactions_postgresql.py"
     ]
   }
 }

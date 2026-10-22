@@ -12,7 +12,7 @@ from .canonical import digest,decode_document
 from .audit import timestamp
 from .errors import FlowError
 from .lifecycle_state import reject
-from .lifecycle_schema import ARTIFACT,version
+from .lifecycle_schema import ARTIFACT, ARTIFACT_VERSIONS,version
 from .label_artifact_tables import artifacts,contents,controls,claims,GENERATED_PATTERN
 from .manual_target import one
 
@@ -25,9 +25,9 @@ def namespace_active(uow):
     from .lifecycle_state import LEGACY_REVISIONS
     connection=uow if hasattr(uow,'dialect') else uow.connection
     revisions=connection.execute(text('SELECT version_num FROM alembic_version')).scalars().all()
-    if len(revisions)==1 and revisions[0] in (set(LEGACY_REVISIONS)|{LEGACY,REVIEW,*APPROVAL_VERSIONS})-{ARTIFACT}:
+    if len(revisions)==1 and revisions[0] in (set(LEGACY_REVISIONS)|{LEGACY,REVIEW,*APPROVAL_VERSIONS})-ARTIFACT_VERSIONS:
         return False
-    if revisions==[ARTIFACT] and version(connection)==ARTIFACT:return True
+    if len(revisions)==1 and revisions[0] in ARTIFACT_VERSIONS and version(connection)==revisions[0]:return True
     if hasattr(uow,'poison'):uow.poison()
     raise FlowError('INVALID_STATE')
 
@@ -81,7 +81,7 @@ def verify_certificate(uow,evidence_id,*,proof=None):
         claim_hash,COMPONENT,original_pdf_fields,FILENAME,MAX_PDF_BYTES)
     from .label_pdf_validation import verify_label_pdf
     from .label_artifact_history import (origin_payload,completion_core,certificate,evidence_body,result_body)
-    if not is_generated_id(evidence_id) or version(uow.connection)!=ARTIFACT:reject(uow)
+    if not is_generated_id(evidence_id) or version(uow.connection) not in ARTIFACT_VERSIONS:reject(uow)
     if uow.execute(select(old.evidence.c.evidence_id).where(old.evidence.c.evidence_id==evidence_id)).first():reject(uow)
     row=one(uow,artifacts,evidence_id=evidence_id)
     work,label,fact=source_rows(uow,row['work_id']);control=one(uow,controls,work_id=row['work_id'])

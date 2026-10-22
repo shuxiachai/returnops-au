@@ -368,6 +368,31 @@ def child_config(engine,identities,case,entry,*,body=None,version=None):
         issuer=config.issuer,audience=config.audience,signing_key=config.signing_key.hex(),token=identities.tokens['founder'])
 
 
+def _original_key_race_failure(outputs,entry):
+    """Failure-only closed status vector; never render child data or replace the assertion."""
+    fallback='Original-key race status diagnostic unavailable.'
+    try:
+        import json
+        if type(outputs) is not list or len(outputs)!=2 or type(entry) is not str or entry not in {'review','manual'}:
+            return fallback
+        statuses={'ACCEPTED','DENIED','UNKNOWN'}
+        codes={'UNAUTHENTICATED','FORBIDDEN','NOT_FOUND','VALIDATION_ERROR','STALE_CASE_VERSION',
+            'IDEMPOTENCY_CONFLICT','INVALID_STATE','REQUEST_TOO_LARGE','UNSUPPORTED_MEDIA_TYPE','INTERNAL_ERROR'}
+        callers=[]
+        for index,output in enumerate(outputs):
+            results=output.get('results') if type(output) is dict else None
+            result=results.get(entry) if type(results) is dict else None
+            status=result.get('status') if type(result) is dict else None
+            code=result.get('safe_code') if type(result) is dict else 'OTHER'
+            callers.append(dict(caller=index,
+                status=status if type(status) is str and status in statuses else 'OTHER',
+                safe_code=None if code is None else code if type(code) is str and code in codes else 'OTHER'))
+        rendered=json.dumps({'callers':callers},ensure_ascii=True,separators=(',',':'))
+        return rendered if len(rendered.encode('utf-8'))<=512 else fallback
+    except Exception:
+        return fallback
+
+
 @pytest.mark.parametrize('entry',['review','manual'])
 def test_group11_independent_process_original_key_race(flow_engine,identities,enabled,request,tmp_path,entry):
     import json,os,subprocess,sys
@@ -384,7 +409,7 @@ def test_group11_independent_process_original_key_race(flow_engine,identities,en
         out,err=process.communicate(timeout=60)
         assert process.returncode==0 and err==b''
         outputs.append(json.loads(out))
-    assert all(x['results'][entry]['status']=='ACCEPTED' for x in outputs)
+    assert all(x['results'][entry]['status']=='ACCEPTED' for x in outputs), _original_key_race_failure(outputs,entry)
     assert outputs[0]['results']==outputs[1]['results']
     assert sum(x['claims']['REVIEW' if entry=='review' else 'OUTCOME'] for x in outputs)==1
     assert sum(x['adapter_calls'] for x in outputs)==int(entry=='review')

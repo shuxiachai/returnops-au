@@ -67,5 +67,24 @@ def project(uow, head, result):
             approved = accepted_approval(uow, head, state['approval_record_id'], APPROVAL_COMPONENT)
             if approved['preview'] != preview or approved['event']['case_version'] != head['case_version']:
                 reject(uow)
+        elif head['status'] in {'ACTION_IN_PROGRESS','RECONCILING','NOTIFICATION_PENDING','NOTIFICATION_FAILED','COMPLETED'}:
+            from .lifecycle_schema import NOTIFICATION,version
+            if version(uow.connection)!=NOTIFICATION:
+                reject(uow)
+            from .approve_sources import accepted_approval
+            from .preview_profile import APPROVAL_COMPONENT
+            approved=accepted_approval(uow,head,state['approval_record_id'],APPROVAL_COMPONENT)
+            if approved['preview']!=preview:
+                reject(uow)
+            if state['outcome'] is not None:
+                from .notification_tables import controls
+                from .notification_sources import validate_control
+                from .manual_target import one
+                control=one(uow,controls,notification_work_id=state['notification_work_id'])
+                if control['available']:
+                    validate_control(uow,head,control)
+                else:
+                    from .notification_retention import verify_retained
+                    verify_retained(uow,head,control)
         else:
             reject(uow)

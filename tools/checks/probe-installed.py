@@ -58,7 +58,8 @@ assert len(founder_metadata.tables) == 4
 app = create_app(engine=object(), enable_processor=False)
 assert {route.path for route in app.routes if route.path.startswith('/v1/founder')} == {
     '/v1/founder/cases', '/v1/founder/cases/{case_id}',
-    '/v1/founder/cases/{case_id}/history', '/v1/founder/cases/{case_id}/audit'}
+    '/v1/founder/cases/{case_id}/history', '/v1/founder/cases/{case_id}/audit',
+    '/v1/founder/analytics'}  # F.06 read-only analytics GET
 print("PASS installed Founder read composition and isolated 0006 metadata (no database execution)")
 
 from returnops_domain.lifecycle_guards import LifecycleGuards
@@ -71,3 +72,19 @@ for module in (returnops_domain.lifecycle_proposal, returnops_domain.lifecycle_e
 assert LifecycleGuards('installed_probe').component_id == 'installed_probe'
 assert 'lifecycle' not in ' '.join(route.path for route in app.routes)
 print("PASS installed lifecycle component and isolated 0007 metadata (no future producer or database execution)")
+
+import returnops_domain.notification_service, returnops_domain.notification_mock
+import returnops_domain.notification_projection, returnops_domain.notification_retention
+import returnops_api.private_notification
+from returnops_domain.notification_tables import metadata as notification_metadata
+from returnops_domain.notification_profile import render as notification_message
+from returnops_domain.wire import validate
+for module in (returnops_domain.notification_service,returnops_domain.notification_mock,
+               returnops_domain.notification_projection,returnops_domain.notification_retention,
+               returnops_api.private_notification):
+    assert Path(module.__file__).resolve().is_relative_to(installed)
+assert set(notification_metadata.tables)=={'notification_delivery_controls','core_mock_notification_facts'}
+validate('CustomerOutcomeMessage',dict(notification_id='installed_notification',
+    outcome='REJECTED',**notification_message('REJECTED'),sent_at='2026-10-20T00:00:00.000000Z'),internal=True)
+assert not any('notification' in route.path for route in app.routes)
+print("PASS installed private notification composition/profile/two-table metadata; no sending or database execution")

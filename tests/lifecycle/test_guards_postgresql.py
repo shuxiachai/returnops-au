@@ -100,11 +100,11 @@ def test_proposal_then_same_input_revision_revokes_actual_old_claim_and_keeps_mo
 
 
 @pytest.mark.parametrize('decision,terminal',[('REJECT','REJECTED'),('MANUAL_HANDLING','MANUAL_HANDLED')])
-@pytest.mark.parametrize('flow_engine',['0007_lifecycle_guards','head'],indirect=True)
+@pytest.mark.parametrize('flow_engine',['0007_lifecycle_guards','0013_label_artifact_result'],indirect=True)
 def test_saved_notification_pending_failed_sent_keeps_identity_and_has_no_effects(flow_engine,identities,enabled,decision,terminal):
-    from returnops_domain.lifecycle_schema import version, CURRENT
+    from returnops_domain.lifecycle_schema import version, ARTIFACT
     with flow_engine.connect() as connection:
-        modern=version(connection)==CURRENT
+        modern=version(connection)==ARTIFACT
         modern_reject=decision=='REJECT' and modern
     component=COMPONENT
     if modern_reject:
@@ -145,6 +145,8 @@ def test_saved_notification_pending_failed_sent_keeps_identity_and_has_no_effect
 
 @pytest.mark.parametrize('field,value',[('notification_id','foreign_notification'),('outcome','RETURN_CREATED'),
     ('message','changed message'),('next_steps',['changed next step'])])
+# Historical v1 synthetic delivery compatibility; actual v2 delivery has separate oracles.
+@pytest.mark.parametrize('flow_engine',['0013_label_artifact_result'],indirect=True)
 def test_notification_cannot_change_frozen_identity_or_payload(flow_engine,identities,enabled,field,value):
     from pass_manual_helpers import accepted_pass_manual
     case,_,_,component=accepted_pass_manual(flow_engine,identities)
@@ -184,6 +186,8 @@ def test_claim_exclusion_lease_epoch_and_revoked_capability(flow_engine,identiti
         with pytest.raises(FlowError): uow.commit()
 
 
+# Historical v1 synthetic delivery compatibility; actual v2 delivery has separate oracles.
+@pytest.mark.parametrize('flow_engine',['0013_label_artifact_result'],indirect=True)
 def test_current_order_block_allows_manual_outcome_but_cannot_revision(flow_engine,identities,enabled):
     original=ready(flow_engine,identities,reference='SYN-CONFLICT');case=original['case_id']
     with CustomerUnitOfWork(flow_engine,write=True) as uow:
@@ -261,6 +265,8 @@ def test_new_decision_rechecks_causal_founder_current_principal(flow_engine,iden
     assert snapshot(flow_engine)==saved
 
 
+# Historical v1 synthetic delivery compatibility; actual v2 delivery has separate oracles.
+@pytest.mark.parametrize('flow_engine',['0013_label_artifact_result'],indirect=True)
 def test_notification_retry_uses_current_service_not_expired_original_human_authority(flow_engine,identities,enabled):
     from returnops_domain.registry import TrustedRegistry
     from pass_manual_helpers import accepted_pass_manual
@@ -269,6 +275,8 @@ def test_notification_retry_uses_current_service_not_expired_original_human_auth
     assert notify(flow_engine,identities,case,'SENT',component=component)[1]['status']=='MANUAL_HANDLED'
 
 
+# Historical v1 synthetic delivery compatibility; actual v2 delivery has separate oracles.
+@pytest.mark.parametrize('flow_engine',['0013_label_artifact_result'],indirect=True)
 def test_failed_notification_requires_saved_pending_retry_before_sent(flow_engine,identities,enabled):
     from pass_manual_helpers import accepted_pass_manual
     case,_,_,component=accepted_pass_manual(flow_engine,identities)
@@ -294,6 +302,8 @@ def test_risk_revise_consumes_exact_current_proposal_without_increasing_input(fl
     assert (work['claim_id'],work['epoch'],work['state'])==(token.claim_id,token.epoch,'DONE')
 
 
+# Historical v1 synthetic delivery compatibility; actual v2 delivery has separate oracles.
+@pytest.mark.parametrize('flow_engine',['0013_label_artifact_result'],indirect=True)
 def test_outcome_atomically_saves_stable_unclaimed_notification_intent_without_grant(flow_engine,identities,enabled):
     from pass_manual_helpers import accepted_pass_manual
     case,event,receipt,component=accepted_pass_manual(flow_engine,identities,notification_grant=False)

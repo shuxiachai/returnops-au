@@ -14,7 +14,7 @@ from .customer_uow import CustomerUnitOfWork
 from .errors import AcceptanceOutcomeUnknown, FlowError
 from .lifecycle_events import OutcomeAccepted
 from .lifecycle_guards import LifecycleGuards
-from .lifecycle_schema import version, APPROVAL_VERSIONS
+from .lifecycle_schema import version, APPROVAL_VERSIONS, NOTIFICATION
 from .lifecycle_state import current, installed, reject
 from .manual_target import one
 from .reject_denial import COMPONENT, OPERATION, authorize, record_denial
@@ -146,11 +146,14 @@ class FounderRejectService:
             {'kind':'HUMAN', 'role':'FOUNDER', 'principal_id':actor.principal_id}, correlation, now, payload=payload)
         uow.execute(t.sources.insert().values(record_id=decision_id, case_id=head['case_id'],
             **asdict(claim), source_hash=decision_hash, target_record_id=source['record']['record_id'], slot='PRIMARY'))
+        from .notification_intent import initial_format, initial_payload
+        note_payload = (initial_payload(COMPONENT, 'REJECTED', decision_id, decision_hash)
+                        if version(uow.connection) == NOTIFICATION else payload)
         note = dict(notification_id=identifier('reject_notification'), case_id=head['case_id'],
             case_version=head['case_version'], status='PENDING', outcome='REJECTED',
-            message=MESSAGE, next_steps=[], attempt_count=0, updated_at=timestamp(now))
+            **initial_format(uow, 'REJECTED', MESSAGE), attempt_count=0, updated_at=timestamp(now))
         note_id, note_hash = self._append(uow, head['case_id'], 'NOTIFICATION', note,
-            {'kind':'SERVICE', 'component_id':COMPONENT}, correlation, now, payload=payload)
+            {'kind':'SERVICE', 'component_id':COMPONENT}, correlation, now, payload=note_payload)
         uow.execute(t.sources.insert().values(record_id=note_id, case_id=head['case_id'], **asdict(claim),
             source_hash=note_hash, target_record_id=decision_id, slot='NOTIFICATION'))
         if preview is not None:

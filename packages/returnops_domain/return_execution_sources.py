@@ -14,7 +14,7 @@ from .execution_preparation_sources import (identities, request_fingerprint, ope
 from .execution_preparation_tables import preparations
 from .founder_integrity import CaseProof, read_revision
 from .lifecycle_effects import fingerprint
-from .lifecycle_schema import EXECUTION, EXECUTION_VERSIONS, LABEL, ARTIFACT, version
+from .lifecycle_schema import EXECUTION, EXECUTION_VERSIONS, LABEL, ARTIFACT, ARTIFACT_VERSIONS, version
 from .lifecycle_sources import Sources, authority
 from .lifecycle_state import current, reject
 from .manual_target import one
@@ -165,7 +165,7 @@ def control_identity(uow, actor, head, row, original_key):
 
 
 def continued_proof(uow, actor, head, row, original_key, *, creating=False):
-    if version(uow.connection) == ARTIFACT:
+    if version(uow.connection) in ARTIFACT_VERSIONS:
         from .execution_artifact_chain_sources import return_continuation
         return return_continuation(uow, actor, head, row, original_key, creating=creating)
     if version(uow.connection) == LABEL:

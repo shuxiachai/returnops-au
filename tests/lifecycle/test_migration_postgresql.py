@@ -41,7 +41,10 @@ def test_upgrade_real_0006_acceptance_to_empty_sidecars_repeat_preserves_every_o
         'lifecycle_label_artifact_claims', 'generated_label_artifacts',
         'generated_label_artifact_contents',
     }
-    added = {**artifact_added, **t.metadata.tables, **preview_tables.metadata.tables, **execution_preparation_tables.metadata.tables,
+    from returnops_domain import notification_tables
+    notification_added=notification_tables.metadata.tables
+    assert set(notification_added)=={'notification_delivery_controls','core_mock_notification_facts'}
+    added = {**notification_added, **artifact_added, **t.metadata.tables, **preview_tables.metadata.tables, **execution_preparation_tables.metadata.tables,
              **return_execution_tables.metadata.tables, **label_added}
     assert {name:value for name,value in after.items() if name not in added}==before
     assert set(after)-set(before)==set(added)

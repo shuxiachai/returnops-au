@@ -157,7 +157,7 @@ class GroupingTests(unittest.TestCase):
         foundation = runner.build_steps("environment", part="foundation", root=self.root)
         self.assertEqual([argv for _, argv in foundation], expected[:-1])
 
-    def test_six_groups_use_each_explicit_file_once_and_preserve_in_group_order(self):
+    def test_seven_groups_use_each_explicit_file_once_and_preserve_in_group_order(self):
         selected = []
         default = runner.build_steps("environment")
         for part, files in self.manifest["groups"].items():
@@ -169,14 +169,14 @@ class GroupingTests(unittest.TestCase):
                                                "-q", "--tb=short", "-x", "-p",
                                                "tools.checks.lifecycle_progress"])
                 selected.extend(steps[-1][1][4:-5])
-        self.assertEqual(len(selected), 54)
-        self.assertEqual(len(set(selected)), 54)
+        self.assertEqual(len(selected), 68)
+        self.assertEqual(len(set(selected)), 68)
         self.assertEqual(set(selected), runner._collection_inventory(self.root))
 
-    def test_matrix_is_exactly_seven_includes_and_cli_does_not_spawn(self):
+    def test_matrix_is_exactly_eight_includes_and_cli_does_not_spawn(self):
         expected = {"include": [{"part": part} for part in (
             "foundation", "execution", "founder_manual", "founder_revision",
-            "label_artifact", "label_execution_bridge", "lifecycle_core")]}
+            "label_artifact", "label_execution_bridge", "lifecycle_core", "notification")]}
         self.assertEqual(runner.ci_matrix(self.root), expected)
         output = io.StringIO()
         with patch.object(runner, "ROOT", self.root), patch.object(runner.subprocess, "run") as execute:
@@ -366,13 +366,15 @@ class GroupingTests(unittest.TestCase):
         jobs = dict(re.findall(r"^  ([a-z][a-z-]+):\n(.*?)(?=^  [a-z][a-z-]+:\n|\Z)",
                                text.split("\njobs:\n", 1)[1], re.M | re.S))
         self.assertEqual(set(jobs), {"offline-contract-models", "environment-plan",
-                                     "environment-checks", "api-environment"})
+                                     "environment-checks", "end-to-end-no-llm", "api-environment",
+                                     "web-frontend"})
         matrix = jobs["environment-checks"]
         self.assertIn("    needs: environment-plan\n", matrix)
         self.assertIn("      fail-fast: false\n", matrix)
         self.assertIn("      matrix: ${{ fromJSON(needs.environment-plan.outputs.matrix) }}\n", matrix)
         self.assertIn("    timeout-minutes: 170\n", matrix)
-        self.assertEqual(text.count("    services:\n"), 1)
+        # Exactly two service blocks: the environment matrix and the independent R.02 job.
+        self.assertEqual(text.count("    services:\n"), 2)
         self.assertIn("        image: postgres:17-bookworm@sha256:051f7b7b3abdd564d5d1bd1e8c4b9c1b6e77087d1dd22020ede611c096a272e0\n", matrix)
         self.assertIn("DATABASE_URL: postgresql+psycopg://returnops_ci:ci_synthetic_only@localhost:5432/returnops_f02_ci", matrix)
         self.assertIn("MANUAL_EVIDENCE_DIR: ${{ runner.temp }}/a201-pass-manual-${{ matrix.part }}-evidence", matrix)
@@ -390,6 +392,27 @@ class GroupingTests(unittest.TestCase):
         self.assertEqual(text.count("docker run --rm -i --workdir /tmp --entrypoint python returnops-a1-ci -I -B - < tools/checks/probe-installed.py"), 1)
         self.assertNotIn("continue-on-error", text)
         self.assertNotIn("sparse-checkout", text)
+        r02 = jobs["end-to-end-no-llm"]
+        # The R.02 evidence job stays outside the gate: no needs, nothing depends on it.
+        self.assertNotIn("    needs:", r02)
+        self.assertNotIn("end-to-end-no-llm", gate)
+        self.assertIn("    timeout-minutes: 40\n", r02)
+        self.assertIn("        image: postgres:17-bookworm@sha256:051f7b7b3abdd564d5d1bd1e8c4b9c1b6e77087d1dd22020ede611c096a272e0\n", r02)
+        self.assertIn("DATABASE_URL: postgresql+psycopg://returnops_ci:ci_synthetic_only@localhost:5432/returnops_f02_ci", r02)
+        self.assertLess(r02.index("python -B -m alembic upgrade head"), r02.index("tools/r02/driver.py"))
+        self.assertIn('run: python -B tools/r02/driver.py --output "$RUNNER_TEMP/r02-run" --keep-api-log\n', r02)
+        self.assertEqual(r02.count("        if: ${{ always() }}\n"), 2)
+        self.assertIn("        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2\n", r02)
+        self.assertIn("          path: ${{ runner.temp }}/r02-run\n", r02)
+        self.assertNotIn("private", r02.split("upload-artifact", 1)[1])
+        web = jobs["web-frontend"]
+        # B's frontend checks run beside the gate: no needs, nothing depends on them, no database.
+        self.assertNotIn("    needs:", web)
+        self.assertNotIn("web-frontend", gate)
+        self.assertNotIn("    services:", web)
+        self.assertIn("    timeout-minutes: 15\n", web)
+        self.assertIn("npm ci --prefix apps/web --ignore-scripts --no-audit --no-fund", web)
+        self.assertLess(web.index("npm run type-check"), web.index("npm run build"))
 
 
 PROGRESS_SPEC = importlib.util.spec_from_file_location(

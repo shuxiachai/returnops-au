@@ -38,6 +38,13 @@ class RetentionService:
             if kind=='EVIDENCE' and is_generated_resource(uow,object_id):
                 from .label_artifact_retention import remove_pdf
                 changed=remove_pdf(uow,object_id,reason,redact,now)
+                if changed:
+                    from .label_artifact_tables import artifacts
+                    from .label_execution_tables import artifact_work
+                    case_id=uow.execute(select(artifact_work.c.case_id).join(artifacts,
+                        artifacts.c.work_id==artifact_work.c.work_id).where(artifacts.c.evidence_id==object_id)).scalar_one()
+                    from .notification_retention import withdraw
+                    withdraw(uow,case_id,reason,redact,now)
                 uow.commit()
                 result=changed
             else:
