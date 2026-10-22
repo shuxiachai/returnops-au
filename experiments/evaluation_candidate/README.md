@@ -359,6 +359,49 @@ shared API contract. The module must not replace F.06's authoritative metric
 definitions, a real B1/B4 adapter, R.03 or E.12. No labels or timed answers are
 collected here.
 
+### 22 October F.06 Tier 1 technical disposition
+
+C technical preparation for E.01/E.09, not personal approval or a change to A's
+analytics implementation. Source reviewed:
+[docs/43 at main `51862f4`](https://github.com/shuxiachai/returnops-au/blob/51862f4bcc06eebf1c1804647c21d0908960ebc7/docs/43-f06-analytics.md#proposal-latency-tier-0-with-known-proposal-failures).
+**Keep Tier 0 until the episode/readiness mapping is resolved.**
+
+The proposed order-projection start avoids using an intake timestamp from a
+different input version. However, the proposed end is a PROPOSAL receipt:
+`lifecycle_guards._proposal` clears the review pointer and enters `RISK_REVIEW`;
+the REVIEW branch records a later accepted review separately. Ending at the
+proposal receipt alone does not establish the complete interval required by
+[docs/09 section 10.2](../../docs/09-interface-contract-v1.md#102-成功失败与未测量),
+which includes machine risk/revision loops. A fixed-proposer duration must not
+be relabelled as B4/model latency or evidence of NFR-005.
+
+There is also a timestamp-sampling issue: `proposal_processor.process` samples
+`now` before `build`, passes that same value to `guard.apply`, and commits
+afterwards; the receipt uses `accepted_at=now`. `pass_review._new` likewise
+samples before the adapter and passes the same value to its receipt. Neither
+timestamp establishes completed build/review duration. Merely switching the
+end to a REVIEW receipt would not resolve this; A must define and test the
+trusted sampling and persistence semantics without silently changing guards.
+
+Before enabling samples, A/C should bind trusted events for the **latest
+assessment episode of the current input**, including the start, final
+review-ready result, and any excluded human/physical wait intervals. A prior
+DECISION-sourced revision anywhere in that input is a conservative reason to
+leave it unmeasured today, not a substitute for identifying the latest episode.
+Neither C's fixture timestamp fields nor model-generated timestamps are trusted
+Domain telemetry. No new public field, event or schema is proposed by this note.
+
+Required runtime test cases before a later decision: changed input does not
+inherit old timing; machine REVISE includes both proposal versions and reviews;
+human revision starts/selects the right episode without excluding machine time;
+an accepted, fully measured ESCALATE result is not a technical failure; a
+technical failure and a still-pending review have different dispositions;
+stale/removed or mismatched receipts cannot create samples; retries do not
+duplicate a case; all three counts reconcile with the same case cohort and
+empty samples omit percentiles. These are requested tests, not executed runtime
+coverage or an instruction to alter A-owned code. The existing pure synthetic
+accounting suite does not close this telemetry dependency.
+
 ## Quality accounting from supplied judgments — independent preparation
 
 [`score_stub_quality`](quality.py) adds the missing quality-metric **arithmetic**,

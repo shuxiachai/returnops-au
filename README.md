@@ -10,6 +10,44 @@
 
 # ReturnOps AU
 
+## C follow-up — 22 October 2026 evening (Sydney)
+
+Tracking: [KAN-41](https://lucastaooo.atlassian.net/browse/KAN-41) and
+[Issue #66](https://github.com/shuxiachai/returnops-au/issues/66).
+This is a C-only preparation branch, **not current main**. The remote-main
+snapshot checked was `51862f4bcc06eebf1c1804647c21d0908960ebc7`; A/B runtime
+changes from that snapshot have not been merged into this branch.
+
+- PR #17 head `b6dcc7552c2e52ca4dafd9d4b9400ad860db9365` and PR #61 head
+  `7bb1f5ad6e95a13a4aaffbae3056794116fedea7` remain OPEN. Their existing
+  [39724718286](https://github.com/shuxiachai/returnops-au/actions/runs/39724718286)
+  and [39724719271](https://github.com/shuxiachai/returnops-au/actions/runs/39724719271)
+  CI runs have now finished: **13/13 jobs successful each**. Older approvals
+  concern older heads; this is not approval or CI for current main. Neither
+  pending branch was changed by this follow-up.
+- A published the advisory Coordinator (#94), demo/roadmap/runbook (#96),
+  Canvas packaging clarification (#97), and explicit private-HTTP opt-in
+  (#98). These are not C2 Risk integration or permission for C to read keys,
+  enable the transport, send data or call a model. No live-model evidence was
+  verified in this follow-up.
+- C's [S6 speaking draft and display checklist](experiments/c2_risk_candidate/README.md#s6-demo-preparation--22-october-evening)
+  now map to A's two-minute segment. The existing synthetic evidence command
+  was actually run locally; it is accounting rehearsal, not a human rehearsal,
+  Gold result or model benchmark. Contract tests: **371 passed / 1685 subtests**
+  (overlapping existing suites, not additional independent scenarios).
+- The [C latency-event disposition](experiments/evaluation_candidate/README.md#22-october-f06-tier-1-technical-disposition)
+  explains why Tier 0 should stay until the complete episode boundary is
+  established. A's R.02 interruption/cleanup findings also remain unresolved;
+  `tools/r02` is unchanged between reviewed `4aec7c0` and checked `51862f4`.
+- [A's submission runbook at the checked source](https://github.com/shuxiachai/returnops-au/blob/51862f4bcc06eebf1c1804647c21d0908960ebc7/docs/47-stage2-submission-runbook.md)
+  records a ZIP-only group submission, opening 26 October and due 1 November
+  23:59 Sydney. Its contribution percentages are **A's proposal, not agreed**.
+  The student must confirm their own contribution/AI-use statement and practise
+  the segment; team rehearsal and tutor scope disposition remain separate.
+
+AI-assisted C preparation; no main merge, A/B code edit, new CI run, personal
+signature, contribution-percentage agreement or Done transition.
+
 ## C technical review and handoff — 22 October 2026 (Sydney)
 
 C's [R.02 technical review packet](docs/reviews/member-c-r02-review-20261022.md)

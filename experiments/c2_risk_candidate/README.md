@@ -159,6 +159,55 @@ default-off advisory Coordinator candidate, not this independent reviewer.
 Its live result is still pending; neither that candidate nor the R.02 stub
 establishes C2 model-quality or full three-role integration evidence.
 
+### S6 demo preparation — 22 October evening
+
+Tracking: [KAN-41](https://lucastaooo.atlassian.net/browse/KAN-41), Issue #66.
+A's [demo script S6 at `51862f4`](https://github.com/shuxiachai/returnops-au/blob/51862f4bcc06eebf1c1804647c21d0908960ebc7/docs/45-stage2-demo-script.md#s6-grounding-risk-contract-and-evaluation-definitions-c-1030-200)
+allocates two minutes to C. PR #94 is now merged; it still does not implement
+independent Risk. This dated update supersedes the earlier Draft status, not
+the outstanding real-call, review or acceptance boundaries.
+
+**AI-assisted spoken draft for C to understand, adapt and practise:**
+
+> My area covers grounding, risk review and evaluation. First, retrieval keeps
+> each passage tied to a source, version and content hash. Citation checks reject
+> missing sources, wrong versions and changed text. A working URL alone does not
+> prove that a claim is supported.
+>
+> Second, the reviewer has five outcomes: pass, pass with warning, revise, request
+> more information, or escalate. For example, an unresolved blocking source
+> conflict must escalate. It cannot authorize an operation. Even a pass still
+> needs current-version checks and the Founder's exact approval. Invalid output
+> and timeouts are technical failures, never an automatic pass.
+>
+> Finally, our evaluation tools keep failed and invalid cases in the denominator.
+> Unknown token costs stay unknown. This display uses five invented cases and
+> fixed responses to test accounting, not real model quality. The independent
+> live reviewer, formal evaluation and image feature remain unfinished. Our next
+> step is reviewed integration and a separate pilot, under the original gates.
+
+Display order: C1 provenance/checks (about 30 seconds), the five-outcome table
+above and conflict example (about 45 seconds), synthetic accounting scope and
+failure counts (about 30 seconds), leaving about 15 seconds for transitions.
+These are planned timings, not measured personal speaking speed.
+
+The accounting command from A's S6 was run on clean C head
+`b52a7ca0e11e4e2e03fc2ca01c568d135d07cf0b`, producing 13 local files and manifest
+SHA-256 `56ef5af3b208b8a99f6b94bf8c8657f01485c86311746c7d63a0479dccc1e4fe`:
+
+```sh
+python -B -m experiments.evaluation_candidate.evidence --output-dir <new-absolute-directory>
+```
+
+The parent directory must already exist; the command refuses to replace an
+existing output directory. Show `summaries.json` scope flags before any numbers:
+each fixture configuration has three successful, one failed and one invalid
+case. Declared fixture latency is not a measured runtime result; the paired
+integrity check is not proof that B1/B4 agents ran. No Gold labels, timed human
+answers, credentials or live endpoint were used. Before demo day, regenerate
+from the exact submission source and record the new manifest. C must personally
+practise and confirm the final wording; no rehearsal/sign-off is claimed here.
+
 ## Reproduce offline checks
 
 From repository root with the existing locked dependencies:
