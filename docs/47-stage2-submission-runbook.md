@@ -12,15 +12,15 @@ Companion documents: [demo script](45-stage2-demo-script.md), [Gate 2 roadmap](4
 | Stage 2 Marking Criteria, p1 | In the Week 13 demonstration the source is downloaded directly from Canvas and deployed on site | Drives the rehearsal in section 5 |
 | Project Description, p2 | "uploaded to Canvas before Monday of the final week" | Older, less specific wording |
 | TUT-09 | "Sunday, Week 12" with a late penalty of "5 marks per day" | Late-penalty rule |
-| Canvas, checked 12 October 2026 | No Stage 2 upload item was visible; upload types, limits and timezone unverified | Recheck before packaging; do not guess an assignment URL |
+| Canvas, read 22 October 2026 | Assignment "Stage 2 Code Submission" (course 74323, assignment 695834): online upload, **zip files only**, group assignment on the group set that holds "Mon 13-15 Group 10" (one upload counts for all three members), **opens Monday 26 October 00:00 Sydney**, **due Sunday 1 November 23:59 Sydney** (12:59:59 UTC), accepts late uploads until 6 November 23:59 Sydney, 20 points, rubric "Stage 2: Demonstration" (7 + 4 + 4 + 5) attached, no description text | Timezone resolved: Canvas shows Sydney local time. No Week 13 demo schedule was posted yet; the group's practical class is Monday 13:00-15:00 |
 
-**Plan for the earliest reading:** upload before **12:00 noon Sydney time on Sunday 1 November 2026**, leaving the afternoon for the download-and-reopen check and one re-upload if needed. If a tutor or Canvas notice gives an earlier time or a timezone, that notice wins; record it here with its date.
+**Plan for the earliest reading:** upload before **12:00 noon Sydney time on Sunday 1 November 2026**, leaving the afternoon for the download-and-reopen check and one re-upload if needed. The Canvas reading of 22 October confirms the day and the Sydney timezone; if a later tutor or Canvas notice gives an earlier time, that notice wins; record it here with its date.
 
 ## 2. Dates and owners (plan of 22 October 2026)
 
 | Date (Sydney) | Item | Who |
 |---|---|---|
-| 26 Oct | Demo script final; each speaker's own wording | A, B, C |
+| 26 Oct | Canvas item opens; ask the tutor at the Monday practical how the contribution statement is to be handed in (the item accepts zip files only) and record the answer in section 4; demo script final; each speaker's own wording | A; A, B, C |
 | 27-28 Oct | Contribution statement draft sent to the three; A3 tutor disposition requested and recorded; first full rehearsal on A's machine; B's Issues #91, #95, #88 and C's PRs #17, #61 merged or recorded as not merged | A; B; C |
 | 29 Oct | Clean-machine rehearsal (section 5, pass 1) | A runs, B checks UI steps, C records |
 | 30-31 Oct | Fixes; contribution statement final; tag and package (section 3) | A; all three sign off the statement |
@@ -34,20 +34,20 @@ Preconditions: every pull request intended for submission is merged into main an
 1. Choose the commit: the main commit whose CI run is green. Record its full SHA and the run URL.
 2. Tag it (name is a proposal): `git tag -a stage2-submission-v1 <sha> -m "Stage 2 source submission"`, then `git push origin stage2-submission-v1`. The tag message carries no AI tool attribution (repository rule).
 3. Zip the tag: `git archive --format=zip --prefix=returnops-au/ -o returnops-au-stage2-submission-v1.zip stage2-submission-v1`. `git archive` packs only files tracked at the tag, so git-ignored local material (`.env`, `.venv/`, `node_modules/`, `tmp/`, `dist/`, `__pycache__/`, `data/private/`) is left out. For a zip given a tag, git stores the commit ID as the archive comment; check it with `unzip -z` **(not verified here)**.
-4. Hash: PowerShell `Get-FileHash -Algorithm SHA256 returnops-au-stage2-submission-v1.zip`; bash `sha256sum returnops-au-stage2-submission-v1.zip`. Record the value and the size in bytes.
+4. Add the contribution statement: unless the tutor named another channel (section 2, 26 Oct), append `CONTRIBUTION-STATEMENT-Group10.pdf` at the root of the zip, next to `returnops-au/`, with Python's `zipfile` in append mode (`zipfile.ZipFile(path, 'a').write(pdf, 'CONTRIBUTION-STATEMENT-Group10.pdf')`); the repository tree inside `returnops-au/` stays untouched. Then hash: PowerShell `Get-FileHash -Algorithm SHA256 returnops-au-stage2-submission-v1.zip`; bash `sha256sum returnops-au-stage2-submission-v1.zip`. Record the value and the size in bytes.
 5. Content check: list the archive (`unzip -l`, or `tar -tf` on Windows) and confirm that none of these is present:
    - `.env` (only `.env.example` may appear), `auth.json`, `sessions.json`, `*.pem`, `*.key`, any file holding a value for `RETURNOPS_MODEL_API_KEY` or a database password;
    - private directories (`tmp/`, `tmp/demo-shop`, `tmp/demo-cups`, driver output directories), `node_modules/`, `.venv/`, `dist/`, `__pycache__/`;
-   - the contribution statement or any student ID (it is uploaded separately, section 4; the repository is public).
+   - any student ID inside `returnops-au/` (the repository is public); the statement PDF sits only at the zip root, outside the repository tree.
 6. Unzip into a new empty directory and run `python -B tools/model-checks/check.py --skip-baseline` there (an archive has no Git history, so the WBS Git comparison is skipped explicitly). Record the "Static check groups" line.
 
 ## 4. Canvas upload and download-and-reopen check
 
-1. Open the Stage 2 item from the course's Assignments list; record its title, the due date and timezone it shows, accepted file types and size limit.
-2. Upload `returnops-au-stage2-submission-v1.zip` and the contribution statement PDF (section 6) as separate files, if the item accepts several files; otherwise follow the tutor's instruction and record it.
+1. Open "Stage 2 Code Submission" from the course's Assignments list (open from 26 October); confirm that it still shows due 1 November 23:59 Sydney and zip files only; record any change.
+2. Upload `returnops-au-stage2-submission-v1.zip` (with the statement PDF inside at the zip root, section 3 step 4). A separate PDF cannot be uploaded to a zip-only item; if the tutor named another channel for the statement, use it and record it here. One member uploads for the group; the submission is shared by all three.
 3. Record the Canvas receipt: submission time shown by Canvas, attempt number, file names and sizes; keep a screenshot outside the repository.
 4. Download the submitted zip from Canvas into a new empty directory. Compute its SHA-256: it must equal the value from section 3 step 4. Check the archive comment (commit ID) and that `returnops-au/README.md` opens with the expected newest notice.
-5. Download and open the contribution statement PDF; check group number, names, student IDs and that each criterion row totals 100%.
+5. Open the statement PDF from the downloaded zip; check group number (10), names, student IDs and that each criterion row totals 100%.
 6. If anything differs, re-upload before the deadline and record both attempts; never edit a record afterwards to hide the first.
 
 R.05.a record (to fill): deadline source and wording; tag; commit SHA; CI run URL; package file name, size and SHA-256; Canvas item title; receipt time and attempt; reopen check result; known gaps attached (yes/no).
@@ -82,28 +82,28 @@ Derived from the README chapter [Deploy from zero](../README.md#deploy-from-zero
 
 The course form asks for the group number, each member's name and student ID, each member's percentage under each of the four criteria (each row totals 100%) and the specific tasks or deliverables each member completed ([docs/28](28-stage2-submission-checklist.md)). Without a statement, equal contribution is assumed. Percentages are never inferred from planned effort; docs/07's 45 / 27 / 28 is planned effort, not contribution.
 
-Group number: **TO CONFIRM**
+Group number: **10** (Canvas group "Mon 13-15 Group 10", read 22 October 2026)
 
 | Member | Name | Student ID |
 |---|---|---|
-| A | Jingbo Chai | TO CONFIRM |
-| B | Chengsi Li | TO CONFIRM |
-| C | Yuwei Tao | TO CONFIRM |
+| A | Jingbo Chai | held in the private statement file, not in the repository |
+| B | Chengsi Li | held in the private statement file, not in the repository |
+| C | Yuwei Tao | held in the private statement file, not in the repository |
 
-**Percentages: the lead's starting proposal of 22 October 2026, for the three members to discuss and agree by 30 October. Not agreed and not final.**
+**Percentages: the lead's starting proposal of 22 October 2026 (revised the same day after PR #94 merged and the private statement draft was written), for the three members to discuss and agree by 30 October. Not agreed and not final.**
 
 | Criterion | A Jingbo Chai | B Chengsi Li | C Yuwei Tao | Total |
 |---|---|---|---|---|
-| 1. Implementation of Stage 1 requirements and design | 55 | 25 | 20 | 100 |
-| 2. AI agent capabilities | 40 | 20 | 40 | 100 |
-| 3. Agile experience | 40 | 30 | 30 | 100 |
-| 4. Advanced technologies | 45 | 35 | 20 | 100 |
+| 1. Implementation of Stage 1 requirements and design | 60 | 20 | 20 | 100 |
+| 2. AI agent capabilities | 50 | 15 | 35 | 100 |
+| 3. Agile experience | 45 | 25 | 30 | 100 |
+| 4. Advanced technologies | 50 | 30 | 20 | 100 |
 
 Tasks and deliverables (starting points from repository records; each member replaces their own row with their own words and exact PR, commit and test links):
 
 | Member | Draft |
 |---|---|
-| A | A1 case lifecycle, customer backend, order investigation and fixed proposal ([docs/21](21-customer-flow.md), [docs/23](23-order-investigation.md), [docs/29](29-a105-fixed-proposal-runtime.md)); A2 approval admission, execution preparation, simulated return, label, PDF and notification ([docs/37](37-a202-approval-admission.md), [docs/39](39-a203-core-return-execution.md), [A2.06](a206-notification-outcome.md)); Founder decision HTTP boundary ([docs/40](40-founder-decision-http-boundary.md)); F.06 analytics ([docs/43](43-f06-analytics.md)); R.02 driver and demo mode ([docs/41](41-r02-end-to-end-evidence.md)); advisory Coordinator showcase (PR #94, if merged); Jira hosting; R.05 documents |
+| A | A1 case lifecycle, customer backend, order investigation and fixed proposal ([docs/21](21-customer-flow.md), [docs/23](23-order-investigation.md), [docs/29](29-a105-fixed-proposal-runtime.md)); A2 approval admission, execution preparation, simulated return, label, PDF and notification ([docs/37](37-a202-approval-admission.md), [docs/39](39-a203-core-return-execution.md), [A2.06](a206-notification-outcome.md)); Founder decision HTTP boundary ([docs/40](40-founder-decision-http-boundary.md)); F.06 analytics ([docs/43](43-f06-analytics.md)); R.02 driver and demo mode ([docs/41](41-r02-end-to-end-evidence.md)); advisory Coordinator showcase ([docs/44](44-coordinator-showcase.md), PR #94); Jira hosting; R.05 documents |
 | B | Web frontend: customer portal, Founder console, operations analytics page ([apps/web README](../apps/web/README.md), PR #60); [interactive demo walkthrough](35-b205-interactive-demo-walkthrough.md); live wiring per Issues #91, #95, #88 (state on the day) |
 | C | C1 grounding and citation checks ([experiments/c1_grounding_candidate](../experiments/c1_grounding_candidate)); C2 risk-review candidate ([README](../experiments/c2_risk_candidate/README.md)); E.01/E.09 evaluation preparation ([README](../experiments/evaluation_candidate/README.md)); [C's model chain](18-member-c-model-chain.md); PRs #17 and #61 (state on the day) |
 
