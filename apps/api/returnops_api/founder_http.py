@@ -1,4 +1,4 @@
-"""The four frozen Founder GET routes; no caller-selected authority or effects."""
+"""The five frozen Founder GET routes (F.05 reads, F.06 analytics); no caller-selected authority or effects."""
 from decimal import Decimal, InvalidOperation
 from fastapi import Request
 from starlette.concurrency import run_in_threadpool
@@ -16,6 +16,8 @@ def _query(request, operation):
         allowed |= {'kind', 'object_id', 'object_version'}
     elif operation == 'getFounderCase':
         allowed = set()
+    elif operation == 'getFounderAnalytics':
+        allowed = {'created_from', 'created_before', 'status'}
     result = {}
     for key, value in request.query_params.multi_items():
         if key not in allowed or key in result:
@@ -66,3 +68,7 @@ def register_founder_routes(app):
     @app.get('/v1/founder/cases/{case_id}/audit')
     async def audit(case_id: str, request: Request):
         return await dispatch(request, 'listCaseAudit', case_id)
+
+    @app.get('/v1/founder/analytics', operation_id='getFounderAnalytics')
+    async def analytics(request: Request):
+        return await dispatch(request, 'getFounderAnalytics')

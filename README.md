@@ -10,6 +10,27 @@
 
 # ReturnOps AU
 
+## F.06 Founder analytics read API - 22 October 2026 (Sydney)
+
+Owner A (`shuxiachai`, Jingbo Chai); reviewer C under docs/08. This notice
+covers work package F.06 only.
+
+- `GET /v1/founder/analytics` (`getFounderAnalytics`) is now registered by
+  default next to the four Founder reads: FOUNDER only, the Founder's own
+  store, read-only, one SELECT per response, strict `created_from` /
+  `created_before` / `status` validation and enforced count invariants. See
+  [docs/43](docs/43-f06-analytics.md) for the counting basis and the changes
+  B's frontend needs.
+- Proposal latency is Tier 0 (no samples, no percentiles): trusted start and
+  ready events remain the open E.01/E.09 item for C. Known proposal-step
+  failures (PROPOSAL_FAILED for the current input) count as failed; every
+  other case is unmeasured. docs/43 records a Tier 1 candidate for C's
+  review. The only proposer is the fixed synthetic one.
+- First CI result: pending. Contracts, docs/08/09, migrations and `apps/web`
+  are unchanged; no acceptance by C or any member is implied.
+
+AI-assisted implementation and metadata preparation; author shuxiachai.
+
 ## R.02 no-LLM end-to-end evidence - 22 October 2026 (Sydney)
 
 Owner A (`shuxiachai`, Jingbo Chai); designated human reviewer C (Yuwei Tao).

@@ -1,4 +1,4 @@
-"""F.05 Founder reads on F.03 current authority and the existing global fence."""
+"""F.05/F.06 Founder reads on F.03 current authority and the existing global fence."""
 from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
@@ -7,6 +7,7 @@ from .customer_service import ResponseResult
 from .customer_uow import CustomerUnitOfWork
 from .errors import FlowError, AcceptanceOutcomeUnknown
 from . import founder_queries as queries
+from .analytics_queries import analytics
 from .wire import validate
 
 
@@ -30,6 +31,8 @@ class FounderQueries:
         return current
 
     def read(self, operation, case_id=None, query=None):
+        if operation == 'getFounderAnalytics' and case_id is None:
+            return self._analytics(query)
         if operation not in {'listFounderCases', 'getFounderCase', 'listFounderCaseHistory', 'listCaseAudit'}:
             raise FlowError('FORBIDDEN')
         try:
@@ -63,6 +66,21 @@ class FounderQueries:
                             raise FlowError('UNAUTHENTICATED')
                 if snap['expires_at'] <= self.clock():
                     raise FlowError('INVALID_STATE')
+                uow.commit()
+                return ResponseResult(200, result)
+        except (SQLAlchemyError, AcceptanceOutcomeUnknown):
+            pass
+        raise FlowError() from None
+
+    def _analytics(self, query):
+        try:
+            # Aggregates write no snapshot/cursor, so the shared fence suffices.
+            with self.uow_factory(self.engine, write=False) as uow:
+                actor = self._authorize(uow, 'getFounderAnalytics', None)
+                query = query() if callable(query) else ({} if query is None else query)
+                result = analytics(uow, actor, query, self.clock())
+                if self._authorize(uow, 'getFounderAnalytics', None) != actor:
+                    raise FlowError('UNAUTHENTICATED')
                 uow.commit()
                 return ResponseResult(200, result)
         except (SQLAlchemyError, AcceptanceOutcomeUnknown):

@@ -107,4 +107,5 @@ def test_list_detail_audit_query_shapes_and_denied_operations(flow_engine, ident
             assert client.get(path, headers=headers).status_code == 422
         assert client.get('/v1/founder/cases?limit=1e0', headers=headers).status_code == 200
         assert client.post('/v1/founder/cases/' + case_id + '/decisions', headers=headers, json={}).status_code == 404
-        assert client.get('/v1/founder/analytics', headers=headers).status_code == 404
+        # F.06 registers analytics; a Founder read of it now answers 200.
+        assert client.get('/v1/founder/analytics', headers=headers).status_code == 200

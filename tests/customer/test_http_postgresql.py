@@ -139,7 +139,8 @@ def test_only_frozen_customer_founder_reads_and_health_are_registered(client):
        ('GET','/v1/evidence/{evidence_id}/content'),('POST','/v1/cases'),('GET','/v1/cases/{case_id}'),
        ('GET','/v1/cases/{case_id}/history'),('POST','/v1/cases/{case_id}/clarifications'),
        ('GET','/v1/founder/cases'),('GET','/v1/founder/cases/{case_id}'),
-       ('GET','/v1/founder/cases/{case_id}/history'),('GET','/v1/founder/cases/{case_id}/audit')}
+       ('GET','/v1/founder/cases/{case_id}/history'),('GET','/v1/founder/cases/{case_id}/audit'),
+       ('GET','/v1/founder/analytics')}  # F.06 read-only analytics GET, registered by default
 
 def test_maximum_legal_escaped_clarification_body_is_accepted(client,flow_engine):
     from returnops_domain.customer_uow import CustomerUnitOfWork
