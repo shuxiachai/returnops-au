@@ -366,7 +366,8 @@ class GroupingTests(unittest.TestCase):
         jobs = dict(re.findall(r"^  ([a-z][a-z-]+):\n(.*?)(?=^  [a-z][a-z-]+:\n|\Z)",
                                text.split("\njobs:\n", 1)[1], re.M | re.S))
         self.assertEqual(set(jobs), {"offline-contract-models", "environment-plan",
-                                     "environment-checks", "end-to-end-no-llm", "api-environment"})
+                                     "environment-checks", "end-to-end-no-llm", "api-environment",
+                                     "web-frontend"})
         matrix = jobs["environment-checks"]
         self.assertIn("    needs: environment-plan\n", matrix)
         self.assertIn("      fail-fast: false\n", matrix)
@@ -404,6 +405,14 @@ class GroupingTests(unittest.TestCase):
         self.assertIn("        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2\n", r02)
         self.assertIn("          path: ${{ runner.temp }}/r02-run\n", r02)
         self.assertNotIn("private", r02.split("upload-artifact", 1)[1])
+        web = jobs["web-frontend"]
+        # B's frontend checks run beside the gate: no needs, nothing depends on them, no database.
+        self.assertNotIn("    needs:", web)
+        self.assertNotIn("web-frontend", gate)
+        self.assertNotIn("    services:", web)
+        self.assertIn("    timeout-minutes: 15\n", web)
+        self.assertIn("npm ci --prefix apps/web --ignore-scripts --no-audit --no-fund", web)
+        self.assertLess(web.index("npm run type-check"), web.index("npm run build"))
 
 
 PROGRESS_SPEC = importlib.util.spec_from_file_location(

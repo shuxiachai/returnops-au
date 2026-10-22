@@ -12,6 +12,14 @@ services. UNKNOWN gets one same-key recover/reconcile call, DENIED stops, and
 nothing is retried with a replacement key. run-receipt.json never holds tokens,
 keys, credentials or local paths.
 
+Demo mode (--identities, optionally --api-port and --keep-api) is for the live
+demo only, not CI evidence: it reuses the identities written by
+`returnops_api.demo provision` instead of provisioning r02_* identities, requires
+the chosen store to have no case, no investigation service and no lifecycle
+authority yet, and can keep the API child running on a fixed loopback port after
+the receipt is written so the web frontend can read the case. Without these
+options the behaviour is unchanged.
+
 docs/08 R.02 and Gate 1; FR-009..FR-012; NFR-001/002/003/004/006/007/008;
 docs/diagrams/member-a governed-execution-activity and exact-scope-sequence.
 """
@@ -70,6 +78,7 @@ from returnops_domain.wire import validate
 
 import api_child
 import catalogue
+import demo_identities
 import grants
 import scenario
 
@@ -91,6 +100,18 @@ LIMITATIONS = (
     'The controlled PASS receiver + risk stub is the fixed risk result of Gate 1, not an independent risk assessment.',
     'A PASSED receipt or a green CI job is not human acceptance; R.02 still needs its designated reviewer.',
 )
+DEMO_LIMITATIONS = (
+    'Demo mode: identities, sessions and the signing key come from returnops_api.demo provision (--identities); '
+    'this run supports the live demo and is not CI evidence.',
+    'Demo mode: the database may hold other cases (--allow-existing-data); only the chosen store was required to '
+    'have no case, investigation service or lifecycle authority, and the store keeps the cups catalogue and the '
+    'grants inserted by this run.',
+)
+KEEP_API_LIMITATION = ('Demo mode: the API child kept running after this receipt was written (--keep-api); '
+                       'later requests to it are not part of this receipt.')
+# Demo sessions come from demo.py (899 s from provisioning): at step 0 the
+# remaining window must still cover the 300 s preview plus this margin.
+DEMO_SESSION_MARGIN_SECONDS = 120
 RESULT_FIELDS = ('safe_code', 'audit', 'work_id', 'operation_id', 'operation_state', 'provider_fact_status',
                  'preparation_id', 'artifact_work_id', 'label_evidence_id', 'event_id', 'source_record_id',
                  'notification_work_id', 'notification_id', 'case_version')
@@ -192,6 +213,33 @@ def history_ordered(firsts):
     return None not in firsts and all(a < b for a, b in zip(firsts, firsts[1:]))
 
 
+DEMO_STORE_CHECKS = (('store_case_rows_before', 'STORE_HAS_CASES'),
+                     ('store_investigation_services_before', 'STORE_INVESTIGATION_CONFIGURED'),
+                     ('store_lifecycle_authorities_before', 'STORE_AUTHORITIES_EXIST'),
+                     ('pending_work_before', 'FOREIGN_PENDING_WORK'))
+
+
+def clean_refusal(clean, demo=False):
+    """Step 0 refusal code for the clean-environment counts, or None.
+
+    Both modes: case rows need --allow-existing-data, and existing r02_* identities
+    always refuse. Demo mode adds checks that --allow-existing-data never relaxes:
+    the chosen store has no case, no investigation service and no lifecycle
+    authority (configuring the cups catalogue would otherwise pause that store's
+    builtin-catalogue investigations with CONFIGURATION_CHANGED, and the plain grant
+    inserts would collide), and no case has PENDING or RUNNING intake or
+    investigation work that the in-process processors could claim instead."""
+    if clean['case_rows_before'] and not clean['allow_existing_data']:
+        return 'EXISTING_CASE_ROWS'
+    if clean['driver_principals_before']:
+        return 'DRIVER_IDENTITIES_EXIST'
+    if demo:
+        for key, code in DEMO_STORE_CHECKS:
+            if clean[key]:
+                return code
+    return None
+
+
 def render_receipt(data, forbidden):
     """Serialize, refusing 'Bearer' and every forbidden value, raw or JSON-escaped."""
     content = json.dumps(data, indent=2, sort_keys=True, ensure_ascii=True, allow_nan=False) + '\n'
@@ -254,24 +302,37 @@ def source_trees():
 
 
 class Run:
-    def __init__(self, output, *, keep_api_log=False, allow_existing_data=False):
+    def __init__(self, output, *, keep_api_log=False, allow_existing_data=False, identities=None, api_port=None,
+                 keep_api=False):
         self.output, self.keep_api_log, self.allow_existing_data = output, keep_api_log, allow_existing_data
-        self.engine = self.private = self.http = self.auth = self.case = None
+        self.identities_dir, self.api_port, self.keep_api = identities, api_port, keep_api
+        self.engine = self.private = self.http = self.auth = self.case = self.ids = None
+        self.store, self.people, self.receipt_written = STORE, dict(PEOPLE), False
         # Credentials withhold a log and refuse a receipt; local directories are
         # replaced in a kept log and refused in a receipt.
         self.tokens, self.secrets, self.locations, self.step_number = {}, [], [], 0
         self.locate('<output>', output)
+        if identities is not None:
+            self.locate('<identities>', identities)
         try:
             self.locate('<home>', Path.home())
         except RuntimeError:
             pass
+        options = dict(keep_api_log=keep_api_log, allow_existing_data=allow_existing_data)
+        if api_port is not None:
+            options['api_port'] = api_port
+        limitations = list(LIMITATIONS)
         self.data = dict(format='r02-run-receipt/v1', work_package='R.02', gate='Gate 1 (no LLM)', route='C',
             requirements=['FR-009', 'FR-010', 'FR-011', 'FR-012', 'NFR-001', 'NFR-002', 'NFR-003', 'NFR-004',
                           'NFR-006', 'NFR-007', 'NFR-008'],
             models=['governed-execution-activity.puml', 'exact-scope-sequence.puml'],
-            result='RUNNING', started_at=_text(_now()),
-            options=dict(keep_api_log=keep_api_log, allow_existing_data=allow_existing_data),
-            steps=[], checks={}, produced_by={}, time_budget={}, limitations=list(LIMITATIONS))
+            result='RUNNING', started_at=_text(_now()), options=options,
+            steps=[], checks={}, produced_by={}, time_budget={}, limitations=limitations)
+        if identities is not None:
+            options.update(identities=True, keep_api=keep_api)
+            limitations.extend(DEMO_LIMITATIONS + ((KEEP_API_LIMITATION,) if keep_api else ()))
+            self.data['demo_mode'] = dict(enabled=True, evidence=False, identities_source='returnops_api.demo provision',
+                                          keep_api=keep_api, api_port=api_port)
 
     # -- recording -----------------------------------------------------------------
     def locate(self, placeholder, path):
@@ -359,7 +420,7 @@ class Run:
                           old.history.c.kind.in_(('DECISION', 'APPROVAL')))
 
     def grant(self, step, name, function):
-        self.record(step, 'grant_' + name, 'INSERTED', rows=function(self.engine, STORE))
+        self.record(step, 'grant_' + name, 'INSERTED', rows=function(self.engine, self.store))
 
     def founder_case(self, step):
         return self.expect(step, 'founder_case_read', self.http.get('/v1/founder/cases/' + self.case,
@@ -404,7 +465,35 @@ class Run:
             raise Stop('PREVIEW_WINDOW_EXPIRED', before=name)
 
     # -- steps ---------------------------------------------------------------------
+    def load_identities(self):
+        """Demo mode: the demo.py provision files; their secrets are screened from here on."""
+        try:
+            ids = demo_identities.load(self.identities_dir)
+        except demo_identities.IdentitiesError as error:
+            raise Refused(error.code) from None
+        self.secrets.extend(ids.secret_values())
+        self.ids, self.store, self.people = ids, ids.store_id, dict(ids.people)
+        self.data['identities'] = dict(store_id=self.store, **self.people)
+
+    def registered(self):
+        """Demo mode, read-only: the files' principals and sessions are the registered rows."""
+        ids = self.ids
+        principal_ids = tuple(ids.people.values())
+        session_ids = tuple(row['session_id'] for row in ids.sessions.values())
+        principals = {row['principal_id']: row for row in self.rows(old.principals,
+                      old.principals.c.principal_id.in_(principal_ids))}
+        sessions = {row['session_id']: row for row in self.rows(old.sessions, old.sessions.c.session_id.in_(session_ids))}
+        expected = {row['principal_id']: row for row in ids.principals.values()}
+        if set(principals) != set(principal_ids) or set(sessions) != set(session_ids) or any(
+                principals[key][name] != row[name] for key, row in expected.items()
+                for name in ('role', 'store_id', 'enabled')) or any(
+                sessions[row['session_id']][name] != row[name] for row in ids.sessions.values()
+                for name in ('principal_id', 'issued_at', 'not_before', 'expires_at', 'revoked')):
+            raise Refused('IDENTITIES_NOT_REGISTERED')
+
     def environment(self):
+        if self.identities_dir is not None:
+            self.load_identities()
         try:
             raw = Settings.from_environment().database_url.get_secret_value()
         except ConfigurationError:
@@ -441,45 +530,70 @@ class Run:
             raise Refused('ALEMBIC_HEAD_MISMATCH')
         cases = self.count(old.case_heads)
         known = self.count(old.principals, old.principals.c.principal_id.in_(tuple(PEOPLE.values())))
-        self.data['clean_environment'] = dict(case_rows_before=cases, driver_principals_before=known,
-                                              allow_existing_data=self.allow_existing_data)
-        if cases and not self.allow_existing_data:
-            raise Refused('EXISTING_CASE_ROWS')
-        if known:
-            raise Refused('DRIVER_IDENTITIES_EXIST')
+        clean = self.data['clean_environment'] = dict(case_rows_before=cases, driver_principals_before=known,
+                                                      allow_existing_data=self.allow_existing_data)
+        if self.ids is not None:
+            busy = ('PENDING', 'RUNNING')
+            clean.update(
+                store_case_rows_before=self.count(old.case_heads, old.case_heads.c.store_id == self.store),
+                store_investigation_services_before=self.count(inv.services, inv.services.c.store_id == self.store),
+                store_lifecycle_authorities_before=self.count(life.authorities, life.authorities.c.store_id == self.store),
+                pending_work_before=self.count(old.intake_work, old.intake_work.c.state.in_(busy))
+                + self.count(inv.work, inv.work.c.state.in_(busy)),
+                session_seconds_remaining=int(self.ids.expires_at - time.time()))
+        code = clean_refusal(clean, demo=self.ids is not None)
+        if code:
+            raise Refused(code)
+        if self.ids is not None:
+            self.registered()
+            if clean['session_seconds_remaining'] <= PROFILE['ttl_seconds'] + DEMO_SESSION_MARGIN_SECONDS:
+                raise Refused('IDENTITY_SESSION_WINDOW_TOO_SHORT')
         self.record(0, 'environment', 'OK')
 
     def provision(self):
         self.step_number = 1
-        now = int(time.time())
-        principals = [dict(principal_id=principal, role='FOUNDER' if name == 'founder' else 'CUSTOMER',
-                           store_id=STORE, enabled=True) for name, principal in PEOPLE.items()]
-        sessions = {name: dict(session_id=identifier('session'), principal_id=principal, issued_at=now - 1,
-                               not_before=now - 1, expires_at=now + SESSION_SECONDS, revoked=False)
-                    for name, principal in PEOPLE.items()}
-        key = secrets.token_bytes(48)
-        self.auth = AuthConfig(ISSUER, AUDIENCE, key, leeway_seconds=0)
-        self.tokens = {name: jwt.encode(dict(iss=ISSUER, aud=AUDIENCE, sub=row['principal_id'], jti=row['session_id'],
-                       iat=row['issued_at'], nbf=row['not_before'], exp=row['expires_at']), key, algorithm='HS256')
-                       for name, row in sessions.items()}
-        self.secrets.extend([*self.tokens.values(), base64.b64encode(key).decode('ascii'), key.hex()])
+        if self.ids is None:
+            now = int(time.time())
+            principals = [dict(principal_id=principal, role='FOUNDER' if name == 'founder' else 'CUSTOMER',
+                               store_id=STORE, enabled=True) for name, principal in PEOPLE.items()]
+            sessions = {name: dict(session_id=identifier('session'), principal_id=principal, issued_at=now - 1,
+                                   not_before=now - 1, expires_at=now + SESSION_SECONDS, revoked=False)
+                        for name, principal in PEOPLE.items()}
+            key = secrets.token_bytes(48)
+            self.auth = AuthConfig(ISSUER, AUDIENCE, key, leeway_seconds=0)
+            self.tokens = {name: jwt.encode(dict(iss=ISSUER, aud=AUDIENCE, sub=row['principal_id'],
+                           jti=row['session_id'], iat=row['issued_at'], nbf=row['not_before'], exp=row['expires_at']),
+                           key, algorithm='HS256') for name, row in sessions.items()}
+            self.secrets.extend([*self.tokens.values(), base64.b64encode(key).decode('ascii'), key.hex()])
+            issued, expires = now - 1, now + SESSION_SECONDS
+        else:
+            # Demo mode: the registered demo.py identities; nothing is provisioned here.
+            ids = self.ids
+            self.auth = AuthConfig(ids.issuer, ids.audience, ids.signing_key, leeway_seconds=0)
+            self.tokens = dict(ids.tokens)
+            issued, expires = ids.issued_at, ids.expires_at
         self.founder_bearer = 'Bearer ' + self.tokens['founder']
-        self.session_expires = datetime.fromtimestamp(now + SESSION_SECONDS, timezone.utc)
-        self.data['time_budget'].update(session_issued_at=_text(datetime.fromtimestamp(now - 1, timezone.utc)),
+        self.session_expires = datetime.fromtimestamp(expires, timezone.utc)
+        self.data['time_budget'].update(session_issued_at=_text(datetime.fromtimestamp(issued, timezone.utc)),
                                         session_expires_at=_text(self.session_expires))
-        # Credentials are written before registration, as demo.py does.
-        self.private = api_child.private_directory()
+        self.private = api_child.private_directory()  # demo mode: only the API child log lives here
         self.locate('<private>', self.private)
-        self.auth_file = api_child.write_auth_file(self.private, ISSUER, AUDIENCE, key)
-        TrustedRegistry(self.engine).provision(principals, list(sessions.values()))
-        self.cups = catalogue.load(STORE, CUSTOMER_ONE)
-        (self.output / CATALOGUE_FILE).write_bytes(catalogue.document_bytes(STORE, CUSTOMER_ONE))
+        if self.ids is None:
+            # Credentials are written before registration, as demo.py does.
+            self.auth_file = api_child.write_auth_file(self.private, ISSUER, AUDIENCE, key)
+            TrustedRegistry(self.engine).provision(principals, list(sessions.values()))
+        else:
+            self.auth_file = self.ids.auth_file  # read by the API child's load_private_auth_config()
+        owner = self.people['customer_one']
+        self.cups = catalogue.load(self.store, owner)
+        (self.output / CATALOGUE_FILE).write_bytes(catalogue.document_bytes(self.store, owner))
         metadata = self.cups.metadata
-        self.data['identities'] = dict(store_id=STORE, **PEOPLE)
+        self.data['identities'] = dict(store_id=self.store, **self.people)
         self.data['catalogue'] = dict(file=CATALOGUE_FILE, provider_id=metadata.provider_id,
             dataset_version=metadata.dataset_version, provider_version=metadata.provider_version,
             dataset_sha256=metadata.dataset_sha256)
-        rows = grants.order_investigation(self.engine, STORE, self.cups) + grants.fixed_proposal(self.engine, STORE)
+        rows = (grants.order_investigation(self.engine, self.store, self.cups)
+                + grants.fixed_proposal(self.engine, self.store))
         self.record(1, 'provision', 'OK', grants=rows)
 
     def customer_create(self):
@@ -616,7 +730,7 @@ class Run:
                    and work[0]['epoch'] == 0 and all(work[0][name] is None for name in
                    ('claim_id', 'claimed_case_version', 'lease_expires_at', 'authority_revision')))
         self.check('zero_effects_after_approval', self.count(life.effects, life.effects.c.case_id == self.case) == 0)
-        self.check('no_execution_grant_after_approval', self.count(life.authorities, life.authorities.c.store_id == STORE,
+        self.check('no_execution_grant_after_approval', self.count(life.authorities, life.authorities.c.store_id == self.store,
                    life.authorities.c.purpose == 'EXECUTION', life.authorities.c.enabled.is_(True)) == 0)
         if not work:
             raise Stop('EXECUTION_WORK_MISSING')
@@ -723,7 +837,7 @@ class Run:
         latest = max(records['NOTIFICATION'], key=lambda row: row['recorded_sequence'], default={}).get('content', {})
         self.check('notification_sent_return_created', latest.get('status') == 'SENT'
                    and latest.get('outcome') == 'RETURN_CREATED')
-        returned = self.rows(return_ledger, return_ledger.c.store_id == STORE)
+        returned = self.rows(return_ledger, return_ledger.c.store_id == self.store)
         self.check('return_ledger_mock_provider', len(returned) == 1 and returned[0]['status'] == 'SUCCEEDED'
                    and returned[0]['provider_id'] == RETURN_CONFIG['provider_id']
                    and returned[0]['config_id'] == RETURN_CONFIG['config_id'])
@@ -744,35 +858,65 @@ class Run:
             self.provision()
             self.step_number = 2
             log = (self.output if self.keep_api_log else self.private) / API_LOG
-            with api_child.api_process(self.auth_file, log) as api:
+            with api_child.api_process(self.auth_file, log, **self.port_option()) as api:
                 self.record(2, 'api_child', 'READY', loopback=api.url.startswith('http://127.0.0.1:'),
                             composition=api.composition, environment_names=list(api.environment_names))
-                with httpx.Client(base_url=api.url, timeout=30, trust_env=False) as http:
-                    self.http = http
-                    self.customer_create()
-                    self.processors()
-                    self.review_and_preview()
-                    self.decisions()
-                    self.execution_chain()
-                    self.read_back()
-            checks = self.data['checks']
-            self.data['result'] = 'PASSED' if checks and all(checks.values()) else 'FAILED'
-        except Refused as error:
-            self.data.update(result='REFUSED', stop=dict(code=error.code, step=self.step_number))
-        except Stop as error:
-            self.data.update(result='FAILED', stop=dict(code=error.code, step=self.step_number, **error.detail))
-        except api_child.ApiChildError as error:
-            self.data.update(result='FAILED', stop=dict(code=str(error), step=self.step_number))
-        except Exception as error:  # no message or local value: they may carry SQL or connection detail
-            self.data.update(result='FAILED', stop=dict(code='UNEXPECTED_ERROR', step=self.step_number,
-                                                        error_type=type(error).__name__,
-                                                        error_frames=error_frames(error)))
+                try:
+                    with httpx.Client(base_url=api.url, timeout=30, trust_env=False) as http:
+                        self.http = http
+                        self.customer_create()
+                        self.processors()
+                        self.review_and_preview()
+                        self.decisions()
+                        self.execution_chain()
+                        self.read_back()
+                    checks = self.data['checks']
+                    self.data['result'] = 'PASSED' if checks and all(checks.values()) else 'FAILED'
+                except Exception as error:
+                    if not self.keep_api:
+                        raise  # default: the child is stopped before the failure is recorded, as before
+                    self.conclude(error)
+                if self.keep_api:  # demo mode: receipt first, then keep the child until Ctrl+C
+                    self.data['finished_at'] = _text(_now())
+                    self.publish()
+                    self.hold(api)
+        except Exception as error:
+            self.conclude(error)
         finally:
             self.finish()
         return self.data['result']
 
+    def port_option(self):
+        return {} if self.api_port is None else dict(port=self.api_port)
+
+    def conclude(self, error):
+        """Record a failure: Refused, Stop, ApiChildError or an unexpected exception."""
+        if isinstance(error, Refused):
+            self.data.update(result='REFUSED', stop=dict(code=error.code, step=self.step_number))
+        elif isinstance(error, Stop):
+            self.data.update(result='FAILED', stop=dict(code=error.code, step=self.step_number, **error.detail))
+        elif isinstance(error, api_child.ApiChildError):
+            self.data.update(result='FAILED', stop=dict(code=str(error), step=self.step_number))
+        else:  # no message or local value: they may carry SQL or connection detail
+            self.data.update(result='FAILED', stop=dict(code='UNEXPECTED_ERROR', step=self.step_number,
+                                                        error_type=type(error).__name__,
+                                                        error_frames=error_frames(error)))
+
+    def hold(self, api):
+        """Demo mode --keep-api: the receipt is written; print how to reach and stop the API."""
+        print('R.02 demo mode: driver result ' + self.data['result'] + ' (see ' + RECEIPT + ').')
+        if self.case:
+            print('Case ID: ' + self.case)
+        print('The API child keeps running at ' + api.url + ' (loopback only; no worker; Founder decision route on).')
+        print('Open the web frontend against it (tools/r02/README.md, "Demo mode"). Press Ctrl+C to stop the API.')
+        sys.stdout.flush()
+        reason = api_child.hold(api)
+        print('R.02 demo mode: stopping the API child (' + ('Ctrl+C' if reason == 'INTERRUPTED' else
+                                                          'it exited by itself') + ').')
+
     def finish(self):
-        self.data['finished_at'] = _text(_now())
+        if not self.receipt_written:
+            self.data['finished_at'] = _text(_now())
         if self.engine is not None:
             self.engine.dispose()
         log = self.output / API_LOG
@@ -786,8 +930,18 @@ class Run:
                 self.data.update(api_log=API_LOG, api_log_directories_replaced=replaced)
         if self.private is not None:
             shutil.rmtree(self.private, ignore_errors=True)
-            self.data['private_directory_removed'] = not self.private.exists()
-        # A receipt that would contain a forbidden value is replaced by a smaller one.
+            removed = not self.private.exists()
+            if self.receipt_written:  # --keep-api: the receipt was written before the API stopped
+                if not removed:
+                    print('R.02 demo mode: the private temporary directory could not be removed.', file=sys.stderr)
+                return
+            self.data['private_directory_removed'] = removed
+        if not self.receipt_written:
+            self.publish()
+
+    def publish(self):
+        """Write run-receipt.json once; a form that would contain a forbidden value is replaced by a smaller one."""
+        self.receipt_written = True
         stop = self.data.get('stop', {}).get('code')
         reduced = dict(format='r02-run-receipt/v1', work_package='R.02', result='FAILED',
                        stop=dict(code='RECEIPT_REDACTION_FAILED', original_result=self.data['result'],
@@ -812,17 +966,49 @@ def parser():
     value.add_argument('--keep-api-log', action='store_true', help='Keep the API child log in the output directory.')
     value.add_argument('--allow-existing-data', action='store_true',
                        help='Run even if case rows already exist (the default requires a clean database).')
+    demo = value.add_argument_group('demo mode (live demo only, not CI evidence)')
+    demo.add_argument('--identities', metavar='DIR',
+                      help='Reuse auth.json and sessions.json written by "python -m returnops_api.demo provision '
+                           '--private-dir DIR" instead of provisioning r02_* identities. The store must have no case, '
+                           'investigation service or lifecycle authority yet (provision it without '
+                           '--order-investigation and --fixed-proposal); other stores\' cases need '
+                           '--allow-existing-data.')
+    demo.add_argument('--api-port', type=int, metavar='N',
+                      help='Start the API child on 127.0.0.1:N (1024-65535) instead of an ephemeral port.')
+    demo.add_argument('--keep-api', action='store_true',
+                      help='After the chain completes or fails, write the receipt and keep the API child running '
+                           'until Ctrl+C. Requires --identities; not combinable with --keep-api-log.')
     return value
 
 
+def parse_args(argv=None):
+    value = parser()
+    args = value.parse_args(argv)
+    if args.api_port is not None and not 1024 <= args.api_port <= 65535:
+        value.error('--api-port must be an unprivileged port between 1024 and 65535.')
+    if args.keep_api and args.identities is None:
+        value.error('--keep-api requires --identities (the default identities are never shown, so no one could '
+                    'sign in to a kept API).')
+    if args.keep_api and args.keep_api_log:
+        value.error('--keep-api and --keep-api-log cannot be combined: the receipt is written before the API stops.')
+    return args
+
+
 def main(argv=None):
-    args = parser().parse_args(argv)
+    args = parse_args(argv)
     output = Path(args.output).resolve()
+    identities = None if args.identities is None else Path(args.identities).resolve()
+    if identities is not None and (output == identities or identities in output.parents
+                                   or output in identities.parents):
+        print('Refusing an output directory that contains, or is inside, the private identities directory.',
+              file=sys.stderr)
+        return 2
     output.mkdir(parents=True, exist_ok=True)
     if (output / RECEIPT).exists():
         print('Refusing to overwrite an earlier run receipt; choose a new output directory.', file=sys.stderr)
         return 2
-    result = Run(output, keep_api_log=args.keep_api_log, allow_existing_data=args.allow_existing_data).execute()
+    result = Run(output, keep_api_log=args.keep_api_log, allow_existing_data=args.allow_existing_data,
+                 identities=identities, api_port=args.api_port, keep_api=args.keep_api).execute()
     print('R.02 driver result: ' + result + ' (see ' + RECEIPT + ').')
     return {'PASSED': 0, 'REFUSED': 2}.get(result, 1)
 
