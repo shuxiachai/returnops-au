@@ -40,6 +40,7 @@ import {
   formatCategory,
   formatActor,
 } from '../utils/formatters';
+import { AdvisoryFactsCard } from '../components/AdvisoryFactsCard';
 
 export const FounderConsole: React.FC = () => {
   const [activeSubTab, setActiveSubTab] = useState<'queue' | 'analytics'>('queue');
@@ -791,6 +792,10 @@ export const FounderConsole: React.FC = () => {
                     <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 text-center text-xs text-slate-400">
                       No order snapshot projected for this case.
                     </div>
+                  )}
+
+                  {caseDetail.facts && (
+                    <AdvisoryFactsCard facts={caseDetail.facts} isMock={isMockMode()} />
                   )}
                 </div>
               )}
