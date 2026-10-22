@@ -10,6 +10,52 @@
 
 # ReturnOps AU
 
+## R.02 no-LLM end-to-end evidence - 22 October 2026 (Sydney)
+
+Owner A (`shuxiachai`, Jingbo Chai); designated human reviewer C (Yuwei Tao).
+This notice covers work package R.02 only; the dated notices below keep their
+own scope.
+
+- [PR #89](https://github.com/shuxiachai/returnops-au/pull/89) adds the private
+  driver [`tools/r02`](tools/r02/README.md) and a separate CI job,
+  `end-to-end-no-llm`. The driver starts the real API itself (route C: an API
+  child composed with `create_app(...)`) and drives one synthetic cups case:
+  customer HTTP case creation, fixed proposal, controlled PASS receiver + risk
+  stub, Founder HTTP approval after negative tests, the private mock
+  return/label/PDF chain and a CORE_MOCK notification, then Founder read-back of
+  history and audit. `main.py`, `demo.py` and the installed packages are
+  unchanged.
+- First actual result: [run 39634415393](https://github.com/shuxiachai/returnops-au/actions/runs/39634415393)
+  on PR head `510e1acd`, job `end-to-end-no-llm` success, receipt `PASSED` with
+  32 of 32 checks true and no recovery path used; all 12 jobs of that run
+  succeeded. Timings, the receipt format and each check are recorded in
+  [docs/41](docs/41-r02-end-to-end-evidence.md).
+- PR #78 (A2.07) was squash-merged into main on 22 October 2026 as
+  `0758696681cc706fda14ba378b7baa8e8c6580b3`. The lead assigned the driver and
+  its CI trace to A2.07's "complete fixed-proposal execution trace" item; R.02's
+  formal evidence is the CI output of `end-to-end-no-llm`.
+
+**Limitations:** the API is composed by the driver, not started by
+`demo.py serve`, and the image default CMD is not exercised; intake,
+investigation and the fixed proposal run in the driver process; Docker evidence
+is still only the image build and import probe, not a deployment proof; the
+controlled PASS receiver + risk stub is Gate 1's fixed risk result, not an
+independent risk assessment; fault injection of UNKNOWN/REPLAYED paths and
+Windows permissions are not covered.
+
+**Exception:** on 22 October 2026 the lead recorded a one-time exception: R.02
+implementation started before A2.07's designated human review by C, because of
+the Stage 2 source deadline (1 November 2026, 23:59) and because no production
+code was changed. E.10 remains a finish dependency of R.02; its static
+[coverage map](docs/42-e10-coverage-map.md) is prepared for C and is not an
+acceptance. The frozen work packages in docs/08 are unchanged.
+
+**Pending:** C's designated human review of A2.06, A2.07 and R.02 remains the
+acceptance prerequisite and has not taken place. A `PASSED` receipt, a green CI
+job or a merge is not acceptance, and no Jira status is changed.
+
+AI-assisted implementation and metadata preparation; author shuxiachai.
+
 ## C handoff adopted — 20 October 2026 (Sydney)
 
 This dated receipt supersedes the older C **current-status** statements below;
