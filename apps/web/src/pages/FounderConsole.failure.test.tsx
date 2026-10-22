@@ -175,7 +175,7 @@ describe('FounderConsole failure and live-mode paths', () => {
     expect(document.body.textContent).not.toMatch(/NaN/);
   });
 
-  it('shows an audit failure and never renders the integrity-validated banner', async () => {
+  it('shows an audit failure and never renders the recorded-events banner', async () => {
     vi.mocked(listFounderCaseAudit).mockRejectedValue(
       new ApiError(503, 'audit store unavailable', 'AUDIT_UNAVAILABLE')
     );
@@ -185,7 +185,7 @@ describe('FounderConsole failure and live-mode paths', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Tamper-Evident Audit Chain/i }));
 
     expect(await screen.findByText(/Audit chain retrieval failed/i)).toBeInTheDocument();
-    expect(screen.queryByText(/Cryptographic Audit Chain Integrity Validated/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Recorded Audit Events:/i)).not.toBeInTheDocument();
   });
 
   it('keeps Founder decisions and analytics explicitly unavailable in live mode', async () => {

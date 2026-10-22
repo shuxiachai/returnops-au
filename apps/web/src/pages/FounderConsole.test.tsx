@@ -86,7 +86,7 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText(/Cryptographic Audit Chain Integrity Validated/i)
+        screen.getByText(/Recorded Audit Events:/i)
       ).toBeInTheDocument();
       expect(screen.getByText(/CASE_CREATED/i)).toBeInTheDocument();
     });
@@ -283,8 +283,10 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
     );
 
     expect(
-      await screen.findByText(/Cryptographic Audit Chain Integrity Validated/i)
+      await screen.findByText(/Recorded Audit Events:/i)
     ).toBeInTheDocument();
+    // The banner must not claim verification it does not perform.
+    expect(screen.getByText(/This view does not recompute or verify the chain\./i)).toBeInTheDocument();
     // The whole closure of the demo case must be present, not just a summary row.
     expect(screen.getByText(/#5 CASE_COMPLETED/i)).toBeInTheDocument();
     expect(screen.getByText(/#3 FOUNDER_APPROVED/i)).toBeInTheDocument();

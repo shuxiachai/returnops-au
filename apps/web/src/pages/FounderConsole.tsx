@@ -823,10 +823,10 @@ export const FounderConsole: React.FC = () => {
                       </div>
                     </div>
                   ) : auditEvents.length > 0 ? (
-                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 text-xs flex items-center space-x-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 text-xs flex items-center space-x-2">
+                      <FileText className="w-4 h-4 text-slate-500 flex-shrink-0" />
                       <span>
-                        Cryptographic Audit Chain Integrity Validated: Every transition is bound by SHA-256 hash pointer.
+                        Recorded Audit Events: each event shows its recorded SHA-256 hash and, where present, its previous-hash link. This view does not recompute or verify the chain.
                       </span>
                     </div>
                   ) : (
