@@ -112,6 +112,8 @@ No checkbox is pre-filled by this preparation. The last deployment rehearsal and
 upload checks occur against the final submission candidate, not today's partial
 prototype. Actual video production remains with the team/user.
 
+R.05 working documents (22 October 2026): [demo script](45-stage2-demo-script.md), [Gate 2 roadmap](46-gate2-roadmap.md) and [submission runbook](47-stage2-submission-runbook.md); they check no box above.
+
 ## Contribution working table — unfilled, not for submission yet
 
 | Criterion | Jingbo Chai (A) | Chengsi Li (B) | Yuwei Tao (C) | Required final total |
