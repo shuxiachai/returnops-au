@@ -8,7 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from .settings import Settings
 
 
-EXPECTED_SCHEMA_REVISION = "0013_label_artifact_result"
+EXPECTED_SCHEMA_REVISION = "0014_notification_delivery"
 
 
 def build_engine(settings: Settings) -> Engine:

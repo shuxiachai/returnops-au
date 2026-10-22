@@ -12,7 +12,7 @@ from .approval_admission_sources import session_bounds, check_session_time, chec
 from .execution_preparation_sources import source_closure
 from .founder_integrity import CaseProof, read_revision
 from .lifecycle_effects import fingerprint
-from .lifecycle_schema import LABEL, LABEL_VERSIONS, ARTIFACT, version
+from .lifecycle_schema import LABEL, LABEL_VERSIONS, ARTIFACT, ARTIFACT_VERSIONS, version
 from .lifecycle_sources import Sources, authority
 from .lifecycle_state import current, reject
 from .manual_target import one
@@ -142,7 +142,7 @@ def closure(uow, case_id):
 def full_chain(uow, actor, head, work_id, original_key):
     from .return_execution_tables import controls as returns
     from .execution_chain_sources import return_continuation, historical_bridge
-    if version(uow.connection) == ARTIFACT:
+    if version(uow.connection) in ARTIFACT_VERSIONS:
         from .execution_artifact_chain_sources import return_continuation
     returned = one(uow, returns, execution_work_id=work_id)
     root = return_continuation(uow, actor, head, returned, original_key)

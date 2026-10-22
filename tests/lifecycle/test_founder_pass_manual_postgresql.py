@@ -523,6 +523,8 @@ def test_PMP05_original_key_is_read_only_and_changed_request_conflicts(flow_engi
 
 
 @pytest.mark.parametrize('changed', ['FAILED', 'PENDING', 'SENT'])
+# Historical v1 synthetic delivery compatibility; actual v2 delivery has separate oracles.
+@pytest.mark.parametrize('flow_engine',['0013_label_artifact_result'],indirect=True)
 def test_PMP07_legal_later_notification_preserves_original_receipt(flow_engine, identities, enabled, request, changed):
     from pass_manual_helpers import provision_notification
     from synthetic_sources import notify
@@ -553,6 +555,8 @@ def test_PMP07_legal_later_notification_preserves_original_receipt(flow_engine, 
 @pytest.mark.parametrize('mode', ['original_note_missing', 'original_note_body', 'original_note_binding',
     'original_note_actor_audit', 'decision_body', 'decision_actor_audit', 'notification_work_target',
     'review_body', 'proposal_body', 'preview_consumer', 'preview_time'])
+# Historical v1 synthetic delivery compatibility; actual v2 delivery has separate oracles.
+@pytest.mark.parametrize('flow_engine',['0013_label_artifact_result'],indirect=True)
 def test_PMP05_valid_later_note_cannot_hide_corrupt_original_history(flow_engine, identities, enabled, request, mode):
     from pass_manual_helpers import provision_notification
     from synthetic_sources import notify

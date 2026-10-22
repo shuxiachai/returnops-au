@@ -1,4 +1,10 @@
-"""Neutral reads of synthetic frozen records; no future business producer exists."""
+"""Neutral reads of synthetic frozen records; no business producer runs here.
+
+Only synthetic NOTIFICATION parameters use the explicit 0013 predecessor.
+Their contract examples have no lifecycle state/work or delivery control and
+cannot represent genuine 0014 notifications. Real producer/current-head reads
+and missing-control rejection remain in the notification lifecycle tests.
+"""
 from copy import deepcopy
 from datetime import datetime, timezone
 import pytest
@@ -10,6 +16,7 @@ from returnops_domain.audit import append_event, identifier
 from returnops_domain.canonical import decode_document, digest, encode_document
 from returnops_domain.customer_uow import CustomerUnitOfWork
 from returnops_domain.errors import FlowError
+from returnops_domain.lifecycle_schema import ARTIFACT
 from founder_helpers import accepted, founder, business_fingerprints
 from future_history_fixtures import KINDS, EVENTS, EXAMPLES, material, persist, tombstone
 
@@ -39,7 +46,9 @@ def test_fractional_image_observations_survive_persisted_public_history(flow_eng
     assert business_fingerprints(flow_engine) == before
 
 
-@pytest.mark.parametrize('kind', KINDS)
+@pytest.mark.parametrize('kind,flow_engine', [
+    pytest.param(kind, ARTIFACT if kind == 'NOTIFICATION' else 'head', id=kind)
+    for kind in KINDS], indirect=['flow_engine'])
 def test_all_frozen_nonempty_kinds_use_real_http_filtered_stable_pages(flow_engine, identities, kind):
     case_id=accepted(identities)['case_id']
     refs=[]
@@ -70,7 +79,9 @@ def test_all_frozen_nonempty_kinds_use_real_http_filtered_stable_pages(flow_engi
     assert business_fingerprints(flow_engine) == before
 
 
-@pytest.mark.parametrize('kind', KINDS)
+@pytest.mark.parametrize('kind,flow_engine', [
+    pytest.param(kind, ARTIFACT if kind == 'NOTIFICATION' else 'head', id=kind)
+    for kind in KINDS], indirect=['flow_engine'])
 @pytest.mark.parametrize('damage', ['identity','case','dto','origin','hash'])
 def test_future_corruption_is_safe_503_without_source_text(flow_engine, identities, kind, damage):
     case_id=accepted(identities)['case_id']
@@ -151,7 +162,9 @@ def test_review_retains_reference_to_proposal_tombstone_without_rebuilding(flow_
     assert business_fingerprints(flow_engine) == before
 
 
-@pytest.mark.parametrize('kind', ['OPERATION','NOTIFICATION'])
+@pytest.mark.parametrize('kind,flow_engine', [
+    pytest.param(kind, ARTIFACT if kind == 'NOTIFICATION' else 'head', id=kind)
+    for kind in ('OPERATION','NOTIFICATION')], indirect=['flow_engine'])
 def test_future_revision_appends_do_not_enter_existing_snapshot(flow_engine,identities,kind):
     case_id=accepted(identities)['case_id']
     refs=[persist(flow_engine,case_id,material(kind,case_id,version=v)) for v in (1,2)]
@@ -167,7 +180,11 @@ def test_future_revision_appends_do_not_enter_existing_snapshot(flow_engine,iden
     assert business_fingerprints(flow_engine) == before
 
 
-@pytest.mark.parametrize('kind,field', [('DECISION','decisions'),('APPROVAL','approvals'),('OPERATION','operations'),('NOTIFICATION','notifications')])
+@pytest.mark.parametrize('kind,field,flow_engine', [
+    pytest.param(kind, field, ARTIFACT if kind == 'NOTIFICATION' else 'head', id=kind+'-'+field)
+    for kind,field in (('DECISION','decisions'),('APPROVAL','approvals'),
+                       ('OPERATION','operations'),('NOTIFICATION','notifications'))],
+    indirect=['flow_engine'])
 def test_future_windows_and_latest_tombstone_never_revert(flow_engine,identities,kind,field):
     case_id=accepted(identities)['case_id']
     first=persist(flow_engine,case_id,material(kind,case_id))

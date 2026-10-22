@@ -47,7 +47,7 @@ def assert_manual(engine, case, body, result, *, before=None, action=None):
     work, = [row for row in case_rows(engine, t.work, case)
         if row['component_id'] == COMPONENT and row['purpose'] == 'OUTCOME']
     notification, = [row for row in case_rows(engine, t.work, case)
-        if row['component_id'] == COMPONENT and row['purpose'] == 'NOTIFICATION']
+        if row['work_id'] == state['notification_work_id'] and row['purpose'] == 'NOTIFICATION']
     assert work['state'] == 'DONE' and work['epoch'] == 1 and work['authority_revision'] == 1
     assert work['claim_id'] and work['lease_expires_at'] is None
     assert work['generation'] == state['generation'] and work['input_version'] == head['input_version']

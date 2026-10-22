@@ -159,7 +159,10 @@ def test_group01_legacy_empty_or_real_manual_upgrade(flow_engine,identities,enab
         'lifecycle_label_artifact_claims', 'generated_label_artifacts',
         'generated_label_artifact_contents',
     }
-    added=set(artifact_added) | set(preview.metadata.tables) | set(execution_preparation_tables.metadata.tables) | set(return_execution_tables.metadata.tables) | set(label_added)
+    from returnops_domain import notification_tables
+    notification_added=notification_tables.metadata.tables
+    assert set(notification_added)=={'notification_delivery_controls','core_mock_notification_facts'}
+    added=set(notification_added) | set(artifact_added) | set(preview.metadata.tables) | set(execution_preparation_tables.metadata.tables) | set(return_execution_tables.metadata.tables) | set(label_added)
     assert {k:v for k,v in before.items() if k!='alembic_version'}=={k:v for k,v in after.items() if k!='alembic_version' and k not in added}
     assert set(after)-set(before)==added
     assert all(after[name]==[] for name in added)
@@ -192,7 +195,10 @@ def test_groups01_02_real_legacy_upgrade_no_rewrites(flow_engine,identities,enab
         'lifecycle_label_artifact_claims', 'generated_label_artifacts',
         'generated_label_artifact_contents',
     }
-    added=set(artifact_added) | set(preview.metadata.tables) | set(execution_preparation_tables.metadata.tables) | set(return_execution_tables.metadata.tables) | set(label_added)
+    from returnops_domain import notification_tables
+    notification_added=notification_tables.metadata.tables
+    assert set(notification_added)=={'notification_delivery_controls','core_mock_notification_facts'}
+    added=set(notification_added) | set(artifact_added) | set(preview.metadata.tables) | set(execution_preparation_tables.metadata.tables) | set(return_execution_tables.metadata.tables) | set(label_added)
     assert {k:v for k,v in before.items() if k!='alembic_version'}=={k:v for k,v in after.items() if k!='alembic_version' and k not in added}
     assert set(after)-set(before)==added
     assert all(after[name]==[] for name in added)

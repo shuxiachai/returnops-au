@@ -10,6 +10,377 @@
 
 # ReturnOps AU
 
+## Deploy from zero - 22 October 2026 (Sydney)
+
+Owner A (`shuxiachai`, Jingbo Chai). This chapter puts in order the commands
+that the repository files already define, from an empty machine to the web
+frontend showing a live case. Each step names its source. It changes no code,
+ownership or acceptance state. docs/10 records the virtual-environment and
+Compose steps as executed on 7 September 2026 (then at migration
+`0001_environment`); everything else here was derived from the files and is
+marked **(not verified)** where no run is recorded. No step below was executed
+while this chapter was written.
+
+### 0. Prerequisites
+
+| Need | Source |
+|---|---|
+| CPython 3.12 (`>=3.12,<3.13`); on Windows 3.12.4 or later, because `demo.py` and the R.02 driver refuse earlier 3.12 releases there (private 0700 directory handling) | `pyproject.toml`, `apps/api/returnops_api/demo.py`, `tools/r02/api_child.py` |
+| Docker with Compose v2; images pinned by digest (`postgres:17-bookworm`, `python:3.12-slim-bookworm`) | `compose.yaml`, `Dockerfile` |
+| Node.js `^22.22.2 \|\| ^24.15.0 \|\| >=26.0.0`, npm 10 or later | `apps/web/package.json` |
+| Free loopback ports: 5433 (`DB_PORT`), the `API_PORT` of `.env`, 8000 (the API the frontend proxies to) and 5173 (Vite) | `.env.example`, `apps/web/vite.config.ts` |
+
+### 1. Python environment and `.env` (docs/10 section 2)
+
+PowerShell (Windows):
+
+```powershell
+git clone https://github.com/shuxiachai/returnops-au.git
+cd returnops-au
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --require-hashes -r requirements-dev.lock
+.\.venv\Scripts\python.exe -m pip install --no-deps --no-build-isolation -e .
+.\.venv\Scripts\python.exe -m pip check
+.\.venv\Scripts\python.exe -B tools/environment/local.py init
+```
+
+bash (Linux/macOS; docs/10 says to replace the interpreter with `.venv/bin/python`):
+
+```bash
+git clone https://github.com/shuxiachai/returnops-au.git
+cd returnops-au
+python3.12 -m venv .venv
+.venv/bin/python -m pip install --require-hashes -r requirements-dev.lock
+.venv/bin/python -m pip install --no-deps --no-build-isolation -e .
+.venv/bin/python -m pip check
+.venv/bin/python -B tools/environment/local.py init
+```
+
+`requirements-dev.lock` is needed, not only `requirements.lock`: the R.02
+driver uses `httpx`, a development dependency. `local.py init` creates the
+git-ignored `.env` once (0600, never overwritten, nothing secret printed) with
+`POSTGRES_USER=returnops_dev`, `POSTGRES_DB=returnops_f02`, a fresh random
+48-hex-character `POSTGRES_PASSWORD`, `DB_PORT=5433` and `API_PORT=8000`.
+Expected output: `Created ignored local configuration with a fresh password; no secret displayed.`
+Then change `API_PORT=8000` to `API_PORT=8001` in `.env`, so that the Compose
+API does not take 8000, which the frontend proxy needs for the demo API (docs/10
+records the same change on the lead's machine). Never print `.env` or the full
+`docker compose config`.
+
+### 2. Database, migration and health-only API (`compose.yaml`, `Dockerfile`)
+
+```powershell
+docker compose config --quiet
+docker compose up --build -d --wait --wait-timeout 180
+docker compose ps -a
+Invoke-RestMethod http://127.0.0.1:8001/health/live
+Invoke-RestMethod http://127.0.0.1:8001/health/ready
+```
+
+```bash
+docker compose config --quiet
+docker compose up --build -d --wait --wait-timeout 180
+docker compose ps -a
+curl -s http://127.0.0.1:8001/health/live
+curl -s http://127.0.0.1:8001/health/ready
+```
+
+Order inside Compose: `db` (PostgreSQL 17, healthy through `pg_isready`,
+published only on `127.0.0.1:DB_PORT`) -> `migrate` (`python -m alembic upgrade
+head`, must exit 0) -> `api` (the image CMD, `uvicorn
+returnops_api.main:create_app --factory` on container port 8000, published on
+`127.0.0.1:API_PORT`). Expected: `ps -a` shows `db` healthy, `migrate` Exited
+(0) and `api` healthy; `/health/live` returns `{"status":"alive"}` and
+`/health/ready` returns `{"status":"ready"}` (HTTP 503 `{"status":"not_ready"}`
+while the database is unreachable). Compose sets no `RETURNOPS_AUTH_FILE`, so
+this API starts without an authentication configuration and without workers
+(`main.py`), and its customer and Founder routes fail closed with 503 (docs/21).
+It is the health-only container check, not the demo API. Stop the project with
+`docker compose stop` (keeps the volume).
+
+The same migration can also run from the host against the Compose database:
+`local.py run` builds `DATABASE_URL` from `.env` for `127.0.0.1:DB_PORT`
+without printing it **(not verified)**:
+
+```powershell
+.\.venv\Scripts\python.exe -B tools/environment/local.py run python -m alembic upgrade head
+```
+
+```bash
+.venv/bin/python -B tools/environment/local.py run python -m alembic upgrade head
+```
+
+### 3. Interactive demo identities and API (`demo.py`, docs/16, docs/21)
+
+`demo.py provision` needs a new absolute directory whose parent exists
+(`tmp/` is git-ignored) and writes `auth.json` and `sessions.json` there; the
+sessions last 899 s. The builtin synthetic orders
+(`packages/returnops_domain/order_data/synthetic_orders_v1.json`) belong to
+store `synthetic_au_store` and customers `synthetic_customer_a` /
+`synthetic_customer_b` (references `SYN-1001` to `SYN-1003`), so these IDs make
+order lookups match. **(not verified)**
+
+```powershell
+New-Item -ItemType Directory -Force tmp | Out-Null
+.\.venv\Scripts\python.exe -B tools/environment/local.py run python -m returnops_api.demo provision --private-dir "$PWD\tmp\demo-shop" --store synthetic_au_store --customer-one synthetic_customer_a --customer-two synthetic_customer_b --founder synthetic_founder --order-investigation --fixed-proposal
+.\.venv\Scripts\python.exe -B tools/environment/local.py run python -m returnops_api.demo serve --auth-file "$PWD\tmp\demo-shop\auth.json" --port 8000 --fixed-proposal --founder-decisions
+```
+
+```bash
+mkdir -p tmp
+.venv/bin/python -B tools/environment/local.py run python -m returnops_api.demo provision --private-dir "$PWD/tmp/demo-shop" --store synthetic_au_store --customer-one synthetic_customer_a --customer-two synthetic_customer_b --founder synthetic_founder --order-investigation --fixed-proposal
+.venv/bin/python -B tools/environment/local.py run python -m returnops_api.demo serve --auth-file "$PWD/tmp/demo-shop/auth.json" --port 8000 --fixed-proposal --founder-decisions
+```
+
+Expected provision output: `Private synthetic demo registration completed. Credentials are in the explicit private directory; do not share them.`
+`serve` listens only on `127.0.0.1:8000` with the intake, investigation and
+fixed-proposal workers and the Founder decision POST; check
+`http://127.0.0.1:8000/health/ready`. Ctrl+C stops it.
+
+### 4. Frontend (`apps/web/README.md`, `vite.config.ts`, `src/api/client.ts`, `src/components/AuthModal.tsx`)
+
+```text
+cd apps/web
+npm ci
+npm run dev
+```
+
+Open `http://localhost:5173`. The dev server proxies `/v1` and `/health` to
+`http://127.0.0.1:8000`. Leave `VITE_API_BASE_URL` unset: the client would use
+it as a direct cross-origin base URL, and the API registers no CORS middleware
+**(not verified in a browser)**. To sign in: **Auth Tokens** -> choose
+**Customer (End-User)** or **Founder (Merchant)** -> switch **Mock Data
+Fallback** off -> paste the matching token from `sessions.json` (`tokens` ->
+principal ID) into **Bearer Token (JWT)** -> **Save & Apply** (the page
+reloads). Reopening **Auth Tokens** calls `GET /v1/session` and shows
+`Valid: <principal> (<ROLE>)`. The client keeps the token in the browser's
+`localStorage`; use **Clear token** afterwards. Copy a token without showing it
+**(not verified)**:
+
+```powershell
+(Get-Content -Raw tmp\demo-shop\sessions.json | ConvertFrom-Json).tokens.synthetic_founder | Set-Clipboard
+```
+
+```bash
+.venv/bin/python -c 'import json,sys; print(json.load(open(sys.argv[1]))["tokens"][sys.argv[2]], end="")' tmp/demo-shop/sessions.json synthetic_founder | pbcopy   # Linux: xclip -selection clipboard
+```
+
+In live mode the current client refuses Founder decisions and analytics with
+`501 NOT_IMPLEMENTED` (`client.ts`); Mock Mode remains the frontend path for
+interactive decisions.
+
+### 5. The R.02 driver's case in the frontend (`tools/r02`, demo mode)
+
+The driver approves and executes one synthetic cups case end to end and, in
+demo mode, keeps its API on port 8000 for the frontend. First stop the step 3
+API with Ctrl+C: its workers must not run while the driver runs, and port 8000
+must be free. Provision a dedicated store without `--order-investigation` and
+`--fixed-proposal`, then start the driver within about 8 minutes. Set
+`DATABASE_URL` directly in the shell for the driver: started through
+`local.py run`, a Ctrl+C would kill the driver before it stops its API child.
+The URL below is assembled from `.env` without being printed **(not verified)**.
+
+```powershell
+.\.venv\Scripts\python.exe -B tools/environment/local.py run python -m returnops_api.demo provision --private-dir "$PWD\tmp\demo-cups" --store demo_cups_store --customer-one demo_cups_customer_one --customer-two demo_cups_customer_two --founder demo_cups_founder
+$v = @{}; Get-Content .env | Where-Object { $_ -match '^[A-Z_]+=' } | ForEach-Object { $k, $x = $_ -split '=', 2; $v[$k] = $x }
+$env:DATABASE_URL = "postgresql+psycopg://$($v.POSTGRES_USER):$($v.POSTGRES_PASSWORD)@127.0.0.1:$($v.DB_PORT)/$($v.POSTGRES_DB)"
+.\.venv\Scripts\python.exe -B tools/r02/driver.py --output "$PWD\tmp\r02-demo-run" --identities "$PWD\tmp\demo-cups" --api-port 8000 --keep-api --allow-existing-data
+```
+
+```bash
+.venv/bin/python -B tools/environment/local.py run python -m returnops_api.demo provision --private-dir "$PWD/tmp/demo-cups" --store demo_cups_store --customer-one demo_cups_customer_one --customer-two demo_cups_customer_two --founder demo_cups_founder
+set -a; . ./.env; set +a
+export DATABASE_URL="postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:${DB_PORT}/${POSTGRES_DB}"
+.venv/bin/python -B tools/r02/driver.py --output "$PWD/tmp/r02-demo-run" --identities "$PWD/tmp/demo-cups" --api-port 8000 --keep-api --allow-existing-data
+```
+
+`--allow-existing-data` is needed only if step 3 created cases. The driver
+prints `R.02 demo mode: driver result PASSED (see run-receipt.json).`, the case
+ID and `http://127.0.0.1:8000`, then waits. In the frontend sign in as
+**Founder (Merchant)** with the `demo_cups_founder` token, open **Founder
+Console** -> **Case Queue & Review** and **Inspect** the case (expected status
+`COMPLETED`). Ctrl+C in the driver's terminal stops the API. Delete
+`tmp/demo-shop` and `tmp/demo-cups` after the demo: they hold signing keys and
+tokens. Refusal codes, the store rules and the limitations are in
+[tools/r02/README.md](tools/r02/README.md#demo-mode-live-demo-only) and
+[docs/41](docs/41-r02-end-to-end-evidence.md). A demo-mode receipt is not CI
+evidence; an evidence run needs a fresh database (docs/41, "Re-running").
+
+### Troubleshooting
+
+- **`Run tools/environment/local.py init first`** from Compose: `.env` or its
+  `POSTGRES_PASSWORD` is missing (`compose.yaml`).
+- **Port in use:** change `DB_PORT` or `API_PORT` in `.env` (docs/10: adjust
+  your own `.env`, do not stop other services). The frontend proxy target
+  `127.0.0.1:8000` is fixed in `vite.config.ts`, so the demo API (step 3 or
+  step 5) needs 8000; the driver reports `API_PORT_UNAVAILABLE` when it is
+  taken. A frontend error `HTTP 500: Backend server unavailable at
+  http://127.0.0.1:8000` means nothing answers there.
+- **Windows Python older than 3.12.4:** `demo.py provision` prints only
+  `Demo setup or startup failed; no credentials are printed. ...`, and the
+  driver stops with `PRIVATE_RUNTIME_REQUIRES_PYTHON_3_12_4`. Python 3.13 is
+  outside `requires-python`.
+- **Database name:** `DATABASE_URL` must be `postgresql+psycopg://` with a host
+  and user, and its database must be `returnops_f02` or `returnops_f02_`
+  followed by lowercase letters, digits or underscores (at most 63
+  characters), with no `?` or `#` (`settings.require_environment_database`).
+  Otherwise Alembic, `demo.py` and the driver refuse (`DATABASE_URL_REJECTED`).
+- **Statement timeout:** the API engine sets `statement_timeout=2000` (2 s,
+  `database.py`); the driver's own engine uses 10 s. A slow machine can turn
+  an HTTP step into 503 `INTERNAL_ERROR`; see "If a step fails" in
+  `tools/r02/README.md`.
+- **401 in the frontend after about 15 minutes:** the 899 s sessions have
+  expired. Provision new principal IDs (the registry refuses existing IDs);
+  the same `--store` keeps the store's cases readable for a new Founder.
+- **Customer or Founder routes return 503 on the Compose API:** expected; it
+  has no authentication file. Use `demo.py serve` or the driver's kept API.
+- **Wrong Docker context on Windows:** add `--context desktop-linux` to the
+  docker command (docs/10).
+- **Driver refusals in demo mode** (`STORE_HAS_CASES`,
+  `STORE_INVESTIGATION_CONFIGURED`, `FOREIGN_PENDING_WORK`, `IDENTITIES_*`,
+  `IDENTITY_SESSION_WINDOW_TOO_SHORT`): see the driver README.
+
+AI-assisted implementation and metadata preparation; author shuxiachai.
+
+## F.06 Founder analytics read API - 22 October 2026 (Sydney)
+
+Owner A (`shuxiachai`, Jingbo Chai); reviewer C under docs/08. This notice
+covers work package F.06 only.
+
+- `GET /v1/founder/analytics` (`getFounderAnalytics`) is now registered by
+  default next to the four Founder reads: FOUNDER only, the Founder's own
+  store, read-only, one SELECT per response, strict `created_from` /
+  `created_before` / `status` validation and enforced count invariants. See
+  [docs/43](docs/43-f06-analytics.md) for the counting basis and the changes
+  B's frontend needs.
+- Proposal latency is Tier 0 (no samples, no percentiles): trusted start and
+  ready events remain the open E.01/E.09 item for C. Known proposal-step
+  failures (PROPOSAL_FAILED for the current input) count as failed; every
+  other case is unmeasured. docs/43 records a Tier 1 candidate for C's
+  review. The only proposer is the fixed synthetic one.
+- First CI result: PR #90, head 1de70e3d, CI run 39701255799: all 12 jobs
+  successful, including the PostgreSQL foundation group that runs tests/founder
+  (the 4 analytics PostgreSQL nodes and the TCP call). Squash-merged into main on
+  2026-10-22. Contracts, docs/08/09, migrations and `apps/web` are unchanged; no
+  acceptance by C or any member is implied.
+
+AI-assisted implementation and metadata preparation; author shuxiachai.
+
+## R.02 no-LLM end-to-end evidence - 22 October 2026 (Sydney)
+
+Owner A (`shuxiachai`, Jingbo Chai); designated human reviewer C (Yuwei Tao).
+This notice covers work package R.02 only; the dated notices below keep their
+own scope.
+
+- [PR #89](https://github.com/shuxiachai/returnops-au/pull/89) adds the private
+  driver [`tools/r02`](tools/r02/README.md) and a separate CI job,
+  `end-to-end-no-llm`. The driver starts the real API itself (route C: an API
+  child composed with `create_app(...)`) and drives one synthetic cups case:
+  customer HTTP case creation, fixed proposal, controlled PASS receiver + risk
+  stub, Founder HTTP approval after negative tests, the private mock
+  return/label/PDF chain and a CORE_MOCK notification, then Founder read-back of
+  history and audit. `main.py`, `demo.py` and the installed packages are
+  unchanged.
+- First actual result: [run 39634415393](https://github.com/shuxiachai/returnops-au/actions/runs/39634415393)
+  on PR head `510e1acd`, job `end-to-end-no-llm` success, receipt `PASSED` with
+  32 of 32 checks true and no recovery path used; all 12 jobs of that run
+  succeeded. Timings, the receipt format and each check are recorded in
+  [docs/41](docs/41-r02-end-to-end-evidence.md).
+- PR #78 (A2.07) was squash-merged into main on 22 October 2026 as
+  `0758696681cc706fda14ba378b7baa8e8c6580b3`. The lead assigned the driver and
+  its CI trace to A2.07's "complete fixed-proposal execution trace" item; R.02's
+  formal evidence is the CI output of `end-to-end-no-llm`.
+
+**Limitations:** the API is composed by the driver, not started by
+`demo.py serve`, and the image default CMD is not exercised; intake,
+investigation and the fixed proposal run in the driver process; Docker evidence
+is still only the image build and import probe, not a deployment proof; the
+controlled PASS receiver + risk stub is Gate 1's fixed risk result, not an
+independent risk assessment; fault injection of UNKNOWN/REPLAYED paths and
+Windows permissions are not covered.
+
+**Exception:** on 22 October 2026 the lead recorded a one-time exception: R.02
+implementation started before A2.07's designated human review by C, because of
+the Stage 2 source deadline (1 November 2026, 23:59) and because no production
+code was changed. E.10 remains a finish dependency of R.02; its static
+[coverage map](docs/42-e10-coverage-map.md) is prepared for C and is not an
+acceptance. The frozen work packages in docs/08 are unchanged.
+
+**Pending:** C's designated human review of A2.06, A2.07 and R.02 remains the
+acceptance prerequisite and has not taken place. A `PASSED` receipt, a green CI
+job or a merge is not acceptance, and no Jira status is changed.
+
+AI-assisted implementation and metadata preparation; author shuxiachai.
+
+## C source-review follow-up — 22 October 2026 (Sydney)
+
+Following [A's latest #61 instruction](https://github.com/shuxiachai/returnops-au/pull/61#issuecomment-6330830936),
+this review candidate re-merges main
+`4aec7c0de6536075f6691567a3f609b8f3093279` by an ordinary merge. It preserves
+the adopted deployment, F.06, R.02 and frontend material without editing A/B
+implementation, and places C's 21 October notice below the newer 22 October
+notices. The earlier preparation to wait for #17 did not publish a change;
+this reconciliation follows A's subsequent request to refresh both branches.
+
+The current diff against that main is **four C documentation files**:
+README, the C1 source-review packet, the historical PR #56 follow-up, and the
+canonical C contribution/interview worksheet. The preceding GitHub five-file
+view also included the #85 handoff note because of rewritten ancestry; that
+already-adopted note now has no delta from this integration base. Recount the
+actual PR diff after any further main update rather than reusing either count.
+
+The intended adoption order remains #17 then #61, with a lead-written squash
+message. If #17 lands first, reconcile again against that adopted main and
+preserve both dated README/worksheet records before targeted re-review. A's
+[approval of #17](https://github.com/shuxiachai/returnops-au/pull/17#pullrequestreview-5600248843)
+covers `0137e1e024ec2ca3a3e9ca19028ea196175964d4`, not a later head or #61.
+The successful [#61 run 39563374199](https://github.com/shuxiachai/returnops-au/actions/runs/39563374199)
+covers `7d617cca808ab81accc7b8c82c15cc91033b8e35`, not this new reconciliation.
+The PR records the new exact head, publication, local checks and normal CI
+separately; A's targeted new-head review remains required before adoption.
+
+Prepared with Codex assistance for KAN-23. No pending corpus or admission pin,
+runtime/model capability, frozen Owner/Reviewer/S/F, personal answer/signature,
+joint acceptance or Jira completion is changed by this documentation work.
+
+## C source-review reconciliation — 21 October 2026 (Sydney; historical source)
+
+This Codex-assisted correction addresses [A's 21 October review](https://github.com/shuxiachai/returnops-au/pull/61#pullrequestreview-5596152325)
+and incorporated the then-observed main through a normal merge, without
+rewriting the C branch history. It preserved every baseline main README line.
+The original placement below the 18/19 October notices is historical; A's later
+22 October instruction moves this dated section above those older notices.
+The earlier 19 October reconciliation used `c85efc0`; that too is historical,
+not a claim about today's integration base.
+
+A merged [PR #85](https://github.com/shuxiachai/returnops-au/pull/85) at
+21 October 18:16:10 Sydney (07:16:10 UTC), adopting reviewed head
+`132692b6b731b4a5cee1ec041c7e3eba0ba25527`. The PR event retains the original
+adoption identity, but the lead later rewrote that commit without changing its
+tree. Original `55075f05246eb59f27233f5582b276435f1cf60d` and replacement
+`4bb7cf0ba04a62ef907d0bfb3ad5e468ee7b3a73` share tree
+`1a75c6ebd5aa909aa49692d09d73b607fbfb3fc7` and parent `a885cff4`.
+Neither historical identity is presented here as current main.
+Its two-file documentation approval is not corpus, live-model or whole-feature
+acceptance. [Original run 39560805445](https://github.com/shuxiachai/returnops-au/actions/runs/39560805445)
+on `55075f0` was **cancelled**, not successful. The
+[replacement-main run 39566117680](https://github.com/shuxiachai/returnops-au/actions/runs/39566117680)
+on same-tree `4bb7cf0` **passed**. This is that exact historical main tree's
+result, not a substitute for new PR checks or runtime/course acceptance.
+
+The source-selection disposition is **include for next passage capture only**.
+[The updated source-review packet](docs/reviews/member-c-c1-source-review-20261011.md)
+distinguishes that completed decision and #68's preparation adoption from still
+pending exact-byte/context/conflict review and a separately trusted admission pin.
+PR #17 and #61 both add dated worksheet receipts: preserve both in date order,
+and reconcile/recheck whichever is adopted second against actual main.
+No personal confirmation field, A/B implementation or frozen dependency changes.
+Use [PR #68](https://github.com/shuxiachai/returnops-au/pull/68) for the later
+C1 context candidate and its exact-byte review, not the historical planning
+paragraphs below. PR #7 is now merged; other PRs retain their own review/check
+records. Normal PR checks and targeted re-review are required before adopting
+this branch. No runtime, personal, corpus or whole-feature acceptance is claimed.
+
 ## C handoff adopted — 20 October 2026 (Sydney)
 
 This dated receipt supersedes the older C **current-status** statements below;
@@ -651,36 +1022,6 @@ Canvas-package rehearsal and actual per-criterion member contribution records
 remain open. No owner, WBS S/F, deadline or Jira Done transition is implied.
 These increments were prepared with Codex assistance; each PR records its own
 exact source and tests, and A remains non-author reviewer/integrator.
-
-## C source-review reconciliation — 21 October 2026 (Sydney)
-
-This Codex-assisted correction addresses [A's 21 October review](https://github.com/shuxiachai/returnops-au/pull/61#pullrequestreview-5596152325)
-and incorporates actual main `55075f05246eb59f27233f5582b276435f1cf60d`
-by a normal merge, without rewriting branch history. It preserves every main
-README line; this C section and the historical 11 October receipt sit below
-main's 18/19 October C1/C2 notices. The earlier 19 October reconciliation used
-`c85efc0`; that is historical, not the current integration base.
-
-A merged [PR #85](https://github.com/shuxiachai/returnops-au/pull/85) at
-21 October 18:16:10 Sydney (07:16:10 UTC), adopting reviewed head
-`132692b6b731b4a5cee1ec041c7e3eba0ba25527` as the main above.
-Its two-file documentation approval is not corpus, live-model or whole-feature
-acceptance. [Actual-main run 39560805445](https://github.com/shuxiachai/returnops-au/actions/runs/39560805445)
-is separate from the older PR checks; completion must be checked on that run,
-not inferred from the merge.
-
-The source-selection disposition is **include for next passage capture only**.
-[The updated source-review packet](docs/reviews/member-c-c1-source-review-20261011.md)
-distinguishes that completed decision and #68's preparation adoption from still
-pending exact-byte/context/conflict review and a separately trusted admission pin.
-PR #17 and #61 both add dated worksheet receipts: preserve both in date order,
-and reconcile/recheck whichever is adopted second against actual main.
-No personal confirmation field, A/B implementation or frozen dependency changes.
-Use [PR #68](https://github.com/shuxiachai/returnops-au/pull/68) for the later
-C1 context candidate and its exact-byte review, not the historical planning
-paragraphs below. PR #7 is now merged; other PRs retain their own review/check
-records. Normal PR checks and targeted re-review are required before adopting
-this branch. No runtime, personal, corpus or whole-feature acceptance is claimed.
 
 ## C follow-up after A review — 2026-10-11
 

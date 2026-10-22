@@ -4,7 +4,7 @@ from . import customer_tables as old, lifecycle_tables as t
 from .errors import FlowError
 
 LEGACY_REVISIONS = {'0003_customer_flow', '0004_pre_case_audit', '0005_order_investigation', '0006_founder_reads'}
-from .lifecycle_schema import PREPARATION, PREPARATION_VERSIONS, EXECUTION, EXECUTION_VERSIONS, LABEL, LABEL_VERSIONS, ARTIFACT, APPROVAL, APPROVAL_VERSIONS, REVIEW, LEGACY, version as schema_version
+from .lifecycle_schema import PREPARATION, PREPARATION_VERSIONS, EXECUTION, EXECUTION_VERSIONS, LABEL, LABEL_VERSIONS, ARTIFACT, ARTIFACT_VERSIONS, APPROVAL, APPROVAL_VERSIONS, REVIEW, LEGACY, version as schema_version
 MAX_VERSION = 9007199254740991
 
 
@@ -22,7 +22,7 @@ def installed(uow):
     revisions = uow.execute(text('SELECT version_num FROM alembic_version')).scalars().all()
     names = set(uow.execute(text('SELECT tablename FROM pg_tables WHERE schemaname=current_schema()')).scalars())
     present = set(t.metadata.tables) & names
-    if len(revisions) == 1 and revisions[0] in {ARTIFACT, LABEL, EXECUTION, PREPARATION, APPROVAL, REVIEW, LEGACY} and schema_version(uow.connection) == revisions[0]:
+    if len(revisions) == 1 and revisions[0] in {*ARTIFACT_VERSIONS, LABEL, EXECUTION, PREPARATION, APPROVAL, REVIEW, LEGACY} and schema_version(uow.connection) == revisions[0]:
         return True
     if len(revisions) == 1 and revisions[0] in LEGACY_REVISIONS and not present:
         return False
@@ -104,7 +104,7 @@ def invalidate(uow, head, *, input_version=None, retention=False, accepting_even
             changes.update(source_available=False, confirmation_retained=False)
         uow.execute(update(label_controls).where(label_controls.c.case_id == head['case_id']).values(**changes))
         uow.execute(update(artifact_work).where(artifact_work.c.case_id == head['case_id']).values(state='PAUSED'))
-    if installed_version == ARTIFACT and not retention:
+    if installed_version in ARTIFACT_VERSIONS and not retention:
         from .label_artifact_retention import invalidate_claims
         invalidate_claims(uow,head['case_id'])
     return {**row, **values}
@@ -117,7 +117,7 @@ def retain(uow, head, reason, redact):
     if schema_version(uow.connection) in APPROVAL_VERSIONS:
         from .preview_tables import previews
         retained_reason=reason
-        if schema_version(uow.connection)==ARTIFACT:
+        if schema_version(uow.connection) in ARTIFACT_VERSIONS:
             from sqlalchemy import case
             retained_reason=case((previews.c.available.is_(True),reason),else_=previews.c.removal_reason)
         uow.execute(update(previews).where(previews.c.case_id == head['case_id']).values(
@@ -127,10 +127,14 @@ def retain(uow, head, reason, redact):
             old.acceptances.c.resource_id == head['case_id'])
         uow.execute(update(old.receipts).where(old.receipts.c.acceptance_id.in_(facts)).values(
             body=None, available=False))
+    from .lifecycle_schema import NOTIFICATION
+    if schema_version(uow.connection)==NOTIFICATION:
+        from .notification_retention import withdraw
+        withdraw(uow,head['case_id'],reason,redact)
     # Future bundles/notification text may copy the source being removed.
     # Delete derivative bytes atomically but retain identity, digest and facts.
     records = select(old.history.c.record_id).where(old.history.c.case_id == head['case_id'],
-        old.history.c.kind.in_(['PROPOSAL','REVIEW','DECISION','APPROVAL','OPERATION','NOTIFICATION']))
+        old.history.c.kind.in_(['PROPOSAL','REVIEW','DECISION','APPROVAL','OPERATION','NOTIFICATION','OUTCOME_MESSAGE']))
     uow.execute(delete(old.history_contents).where(old.history_contents.c.record_id.in_(records)))
     uow.execute(update(old.history).where(old.history.c.record_id.in_(records),
         old.history.c.retention_state == 'AVAILABLE').values(

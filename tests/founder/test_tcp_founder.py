@@ -50,6 +50,11 @@ def test_tcp_four_routes_restart_snapshot_retention_and_five_outcomes(flow_engin
                 assert client.get('/v1/founder/cases/' + original['case_id'] + '/audit').status_code == 200
             first = client.get('/v1/founder/cases/' + case_id + '/history', params={'kind': 'STATEMENT'}).json()
             assert len(first['items']) == 20 and 'next_cursor' in first
+            # F.06 analytics over TCP: same five cases, read-only (fingerprint below).
+            analytics = client.get('/v1/founder/analytics')
+            assert analytics.status_code == 200 and analytics.headers['cache-control'] == 'no-store'
+            assert {item['status']: item['count'] for item in analytics.json()['cases_by_status']} == {
+                'POLICY_ASSESSMENT': 1, 'AWAITING_INFORMATION': 1, 'ESCALATED': 3}
     assert business_fingerprints(flow_engine) == baseline
     RetentionService(flow_engine).remove('STATEMENT', examples[0]['statements'][0]['statement_id'])
     baseline = business_fingerprints(flow_engine)

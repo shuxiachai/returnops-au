@@ -86,3 +86,40 @@ def test_R05_offline_unknown_signal_no_retry_no_denial(monkeypatch,operation):
         else caller.recover('case_fixture',REQUEST,'original-key'))
     assert asdict(result)==dict(status='UNKNOWN',receipt=None,safe_code=None,audit='NOT_ATTEMPTED')
     assert calls==['construct','enter']
+
+
+@pytest.mark.parametrize('revision', ['0013_label_artifact_result','0014_notification_delivery'])
+@pytest.mark.parametrize('stale', [False,True])
+def test_R01_offline_schema_gate_reaches_original_version_check(monkeypatch,revision,stale):
+    """Exercise the real entry gate; no database or acceptance proof is replaced."""
+    from returnops_domain import reject_decision
+    calls=[]
+    class ReachedCurrentState(Exception):
+        pass
+    class NoDatabase:
+        connection=object()
+        def poison(self):calls.append('poison')
+        def execute(self,*args,**kwargs):raise AssertionError('Offline gate reached SQL')
+    uow=NoDatabase()
+    monkeypatch.setattr(reject_decision,'installed',lambda actual:actual is uow)
+    def schema(connection):
+        assert connection is uow.connection
+        calls.append('schema')
+        return revision
+    def current(actual,head):
+        assert actual is uow
+        calls.append('current')
+        raise ReachedCurrentState()
+    monkeypatch.setattr(reject_decision,'version',schema)
+    monkeypatch.setattr(reject_decision,'current',current)
+    caller=FounderRejectService(object(),object())
+    head={'case_version':REQUEST['expected_case_version']-int(stale)}
+    if stale:
+        with pytest.raises(FlowError) as caught:
+            caller._new(uow,None,head,None,REQUEST,None,None,None)
+        assert caught.value.code=='STALE_CASE_VERSION'
+        assert calls==['schema','poison']
+    else:
+        with pytest.raises(ReachedCurrentState):
+            caller._new(uow,None,head,None,REQUEST,None,None,None)
+        assert calls==['schema','current']

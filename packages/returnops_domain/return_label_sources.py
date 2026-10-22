@@ -107,9 +107,13 @@ def read_source(uow, authorization, execution_work_id, original_key):
 
 
 def identity(actor, head, source):
+    return retained_identity(actor.principal_id, head, source)
+
+
+def retained_identity(principal_id, head, source):
     control, root, record, fact = (source[name] for name in ('control', 'root', 'record', 'fact'))
     values = dict(case_id=head['case_id'], store_id=head['store_id'], owner_id=head['owner_principal_id'],
-        principal_id=actor.principal_id, execution_work_id=control['execution_work_id'],
+        principal_id=principal_id, execution_work_id=control['execution_work_id'],
         preparation_id=control['preparation_id'], approval_acceptance_id=control['approval_acceptance_id'],
         approval_record_id=root['approval']['record']['record_id'],
         approval_hash=root['approval']['record']['content_sha256'],
@@ -194,9 +198,9 @@ def retained_acceptance(uow, head, source, ids):
     # The bridge identity retains its original input version. On 0013 only,
     # generated certificates must instead see the actual current proof head.
     # Keep every other snapshot field exact; this is not a refreshed baseline.
-    from .lifecycle_schema import ARTIFACT, version
+    from .lifecycle_schema import ARTIFACT, ARTIFACT_VERSIONS, version
     proof_head = head
-    if version(uow.connection) == ARTIFACT:
+    if version(uow.connection) in ARTIFACT_VERSIONS:
         actual_head = one(uow, old.case_heads, case_id=head['case_id'])
         if (set(head) != set(actual_head)
                 or any(head[name] != actual_head[name] for name in head if name != 'input_version')
