@@ -10,6 +10,30 @@
 
 # ReturnOps AU
 
+## A1.06 Coordinator showcase (advisory, default off) - 22 October 2026 (Sydney)
+
+Owner A (`shuxiachai`, Jingbo Chai); reviewer C under docs/08. This notice
+covers the extraction half of work package A1.06 only.
+
+- With `RETURNOPS_MODEL_SHOWCASE=1` (default `0`; `demo.py serve
+  --model-showcase`), a background worker sends redacted, allow-listed
+  statement text to a chat-completions endpoint configured only through
+  `RETURNOPS_MODEL_*` environment variables, accepts the reply only as a
+  contract `ExtractedFacts` with no order lines, an `UNDETERMINED` basis and no
+  `SUPPORTED` status, and shows it to the Founder as `CaseView.facts` while the
+  same statements are still current. See
+  [docs/44](docs/44-coordinator-showcase.md).
+- Advisory only: no state, question, proposal, review, approval, operation or
+  database write. Results live in memory and are lost on restart. The planned
+  MODEL-actor audit event is withheld because the label-artifact claim compares
+  the case head and audit rows across transactions (docs/44).
+- Built before R.02 and Gate 1 acceptance under the lead's dated decision
+  recorded in docs/44; this is not Gate 1, Gate 2 or A1.06 acceptance.
+  Contracts, docs/08, migrations, `apps/web` and the R.02 driver are unchanged.
+  First live result and first CI result: pending.
+
+AI-assisted implementation and metadata preparation; author shuxiachai.
+
 ## Deploy from zero - 22 October 2026 (Sydney)
 
 Owner A (`shuxiachai`, Jingbo Chai). This chapter puts in order the commands

@@ -44,7 +44,9 @@ def register_founder_routes(app):
             if config is None:
                 raise FlowError()
             authority = CurrentRequestAuthority(config, one_header(request, 'authorization'))
-            flow = FounderQueries(request.app.state.engine, authority)
+            # A1.06 showcase: trusted app state only; None unless the flag is on.
+            flow = FounderQueries(request.app.state.engine, authority,
+                                  facts_provider=getattr(request.app.state, 'coordinator_facts', None))
             result = await run_in_threadpool(flow.read, operation, case_id, lambda: _query(request, operation))
             return safe_json(result.body, result.status, correlation=correlation)
         except FlowError as error:
