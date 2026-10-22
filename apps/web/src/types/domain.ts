@@ -271,10 +271,37 @@ export interface OrderSnapshot {
   retrieved_at?: string;
 }
 
+// One command inside an ApprovalScope. The contract fixes two: CREATE_RETURN
+// (order_id, line_items, parcel_id) then GENERATE_LABEL (parcel_id,
+// return_command_id, label_format 'PDF', chargeable false).
+export interface ApprovalCommand {
+  command_id: string;
+  type: 'CREATE_RETURN' | 'GENERATE_LABEL';
+  provider_id: string;
+  parameters: Record<string, unknown>;
+}
+
+// Contract ApprovalScope: exactly what an APPROVE of this preview authorises.
+export interface ApprovalScope {
+  case_id: string;
+  input_version: number;
+  proposal_id: string;
+  proposal_version: number;
+  review_id: string;
+  parcel_id: string;
+  commands: ApprovalCommand[];
+  currency: 'AUD';
+  // Always 0 in v1: an approval authorises no payment.
+  amount_ceiling_minor: number;
+  expires_at: string;
+  allowlist_version: string;
+  environment: 'SIMULATED' | 'SANDBOX';
+}
+
 export interface ActionPreview {
   preview_id: string;
   scope_fingerprint: string;
-  scope: Record<string, unknown>;
+  scope: ApprovalScope;
   // Frontend-only demo extensions: the v1 ActionPreview carries no operation
   // type or parameter map, so a live response leaves these undefined and the
   // preview rows render with no fabricated operation or parameters.
@@ -420,15 +447,27 @@ export interface FounderHistoryPage {
   next_cursor?: string;
 }
 
+// GET /v1/founder/analytics query: created_at window [created_from, created_before)
+// in RFC 3339 UTC, plus one current status. Every key is optional and sent once.
+export interface AnalyticsQuery {
+  created_from?: string;
+  created_before?: string;
+  status?: CaseStatus;
+}
+
 export interface AnalyticsSnapshot {
   as_of: string;
-  filters?: Record<string, unknown>;
+  // The server echoes the validated query here, {} when none was sent.
+  filters: AnalyticsQuery;
   case_count: number;
+  // Zero buckets are omitted; the rest arrive in contract enum order.
   cases_by_status: Array<{ status: CaseStatus; count: number }>;
   current_risk_counts: Array<{ outcome: RiskOutcome; count: number }>;
   cases_without_current_review: number;
-  proposal_latency?: {
-    metric_version?: string;
+  // sample_count + failed_count + unmeasured_count == case_count. p50_ms and
+  // p95_ms are present only when sample_count > 0.
+  proposal_latency: {
+    metric_version: 'proposal-latency-v1';
     sample_count: number;
     failed_count: number;
     unmeasured_count: number;

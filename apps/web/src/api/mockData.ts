@@ -237,6 +237,10 @@ export const MOCK_FOUNDER_SUMMARIES: CaseSummary[] = [
   }),
 ];
 
+// Synthetic contract Hash (64 lowercase hex characters) for case_demo_003's preview.
+export const MOCK_DEMO_003_SCOPE_FINGERPRINT =
+  '5d41402abc4b2a76b9719d911017c592ae2f6c3b1d8e0f4a7c9b6e2d1f0a3b8c';
+
 export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
   'case_demo_001': {
     case_id: 'case_demo_001',
@@ -406,10 +410,44 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
     },
     action_preview: {
       preview_id: 'prev_demo_003',
-      scope_fingerprint: 'fp_scope_98124',
+      scope_fingerprint: MOCK_DEMO_003_SCOPE_FINGERPRINT,
+      // Contract ApprovalScope: the two fixed commands, no payment, a short expiry
+      // (getFounderCase gives expires_at a fresh window on every Mock Mode read).
       scope: {
-        operation: 'GENERATE_RETURN_CONSIGNMENT',
-        carrier: 'Australia Post eParcel',
+        case_id: 'case_demo_003',
+        input_version: 1,
+        proposal_id: 'prop_demo_003',
+        proposal_version: 1,
+        review_id: 'rev_demo_003',
+        parcel_id: 'parcel_demo_003',
+        commands: [
+          {
+            command_id: 'cmd_demo_003_return',
+            type: 'CREATE_RETURN',
+            provider_id: 'provider_mock_au',
+            parameters: {
+              order_id: 'ord_7731',
+              line_items: [{ line_item_id: 'item_301', quantity: 1 }],
+              parcel_id: 'parcel_demo_003',
+            },
+          },
+          {
+            command_id: 'cmd_demo_003_label',
+            type: 'GENERATE_LABEL',
+            provider_id: 'provider_mock_au',
+            parameters: {
+              parcel_id: 'parcel_demo_003',
+              return_command_id: 'cmd_demo_003_return',
+              label_format: 'PDF',
+              chargeable: false,
+            },
+          },
+        ],
+        currency: 'AUD',
+        amount_ceiling_minor: 0,
+        expires_at: new Date(Date.now() + 300000).toISOString(),
+        allowlist_version: 'allowlist-demo-v1',
+        environment: 'SIMULATED',
       },
       operation_type: 'GENERATE_RETURN_CONSIGNMENT',
       details: {
@@ -655,7 +693,7 @@ export const MOCK_AUDIT_EVENTS: Record<string, AuditEvent[]> = {
       occurred_at: new Date(Date.now() - 3600000 * 3).toISOString(),
       previous_event_hash: '5555555555555555555555555555555555555555555555555555555555555555',
       event_hash: '6666666666666666666666666666666666666666666666666666666666666666',
-      payload: { preview_id: 'prev_demo_003', scope_fingerprint: 'fp_scope_98124' },
+      payload: { preview_id: 'prev_demo_003', scope_fingerprint: MOCK_DEMO_003_SCOPE_FINGERPRINT },
     },
   ],
   'case_demo_004': [
@@ -734,8 +772,12 @@ export const MOCK_AUDIT_EVENTS: Record<string, AuditEvent[]> = {
   ],
 };
 
+// Fixed synthetic snapshot that keeps the contract invariants: status buckets sum
+// to case_count, risk buckets plus cases_without_current_review sum to case_count,
+// the three latency counts sum to case_count, and buckets follow enum order.
 export const MOCK_ANALYTICS: AnalyticsSnapshot = {
   as_of: new Date().toISOString(),
+  filters: {},
   case_count: 128,
   cases_by_status: [
     { status: 'SUBMITTED', count: 14 },
@@ -745,23 +787,23 @@ export const MOCK_ANALYTICS: AnalyticsSnapshot = {
     { status: 'RISK_REVIEW', count: 8 },
     { status: 'AWAITING_APPROVAL', count: 6 },
     { status: 'APPROVED', count: 24 },
+    { status: 'ESCALATED', count: 3 },
     { status: 'COMPLETED', count: 16 },
     { status: 'REJECTED', count: 5 },
-    { status: 'ESCALATED', count: 3 },
   ],
   current_risk_counts: [
     { outcome: 'PASS', count: 36 },
     { outcome: 'PASS_WITH_WARNING', count: 12 },
-    { outcome: 'NEEDS_INFORMATION', count: 15 },
     { outcome: 'REVISE', count: 4 },
+    { outcome: 'NEEDS_INFORMATION', count: 15 },
     { outcome: 'ESCALATE', count: 3 },
   ],
   cases_without_current_review: 58,
   proposal_latency: {
     metric_version: 'proposal-latency-v1',
     sample_count: 70,
-    failed_count: 0,
-    unmeasured_count: 2,
+    failed_count: 2,
+    unmeasured_count: 56,
     p50_ms: 11200,
     p95_ms: 46500,
   },

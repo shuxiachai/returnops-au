@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+﻿import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { FounderConsole } from './FounderConsole';
 import type { CaseView, ExtractedFacts, FounderDecisionType } from '../types/domain';
@@ -67,6 +67,27 @@ const VIEW_WITHOUT_FACTS: CaseView = {
       input_version: 1,
       proposal_id: 'prop_facts_demo',
       proposal_version: 1,
+      review_id: 'rev_facts_demo',
+      parcel_id: 'parcel_facts_demo',
+      commands: [
+        {
+          command_id: 'cmd_facts_return',
+          type: 'CREATE_RETURN',
+          provider_id: 'provider_demo_au',
+          parameters: { order_id: 'ord_facts_demo', parcel_id: 'parcel_facts_demo' },
+        },
+        {
+          command_id: 'cmd_facts_label',
+          type: 'GENERATE_LABEL',
+          provider_id: 'provider_demo_au',
+          parameters: { parcel_id: 'parcel_facts_demo', return_command_id: 'cmd_facts_return' },
+        },
+      ],
+      amount_ceiling_minor: 0,
+      currency: 'AUD',
+      expires_at: '2026-10-20T00:05:00Z',
+      allowlist_version: 'allowlist-facts-demo',
+      environment: 'SIMULATED',
     },
   },
 };
@@ -109,7 +130,7 @@ async function decideWithCardShown(button: RegExp, decision: FounderDecisionType
   fireEvent.change(screen.getByPlaceholderText(/Record justification for statutory audit/i), {
     target: { value: 'Founder rationale.' },
   });
-  fireEvent.click(screen.getByRole('button', { name: /Record & Execute/i }));
+  fireEvent.click(screen.getByRole('button', { name: /Record decision/i }));
 
   await waitFor(() => expect(recordFounderDecision).toHaveBeenCalledTimes(1));
   return vi.mocked(recordFounderDecision).mock.calls[0];
