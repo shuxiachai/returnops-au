@@ -346,6 +346,60 @@ job or a merge is not acceptance, and no Jira status is changed.
 
 AI-assisted implementation and metadata preparation; author shuxiachai.
 
+## C receipt integration refresh — 22 October 2026 (Sydney)
+
+Following [A's new conflict-resolution request](https://github.com/shuxiachai/returnops-au/pull/17#issuecomment-6330830678),
+[PR #17](https://github.com/shuxiachai/returnops-au/pull/17) normally merges the
+checked main `4aec7c0de6536075f6691567a3f609b8f3093279`. All main README content,
+including A's deployment/R.02/F.06 notices and B's adopted frontend, is preserved;
+the C October 21 receipt now precedes the October 20 receipt. The canonical
+[C worksheet](stage1/drafts/member-c-contribution-and-interview.md), compatibility
+pointer and six byte-unchanged September supporting artifacts remain intact.
+
+[A's previous approval](https://github.com/shuxiachai/returnops-au/pull/17#pullrequestreview-5600248843)
+and successful [CI 39563682501](https://github.com/shuxiachai/returnops-au/actions/runs/39563682501)
+apply only to `0137e1e024ec2ca3a3e9ca19028ea196175964d4`, not this new merge.
+The PR records the new exact head, local checks, normal CI and targeted review
+separately. A remains the squash-merge decision maker. #61 must preserve this
+receipt and worksheet when integrating the actual post-#17 main; neither PR's
+old approval transfers to new bytes.
+
+This is Codex-assisted C documentation integration, not a change to A/B code,
+contracts, frozen allocation or runtime gates. R.02's new no-LLM evidence does
+not establish R.03 live-model/pilot acceptance, corpus admission, C3 execution,
+Gold results, personal explanation or joint sign-off. No new PG17 reproduction,
+course submission, main merge or Jira Done is claimed.
+
+## C September receipt reconciliation — 2026-10-21
+
+Historical checkpoint, superseded by the October 22 integration receipt above.
+[PR #17](https://github.com/shuxiachai/returnops-au/pull/17) preserves six
+September supporting artifacts: the clean-Git note/ZIP, F.01 review/probe,
+and PG17 reproduction report/ZIP. Its worksheet increment uses the adopted
+[canonical C record](stage1/drafts/member-c-contribution-and-interview.md);
+the old `docs/reports/` path remains a compatibility pointer. The intended scope
+is those six artifacts plus README and the worksheet; the current exact diff
+and file inventory are recorded in the PR. A/B models, runtime, contracts,
+allocation and adopted archives are not changed by this C increment.
+
+Following [A's October 21 review](https://github.com/shuxiachai/returnops-au/pull/17#pullrequestreview-5596152615),
+the then-current branch merged `55075f05246eb59f27233f5582b276435f1cf60d`
+and preserved all main README lines. That historical commit was replaced on main
+by same-tree `4bb7cf0ba04a62ef907d0bfb3ad5e468ee7b3a73`; neither is a claim
+about today's main. The October 19 path reconciliation used historical
+`c85efc07676e58b51f88da5d7c457d79f1f4ad80`. Subsequent exact-head approval and
+CI are linked above; those results do not cover later bytes.
+[Issue #16](https://github.com/shuxiachai/returnops-au/issues/16) remains bounded
+documentation/receipt work, not every KAN-22 acceptance gate.
+
+The October notices remain intact. The September blocks below retain their
+historical status and do not override the adopted [Stage 1 archive](stage1/README.md)
+or newer project notices. Both the October 19 path/receipt increment and this
+October 21 reconciliation were prepared and checked with Codex assistance,
+not independently authored or personally confirmed by C. No new PG17 run,
+live Jira audit, personal answer/signature, course submission, predecessor,
+F.02 or whole-package acceptance is claimed.
+
 ## C handoff adopted — 20 October 2026 (Sydney)
 
 This dated receipt supersedes the older C **current-status** statements below;
@@ -1044,6 +1098,70 @@ in [frozen allocation](docs/07-frozen-work-allocation.md) and
 reviewer, estimate, deadline, Gold label or personal sign-off is changed here.
 This handoff was prepared with Codex assistance from the linked repository and
 live Jira records; it is not a new local PG17 reproduction or a runtime review.
+
+## Historical C receipts — September 18–20, 2026
+
+The following records apply to their stated dates and exact source commits only.
+
+## C evidence follow-up — 2026-09-20
+
+This dated C-owned follow-up supersedes only the current setup/evidence status in the September 18 section; all earlier records remain below. The main snapshot recorded on September 20 was the published candidate `da1a09fe7704bdb2fd2f989a44ab62bd7f089a41`. C's model/report sources are unchanged. [PR #17 progress correction](https://github.com/shuxiachai/returnops-au/pull/17#issuecomment-5748904252) records the installed Docker Desktop 4.91.0 / Engine 29.8.0 / Compose v5.5.1 and the September 18 saved Jira comments on KAN-22/12/33. Their status was left In Review; this is dated evidence, not a new Jira status board.
+
+The old statement that Docker installation and those Jira comments are still pending is superseded. The [dated C F.01 technical review](docs/reviews/member-c-f01-review-20260920.md) covers all six scopes requested in Issue #10 against exact A source `3dd1ff637693a826990eee5712cfb239a3c3da7b`: source/order conflicts, historical provenance, capacity, Risk hand-off, known-label recovery and notification precedence. A fresh 58-test contract run and [eight focused artifact probes](docs/reviews/member-c-f01-probes-20260920.py) passed. One low-severity fixture issue remains for A: the SENT/customer-history examples still contain failed-delivery/operator-resend text. This is an AI-assisted technical review, not a personal signature, joint acceptance or executed business guards.
+
+**PG17 Compose technical reproduction passed:** the [dated report](docs/reviews/member-c-pg17-reproduction-20260920.md) and [sanitized logs/scripts](docs/reviews/member-c-pg17-reproduction-20260920.zip) document exact A `3dd1ff6`, PostgreSQL **17.11**, **32/32 environment tests** (two retained dependency warnings), repeated migration and the same API process's live/ready **200/200 → 200/503 → 200/200** across the owned DB outage/recovery. After a disclosed Desktop file-read interruption, an independent no-hardlinks Git clone outside Desktop passed a fresh locked installation, the complete five-stage offline suite, final clean status and Git integrity checks; all nine runtime image source/lock files match that exact checkout. Only this test project's containers were stopped; its volume/logs remain. These results supersede the old unexecuted-PG17 status, but establish health-only infrastructure—not business routes, C's personal performance or joint F.02 acceptance.
+
+The new [Stage 1 navigation draft, PR #18](https://github.com/shuxiachai/returnops-au/pull/18), is A-led preparation for **B-owned M-S.03**, with C's existing classification input preserved. It is not yet merged or an accepted final index. [PR #15](https://github.com/shuxiachai/returnops-au/pull/15) now has the separate main-aligned F.03 candidate `a8b480826e9735ef1d741acbc369f760a23732b8`; C's older bounded static comment is historical evidence, not a new-version approval. PR #7 and this PR #17 each require their own A review; do not reuse the merged PR #12 approval.
+
+**Still requiring real user/team evidence:** C's own T01/T02/T03/T09 and D01–03 explanations in the [existing worksheet](stage1/drafts/member-c-contribution-and-interview.md), actual shared-task participation, the owners' exact-version joint acceptance, and A's final report/video plus actual submission receipts. No personal answer, signature, final submission or Jira Done is inferred.
+
+### Unlocked Canvas report rules verified on September 20
+
+The signed-in [Stage One Report Submission page](https://canvas.sydney.edu.au/courses/74323/assignments/695832) now explicitly resolves the old point-grouping question: **25 points = report 15 + individual interview 10**. One designated member submits **one PDF for the entire Project Groups team**; C supplies and verifies C's portion, not a separate personal report upload. The page displays **Sun October 4, 2026, 23:59** as the due time and September 20–October 11 availability with unlimited attempts. No timezone was shown. October 11 availability is not a deadline extension. No submission receipt was observed and nothing was submitted.
+
+The visible rubric rows total 15 report points: ad-hoc requirements 0.5; Feature 1; overall Use-case 1; Use-case specifications 2; Elementary Structure 3; Complex Structure 3; Activity 1.5; Interaction 1.5; State machine 1.5, plus Interview 10. Nine report-row long descriptions were read: **each member needs at least one informal requirement, one use-case specification and one Activity, Interaction and State-machine model of specific behavior; the group needs 5–10 use cases in total.** The ad-hoc *diagram* is optional, not the individual informal requirement. Retain the existing selected models.
+
+Shared delivery needs one comprehensive Feature diagram (feature-specific NFRs encouraged), one overall Use-case diagram (the page says “all architects and stakeholders”), a detailed design-time Class diagram using appropriate generalization/composition/aggregation/interfaces/multiplicity, and class-based runtime Complex Structure models using Object/Collaboration/Structured Class concepts. The Interview long description could not be opened; its 10 points are confirmed, but specific instructions must still be checked. The declaration requires accurate acknowledgement of generative-AI/other assistance and retention of the submitted work, drafts, AI outputs and research materials for **one year**. Do not pre-sign it for another member or recycle another course's work without permission.
+
+**Video page verified after reconnecting:** the signed-in [Stage One Video Submission task](https://canvas.sydney.edu.au/courses/74323/assignments/695833) requires a **video no longer than 8 minutes**, introducing the project and key agent roles/functions, use cases and design models. Upload the video to Canvas before the deadline; an additional YouTube link is recommended, not a replacement for the upload. The task is **5 points**, counts for all group members and shows the same October 4, 2026, 23:59 deadline, September 20–October 11 availability and unlimited attempts. No explicit file-extension limit or timezone was shown; verify uploader constraints when producing the final file. No declaration was accepted and no submission receipt was observed. A coordinates the final upload; each member verifies their own included material and retains the separate individual interview requirement.
+
+## Post-merge status — 2026-09-18
+
+**Historical September 18 snapshot; later October notices take precedence for current status.** The verified published main snapshot at that time was [main at `da1a09fe`](https://github.com/shuxiachai/returnops-au/commit/da1a09fe7704bdb2fd2f989a44ab62bd7f089a41). Publication and technical review have advanced; personal evidence, joint acceptance and final course submission are separate gates. The September 7/16/17 notes are retained as history, not instructions to repeat completed merges or request the same old review.
+
+| Delivery | Verified publication / review receipt |
+|---|---|
+| A rc.5 contracts, models and F.02 environment | [PR #11](https://github.com/shuxiachai/returnops-au/pull/11) merged to main on September 18, 18:59 Sydney time. The later C-F01 test correction is retained. |
+| Shared course/rubric requirements | [PR #13](https://github.com/shuxiachai/returnops-au/pull/13) merged at 19:06. Use [docs/19](docs/19-course-assessment-requirements.md) and [docs/11](docs/11-stage1-readiness.md), not old unmerged-branch wording. |
+| C models, report contribution and review evidence | [PR #12](https://github.com/shuxiachai/returnops-au/pull/12#event-31380761223) merged at 19:34 as `3024e36c770fbb1d5e272dd2fc43eca3fd68e232`, after A approved synchronized source `79dc6630d37d61f18f42cf037b3f51dee23f72b6`; GitHub records four successful checks. It no longer targets an unmerged A branch. |
+| B personal/shared models and team-report candidate | [PR #14](https://github.com/shuxiachai/returnops-au/pull/14) merged at 19:43. The [team report](docs/reports/stage-1-team-report.md) is a merged candidate, not an uploaded final PDF or course receipt. |
+
+A's [final C review](https://github.com/shuxiachai/returnops-au/pull/12#pullrequestreview-5246362189) records an explicitly delegated, AI-assisted technical approval. It preserves the 26 non-README C contribution files, both README notices and inherited main corrections. The Object Diagram is accepted as a **partial conceptual/DTO snapshot**, not a complete runtime schema. Approval/CI do not certify unaided authorship, personal understanding, runtime implementation, joint acceptance or submission. Three existing Markdown hard-break whitespace diagnostics were retained; do not describe every diagnostic as passing.
+
+### C delivery and the remaining evidence
+
+The C artifacts are available directly in this branch: [model chain MC-0.1.3](docs/18-member-c-model-chain.md), [seven editable PUML/SVG pairs](docs/diagrams/member-c), [report contribution MC-RPT-0.4](docs/reports/member-c-stage1-draft.md), and [delivery/AI-use and interview record](stage1/drafts/member-c-contribution-and-interview.md). PR #12 merged MC-PER-0.2; this follow-up explicitly updates that record to **MC-PER-0.3** with the merge receipts and a practical explanation/video/final-delivery checklist. The models, diagrams and report source versions are unchanged.
+
+| Remaining gate | Concrete next evidence and owner |
+|---|---|
+| C personal explanation | C explains T01/T02/T03/T09 and D01-D03 in their own words using the existing worksheet; record actual dates, revisions and reviewer feedback. Rehearse real peer questions and verify the eventual individual interview slot; reference answers and the team video do not replace the interview. No invented signature or percentage. |
+| Clean-Git / PostgreSQL 17 Compose reproduction | C uses the [published reproduction procedure](docs/reviews/f02-independent-reproduction.md), an exact reviewed SHA, a new checkout/venv and isolated local project/volume. Record full environment tests, migration and repeat migration, same-API healthy → DB outage → recovery, failed-config exit, sanitized logs and source/checks links. The current [KAN-33](https://lucastaooo.atlassian.net/browse/KAN-33) target is A `3dd1ff637693a826990eee5712cfb239a3c3da7b`; agree and record a different target explicitly before calling it accepted. An archive, CI or native PG run is not a substitute. |
+| F.01 / F.02 / F.03 acceptance | Original owners/reviewers record exact-version dispositions and unresolved findings in [KAN-32](https://lucastaooo.atlassian.net/browse/KAN-32), [KAN-33](https://lucastaooo.atlassian.net/browse/KAN-33) and [KAN-34](https://lucastaooo.atlassian.net/browse/KAN-34); F.01 retains B's consumer confirmation and its three-member contract review. [F.03 PR #15](https://github.com/shuxiachai/returnops-au/pull/15) remains separate; the September 18 merge batch did not include it. Preserve each WBS completion dependency. |
+| Shared report/model index and course delivery | B verifies/finalizes M-S.03 and returns exact section/figure links; A integrates/submits the final report and ≤8-minute team video; each member verifies their material and actual contribution/AI disclosure; C audits R.04 evidence. C's actual participation must be traceable in every shared task (Feature, overall Use-case, Class and Complex Structure), not only the Object slice. Record final files, duration/readability checks and real Canvas receipt. The merged report candidate does not by itself establish the remaining acceptance/submission checks. |
+
+On September 18, authenticated Git access was established on C's Mac. A separate fresh clone at the exact F.02 target `3dd1ff6` now passes **all 5 offline steps**: 58 contract tests, 6/6 document/model groups with a real 89-row Git-baseline comparison, 12 model-tool tests, 5 runner tests and 15 Mermaid parses. Additional checks: 2 Compose-probe regressions without Docker, and 28 non-DB environment tests (4 DB tests explicitly deselected; 2 retained warnings). Initial/final tracked Git state is clean. See the [dated evidence and sanitized logs](docs/reviews/member-c-clean-git-prerequisites-20260918.md), including npm startup retries. This is AI-assisted technical execution, not C's personal sign-off. The verified Docker installer is ready, but engine/PG17 Compose, migration and actual outage/recovery remain unexecuted. Never include tokens, passwords, `.env` files or private account exports in the evidence.
+
+The last verified Canvas schedule in [docs/19](docs/19-course-assessment-requirements.md) showed September 20 unlock and October 4, 2026 23:59 report/video deadlines. Recheck the unlocked instructions/timezone and unresolved point grouping; this is not a new Canvas verification. Stage 1 submission must disclose open implementation work and must not wait for all Stage 2/Gold work to finish.
+
+### Jira guide and workflow
+
+[PR #7](https://github.com/shuxiachai/returnops-au/pull/7) is a **separate C-authored workflow guide** in the [KAN-12](https://lucastaooo.atlassian.net/browse/KAN-12) baseline context. It was refreshed at `6da67f00a8e9f563f8aa3ed428980467504cd501`, moved out of Draft and sent to A for review; all four new-source CI checks passed. Relative to main it adds only two guide files. It is not C's already-merged model PR, proof of R.01 adoption, or permission to duplicate 89 Jira cards. It follows [frozen allocation](docs/07-frozen-work-allocation.md), [89 work packages](docs/08-delivery-work-packages.md) and [team workflow](docs/03-team-and-github-workflow.md): each selected optional remains course scope; C coordinates evaluation while every member tests their own features. Root README remains the navigation/current-publication entry; Jira remains the live status, dates, estimates and blocker record. A's new approval remains required; inspect the live review/check state before merging.
+
+Record real publication/review/merge evidence in the existing Jira cards without backdating, changing ownership or marking Done merely because files reached main. [KAN-22](https://lucastaooo.atlassian.net/browse/KAN-22) remains distinct from baseline R.01 and F.01/F.02/F.03 acceptance. Technical approval is recorded; the remaining personal/acceptance evidence above is not prefilled.
+
+### Historical notes retained below
+
+The earlier wording about unpublished rc.5, pending A review, PR #12's old base and unmerged course/report files describes its original dated snapshot and is superseded for publication state by this section. It remains useful provenance, not current merge instructions.
 
 > **F.03 publication reference (2026-09-15; F.01 baseline `3dd1ff637693a826990eee5712cfb239a3c3da7b`):** [F03-C0.1](docs/18-f03-security-component.md) is delivered through [PR #15](https://github.com/shuxiachai/returnops-au/pull/15), tracked by [KAN-34](https://lucastaooo.atlassian.net/browse/KAN-34) in **In Review**. Read the PR body and its [GitHub Actions records](https://github.com/shuxiachai/returnops-au/actions) for the exact current source SHA and corresponding CI results. This notice supersedes earlier local/unpublished F.03 snapshots; preparation receipts and first-publication CI records remain historical evidence for their own versions. The component implements isolated JWT/current-session verification and role/resource authorization with synthetic tests; it is not wired to the health-only API, database or business workflow. Publication does not establish F.01/F.02/F.03 acceptance or C's personal review.
 
