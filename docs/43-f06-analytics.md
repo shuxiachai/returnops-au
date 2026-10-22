@@ -44,7 +44,7 @@ Before returning, the response is validated against `AnalyticsSnapshot` (interna
 
 - Offline: `tests/founder/test_analytics_offline.py` (route registration, HTTP query whitelist, query validation matrix, percentile and latency helpers, invariant checks on the contract examples and mutations, current-review identity and accepted-receipt rules, the single compiled statement with its two receipt checks, a scripted PROPOSAL_FAILED row counted as failed, and the service's read-only order of calls with a scripted unit of work).
 - PostgreSQL: `tests/founder/test_analytics_postgresql.py` (hand-computed cohort reconciled with the contracts' `assert_analytics_fixture`, a retried proposal counted once, stale, deleted and unaccepted reviews, legacy encoding, a PROPOSAL_FAILED receipt for the current input (failed) and for an older input (not failed), a second store provisioned through the trusted registry and never counted, a full-table no-write fingerprint, the empty cohort shape, a future bound clamped to `as_of`, the 401/403/422 matrix, and real producers: a fixed proposal and an order-lookup failure stay unmeasured, while a capacity failure of the fixed proposer is failed). `tests/founder/test_tcp_founder.py` adds one analytics call over TCP.
-- First CI result: pending.
+- First CI result: PR #90, head 1de70e3d, CI run 39701255799: all 12 jobs successful, including the PostgreSQL foundation group that runs tests/founder (the 4 analytics PostgreSQL nodes and the TCP call). Squash-merged into main on 2026-10-22.
 
 ## Changes needed in B's frontend
 
