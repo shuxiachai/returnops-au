@@ -13,7 +13,7 @@ from .customer_http import register_customer_routes
 from .founder_http import register_founder_routes
 
 def create_app(*,engine=None,auth_config=None,enable_processor=True,enable_fixed_proposal=None,
-               enable_founder_decisions=None):
+               enable_founder_decisions=None,enable_model_showcase=None):
     # Keyword injection is trusted Python composition for tests, never HTTP input.
     configured=auth_config if auth_config is not None else load_private_auth_config()
     if enable_fixed_proposal is None:
@@ -30,12 +30,25 @@ def create_app(*,engine=None,auth_config=None,enable_processor=True,enable_fixed
         enable_founder_decisions = flag == '1'
     if type(enable_founder_decisions) is not bool:
         raise ValueError('The Founder decision route flag must be boolean.')
+    if enable_model_showcase is None:
+        flag = os.environ.get('RETURNOPS_MODEL_SHOWCASE','0')
+        if flag not in {'0','1'}:
+            raise ValueError('The model showcase flag must be 0 or 1.')
+        enable_model_showcase = flag == '1'
+    if type(enable_model_showcase) is not bool:
+        raise ValueError('The model showcase flag must be boolean.')
+    model_settings=None
+    if enable_model_showcase:
+        # A1.06 advisory showcase (docs/44): missing model settings fail startup.
+        from .model_settings import ModelSettings
+        model_settings=ModelSettings.from_environment()
     settings=Settings.from_environment() if engine is None else None
     @asynccontextmanager
     async def lifespan(app):
         actual=engine if engine is not None else build_engine(settings)
         app.state.engine=actual;app.state.auth_config=configured;app.state.intake_worker=None;app.state.investigation_worker=None
         app.state.proposal_worker=None
+        app.state.coordinator_showcase=None;app.state.coordinator_facts=None
         app.state.upload_slots=BoundedSemaphore(2)
         try:
             if configured is not None and enable_processor:
@@ -47,11 +60,27 @@ def create_app(*,engine=None,auth_config=None,enable_processor=True,enable_fixed
                     from returnops_domain.proposal_processor import FixedProposalProcessor
                     app.state.proposal_worker=IntakeWorker(FixedProposalProcessor(actual))
                     app.state.proposal_worker.start()
+            if model_settings is not None:
+                from returnops_domain.coordinator_showcase import (CoordinatorAnnotationStore,
+                    CoordinatorShowcaseWorker, project_facts)
+                store=CoordinatorAnnotationStore()
+                app.state.coordinator_showcase=CoordinatorShowcaseWorker(actual,model_settings.transport(),store,
+                    settings=model_settings.worker_settings())
+                app.state.coordinator_facts=lambda uow,head:project_facts(uow,head,store)
+                if configured is not None and enable_processor:
+                    app.state.coordinator_showcase.start()
             yield
         finally:
-            if app.state.proposal_worker is not None: app.state.proposal_worker.stop()
-            if app.state.investigation_worker is not None: app.state.investigation_worker.stop()
-            if app.state.intake_worker is not None: app.state.intake_worker.stop()
+            try:
+                if app.state.proposal_worker is not None: app.state.proposal_worker.stop()
+                if app.state.investigation_worker is not None: app.state.investigation_worker.stop()
+                if app.state.intake_worker is not None: app.state.intake_worker.stop()
+            finally:
+                # Stopped last in its own try: stop() never waits for a model call.
+                try:
+                    if app.state.coordinator_showcase is not None: app.state.coordinator_showcase.stop()
+                except Exception:
+                    pass
             if engine is None: actual.dispose()
     app=FastAPI(title='ReturnOps AU',lifespan=lifespan,docs_url=None,redoc_url=None,openapi_url=None)
     @app.get('/health/live')

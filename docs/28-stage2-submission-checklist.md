@@ -65,6 +65,8 @@ conversion from the older Project Description's final-week wording.
 | Agile experience |4| Actual Jira collaboration, short iterations, feedback and resulting changes, CI/test evidence, and a truthful retrospective with each member's contribution |
 | Advanced technologies |5| Explain effective use of selected application framework, database, Docker/CI and AI techniques with actual deployment/run evidence; the examples in the rubric do not mandate Kubernetes or a new cloud service |
 
+AI agent capabilities evidence (22 October 2026): the advisory, default-off A1.06 Coordinator showcase and its provider record, data flow and fail-closed paths are in [docs/44](44-coordinator-showcase.md); its first live result is pending, and it is not three-role or Gate 2 evidence.
+
 The rubric page2 requires names/student IDs, each member's percentage under each
 of these four criteria, and specific completed tasks/deliverables. Each criterion
 row must total100%; unused member columns stay blank. The frozen45/27/28 planned
