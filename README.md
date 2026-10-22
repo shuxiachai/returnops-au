@@ -26,8 +26,11 @@ covers work package F.06 only.
   failures (PROPOSAL_FAILED for the current input) count as failed; every
   other case is unmeasured. docs/43 records a Tier 1 candidate for C's
   review. The only proposer is the fixed synthetic one.
-- First CI result: pending. Contracts, docs/08/09, migrations and `apps/web`
-  are unchanged; no acceptance by C or any member is implied.
+- First CI result: PR #90, head 1de70e3d, CI run 39701255799: all 12 jobs
+  successful, including the PostgreSQL foundation group that runs tests/founder
+  (the 4 analytics PostgreSQL nodes and the TCP call). Squash-merged into main on
+  2026-10-22. Contracts, docs/08/09, migrations and `apps/web` are unchanged; no
+  acceptance by C or any member is implied.
 
 AI-assisted implementation and metadata preparation; author shuxiachai.
 
