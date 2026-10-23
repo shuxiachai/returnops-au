@@ -649,3 +649,52 @@ def test_withheld_receipt_in_keep_api_mode_never_holds(tmp_path, monkeypatch, ca
     run = driver.Run(output, identities=directory, api_port=8765, keep_api=True)
     assert run.execute() == 'FAILED' and run.receipt_withheld is True
     assert events == [('start', {'port': 8765}), 'stop'] and not (output / driver.RECEIPT).exists()
+
+
+# ---------------------------------------------------------------- cleanup that did not finish (C's review of #116)
+
+def _cleanup_left_undone(monkeypatch, dispose_fails):
+    """The private directory survives its removal; optionally the database engine fails to close."""
+    monkeypatch.setattr(driver.shutil, 'rmtree', lambda path, ignore_errors=False: None)
+    if dispose_fails:
+        fake_environment = driver.Run.environment
+
+        def failing_dispose():
+            raise RuntimeError('dispose failed: postgresql://user:secret@host/db')
+
+        def environment(self):
+            fake_environment(self)
+            self.engine = SimpleNamespace(dispose=failing_dispose)
+        monkeypatch.setattr(driver.Run, 'environment', environment)
+
+
+def test_cli_reports_cleanup_that_did_not_finish_after_a_passed_run(tmp_path, monkeypatch, capsys):
+    output, events = tmp_path / 'out', []
+    _fake_run(monkeypatch, tmp_path, events, 'PASSED')
+    _cleanup_left_undone(monkeypatch, dispose_fails=True)
+    assert driver.main(['--output', str(output)]) == 0  # the exit code still follows the chain's result
+    printed = capsys.readouterr()
+    assert printed.out.strip().splitlines()[-1] == (
+        'R.02 driver result: PASSED (see run-receipt.json); cleanup did not finish: ENGINE_DISPOSE_FAILED, '
+        'the private temporary directory was not removed.')
+    assert 'r02-private-*' in printed.err and 'Delete it by hand.' in printed.err
+    assert 'secret' not in printed.out + printed.err and str(tmp_path / 'private') not in printed.out + printed.err
+    receipt = json.loads((output / driver.RECEIPT).read_text(encoding='ascii'))
+    assert receipt['result'] == 'PASSED' and receipt['cleanup_failures'] == ['ENGINE_DISPOSE_FAILED']
+    assert receipt['private_directory_removed'] is False and (tmp_path / 'private').exists()
+
+
+def test_keep_api_cli_reports_cleanup_that_did_not_finish_after_the_hold(tmp_path, monkeypatch, capsys):
+    directory, _ = _provision(tmp_path, monkeypatch)
+    output, events = tmp_path / 'out', []
+    _fake_run(monkeypatch, tmp_path, events, 'PASSED')
+    _cleanup_left_undone(monkeypatch, dispose_fails=False)
+    monkeypatch.setattr(driver.api_child, 'hold', lambda api, **options: 'INTERRUPTED')
+    argv = ['--output', str(output), '--identities', str(directory), '--api-port', '8765', '--keep-api']
+    assert driver.main(argv) == 0
+    printed = capsys.readouterr()
+    assert printed.out.strip().splitlines()[-1] == (
+        'R.02 driver result: PASSED (see run-receipt.json); cleanup did not finish: '
+        'the private temporary directory was not removed.')
+    assert 'R.02 demo mode: the private temporary directory could not be removed.' in printed.err
+    assert json.loads((output / driver.RECEIPT).read_text(encoding='ascii'))['result'] == 'PASSED'

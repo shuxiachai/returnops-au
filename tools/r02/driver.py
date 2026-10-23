@@ -311,6 +311,7 @@ class Run:
         self.engine = self.private = self.http = self.auth = self.case = self.ids = None
         self.store, self.people, self.receipt_written = STORE, dict(PEOPLE), False
         self.receipt_withheld = False  # every receipt form contained private material; no file exists
+        self.cleanup_failures, self.private_left = [], False  # cleanup that did not finish, for the CLI line
         # Credentials withhold a log and refuse a receipt; local directories are
         # replaced in a kept log and refused in a receipt.
         self.tokens, self.secrets, self.locations, self.step_number = {}, [], [], 0
@@ -947,6 +948,9 @@ class Run:
                 shutil.rmtree(self.private, ignore_errors=True)
                 removed = not self.private.exists()
             stage('PRIVATE_DIRECTORY_REMOVE_FAILED', remove)
+        # C's review of #116: a business PASSED is not an all-clean run, so the CLI line reports these too.
+        self.cleanup_failures = list(failures)
+        self.private_left = self.private is not None and removed is not True
         if self.receipt_written:  # --keep-api: the receipt was written before the API stopped
             if self.private is not None and removed is not True:
                 print('R.02 demo mode: the private temporary directory could not be removed.', file=sys.stderr)
@@ -958,10 +962,21 @@ class Run:
             self.data['private_directory_removed'] = removed is True
         if failures:
             self.data['cleanup_failures'] = failures
+        if self.private_left:
+            held = 'signing key, tokens and raw API log' if self.ids is None else 'raw API log'
+            print('R.02: the private temporary directory (r02-private-* in the system temporary directory) could not '
+                  'be removed; it may still hold the ' + held + ' of this run. Delete it by hand.', file=sys.stderr)
         try:
             self.publish()
         except Exception:
             print('R.02: the run receipt could not be written.', file=sys.stderr)
+
+    def cleanup_note(self):
+        """Suffix for the CLI result line: cleanup that did not finish is never reported as an all-clean run."""
+        parts = list(self.cleanup_failures)
+        if self.private_left:
+            parts.append('the private temporary directory was not removed')
+        return '; cleanup did not finish: ' + ', '.join(parts) if parts else ''
 
     def publish_api_log(self):
         """--keep-api-log: screen the private raw log and publish only the screened copy or a note."""
@@ -1058,11 +1073,12 @@ def main(argv=None):
               identities=identities, api_port=args.api_port, keep_api=args.keep_api)
     result = run.execute()
     if run.receipt_withheld:
-        print('R.02 driver result: FAILED (the run receipt was withheld because it contained private material).')
+        line = 'R.02 driver result: FAILED (the run receipt was withheld because it contained private material)'
     elif run.receipt_written:
-        print('R.02 driver result: ' + result + ' (see ' + RECEIPT + ').')
+        line = 'R.02 driver result: ' + result + ' (see ' + RECEIPT + ')'
     else:
-        print('R.02 driver result: FAILED (the run receipt could not be written).')
+        line = 'R.02 driver result: FAILED (the run receipt could not be written)'
+    print(line + run.cleanup_note() + '.')
     return {'PASSED': 0, 'REFUSED': 2}.get(result, 1)
 
 

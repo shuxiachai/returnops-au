@@ -142,6 +142,12 @@ not re-run with new keys.
   form of the receipt would contain private material, no file is written, the
   run is reported as `FAILED (the run receipt was withheld because it contained
   private material)` with exit code 1, and demo mode does not keep the API running.
+  Cleanup that did not finish is never reported as clean: the result line ends
+  with `; cleanup did not finish:` and the failed stage codes, plus `the private
+  temporary directory was not removed` when that directory survived (the exit
+  code still follows the chain's result), and stderr says that the private
+  temporary directory (`r02-private-*` in the system temporary directory) could
+  not be removed, so it can be deleted by hand.
 
 The signing key and tokens exist only in memory and in a 0600 `auth.json`
 inside a 0700 temporary directory that is removed at the end of the run. Never
