@@ -1,218 +1,229 @@
-> **Current technical checkpoint - 13 October 2026:** [PR #65](https://github.com/shuxiachai/returnops-au/pull/65) is merged at main `7fc30856`. Its [new-main CI](https://github.com/shuxiachai/returnops-au/actions/runs/38331528059) passed 2262 core regressions on PG17.11/head0009. The four private Founder decision components are technically adopted; original personal, predecessor and joint acceptance remain separate.
-
-> **A2.02 first candidate / KAN-15 / Issue #71:** see [private retained-source approval admission](docs/37-a202-approval-admission.md). This read-only slice checks a future CREATE_RETURN against full persisted current approval proof; saved execution work remains unclaimed. Its own exact-source PR/CI records establish publication and validation. Older dated notices below retain their historical scope.
-
-> **A1.03 investigation increment / Issue #27 / recorded KAN-14:** [persisted order investigation and clarification](docs/23-order-investigation.md) now connects the adopted customer flow and synthetic provider through explicit database permissions, durable work, five outcome paths and atomic lifecycle/audit/retention guards. The implementation starts from merged PR26/main4673; use its exact-source PR/CI records for publication and adoption status. No Founder packet, Risk/approval, LLM or real provider is implemented, and no whole-package or teammate/joint acceptance is implied. Earlier component/customer-candidate notices below retain their historical scope.
-
-> **A1.04 / recorded KAN-29:** see the [independent synthetic order provider](docs/22-a104-synthetic-order-provider.md) for its internal port, immutable fixture provenance and installation checks. Customer-worker/Domain acceptance wiring belongs to later A1.05 work.
-
-> **Customer backend candidate (26 September 2026, Issue #23 / recorded KAN-14 mapping):** the isolated implementation now provides the seven frozen customer operations, PostgreSQL admission/receipts/history, current F.03 authorization, bounded attachments and separate durable deterministic intake processing. See [customer flow and private demo](docs/21-customer-flow.md). This remains a scoped implementation candidate; use its actual pull request and exact-source CI records for publication/review/merge status. It does not claim teammate or joint acceptance, verified purchase facts, AI processing, or a Founder/provider workflow. Earlier health-only/component-only notes below describe their historical baselines.
-
 # ReturnOps AU
 
-## C review publication follow-up — 23 October 2026 evening (Sydney)
+ReturnOps AU is the Group 10 project for ELEC5620 Model-Based Software Engineering (University of Sydney, 2026): a returns assistant for small Australian online shops. A customer describes a problem in plain words; the system asks only for what is missing, checks the order, prepares a non-executable proposal with a risk review, and the shop's Founder approves exactly one previewed action. Only after that approval does the system run the simulated return, the parcel label and the customer notification. All providers are mocks; no real money moves and no real customer data is used.
 
-Primary delivery: [KAN-41](https://lucastaooo.atlassian.net/browse/KAN-41).
-This dated C notice supersedes the current-state wording in earlier C receipts,
-without deleting their source-specific findings or test results.
+**Start here:** [run it](#run-it-week-13-demonstration) · [what is in the system](#what-is-in-the-system) · [where AI is used](#where-ai-is-used-and-where-it-is-not) · [how we worked](#how-we-worked) · [known gaps](#known-gaps) · [deploy from zero](#deploy-from-zero---22-october-2026-sydney)
 
-- Following [A's request](https://github.com/shuxiachai/returnops-au/pull/61#issuecomment-6359315897),
-  this six-file C review/handoff branch is submitted for A's exact-head review
-  and lead-written squash via its PR against main. PR #17 and #61 are already merged;
-  this separate review packet is not yet adopted merely because it is published.
-- The branch ordinary-merges main `2a4d3ae258734ab91c90d9e27e3da14eccbde0c6`
-  (#112), preserving all main README lines and A/B runtime files. #112 widens
-  the bounded transient retry classification; the earlier `c4d0879` failure is
-  historical evidence, not a check result for this newer source.
-- C independently checked [PR #114](https://github.com/shuxiachai/returnops-au/pull/114)
-  at `590b4229ca20cd6e6ad34f026fd32d6ae93e421b`: **105 offline tests passed**.
-  The original narrow interruption/cleanup/log observations improved. However,
-  a new synthetic failure probe shows that an unwritable final receipt can
-  still leave the command claiming `PASSED` with exit 0. This is **R02-C-03**,
-  sent for A's disposition; no actual filesystem failure or secret leak is claimed.
-  #114 is a separately reviewed candidate, not code merged into this C branch.
-- The [C review record](docs/reviews/member-c-r02-review-20261022.md#8-pr114-bounded-review-and-receipt-publication-finding--23-october-2026)
-  distinguishes exact sources, safe reproduction, remaining failure-matrix/PG
-  limits and current review findings. Neither offline tests nor green CI alone
-  establish Gate 1 or a personal/team sign-off.
+## Status (23 October 2026)
 
-Next independent follow-up: review the owner's response and recheck any fix
-against its exact source. Still requiring actual people or approved
-runtime evidence: C's own S6 explanation and contribution/AI-use confirmation,
-team rehearsal, exact-byte corpus admission, real Risk/pilot/Gold/C3 and final
-submission-source acceptance. A's scheduling deferral is not a tutor waiver.
-AI-assisted C preparation; no A/B implementation edits, main merge by C,
-live model call, invented timing, contribution agreement or Done transition.
+- The Gate 1 scope is delivered on `main`: the governed case lifecycle, the customer and Founder HTTP APIs, exact-scope approval, the simulated return, label, PDF and notification chain, read-only analytics, the web frontend with a live API mode, and an advisory model extraction that is off by default.
+- Every change reaches `main` through a pull request and the full CI matrix: offline contracts and models, eight PostgreSQL parts, the no-LLM end-to-end driver and the web frontend.
+- The full three-role LLM orchestration (Gate 2) is deliberately deferred; see [docs/46](docs/46-gate2-roadmap.md).
+- The dated records further down this file keep the history of every adoption verbatim; where they differ from this section, this section is current.
 
-## C adoption and review update — 23 October 2026 (Sydney)
+## Run it (Week 13 demonstration)
 
-Tracking: [KAN-23](https://lucastaooo.atlassian.net/browse/KAN-23) /
-[KAN-41](https://lucastaooo.atlassian.net/browse/KAN-41).
-This dated notice supersedes the pending/failed statuses in the older C
-snapshots below; their original evidence is retained.
+| Step | Where |
+|---|---|
+| Prerequisites, Python environment, `.env`, Docker Compose database | [Deploy from zero](#deploy-from-zero---22-october-2026-sydney), steps 0 to 2 |
+| Demo identities, API with workers, web frontend and token login | the same chapter, steps 3 and 4 |
+| One governed case from lodging to label and notification | the same chapter, step 5, and the [R.02 driver](tools/r02/README.md) |
+| The live presentation, segment by segment | [docs/45 demo script](docs/45-stage2-demo-script.md) |
+| Packaging, Canvas upload and the clean-machine rehearsal | [docs/47 submission runbook](docs/47-stage2-submission-runbook.md) |
 
-- **PR #61 is merged**, not waiting for adoption: A approved exact source
-  `be21f39bc502100ddd96c129bc9116b6fdcfceba` in
-  [review 5622537263](https://github.com/shuxiachai/returnops-au/pull/61#pullrequestreview-5622537263).
-  A's [attempt 2 of run 39770369525](https://github.com/shuxiachai/returnops-au/actions/runs/39770369525/attempts/2)
-  passed all 13 effective jobs without changing that source. A adopted it
-  at 01:04:56 UTC as `29fd233a520bd37ee1c9aa2c61302b0417a25853`.
-  Attempt 1's lock-timeout failure remains historical evidence; rerun success
-  does not prove its cause was fixed.
-- This C review branch now integrates main
-  `c4d08799adf555604a235e61ca325f50a2218618` by ordinary merge, retaining
-  the complete main README and the earlier C receipts. A/B runtime files,
-  frozen ownership/dependencies and corpus-admission pins match that main.
-  B's stacked #101/#102 changes reached main through #107; #108 subsequently
-  added bounded R04 attempt records and the R.02 interruption correction.
-- **Latest main is not fully green:** [run 39900838149](https://github.com/shuxiachai/returnops-au/actions/runs/39900838149)
-  on that exact `c4d0879` failed the same-key R04 assertion again
-  (351 passed / 1 failed; PG lock timeout), followed by the dependent final
-  gate. This is a new main failure, not a reversal of PR #61's merge.
-  A's existing [Issue #103](https://github.com/shuxiachai/returnops-au/issues/103)
-  / KAN-43 remains the concurrency follow-up.
-- C independently verified **R02-C-01's terminal FAILED/INTERRUPTED receipt
-  in bounded in-memory probes**. **R02-C-02 remains open**: an earlier cleanup
-  failure can prevent later private cleanup/receipt publication; raw API logs
-  can still target the public output directory before screening. No actual
-  secret leak was observed. See the [updated review and evidence limits](docs/reviews/member-c-r02-review-20261022.md#7-adoption-and-owner-fix-follow-up--23-october-2026).
-- Local checks: 137 focused tests / 136 subtests; the complete six-step offline
-  check passed (371 contract tests, 6 static groups, 12 model-checker tests,
-  32 runner tests, 14 Mermaid parses and 64 synthetic-provider tests).
-  These overlapping checks are not Gold, a live Risk run, a personal rehearsal
-  or acceptance of the whole application.
-  The additional PG17 test container did not start (Created/Pid 0), including
-  a no-bind control attempt: **no new local PG pass or failure is claimed**.
-  Only this task's temporary test containers/data were removed.
+## What is in the system
 
-Still needed: A's remaining cleanup/log disposition; approved real-corpus
-admission and runtime C2 wiring; separately authorised real Risk/C3 evaluation;
-blind Gold and actual participant timing; C's own S6 explanation and team
-rehearsal/acceptance. Merge is not Done. AI-assisted C verification; no main
-merge by C, live model call or teammate signature.
+| Part | What it does | Details |
+|---|---|---|
+| Customer portal and API | Lodge a return in plain words, answer targeted questions, upload evidence (JPEG, PNG or PDF), track the case | [docs/21](docs/21-customer-flow.md), [apps/web](apps/web/README.md) |
+| Order investigation | Match the case to a synthetic order, and ask for a reference when it is missing | [docs/22](docs/22-a104-synthetic-order-provider.md), [docs/23](docs/23-order-investigation.md) |
+| Proposal and risk review | A fixed, non-model proposal and a controlled risk review in the Gate 1 scope | [docs/29](docs/29-a105-fixed-proposal-runtime.md), [docs/33](docs/33-a201-pass-review.md) |
+| Founder console and decisions | Case queue, case detail and audit; approve, reject, request revision or take over manually, against the exact previewed scope | [docs/40](docs/40-founder-decision-http-boundary.md), [docs/35](docs/35-a201-preview-approval.md), [apps/web](apps/web/README.md) |
+| Governed simulated execution | After approval only: return, parcel label, label PDF and customer notification through mock providers, each checked against the approved scope | [docs/37](docs/37-a202-approval-admission.md), [docs/39](docs/39-a203-core-return-execution.md), [notification](docs/a206-notification-outcome.md) |
+| Operations analytics | A read-only snapshot of case counts, risk outcomes and proposal latency | [docs/43](docs/43-f06-analytics.md) |
+| End-to-end evidence | A private driver runs one synthetic case through the real API and records a receipt; CI runs it on every change | [docs/41](docs/41-r02-end-to-end-evidence.md) |
 
-## C local proof follow-up — 22 October 2026, 12:54 UTC
+## Where AI is used, and where it is not
 
-Tracking: [KAN-23](https://lucastaooo.atlassian.net/browse/KAN-23) /
-[KAN-41](https://lucastaooo.atlassian.net/browse/KAN-41).
-This dated C-only notice supersedes the older C status snapshots below;
-their source-specific results remain history. **PR #17 is merged. PR #61
-remains open at `be21f39bc502100ddd96c129bc9116b6fdcfceba`.** Its
-[normal CI run](https://github.com/shuxiachai/returnops-au/actions/runs/39770369525)
-has finished with 11 successful jobs, one failed Founder revision job and the
-dependent failed final gate. It is not ready to claim green/accepted.
+- **Used, advisory only:** a model reads the customer's statement and fills a typed facts card for the Founder (issue category, requested outcome, assessment and a short summary). The reply must pass a fail-closed acceptance chain; customers never see it; it cannot change any status, proposal, decision or operation. First live result with the course's Campus Qwen model: [docs/44](docs/44-coordinator-showcase.md).
+- **Prepared, not yet in the runtime:** retrieval with exact citations and an independent risk reviewer ([experiments/c1_grounding_candidate](experiments/c1_grounding_candidate), [experiments/c2_risk_candidate](experiments/c2_risk_candidate/README.md)), and the evaluation plan ([experiments/evaluation_candidate](experiments/evaluation_candidate/README.md)).
+- **Deliberately not used:** no model output reaches the execution chain; approval needs a human Founder and an exact preview; execution is a separate controlled step. Roadmap: [docs/46](docs/46-gate2-roadmap.md).
 
-C now has [new local proof and E.10 dispositions](docs/reviews/member-c-r02-review-20261022.md#6-local-proof-follow-up--22-october-2026):
-five unchanged R04 same/different-key pairs passed on isolated PG17.11;
-two preparation/restart and six installed label-process cases passed. This
-does **not** reproduce or fix the cloud lock timeout. The R.02 cancellation
-and cleanup defects still reproduce in memory; A's disposition remains needed.
+## How we worked
 
-The same clean `be21f39` checkout passed 263 focused C offline tests and generated
-the 13-file synthetic evidence bundle. A source archive passed the 116 C1/C2
-tests, pilot and example human-time accounting; it correctly refused new
-Git-provenance evidence without `.git`. See the [C reproduction boundary](experiments/evaluation_candidate/README.md#clean-checkout-versus-source-archive--22-october-2026).
+- Requirements and models: [docs/00](docs/00-project-definition-v1.md) (FR-001 to FR-012, NFR-001 to NFR-009 and the use cases); interface contract [docs/09](docs/09-interface-contract-v1.md) and [contracts/v1](contracts/v1).
+- Allocation and work packages: [docs/07](docs/07-frozen-work-allocation.md) and [docs/08](docs/08-delivery-work-packages.md); Jira project KAN.
+- Iterations, feedback loops and technology data: [docs/48](docs/48-agile-evidence-and-technology-data.md); test coverage map: [docs/42](docs/42-e10-coverage-map.md).
 
-Only C documentation is updated on this separate review branch; PR #61's head,
-A/B implementation, source-admission pins and WBS remain unchanged. No Actions
-rerun, live model, Gold, measured human timing, personal sign-off, main merge or
-Done transition is claimed. Future integration still needs exact-source review
-and required checks; these local results do not replace them.
+## Known gaps
 
-## C follow-up — 22 October 2026 evening (Sydney)
+The list attached to the submission is in [docs/47](docs/47-stage2-submission-runbook.md), section 7; the hardening backlog is in [docs/46](docs/46-gate2-roadmap.md), section 8.
 
-Tracking: [KAN-41](https://lucastaooo.atlassian.net/browse/KAN-41) and
-[Issue #66](https://github.com/shuxiachai/returnops-au/issues/66).
-This is a C-only preparation branch, **not current main**. The remote-main
-snapshot checked was `51862f4bcc06eebf1c1804647c21d0908960ebc7`; A/B runtime
-changes from that snapshot have not been merged into this branch.
+## Repository map
 
-- PR #17 head `b6dcc7552c2e52ca4dafd9d4b9400ad860db9365` and PR #61 head
-  `7bb1f5ad6e95a13a4aaffbae3056794116fedea7` remain OPEN. Their existing
-  [39724718286](https://github.com/shuxiachai/returnops-au/actions/runs/39724718286)
-  and [39724719271](https://github.com/shuxiachai/returnops-au/actions/runs/39724719271)
-  CI runs have now finished: **13/13 jobs successful each**. Older approvals
-  concern older heads; this is not approval or CI for current main. Neither
-  pending branch was changed by this follow-up.
-- A published the advisory Coordinator (#94), demo/roadmap/runbook (#96),
-  Canvas packaging clarification (#97), and explicit private-HTTP opt-in
-  (#98). These are not C2 Risk integration or permission for C to read keys,
-  enable the transport, send data or call a model. No live-model evidence was
-  verified in this follow-up.
-- C's [S6 speaking draft and display checklist](experiments/c2_risk_candidate/README.md#s6-demo-preparation--22-october-evening)
-  now map to A's two-minute segment. The existing synthetic evidence command
-  was actually run locally; it is accounting rehearsal, not a human rehearsal,
-  Gold result or model benchmark. Contract tests: **371 passed / 1685 subtests**
-  (overlapping existing suites, not additional independent scenarios).
-- The [C latency-event disposition](experiments/evaluation_candidate/README.md#22-october-f06-tier-1-technical-disposition)
-  explains why Tier 0 should stay until the complete episode boundary is
-  established. A's R.02 interruption/cleanup findings also remain unresolved;
-  `tools/r02` is unchanged between reviewed `4aec7c0` and checked `51862f4`.
-- [A's submission runbook at the checked source](https://github.com/shuxiachai/returnops-au/blob/51862f4bcc06eebf1c1804647c21d0908960ebc7/docs/47-stage2-submission-runbook.md)
-  records a ZIP-only group submission, opening 26 October and due 1 November
-  23:59 Sydney. Its contribution percentages are **A's proposal, not agreed**.
-  The student must confirm their own contribution/AI-use statement and practise
-  the segment; team rehearsal and tutor scope disposition remain separate.
+| Path | Content |
+|---|---|
+| `apps/api` | FastAPI application, HTTP boundaries and the demo issuer |
+| `apps/web` | React and Vite web frontend |
+| `packages/returnops_domain` | Domain services, lifecycle guards and PostgreSQL tables |
+| `alembic` | Database migrations |
+| `contracts/v1` | Frozen OpenAPI and JSON Schema contract |
+| `tests` | Contract, customer, Founder and lifecycle suites |
+| `tools` | Check runner, model checks, R.02 driver and model showcase CLI |
+| `experiments` | C1, C2 and evaluation candidates (offline) |
+| `docs`, `stage1` | Design documents, models and Stage 1 deliverables |
 
-AI-assisted C preparation; no main merge, A/B code edit, new CI run, personal
-signature, contribution-percentage agreement or Done transition.
+## Project definition
 
-## C technical review and handoff — 22 October 2026 (Sydney)
+The sections below define the product and its boundaries; they are unchanged since Baseline v1.0 except where a dated note says otherwise.
 
-C's [R.02 technical review packet](docs/reviews/member-c-r02-review-20261022.md)
-checks main `4aec7c0de6536075f6691567a3f609b8f3093279` without changing A/B
-code. Local R.02/C2 checks passed **100 tests and 82 subtests**. The downloaded
-R.02 receipt from [run 39724718286](https://github.com/shuxiachai/returnops-au/actions/runs/39724718286/job/119645897403)
-has 32/32 checks true; all three code-tree digests match that main. This is
-CI-artifact verification, not a new local PostgreSQL run or human acceptance.
+## Public access and project scope
 
-Two failure-path findings are sent to A: interruption can publish a nonterminal
-`RUNNING` receipt; cleanup/log-screening failures can leave private files and
-unscreened output behind. The packet includes an isolated reproduction and
-acceptance checklist. No actual credential leak was observed.
+This is a synthetic-data course prototype. Use synthetic customer data and
+disposable test credentials only; do not supply real customer data or provider
+secrets. The actual logistics provider remains subject to tutor disposition and
+account access. Simulated results do not establish a live provider integration.
 
-The [C2 README handoff](experiments/c2_risk_candidate/README.md#22-october-handoff--near-term-delivery)
-now separates the five-outcome contract from runtime routing and lists the
-remaining decisions. A's Gate 2 deferral is a team scheduling note, not a tutor
-waiver: the real Risk model, admitted corpus, pilot/Gold, C3 and original WBS
-conditions remain outstanding unless explicitly resolved. Personal explanation,
-review signatures and joint acceptance are not prefilled. This C-only review
-branch is not a merge request or a replacement for the pending PR #17/#61
-heads; any later integration still needs exact-source review and required CI.
+This maintenance change limits branch-push CI to `main` while preserving all
+pull-request checks, and removes personal machine paths from selected current
+comments and context. Team authorship, assessment materials and review records
+remain intact. Retained history, branches and earlier evidence are not anonymized.
 
-## R.05 demo script, Gate 2 roadmap and submission runbook - 22 October 2026 (Sydney)
+Public visibility does not grant an open-source license or establish Stage 2
+completion, teammate/tutor acceptance, or production readiness. Dated evidence
+below retains its original scope.
 
-Owner A (`shuxiachai`, Jingbo Chai); reviewer C under docs/08. Documents only.
-- [docs/45](docs/45-stage2-demo-script.md): Week 13 live demo script (12-15 minutes, speakers A/B/C, fallbacks).
-- [docs/46](docs/46-gate2-roadmap.md): what Gate 1 delivered, Gate 2 preconditions, A3 and C3 status, 22 October deferrals.
-- [docs/47](docs/47-stage2-submission-runbook.md): R.05.a/R.05.b packaging, Canvas check, rehearsal and contribution draft.
-- No rehearsal, live model call, tag or Canvas upload has happened yet; no acceptance is implied.
+## One-sentence company brief
 
-AI-assisted implementation and metadata preparation; author shuxiachai.
+ReturnOps AU turns a customer request, synthetic order data, customer evidence,
+store policy, and project-reviewed consumer guidance into a cited,
+non-executable decision packet; only the Human Founder may approve an exact
+proposal, after which the prototype performs only the approved simulated return
+and parcel-label operation.
 
-## A1.06 Coordinator showcase (advisory, default off) - 22 October 2026 (Sydney)
+## Narrow promise
 
-Owner A (`shuxiachai`, Jingbo Chai); reviewer C under docs/08. This notice
-covers the extraction half of work package A1.06 only.
+Given a supported customer request and synthetic order, ReturnOps AU will
+produce a traceable decision packet, identify missing evidence, cite supporting
+store-policy or guidance passages, independently review risk, and route every
+high-impact simulated action through exact-scope Founder approval.
 
-- With `RETURNOPS_MODEL_SHOWCASE=1` (default `0`; `demo.py serve
-  --model-showcase`), a background worker sends redacted, allow-listed
-  statement text to a chat-completions endpoint configured only through
-  `RETURNOPS_MODEL_*` environment variables, accepts the reply only as a
-  contract `ExtractedFacts` with no order lines, an `UNDETERMINED` basis and no
-  `SUPPORTED` status, and shows it to the Founder as `CaseView.facts` while the
-  same statements are still current. See
-  [docs/44](docs/44-coordinator-showcase.md).
-- Advisory only: no state, question, proposal, review, approval, operation or
-  database write. Results live in memory and are lost on restart. The planned
-  MODEL-actor audit event is withheld because the label-artifact claim compares
-  the case head and audit rows across transactions (docs/44).
-- Built before R.02 and Gate 1 acceptance under the lead's dated decision
-  recorded in docs/44; this is not Gate 1, Gate 2 or A1.06 acceptance.
-  Contracts, docs/08, migrations, `apps/web` and the R.02 driver are unchanged.
-  First live result and first CI result: pending.
+## MVP boundary
 
-AI-assisted implementation and metadata preparation; author shuxiachai.
+The prototype supports Australian physical-goods e-commerce and three request
+types:
+
+- faulty product;
+- wrong item delivered;
+- change of mind.
+
+The prototype uses simulated commerce, logistics, and notification providers.
+Its automated core ends after an approved simulated return and parcel-label
+outcome is stored and notified. It does not provide legal advice, move real
+money, modify a production order, or autonomously approve a remedy.
+
+## Success measures
+
+- At least 0.85 issue-category macro-F1, with 0.90 as a stretch target.
+- At least 95% mandatory-information recall.
+- At most 15% unnecessary follow-up questions.
+- At least 90% citation correctness.
+- At least 95% recall for cases requiring human escalation.
+- At least 80% specificity for cases not requiring escalation.
+- p95 proposal latency below two minutes in the fixed demo environment.
+- Zero unauthorised operations, duplicate operational effects, or illegal state
+  transitions in the parameterised safety and workflow suites.
+
+These are prototype targets, not achieved results. Proposal latency runs from
+accepted complete input to the stored review-ready packet, includes machine
+revision/risk loops and excludes human/physical waiting only.
+
+## Delivery systems
+
+- **Jira is required** for Agile planning and timeline evidence: epics/stories,
+  sprint or Kanban status, assignee, estimate, blockers, and retrospectives.
+- **GitHub remains required** for technical Issues, branches, pull requests,
+  reviews, commits, and CI.
+- Each delivery item uses one Jira key and links it to the corresponding GitHub
+  Issue/PR, avoiding duplicated full descriptions.
+
+## Project documents
+
+### Stage 1 model and report navigator — 2026-09-19
+
+Start with the [Stage 1 report, drafts and presentation archive](stage1/README.md)
+for the repository materials and final PPT source.
+
+For an A-led, AI-assisted navigation draft prepared for B's review, start with
+[the Stage 1 model, requirements and report navigator](docs/stage1-model-index.md).
+It routes to existing sources only: it does not revise the frozen allocation,
+claim M-S.03 completion, replace individual contribution records, or establish
+runtime/human acceptance. The shared report remains the
+[canonical Google Doc](https://docs.google.com/document/d/1xvGO8EA_yZwWj1It3UM7AKDFEoQjsj5eJJXbCz4bcnc);
+the repository's modular team report remains a separate candidate.
+
+The [Stage 1 cloud report v0.4 snapshot](stage1/reports/v0.4/README.md)
+is the current repository-readable snapshot of the canonical Google Doc. Its
+README records the frozen source and exact retrieval, rendering, and native-format
+limitations; the native Google Doc remains authoritative.
+
+The [archived v0.3 cloud snapshot](stage1/reports/v0.3/README.md)
+retains the 3 October 2026 PDF/DOCX exports and Markdown rendition as historical
+evidence; it is not the current report snapshot.
+
+### Reading order and member entry points
+
+Start with the course requirements, then the product definition, frozen allocation
+and delivery work packages. Use the submission checklist when assembling the final
+report/video. The links below are navigation, not a second task or status board.
+
+| What you need | Read here |
+|---|---|
+| Current course requirements and rubric | [Course requirements and A/B/C evidence map](docs/19-course-assessment-requirements.md) |
+| Product scope, ownership and task acceptance | [Project definition](docs/00-project-definition-v1.md) → [Frozen allocation](docs/07-frozen-work-allocation.md) → [Delivery work packages](docs/08-delivery-work-packages.md) |
+| Final report, video, interview and submission checks | [Stage 1 readiness / R.04 checklist](docs/11-stage1-readiness.md) |
+| Final Stage 1 slides and A/B/C script — synced 17 October | [Preserved nine-slide PPTX, 560-word spoken script and Drive source checks](stage1/presentation/README.md); this archive update is not a new course submission |
+| A: personal models and design rationale | [A model chain](docs/12-member-a-model-chain.md), [A design decisions](docs/14-member-a-design-decisions.md), [A review PR #11](https://github.com/shuxiachai/returnops-au/pull/11) |
+| B: intake/UI work and model-index integration | [B review PR #8](https://github.com/shuxiachai/returnops-au/pull/8); use its actual files/review history, with responsibilities fixed by docs/07–08 |
+| C: personal models and report text | [C model chain](https://github.com/shuxiachai/returnops-au/blob/docs/kan-22-c-model-review/docs/18-member-c-model-chain.md), [C Stage 1 report](https://github.com/shuxiachai/returnops-au/blob/docs/kan-22-c-model-review/docs/reports/member-c-stage1-draft.md) |
+| C: figures, actual contribution and explanation | [Editable PUML and SVG figures](https://github.com/shuxiachai/returnops-au/tree/docs/kan-22-c-model-review/docs/diagrams/member-c), [Personal contribution / interview worksheet](https://github.com/shuxiachai/returnops-au/blob/docs/kan-22-c-model-review/docs/reports/member-c-contribution-and-interview.md), [Dated course-alignment checks](https://github.com/shuxiachai/returnops-au/blob/docs/kan-22-c-model-review/docs/reviews/member-c-course-alignment-20260914.md) |
+| Shared structure and team integration | [Class model](docs/diagrams/01-domain-class-diagram.md), [Composite views](docs/13-shared-composite-structure.md); C's proposed Object slice is in the figure directory above, for A review and B indexing |
+| Workflow and evidence | [Jira/GitHub workflow](docs/03-team-and-github-workflow.md), [Model-check instructions](tools/model-checks/README.md) |
+
+C's links deliberately point to the separate [C review branch / PR #12](https://github.com/shuxiachai/returnops-au/pull/12);
+the shared course update is [PR #13](https://github.com/shuxiachai/returnops-au/pull/13).
+These review locations do not imply a main merge, personal explanation or team
+acceptance. Keep full editable models alongside report-sized views; retain actual
+contribution and review evidence rather than treating a file's presence as completion.
+
+### Full document catalogue
+
+- [Baseline v1.0 candidate — lead approved, pending team/tutor review](docs/00-project-definition-v1.md)
+- [Frozen work allocation v1.0 — owners, nine features and change rules](docs/07-frozen-work-allocation.md)
+- [Detailed delivery work packages — dependencies and acceptance checklists](docs/08-delivery-work-packages.md)
+- [F.01 API/data contract — review candidate, not an implemented API](docs/09-interface-contract-v1.md)
+- [F.02 environment and CI readiness — local checks, pending acceptance](docs/10-f02-environment-readiness.md)
+- [Stage 1 readiness — model review, report, video and submission evidence](docs/11-stage1-readiness.md)
+- [Member A model chain — AH-10 / UC-04, UML sources, diagrams and walkthrough](docs/12-member-a-model-chain.md)
+- [Shared Composite Structure — parts, ports, connectors and review scenarios](docs/13-shared-composite-structure.md)
+- [A design decisions — attempt identity, recovery and pending review](docs/14-member-a-design-decisions.md)
+- [Package and Deployment candidates — module and runtime placement](docs/15-package-deployment-models.md)
+- [Demo identity and authorization design — preparation before F.03 integration](docs/16-demo-identity-authorization.md)
+- [Isolated F.03 security component — PR #15 review candidate and reproducible tests](docs/18-f03-security-component.md)
+- [Logistics sandbox feasibility — eligibility, recovery evidence and open questions](docs/17-logistics-sandbox-feasibility.md)
+- [A preparation delivery record — exact artifacts, checks and remaining acceptance](docs/reviews/a-preimplementation-readiness-20260907.md)
+- [Project charter](docs/01-project-charter.md)
+- [System design](docs/02-system-design.md)
+- [Team, Jira and GitHub workflow](docs/03-team-and-github-workflow.md)
+- [Requirements and initial backlog](docs/04-requirements-and-backlog.md)
+- [Laboratory 3 requirements modelling](docs/05-lab-3-requirement-modelling.md)
+- [Frozen requirements desk-research appendix](docs/06-requirements-desk-research-evidence.md)
+- [FODA feature model](docs/diagrams/04-feature-diagram.md)
+- [Use-case and actor-boundary model](docs/diagrams/05-use-case-diagram.md)
+
+Documents `01`–`05` and the five existing shared diagrams have a v1.0
+alignment draft published in [PR #9](https://github.com/shuxiachai/returnops-au/pull/9)
+on 2026-09-07. Requirements come from `docs/00`, ownership
+from `docs/07`, and delivery dependencies from `docs/08`; the older documents
+are derived views, not competing plans. Original Lab 3 history and B/C source
+contributions are retained. This alignment still needs current team/tutor review;
+it does not complete the individual behaviour models or complex runtime model.
+The frozen research appendix remains supporting evidence, not an ongoing
+research-expansion task.
+
+## Technical chapters
+
+The dated chapters below describe how to deploy, run and verify the delivered system.
 
 ## Deploy from zero - 22 October 2026 (Sydney)
 
@@ -476,30 +487,6 @@ evidence; an evidence run needs a fresh database (docs/41, "Re-running").
 
 AI-assisted implementation and metadata preparation; author shuxiachai.
 
-## F.06 Founder analytics read API - 22 October 2026 (Sydney)
-
-Owner A (`shuxiachai`, Jingbo Chai); reviewer C under docs/08. This notice
-covers work package F.06 only.
-
-- `GET /v1/founder/analytics` (`getFounderAnalytics`) is now registered by
-  default next to the four Founder reads: FOUNDER only, the Founder's own
-  store, read-only, one SELECT per response, strict `created_from` /
-  `created_before` / `status` validation and enforced count invariants. See
-  [docs/43](docs/43-f06-analytics.md) for the counting basis and the changes
-  B's frontend needs.
-- Proposal latency is Tier 0 (no samples, no percentiles): trusted start and
-  ready events remain the open E.01/E.09 item for C. Known proposal-step
-  failures (PROPOSAL_FAILED for the current input) count as failed; every
-  other case is unmeasured. docs/43 records a Tier 1 candidate for C's
-  review. The only proposer is the fixed synthetic one.
-- First CI result: PR #90, head 1de70e3d, CI run 39701255799: all 12 jobs
-  successful, including the PostgreSQL foundation group that runs tests/founder
-  (the 4 analytics PostgreSQL nodes and the TCP call). Squash-merged into main on
-  2026-10-22. Contracts, docs/08/09, migrations and `apps/web` are unchanged; no
-  acceptance by C or any member is implied.
-
-AI-assisted implementation and metadata preparation; author shuxiachai.
-
 ## R.02 no-LLM end-to-end evidence - 22 October 2026 (Sydney)
 
 Owner A (`shuxiachai`, Jingbo Chai); designated human reviewer C (Yuwei Tao).
@@ -545,6 +532,248 @@ acceptance prerequisite and has not taken place. A `PASSED` receipt, a green CI
 job or a merge is not acceptance, and no Jira status is changed.
 
 AI-assisted implementation and metadata preparation; author shuxiachai.
+
+## F.06 Founder analytics read API - 22 October 2026 (Sydney)
+
+Owner A (`shuxiachai`, Jingbo Chai); reviewer C under docs/08. This notice
+covers work package F.06 only.
+
+- `GET /v1/founder/analytics` (`getFounderAnalytics`) is now registered by
+  default next to the four Founder reads: FOUNDER only, the Founder's own
+  store, read-only, one SELECT per response, strict `created_from` /
+  `created_before` / `status` validation and enforced count invariants. See
+  [docs/43](docs/43-f06-analytics.md) for the counting basis and the changes
+  B's frontend needs.
+- Proposal latency is Tier 0 (no samples, no percentiles): trusted start and
+  ready events remain the open E.01/E.09 item for C. Known proposal-step
+  failures (PROPOSAL_FAILED for the current input) count as failed; every
+  other case is unmeasured. docs/43 records a Tier 1 candidate for C's
+  review. The only proposer is the fixed synthetic one.
+- First CI result: PR #90, head 1de70e3d, CI run 39701255799: all 12 jobs
+  successful, including the PostgreSQL foundation group that runs tests/founder
+  (the 4 analytics PostgreSQL nodes and the TCP call). Squash-merged into main on
+  2026-10-22. Contracts, docs/08/09, migrations and `apps/web` are unchanged; no
+  acceptance by C or any member is implied.
+
+AI-assisted implementation and metadata preparation; author shuxiachai.
+
+## A1.06 Coordinator showcase (advisory, default off) - 22 October 2026 (Sydney)
+
+Owner A (`shuxiachai`, Jingbo Chai); reviewer C under docs/08. This notice
+covers the extraction half of work package A1.06 only.
+
+- With `RETURNOPS_MODEL_SHOWCASE=1` (default `0`; `demo.py serve
+  --model-showcase`), a background worker sends redacted, allow-listed
+  statement text to a chat-completions endpoint configured only through
+  `RETURNOPS_MODEL_*` environment variables, accepts the reply only as a
+  contract `ExtractedFacts` with no order lines, an `UNDETERMINED` basis and no
+  `SUPPORTED` status, and shows it to the Founder as `CaseView.facts` while the
+  same statements are still current. See
+  [docs/44](docs/44-coordinator-showcase.md).
+- Advisory only: no state, question, proposal, review, approval, operation or
+  database write. Results live in memory and are lost on restart. The planned
+  MODEL-actor audit event is withheld because the label-artifact claim compares
+  the case head and audit rows across transactions (docs/44).
+- Built before R.02 and Gate 1 acceptance under the lead's dated decision
+  recorded in docs/44; this is not Gate 1, Gate 2 or A1.06 acceptance.
+  Contracts, docs/08, migrations, `apps/web` and the R.02 driver are unchanged.
+  First live result and first CI result: pending.
+
+AI-assisted implementation and metadata preparation; author shuxiachai.
+
+## R.05 demo script, Gate 2 roadmap and submission runbook - 22 October 2026 (Sydney)
+
+Owner A (`shuxiachai`, Jingbo Chai); reviewer C under docs/08. Documents only.
+- [docs/45](docs/45-stage2-demo-script.md): Week 13 live demo script (12-15 minutes, speakers A/B/C, fallbacks).
+- [docs/46](docs/46-gate2-roadmap.md): what Gate 1 delivered, Gate 2 preconditions, A3 and C3 status, 22 October deferrals.
+- [docs/47](docs/47-stage2-submission-runbook.md): R.05.a/R.05.b packaging, Canvas check, rehearsal and contribution draft.
+- No rehearsal, live model call, tag or Canvas upload has happened yet; no acceptance is implied.
+
+AI-assisted implementation and metadata preparation; author shuxiachai.
+
+## Delivery log
+
+Every dated record of this repository, kept verbatim in its original order (newest notices first, then older receipts). These records keep their original scope and wording; the status at the top of this file is current.
+
+> **Current technical checkpoint - 13 October 2026:** [PR #65](https://github.com/shuxiachai/returnops-au/pull/65) is merged at main `7fc30856`. Its [new-main CI](https://github.com/shuxiachai/returnops-au/actions/runs/38331528059) passed 2262 core regressions on PG17.11/head0009. The four private Founder decision components are technically adopted; original personal, predecessor and joint acceptance remain separate.
+
+> **A2.02 first candidate / KAN-15 / Issue #71:** see [private retained-source approval admission](docs/37-a202-approval-admission.md). This read-only slice checks a future CREATE_RETURN against full persisted current approval proof; saved execution work remains unclaimed. Its own exact-source PR/CI records establish publication and validation. Older dated notices below retain their historical scope.
+
+> **A1.03 investigation increment / Issue #27 / recorded KAN-14:** [persisted order investigation and clarification](docs/23-order-investigation.md) now connects the adopted customer flow and synthetic provider through explicit database permissions, durable work, five outcome paths and atomic lifecycle/audit/retention guards. The implementation starts from merged PR26/main4673; use its exact-source PR/CI records for publication and adoption status. No Founder packet, Risk/approval, LLM or real provider is implemented, and no whole-package or teammate/joint acceptance is implied. Earlier component/customer-candidate notices below retain their historical scope.
+
+> **A1.04 / recorded KAN-29:** see the [independent synthetic order provider](docs/22-a104-synthetic-order-provider.md) for its internal port, immutable fixture provenance and installation checks. Customer-worker/Domain acceptance wiring belongs to later A1.05 work.
+
+> **Customer backend candidate (26 September 2026, Issue #23 / recorded KAN-14 mapping):** the isolated implementation now provides the seven frozen customer operations, PostgreSQL admission/receipts/history, current F.03 authorization, bounded attachments and separate durable deterministic intake processing. See [customer flow and private demo](docs/21-customer-flow.md). This remains a scoped implementation candidate; use its actual pull request and exact-source CI records for publication/review/merge status. It does not claim teammate or joint acceptance, verified purchase facts, AI processing, or a Founder/provider workflow. Earlier health-only/component-only notes below describe their historical baselines.
+
+## C review publication follow-up — 23 October 2026 evening (Sydney)
+
+Primary delivery: [KAN-41](https://lucastaooo.atlassian.net/browse/KAN-41).
+This dated C notice supersedes the current-state wording in earlier C receipts,
+without deleting their source-specific findings or test results.
+
+- Following [A's request](https://github.com/shuxiachai/returnops-au/pull/61#issuecomment-6359315897),
+  this six-file C review/handoff branch is submitted for A's exact-head review
+  and lead-written squash via its PR against main. PR #17 and #61 are already merged;
+  this separate review packet is not yet adopted merely because it is published.
+- The branch ordinary-merges main `2a4d3ae258734ab91c90d9e27e3da14eccbde0c6`
+  (#112), preserving all main README lines and A/B runtime files. #112 widens
+  the bounded transient retry classification; the earlier `c4d0879` failure is
+  historical evidence, not a check result for this newer source.
+- C independently checked [PR #114](https://github.com/shuxiachai/returnops-au/pull/114)
+  at `590b4229ca20cd6e6ad34f026fd32d6ae93e421b`: **105 offline tests passed**.
+  The original narrow interruption/cleanup/log observations improved. However,
+  a new synthetic failure probe shows that an unwritable final receipt can
+  still leave the command claiming `PASSED` with exit 0. This is **R02-C-03**,
+  sent for A's disposition; no actual filesystem failure or secret leak is claimed.
+  #114 is a separately reviewed candidate, not code merged into this C branch.
+- The [C review record](docs/reviews/member-c-r02-review-20261022.md#8-pr114-bounded-review-and-receipt-publication-finding--23-october-2026)
+  distinguishes exact sources, safe reproduction, remaining failure-matrix/PG
+  limits and current review findings. Neither offline tests nor green CI alone
+  establish Gate 1 or a personal/team sign-off.
+
+Next independent follow-up: review the owner's response and recheck any fix
+against its exact source. Still requiring actual people or approved
+runtime evidence: C's own S6 explanation and contribution/AI-use confirmation,
+team rehearsal, exact-byte corpus admission, real Risk/pilot/Gold/C3 and final
+submission-source acceptance. A's scheduling deferral is not a tutor waiver.
+AI-assisted C preparation; no A/B implementation edits, main merge by C,
+live model call, invented timing, contribution agreement or Done transition.
+
+## C adoption and review update — 23 October 2026 (Sydney)
+
+Tracking: [KAN-23](https://lucastaooo.atlassian.net/browse/KAN-23) /
+[KAN-41](https://lucastaooo.atlassian.net/browse/KAN-41).
+This dated notice supersedes the pending/failed statuses in the older C
+snapshots below; their original evidence is retained.
+
+- **PR #61 is merged**, not waiting for adoption: A approved exact source
+  `be21f39bc502100ddd96c129bc9116b6fdcfceba` in
+  [review 5622537263](https://github.com/shuxiachai/returnops-au/pull/61#pullrequestreview-5622537263).
+  A's [attempt 2 of run 39770369525](https://github.com/shuxiachai/returnops-au/actions/runs/39770369525/attempts/2)
+  passed all 13 effective jobs without changing that source. A adopted it
+  at 01:04:56 UTC as `29fd233a520bd37ee1c9aa2c61302b0417a25853`.
+  Attempt 1's lock-timeout failure remains historical evidence; rerun success
+  does not prove its cause was fixed.
+- This C review branch now integrates main
+  `c4d08799adf555604a235e61ca325f50a2218618` by ordinary merge, retaining
+  the complete main README and the earlier C receipts. A/B runtime files,
+  frozen ownership/dependencies and corpus-admission pins match that main.
+  B's stacked #101/#102 changes reached main through #107; #108 subsequently
+  added bounded R04 attempt records and the R.02 interruption correction.
+- **Latest main is not fully green:** [run 39900838149](https://github.com/shuxiachai/returnops-au/actions/runs/39900838149)
+  on that exact `c4d0879` failed the same-key R04 assertion again
+  (351 passed / 1 failed; PG lock timeout), followed by the dependent final
+  gate. This is a new main failure, not a reversal of PR #61's merge.
+  A's existing [Issue #103](https://github.com/shuxiachai/returnops-au/issues/103)
+  / KAN-43 remains the concurrency follow-up.
+- C independently verified **R02-C-01's terminal FAILED/INTERRUPTED receipt
+  in bounded in-memory probes**. **R02-C-02 remains open**: an earlier cleanup
+  failure can prevent later private cleanup/receipt publication; raw API logs
+  can still target the public output directory before screening. No actual
+  secret leak was observed. See the [updated review and evidence limits](docs/reviews/member-c-r02-review-20261022.md#7-adoption-and-owner-fix-follow-up--23-october-2026).
+- Local checks: 137 focused tests / 136 subtests; the complete six-step offline
+  check passed (371 contract tests, 6 static groups, 12 model-checker tests,
+  32 runner tests, 14 Mermaid parses and 64 synthetic-provider tests).
+  These overlapping checks are not Gold, a live Risk run, a personal rehearsal
+  or acceptance of the whole application.
+  The additional PG17 test container did not start (Created/Pid 0), including
+  a no-bind control attempt: **no new local PG pass or failure is claimed**.
+  Only this task's temporary test containers/data were removed.
+
+Still needed: A's remaining cleanup/log disposition; approved real-corpus
+admission and runtime C2 wiring; separately authorised real Risk/C3 evaluation;
+blind Gold and actual participant timing; C's own S6 explanation and team
+rehearsal/acceptance. Merge is not Done. AI-assisted C verification; no main
+merge by C, live model call or teammate signature.
+
+## C local proof follow-up — 22 October 2026, 12:54 UTC
+
+Tracking: [KAN-23](https://lucastaooo.atlassian.net/browse/KAN-23) /
+[KAN-41](https://lucastaooo.atlassian.net/browse/KAN-41).
+This dated C-only notice supersedes the older C status snapshots below;
+their source-specific results remain history. **PR #17 is merged. PR #61
+remains open at `be21f39bc502100ddd96c129bc9116b6fdcfceba`.** Its
+[normal CI run](https://github.com/shuxiachai/returnops-au/actions/runs/39770369525)
+has finished with 11 successful jobs, one failed Founder revision job and the
+dependent failed final gate. It is not ready to claim green/accepted.
+
+C now has [new local proof and E.10 dispositions](docs/reviews/member-c-r02-review-20261022.md#6-local-proof-follow-up--22-october-2026):
+five unchanged R04 same/different-key pairs passed on isolated PG17.11;
+two preparation/restart and six installed label-process cases passed. This
+does **not** reproduce or fix the cloud lock timeout. The R.02 cancellation
+and cleanup defects still reproduce in memory; A's disposition remains needed.
+
+The same clean `be21f39` checkout passed 263 focused C offline tests and generated
+the 13-file synthetic evidence bundle. A source archive passed the 116 C1/C2
+tests, pilot and example human-time accounting; it correctly refused new
+Git-provenance evidence without `.git`. See the [C reproduction boundary](experiments/evaluation_candidate/README.md#clean-checkout-versus-source-archive--22-october-2026).
+
+Only C documentation is updated on this separate review branch; PR #61's head,
+A/B implementation, source-admission pins and WBS remain unchanged. No Actions
+rerun, live model, Gold, measured human timing, personal sign-off, main merge or
+Done transition is claimed. Future integration still needs exact-source review
+and required checks; these local results do not replace them.
+
+## C follow-up — 22 October 2026 evening (Sydney)
+
+Tracking: [KAN-41](https://lucastaooo.atlassian.net/browse/KAN-41) and
+[Issue #66](https://github.com/shuxiachai/returnops-au/issues/66).
+This is a C-only preparation branch, **not current main**. The remote-main
+snapshot checked was `51862f4bcc06eebf1c1804647c21d0908960ebc7`; A/B runtime
+changes from that snapshot have not been merged into this branch.
+
+- PR #17 head `b6dcc7552c2e52ca4dafd9d4b9400ad860db9365` and PR #61 head
+  `7bb1f5ad6e95a13a4aaffbae3056794116fedea7` remain OPEN. Their existing
+  [39724718286](https://github.com/shuxiachai/returnops-au/actions/runs/39724718286)
+  and [39724719271](https://github.com/shuxiachai/returnops-au/actions/runs/39724719271)
+  CI runs have now finished: **13/13 jobs successful each**. Older approvals
+  concern older heads; this is not approval or CI for current main. Neither
+  pending branch was changed by this follow-up.
+- A published the advisory Coordinator (#94), demo/roadmap/runbook (#96),
+  Canvas packaging clarification (#97), and explicit private-HTTP opt-in
+  (#98). These are not C2 Risk integration or permission for C to read keys,
+  enable the transport, send data or call a model. No live-model evidence was
+  verified in this follow-up.
+- C's [S6 speaking draft and display checklist](experiments/c2_risk_candidate/README.md#s6-demo-preparation--22-october-evening)
+  now map to A's two-minute segment. The existing synthetic evidence command
+  was actually run locally; it is accounting rehearsal, not a human rehearsal,
+  Gold result or model benchmark. Contract tests: **371 passed / 1685 subtests**
+  (overlapping existing suites, not additional independent scenarios).
+- The [C latency-event disposition](experiments/evaluation_candidate/README.md#22-october-f06-tier-1-technical-disposition)
+  explains why Tier 0 should stay until the complete episode boundary is
+  established. A's R.02 interruption/cleanup findings also remain unresolved;
+  `tools/r02` is unchanged between reviewed `4aec7c0` and checked `51862f4`.
+- [A's submission runbook at the checked source](https://github.com/shuxiachai/returnops-au/blob/51862f4bcc06eebf1c1804647c21d0908960ebc7/docs/47-stage2-submission-runbook.md)
+  records a ZIP-only group submission, opening 26 October and due 1 November
+  23:59 Sydney. Its contribution percentages are **A's proposal, not agreed**.
+  The student must confirm their own contribution/AI-use statement and practise
+  the segment; team rehearsal and tutor scope disposition remain separate.
+
+AI-assisted C preparation; no main merge, A/B code edit, new CI run, personal
+signature, contribution-percentage agreement or Done transition.
+
+## C technical review and handoff — 22 October 2026 (Sydney)
+
+C's [R.02 technical review packet](docs/reviews/member-c-r02-review-20261022.md)
+checks main `4aec7c0de6536075f6691567a3f609b8f3093279` without changing A/B
+code. Local R.02/C2 checks passed **100 tests and 82 subtests**. The downloaded
+R.02 receipt from [run 39724718286](https://github.com/shuxiachai/returnops-au/actions/runs/39724718286/job/119645897403)
+has 32/32 checks true; all three code-tree digests match that main. This is
+CI-artifact verification, not a new local PostgreSQL run or human acceptance.
+
+Two failure-path findings are sent to A: interruption can publish a nonterminal
+`RUNNING` receipt; cleanup/log-screening failures can leave private files and
+unscreened output behind. The packet includes an isolated reproduction and
+acceptance checklist. No actual credential leak was observed.
+
+The [C2 README handoff](experiments/c2_risk_candidate/README.md#22-october-handoff--near-term-delivery)
+now separates the five-outcome contract from runtime routing and lists the
+remaining decisions. A's Gate 2 deferral is a team scheduling note, not a tutor
+waiver: the real Risk model, admitted corpus, pilot/Gold, C3 and original WBS
+conditions remain outstanding unless explicitly resolved. Personal explanation,
+review signatures and joint acceptance are not prefilled. This C-only review
+branch is not a merge request or a replacement for the pending PR #17/#61
+heads; any later integration still needs exact-source review and required CI.
 
 ## C source-review after PR #17 adoption — 22 October 2026 evening (Sydney)
 
@@ -1198,22 +1427,6 @@ submission evidence. No Jira status or human acceptance is implied by this draft
 update. See the unchanged [allocation](docs/07-frozen-work-allocation.md) and
 [delivery gates](docs/08-delivery-work-packages.md).
 
-## Public access and project scope
-
-This is a synthetic-data course prototype. Use synthetic customer data and
-disposable test credentials only; do not supply real customer data or provider
-secrets. The actual logistics provider remains subject to tutor disposition and
-account access. Simulated results do not establish a live provider integration.
-
-This maintenance change limits branch-push CI to `main` while preserving all
-pull-request checks, and removes personal machine paths from selected current
-comments and context. Team authorship, assessment materials and review records
-remain intact. Retained history, branches and earlier evidence are not anonymized.
-
-Public visibility does not grant an open-source license or establish Stage 2
-completion, teammate/tutor acceptance, or production readiness. Dated evidence
-below retains its original scope.
-
 ## C2 follow-up after C1/evaluation adoption — 2026-10-19
 
 A's [latest PR #69 review](https://github.com/shuxiachai/returnops-au/pull/69#pullrequestreview-5567087122)
@@ -1540,35 +1753,6 @@ investigate return and remedy requests, prepare a cited non-executable decision
 packet, and perform only an exactly approved simulated return and parcel-label
 follow-up.
 
-## One-sentence company brief
-
-ReturnOps AU turns a customer request, synthetic order data, customer evidence,
-store policy, and project-reviewed consumer guidance into a cited,
-non-executable decision packet; only the Human Founder may approve an exact
-proposal, after which the prototype performs only the approved simulated return
-and parcel-label operation.
-
-## Narrow promise
-
-Given a supported customer request and synthetic order, ReturnOps AU will
-produce a traceable decision packet, identify missing evidence, cite supporting
-store-policy or guidance passages, independently review risk, and route every
-high-impact simulated action through exact-scope Founder approval.
-
-## MVP boundary
-
-The prototype supports Australian physical-goods e-commerce and three request
-types:
-
-- faulty product;
-- wrong item delivered;
-- change of mind.
-
-The prototype uses simulated commerce, logistics, and notification providers.
-Its automated core ends after an approved simulated return and parcel-label
-outcome is stored and notified. It does not provide legal advice, move real
-money, modify a production order, or autonomously approve a remedy.
-
 ## C1 offline grounding candidate — 2026-10-09
 
 [KAN-23](https://lucastaooo.atlassian.net/browse/KAN-23) /
@@ -1662,22 +1846,6 @@ personal explanation are separate deliverables; this candidate does not close
 them or the whole KAN-23 story. Preparation is AI-assisted; no human review,
 personal understanding, contribution percentage or Gate acceptance is invented.
 
-## Success measures
-
-- At least 0.85 issue-category macro-F1, with 0.90 as a stretch target.
-- At least 95% mandatory-information recall.
-- At most 15% unnecessary follow-up questions.
-- At least 90% citation correctness.
-- At least 95% recall for cases requiring human escalation.
-- At least 80% specificity for cases not requiring escalation.
-- p95 proposal latency below two minutes in the fixed demo environment.
-- Zero unauthorised operations, duplicate operational effects, or illegal state
-  transitions in the parameterised safety and workflow suites.
-
-These are prototype targets, not achieved results. Proposal latency runs from
-accepted complete input to the stored review-ready packet, includes machine
-revision/risk loops and excludes human/physical waiting only.
-
 ## Review handoff — 2026-09-17
 
 No separate handoff folder is required. Review the existing [C PR #12](https://github.com/shuxiachai/returnops-au/pull/12), using its **latest exact head and checks**, not the older B approval of `c9f205d` or A COMMENT on `32c704f`.
@@ -1754,99 +1922,6 @@ separate from that five-file delivery. Jira remains the live workflow record.
   nine features and 89 frozen work packages in [docs/07](docs/07-frozen-work-allocation.md)
   and [docs/08](docs/08-delivery-work-packages.md). Stage 1 submission must disclose
   open items; it need not wait for all Stage 2 work to finish.
-
-## Project documents
-
-### Stage 1 model and report navigator — 2026-09-19
-
-Start with the [Stage 1 report, drafts and presentation archive](stage1/README.md)
-for the repository materials and final PPT source.
-
-For an A-led, AI-assisted navigation draft prepared for B's review, start with
-[the Stage 1 model, requirements and report navigator](docs/stage1-model-index.md).
-It routes to existing sources only: it does not revise the frozen allocation,
-claim M-S.03 completion, replace individual contribution records, or establish
-runtime/human acceptance. The shared report remains the
-[canonical Google Doc](https://docs.google.com/document/d/1xvGO8EA_yZwWj1It3UM7AKDFEoQjsj5eJJXbCz4bcnc);
-the repository's modular team report remains a separate candidate.
-
-The [Stage 1 cloud report v0.4 snapshot](stage1/reports/v0.4/README.md)
-is the current repository-readable snapshot of the canonical Google Doc. Its
-README records the frozen source and exact retrieval, rendering, and native-format
-limitations; the native Google Doc remains authoritative.
-
-The [archived v0.3 cloud snapshot](stage1/reports/v0.3/README.md)
-retains the 3 October 2026 PDF/DOCX exports and Markdown rendition as historical
-evidence; it is not the current report snapshot.
-
-### Reading order and member entry points
-
-Start with the course requirements, then the product definition, frozen allocation
-and delivery work packages. Use the submission checklist when assembling the final
-report/video. The links below are navigation, not a second task or status board.
-
-| What you need | Read here |
-|---|---|
-| Current course requirements and rubric | [Course requirements and A/B/C evidence map](docs/19-course-assessment-requirements.md) |
-| Product scope, ownership and task acceptance | [Project definition](docs/00-project-definition-v1.md) → [Frozen allocation](docs/07-frozen-work-allocation.md) → [Delivery work packages](docs/08-delivery-work-packages.md) |
-| Final report, video, interview and submission checks | [Stage 1 readiness / R.04 checklist](docs/11-stage1-readiness.md) |
-| Final Stage 1 slides and A/B/C script — synced 17 October | [Preserved nine-slide PPTX, 560-word spoken script and Drive source checks](stage1/presentation/README.md); this archive update is not a new course submission |
-| A: personal models and design rationale | [A model chain](docs/12-member-a-model-chain.md), [A design decisions](docs/14-member-a-design-decisions.md), [A review PR #11](https://github.com/shuxiachai/returnops-au/pull/11) |
-| B: intake/UI work and model-index integration | [B review PR #8](https://github.com/shuxiachai/returnops-au/pull/8); use its actual files/review history, with responsibilities fixed by docs/07–08 |
-| C: personal models and report text | [C model chain](https://github.com/shuxiachai/returnops-au/blob/docs/kan-22-c-model-review/docs/18-member-c-model-chain.md), [C Stage 1 report](https://github.com/shuxiachai/returnops-au/blob/docs/kan-22-c-model-review/docs/reports/member-c-stage1-draft.md) |
-| C: figures, actual contribution and explanation | [Editable PUML and SVG figures](https://github.com/shuxiachai/returnops-au/tree/docs/kan-22-c-model-review/docs/diagrams/member-c), [Personal contribution / interview worksheet](https://github.com/shuxiachai/returnops-au/blob/docs/kan-22-c-model-review/docs/reports/member-c-contribution-and-interview.md), [Dated course-alignment checks](https://github.com/shuxiachai/returnops-au/blob/docs/kan-22-c-model-review/docs/reviews/member-c-course-alignment-20260914.md) |
-| Shared structure and team integration | [Class model](docs/diagrams/01-domain-class-diagram.md), [Composite views](docs/13-shared-composite-structure.md); C's proposed Object slice is in the figure directory above, for A review and B indexing |
-| Workflow and evidence | [Jira/GitHub workflow](docs/03-team-and-github-workflow.md), [Model-check instructions](tools/model-checks/README.md) |
-
-C's links deliberately point to the separate [C review branch / PR #12](https://github.com/shuxiachai/returnops-au/pull/12);
-the shared course update is [PR #13](https://github.com/shuxiachai/returnops-au/pull/13).
-These review locations do not imply a main merge, personal explanation or team
-acceptance. Keep full editable models alongside report-sized views; retain actual
-contribution and review evidence rather than treating a file's presence as completion.
-
-### Full document catalogue
-
-- [Baseline v1.0 candidate — lead approved, pending team/tutor review](docs/00-project-definition-v1.md)
-- [Frozen work allocation v1.0 — owners, nine features and change rules](docs/07-frozen-work-allocation.md)
-- [Detailed delivery work packages — dependencies and acceptance checklists](docs/08-delivery-work-packages.md)
-- [F.01 API/data contract — review candidate, not an implemented API](docs/09-interface-contract-v1.md)
-- [F.02 environment and CI readiness — local checks, pending acceptance](docs/10-f02-environment-readiness.md)
-- [Stage 1 readiness — model review, report, video and submission evidence](docs/11-stage1-readiness.md)
-- [Member A model chain — AH-10 / UC-04, UML sources, diagrams and walkthrough](docs/12-member-a-model-chain.md)
-- [Shared Composite Structure — parts, ports, connectors and review scenarios](docs/13-shared-composite-structure.md)
-- [A design decisions — attempt identity, recovery and pending review](docs/14-member-a-design-decisions.md)
-- [Package and Deployment candidates — module and runtime placement](docs/15-package-deployment-models.md)
-- [Demo identity and authorization design — preparation before F.03 integration](docs/16-demo-identity-authorization.md)
-- [Isolated F.03 security component — PR #15 review candidate and reproducible tests](docs/18-f03-security-component.md)
-- [Logistics sandbox feasibility — eligibility, recovery evidence and open questions](docs/17-logistics-sandbox-feasibility.md)
-- [A preparation delivery record — exact artifacts, checks and remaining acceptance](docs/reviews/a-preimplementation-readiness-20260907.md)
-- [Project charter](docs/01-project-charter.md)
-- [System design](docs/02-system-design.md)
-- [Team, Jira and GitHub workflow](docs/03-team-and-github-workflow.md)
-- [Requirements and initial backlog](docs/04-requirements-and-backlog.md)
-- [Laboratory 3 requirements modelling](docs/05-lab-3-requirement-modelling.md)
-- [Frozen requirements desk-research appendix](docs/06-requirements-desk-research-evidence.md)
-- [FODA feature model](docs/diagrams/04-feature-diagram.md)
-- [Use-case and actor-boundary model](docs/diagrams/05-use-case-diagram.md)
-
-Documents `01`–`05` and the five existing shared diagrams have a v1.0
-alignment draft published in [PR #9](https://github.com/shuxiachai/returnops-au/pull/9)
-on 2026-09-07. Requirements come from `docs/00`, ownership
-from `docs/07`, and delivery dependencies from `docs/08`; the older documents
-are derived views, not competing plans. Original Lab 3 history and B/C source
-contributions are retained. This alignment still needs current team/tutor review;
-it does not complete the individual behaviour models or complex runtime model.
-The frozen research appendix remains supporting evidence, not an ongoing
-research-expansion task.
-
-## Delivery systems
-
-- **Jira is required** for Agile planning and timeline evidence: epics/stories,
-  sprint or Kanban status, assignee, estimate, blockers, and retrospectives.
-- **GitHub remains required** for technical Issues, branches, pull requests,
-  reviews, commits, and CI.
-- Each delivery item uses one Jira key and links it to the corresponding GitHub
-  Issue/PR, avoiding duplicated full descriptions.
 
 ## Current phase
 
