@@ -52,7 +52,7 @@ def provision(directory,*,store,customer_one,customer_two,founder,order_investig
             FixedProposalPolicy(engine).grant(store,synthetic_demo=True,enabled=True)
     finally: engine.dispose()
 
-def main():
+def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__);commands=parser.add_subparsers(dest='command',required=True)
     issue=commands.add_parser('provision');issue.add_argument('--private-dir',required=True)
     for name in ['store','customer-one','customer-two','founder']: issue.add_argument('--'+name,required=True)
@@ -62,7 +62,7 @@ def main():
     serve.add_argument('--fixed-proposal',action='store_true',help='Enable the synthetic fixed-proposal worker; this does not grant store authority.')
     serve.add_argument('--founder-decisions',action='store_true',help='Register the Founder decision POST (A2.07); authority still comes only from the server-side registry and grants.')
     serve.add_argument('--model-showcase',action='store_true',help='Enable the advisory A1.06 Coordinator showcase (docs/44); model settings and the key come only from RETURNOPS_MODEL_* environment variables.')
-    args=parser.parse_args()
+    args=parser.parse_args(argv)
     if args.command=='provision':
         provision(args.private_dir,store=args.store,customer_one=args.customer_one,customer_two=args.customer_two,founder=args.founder,order_investigation=args.order_investigation,fixed_proposal=args.fixed_proposal)
         print('Private synthetic demo registration completed. Credentials are in the explicit private directory; do not share them.')
@@ -75,10 +75,21 @@ def main():
         import uvicorn
         uvicorn.run('returnops_api.main:create_app',factory=True,host='127.0.0.1',port=args.port,access_log=False,log_level='warning')
 
-if __name__=='__main__':
-    failed=False
-    try: main()
+GENERIC_FAILURE='Demo setup or startup failed; no credentials are printed. Retain the private files to resolve any uncertain registration.'
+
+def cli(argv=None):
+    """Run main(); report a configuration or argument error by its own safe sentence, anything else generically."""
+    from .settings import ConfigurationError
+    reason=None;failed=False
+    try: main(argv)
+    except (ConfigurationError,ValueError) as error:
+        failed=True;message=str(error)
+        if message and message.isprintable() and len(message)<=200: reason=message
     except Exception: failed=True
     if failed:
-        print('Demo setup or startup failed; no credentials are printed. Retain the private files to resolve any uncertain registration.')
-        raise SystemExit(1)
+        print(GENERIC_FAILURE if reason is None else 'Demo setup or startup failed: '+reason+' No credentials are printed.')
+        return 1
+    return 0
+
+if __name__=='__main__':
+    raise SystemExit(cli())

@@ -7,7 +7,7 @@ from returnops_domain.errors import FlowError
 from returnops_domain.founder_service import FounderQueries
 from returnops_domain.wire import normalize_json_numbers
 from .customer_authority import CurrentRequestAuthority
-from .customer_http import one_header, safe_json
+from .customer_http import JSON_NUMBER, one_header, safe_json
 
 
 def _query(request, operation):
@@ -25,7 +25,7 @@ def _query(request, operation):
         if key in {'limit', 'object_version'}:
             failed = False
             try:
-                if len(value) > 64:
+                if len(value) > 64 or not JSON_NUMBER.fullmatch(value):
                     raise ValueError()
                 value = normalize_json_numbers(Decimal(value))
             except (InvalidOperation, ValueError):
