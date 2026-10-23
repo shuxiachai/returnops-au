@@ -346,6 +346,72 @@ job or a merge is not acceptance, and no Jira status is changed.
 
 AI-assisted implementation and metadata preparation; author shuxiachai.
 
+## C source-review after PR #17 adoption — 22 October 2026 evening (Sydney)
+
+[A's follow-up](https://github.com/shuxiachai/returnops-au/pull/61#issuecomment-6339234639)
+confirms [PR #17](https://github.com/shuxiachai/returnops-au/pull/17) was adopted
+by lead-written squash as `9d948600984ccb70ab7f80677a2bf2a6c720fa09`, from
+C head `b6dcc7552c2e52ca4dafd9d4b9400ad860db9365`. This supersedes the
+historical "if #17 lands" / "still open" wording below, not its source evidence.
+
+PR #61 now ordinarily merges that exact main into prior C head
+`7bb1f5ad6e95a13a4aaffbae3056794116fedea7`; no rebase or force-push.
+All main README lines remain unchanged and in order, including A's R.05,
+Coordinator, deployment and R.02 notices and the adopted #17 receipts.
+Both PRs' dated C README/worksheet records are retained in date order; the
+canonical worksheet's personal-answer and signature fields are not filled.
+
+The main-relative review scope is still **four C documents**: this README,
+`docs/reviews/member-c-c1-source-review-20261011.md`,
+`docs/reviews/member-c-pr56-followup-20261011.md`, and
+`stage1/drafts/member-c-contribution-and-interview.md`. The six September
+artifacts already adopted through #17 and A/B implementation have zero delta.
+The two source-status corrections were confirmed addressed by A at
+`7bb1f5ad`; neither packet nor corpus/admission bytes are changed here.
+
+[CI 39724718286](https://github.com/shuxiachai/returnops-au/actions/runs/39724718286)
+and [CI 39724719271](https://github.com/shuxiachai/returnops-au/actions/runs/39724719271)
+passed 13/13 jobs each for the preceding #17/#61 heads. They do **not** validate
+this new #61 merge. The PR records the new exact head, local verification,
+normal new-head checks and A's targeted re-review separately. Adoption remains
+A's lead-written squash decision; this change does not merge main.
+
+Prepared with Codex assistance for KAN-23. Source selection permits passage
+capture only; exact-byte review, runtime corpus admission, live-model/Gold/C3
+execution, personal explanation and joint acceptance remain separate. No
+frozen ownership/dependency, public contract, A/B code or Done status changes.
+
+## C source-review follow-up — 22 October 2026 (Sydney)
+
+Following [A's latest #61 instruction](https://github.com/shuxiachai/returnops-au/pull/61#issuecomment-6330830936),
+this review candidate re-merges main
+`4aec7c0de6536075f6691567a3f609b8f3093279` by an ordinary merge. It preserves
+the adopted deployment, F.06, R.02 and frontend material without editing A/B
+implementation, and places C's 21 October notice below the newer 22 October
+notices. The earlier preparation to wait for #17 did not publish a change;
+this reconciliation follows A's subsequent request to refresh both branches.
+
+The current diff against that main is **four C documentation files**:
+README, the C1 source-review packet, the historical PR #56 follow-up, and the
+canonical C contribution/interview worksheet. The preceding GitHub five-file
+view also included the #85 handoff note because of rewritten ancestry; that
+already-adopted note now has no delta from this integration base. Recount the
+actual PR diff after any further main update rather than reusing either count.
+
+The intended adoption order remains #17 then #61, with a lead-written squash
+message. If #17 lands first, reconcile again against that adopted main and
+preserve both dated README/worksheet records before targeted re-review. A's
+[approval of #17](https://github.com/shuxiachai/returnops-au/pull/17#pullrequestreview-5600248843)
+covers `0137e1e024ec2ca3a3e9ca19028ea196175964d4`, not a later head or #61.
+The successful [#61 run 39563374199](https://github.com/shuxiachai/returnops-au/actions/runs/39563374199)
+covers `7d617cca808ab81accc7b8c82c15cc91033b8e35`, not this new reconciliation.
+The PR records the new exact head, publication, local checks and normal CI
+separately; A's targeted new-head review remains required before adoption.
+
+Prepared with Codex assistance for KAN-23. No pending corpus or admission pin,
+runtime/model capability, frozen Owner/Reviewer/S/F, personal answer/signature,
+joint acceptance or Jira completion is changed by this documentation work.
+
 ## C receipt integration refresh — 22 October 2026 (Sydney)
 
 Following [A's new conflict-resolution request](https://github.com/shuxiachai/returnops-au/pull/17#issuecomment-6330830678),
@@ -369,6 +435,44 @@ contracts, frozen allocation or runtime gates. R.02's new no-LLM evidence does
 not establish R.03 live-model/pilot acceptance, corpus admission, C3 execution,
 Gold results, personal explanation or joint sign-off. No new PG17 reproduction,
 course submission, main merge or Jira Done is claimed.
+
+## C source-review reconciliation — 21 October 2026 (Sydney; historical source)
+
+This Codex-assisted correction addresses [A's 21 October review](https://github.com/shuxiachai/returnops-au/pull/61#pullrequestreview-5596152325)
+and incorporated the then-observed main through a normal merge, without
+rewriting the C branch history. It preserved every baseline main README line.
+The original placement below the 18/19 October notices is historical; A's later
+22 October instruction moves this dated section above those older notices.
+The earlier 19 October reconciliation used `c85efc0`; that too is historical,
+not a claim about today's integration base.
+
+A merged [PR #85](https://github.com/shuxiachai/returnops-au/pull/85) at
+21 October 18:16:10 Sydney (07:16:10 UTC), adopting reviewed head
+`132692b6b731b4a5cee1ec041c7e3eba0ba25527`. The PR event retains the original
+adoption identity, but the lead later rewrote that commit without changing its
+tree. Original `55075f05246eb59f27233f5582b276435f1cf60d` and replacement
+`4bb7cf0ba04a62ef907d0bfb3ad5e468ee7b3a73` share tree
+`1a75c6ebd5aa909aa49692d09d73b607fbfb3fc7` and parent `a885cff4`.
+Neither historical identity is presented here as current main.
+Its two-file documentation approval is not corpus, live-model or whole-feature
+acceptance. [Original run 39560805445](https://github.com/shuxiachai/returnops-au/actions/runs/39560805445)
+on `55075f0` was **cancelled**, not successful. The
+[replacement-main run 39566117680](https://github.com/shuxiachai/returnops-au/actions/runs/39566117680)
+on same-tree `4bb7cf0` **passed**. This is that exact historical main tree's
+result, not a substitute for new PR checks or runtime/course acceptance.
+
+The source-selection disposition is **include for next passage capture only**.
+[The updated source-review packet](docs/reviews/member-c-c1-source-review-20261011.md)
+distinguishes that completed decision and #68's preparation adoption from still
+pending exact-byte/context/conflict review and a separately trusted admission pin.
+PR #17 and #61 both add dated worksheet receipts: preserve both in date order,
+and reconcile/recheck whichever is adopted second against actual main.
+No personal confirmation field, A/B implementation or frozen dependency changes.
+Use [PR #68](https://github.com/shuxiachai/returnops-au/pull/68) for the later
+C1 context candidate and its exact-byte review, not the historical planning
+paragraphs below. PR #7 is now merged; other PRs retain their own review/check
+records. Normal PR checks and targeted re-review are required before adopting
+this branch. No runtime, personal, corpus or whole-feature acceptance is claimed.
 
 ## C September receipt reconciliation — 2026-10-21
 
@@ -1041,6 +1145,54 @@ Canvas-package rehearsal and actual per-criterion member contribution records
 remain open. No owner, WBS S/F, deadline or Jira Done transition is implied.
 These increments were prepared with Codex assistance; each PR records its own
 exact source and tests, and A remains non-author reviewer/integrator.
+
+## C follow-up after A review — 2026-10-11
+
+Main verified for this 11 October snapshot: [`d2e809d`](https://github.com/shuxiachai/returnops-au/commit/d2e809d1a127e0e38bab4111394752541ad6b8c6).
+This dated receipt supersedes pending/Draft wording in the October 9 and older
+snapshots below without deleting their historical evidence.
+
+| Delivery | Verified disposition | What this does not establish |
+| --- | --- | --- |
+| C handoff [PR #57](https://github.com/shuxiachai/returnops-au/pull/57) | A approved source `737476d`; merged as `988520b` on October 9; four PR/push checks passed | Personal explanation, whole KAN-22, or acceptance of PRs #7/#17/#20 |
+| C1 offline [PR #59](https://github.com/shuxiachai/returnops-au/pull/59) | A approved source `cdf3fb8`; merged as `cdfc3c1` on October 9; four PR/push checks passed; component/test bytes unchanged in current main | Real-source corpus approval, runtime integration, whole C1/F.01, C2/C3, or Gold evaluation |
+| A private preview/approval [PR #56](https://github.com/shuxiachai/returnops-au/pull/56) | Merged as `d2e809d` on October 9 under A's scoped merge exception; [main CI 37931297595](https://github.com/shuxiachai/returnops-au/actions/runs/37931297595) passed offline and API/PostgreSQL jobs | C's human signature, executable provider operations, whole A2.01, or Gate 1 acceptance |
+
+Review receipts: [A on #57](https://github.com/shuxiachai/returnops-au/pull/57#pullrequestreview-5468873223)
+and [A on #59](https://github.com/shuxiachai/returnops-au/pull/59#pullrequestreview-5469070196).
+A's non-blocking clarification is retained: the **original failed PR #56 run**
+passed its environment suite, failed storage, and skipped the later business
+suites/runtime-image validation. It is separate from the repaired, passing
+main run above; do not relabel that historical failure as a pass.
+
+### Next C handoff and review entrance
+
+- **KAN-23 remains the primary C work item; keep [Issue #58](https://github.com/shuxiachai/returnops-au/issues/58) open.**
+  The [C1 source-selection and integration review packet](docs/reviews/member-c-c1-source-review-20261011.md)
+  proposes a small, attributable source set and explicit review/admission checks.
+  It is preparation, not an approved runtime corpus or a new loader. A reviews
+  the selected context and exact final passage bytes before admission.
+- The [C technical follow-up on PR #56](docs/reviews/member-c-pr56-followup-20261011.md)
+  separates source inspection, locally rerun offline tests and remote PG17 CI.
+  It does not impersonate C's personal understanding or joint acceptance.
+- `VALID` still means exact citation identity/version/hash/location consistency,
+  not claim support or membership in an earlier retrieval. A retains the full
+  retrieval/conflicts and checks membership plus current case/input/proposal
+  bindings; C2 independently checks support and material risk.
+- C2 fixed five-outcome fixtures remain a next **offline preparation** option,
+  not a newly completed reviewer. C3 waits for R.03/text-workflow stability.
+  Gold label preparation/sealing remains governed by E.02–E.08; no completed
+  sealing or formal evaluation is claimed here.
+- At this 11 October snapshot, PRs #7/#17/#20 were separate open items.
+  **21 October correction:** #7 and #20 are merged; #17 remains open for its
+  exact-source review. Their evidence remains separate, and their adoption is
+  not personal or whole-feature acceptance.
+- B owns [PR #60](https://github.com/shuxiachai/returnops-au/pull/60) fixes. C does
+  not alter frozen Risk/Proposal DTOs to accommodate frontend mock differences.
+
+No owner, deadline, estimate, wire schema, 89-row WBS field or personal sign-off
+is changed by this AI-assisted evidence update. Jira comments link actual
+delivery records; a merge alone is not a Done transition.
 
 ## Current C handoff — 2026-10-09
 

@@ -1,10 +1,14 @@
 # C：真实贡献、模型讲解与提交前核对
 
+> **2026-10-22 晚：PR #17 已采用后的 #61 整合。** A 在 [新回复](https://github.com/shuxiachai/returnops-au/pull/61#issuecomment-6339234639)确认 #17 已由组长撰写 squash 信息并合并为 `9d948600984ccb70ab7f80677a2bf2a6c720fa09`，来源 head `b6dcc755`。本次 #61 将该准确 main 普通 merge 进原 `7bb1f5ad`，按日期保留两条 PR 的回执及全部 main 内容。下方“#17 待合并”等为各日期历史，不再是当前状态；旧 head CI/approval 不覆盖新 #61 head。A 已确认原两项措辞修改，本次不改来源包或准入状态，准确文件清单、新检查和 A 定向复审在 PR #61 记录。由 Codex 辅助完成技术整合，不代填个人讲解、贡献比例、签字或联合验收，不自行合并 main。
+
 > **2026-10-22 PR #17 更新后的 main 整合。** 按 [A 的新回复](https://github.com/shuxiachai/returnops-au/pull/17#issuecomment-6330830678)，以普通 merge 纳入本次已核验 main `4aec7c0de6536075f6691567a3f609b8f3093279`，保留 A/B 新内容、本正式入口、兼容 stub 和六份 9 月证据。README 中 C 的 21 日回执移至 20 日回执前，不覆盖 A 的 22 日部署/R.02/F.06 说明。A 的 [5600248843 approval](https://github.com/shuxiachai/returnops-au/pull/17#pullrequestreview-5600248843) 只覆盖旧 `0137e1e0`；新 head 的本地验证、正常 CI 和定向复审由 PR 分别记录。合并采用仍由 A 决定，本轮由 Codex 辅助，不代填个人说明/签字，不声称 R.03、Gold、C3 或联合验收完成。
 
 > **历史补录：2026-10-21 PR #17 再整合。** 按 [A 的准确版本评审](https://github.com/shuxiachai/returnops-au/pull/17#pullrequestreview-5596152615)，当时普通合并 `55075f05246eb59f27233f5582b276435f1cf60d`；它后来被 main 上同树 `4bb7cf0ba04a62ef907d0bfb3ad5e468ee7b3a73` 替代，不是当前 main 指针。保留全部 main README 行、本正式入口、旧兼容 stub 与六份原始支持证据。下方 `c85efc0` 是 10 月 19 日历史基线。此轮由 Codex 辅助整理、合并及本地核验；不代填本人复述、签字或贡献比例，也不是新 PG17 复现、联合验收或课程提交。后续 approval 只覆盖准确 `0137e1e0`，不沿用为新 head 的通过记录。
 
 > **历史补录：2026-10-19 路径整合（MC-PER-0.4 证据迁移）。** 按 A 对 [PR #17 的限定评审](https://github.com/shuxiachai/returnops-au/pull/17#pullrequestreview-5565657365)，把该分支 9 月 18–20 日增量移入本正式文件；旧 `docs/reports/member-c-contribution-and-interview.md` 保持兼容入口。以下 10 月 9 日通知和 9 月版本记录保留，日期中的分支、提交、待办与课程状态只描述各自快照，不覆盖 [Stage 1 已采用归档](../README.md)或 README 的较新项目通知。当时以 main `c85efc07676e58b51f88da5d7c457d79f1f4ad80` 整合路径；不是对该 main 重跑 PG17、个人讲解、联合验收或新课程提交。该 19 日路径迁移、回执整理和检查使用了 Codex 辅助，不是 C 独立操作或本人确认。A 要求对整合后的准确 diff 和正常检查再次评审；本记录不预填通过。
+
+> **2026-10-11 合并回执补录。** A 已批准并合并 C 文档 PR #57（源码 `737476d`，合并 `988520b`）与离线 C1 PR #59（源码 `cdf3fb8`，合并 `cdfc3c1`）；两项 PR/push 的四项检查各自全部通过。当前 main `d2e809d1a127e0e38bab4111394752541ad6b8c6` 已包含二者及 A 的 PR #56，最新 CI 两项通过。具体评审、剩余 C1 语料/集成边界与技术复核见 [README 最新交接](../../README.md#c-follow-up-after-a-review--2026-10-11)。这些是 C 负责的 AI 辅助交付记录，不代填下方本人讲解、共同建模参与或签字字段，也不证明课程最终验收；下面旧版本状态作为历史保留。
 
 > **2026-10-09 当前入口补录（保留以下历史）。** 原 C 模型 PR #12 已合并；下面 9 月记录中的“候选/待合并”限定属于当时的版本，不能作为当前分支状态。主分支已通过 PR #40 将本文件及 C 报告稿迁入 `stage1/drafts/`，报告与演示归档见 [Stage 1 索引](../README.md)。最新团队变动、C1/C2/C3/评测任务及待评审项见 [README 的 10 月 9 日交接](../../README.md#current-c-handoff--2026-10-09)。
 >
