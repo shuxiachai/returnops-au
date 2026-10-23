@@ -138,7 +138,10 @@ not re-run with new keys.
   is listed by code in the receipt's `cleanup_failures` and the later stages
   still run. If the receipt itself cannot be written, the run is reported as
   `FAILED (the run receipt could not be written)` with exit code 1, whatever
-  the chain's result was, and demo mode does not keep the API running.
+  the chain's result was, and demo mode does not keep the API running. If every
+  form of the receipt would contain private material, no file is written, the
+  run is reported as `FAILED (the run receipt was withheld because it contained
+  private material)` with exit code 1, and demo mode does not keep the API running.
 
 The signing key and tokens exist only in memory and in a 0600 `auth.json`
 inside a 0700 temporary directory that is removed at the end of the run. Never

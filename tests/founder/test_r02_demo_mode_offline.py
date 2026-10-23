@@ -617,3 +617,35 @@ def test_written_receipt_still_reports_the_business_result(tmp_path, monkeypatch
     assert driver.main(['--output', str(output)]) == 0
     assert capsys.readouterr().out.strip().splitlines()[-1] == 'R.02 driver result: PASSED (see run-receipt.json).'
     assert json.loads((output / driver.RECEIPT).read_text(encoding='ascii'))['result'] == 'PASSED'
+
+
+# ---------------------------------------------------------------- every receipt form withheld (C's re-review of #114)
+
+def _withheld_receipt(monkeypatch):
+    def write_receipt(path, data, forbidden):
+        raise driver.ReceiptLeak()
+    monkeypatch.setattr(driver, 'write_receipt', write_receipt)
+
+
+def test_withheld_receipt_fails_the_cli_without_pointing_to_a_receipt(tmp_path, monkeypatch, capsys):
+    output, events = tmp_path / 'out', []
+    _fake_run(monkeypatch, tmp_path, events, 'PASSED')
+    _withheld_receipt(monkeypatch)
+    assert driver.main(['--output', str(output)]) == 1
+    printed = capsys.readouterr()
+    assert printed.out.strip().splitlines()[-1] == (
+        'R.02 driver result: FAILED (the run receipt was withheld because it contained private material).')
+    assert 'see run-receipt.json' not in printed.out and 'every form contained private material' in printed.err
+    assert not (output / driver.RECEIPT).exists() and not (tmp_path / 'private').exists()
+
+
+def test_withheld_receipt_in_keep_api_mode_never_holds(tmp_path, monkeypatch, capsys):
+    directory, _ = _provision(tmp_path, monkeypatch)
+    output, events = tmp_path / 'out', []
+    output.mkdir()
+    _fake_run(monkeypatch, tmp_path, events, 'PASSED')
+    _withheld_receipt(monkeypatch)
+    monkeypatch.setattr(driver.api_child, 'hold', lambda api, **options: pytest.fail('no hold without a receipt'))
+    run = driver.Run(output, identities=directory, api_port=8765, keep_api=True)
+    assert run.execute() == 'FAILED' and run.receipt_withheld is True
+    assert events == [('start', {'port': 8765}), 'stop'] and not (output / driver.RECEIPT).exists()
