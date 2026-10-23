@@ -24,14 +24,19 @@ import {
   isMockMode,
   ApiError,
 } from '../api/client';
+import { selectDecisionTarget, describeDecisionError } from '../api/founderDecision';
+import { ApprovalScopeSummary } from '../components/ApprovalScopeSummary';
 import {
   CaseSummary,
   CaseView,
+  CaseStatus,
   AuditEvent,
+  AnalyticsQuery,
   AnalyticsSnapshot,
   FounderDecisionType,
   FounderDecisionRequest,
 } from '../types/domain';
+import { generateIdempotencyKey } from '../utils/idempotency';
 import {
   formatDate,
   formatCurrency,
@@ -40,6 +45,27 @@ import {
   formatCategory,
   formatActor,
 } from '../utils/formatters';
+import { AdvisoryFactsCard } from '../components/AdvisoryFactsCard';
+
+// Contract CaseStatus values in enum order, for the analytics status filter.
+const CASE_STATUSES: CaseStatus[] = [
+  'SUBMITTED',
+  'AWAITING_INFORMATION',
+  'UNDER_INVESTIGATION',
+  'POLICY_ASSESSMENT',
+  'RISK_REVIEW',
+  'AWAITING_APPROVAL',
+  'APPROVED',
+  'ACTION_IN_PROGRESS',
+  'ACTION_FAILED',
+  'RECONCILING',
+  'ESCALATED',
+  'NOTIFICATION_PENDING',
+  'NOTIFICATION_FAILED',
+  'COMPLETED',
+  'REJECTED',
+  'MANUAL_HANDLED',
+];
 
 export const FounderConsole: React.FC = () => {
   const [activeSubTab, setActiveSubTab] = useState<'queue' | 'analytics'>('queue');
@@ -69,6 +95,9 @@ export const FounderConsole: React.FC = () => {
   const [decisionReason, setDecisionReason] = useState('');
   const [isSubmittingDecision, setIsSubmittingDecision] = useState(false);
   const [decisionError, setDecisionError] = useState<string | null>(null);
+  // Idempotency state for the decision POST, as in the customer intake form
+  const [pendingDecisionKey, setPendingDecisionKey] = useState<string | null>(null);
+  const [lastDecisionPayload, setLastDecisionPayload] = useState<string | null>(null);
 
   // ---------------------------------------------------------
   // Operations Analytics State (OF-006)
@@ -76,12 +105,18 @@ export const FounderConsole: React.FC = () => {
   const [analytics, setAnalytics] = useState<AnalyticsSnapshot | null>(null);
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
   const [analyticsError, setAnalyticsError] = useState<string | null>(null);
+  // Applied query, plus the filter form fields (dates are YYYY-MM-DD or '')
+  const [analyticsQuery, setAnalyticsQuery] = useState<AnalyticsQuery>({});
+  const [filterFrom, setFilterFrom] = useState('');
+  const [filterBefore, setFilterBefore] = useState('');
+  const [filterStatus, setFilterStatus] = useState<CaseStatus | ''>('');
+  const [filterError, setFilterError] = useState<string | null>(null);
 
   useEffect(() => {
     if (activeSubTab === 'queue') {
       loadCases();
     } else {
-      loadAnalytics();
+      loadAnalytics(analyticsQuery);
     }
   }, [activeSubTab]);
 
@@ -117,11 +152,11 @@ export const FounderConsole: React.FC = () => {
     setStatusFilter(newStatus);
   };
 
-  const loadAnalytics = async () => {
+  const loadAnalytics = async (query: AnalyticsQuery) => {
     setIsLoadingAnalytics(true);
     setAnalyticsError(null);
     try {
-      const data = await getFounderAnalytics();
+      const data = await getFounderAnalytics(query);
       setAnalytics(data);
     } catch (err: unknown) {
       setAnalyticsError(err instanceof ApiError ? `[${err.code}] ${err.message}` : 'Failed to load analytics');
@@ -129,6 +164,32 @@ export const FounderConsole: React.FC = () => {
     } finally {
       setIsLoadingAnalytics(false);
     }
+  };
+
+  const applyAnalyticsFilters = (e: React.FormEvent) => {
+    e.preventDefault();
+    // YYYY-MM-DD strings compare correctly as text; the contract needs from < before.
+    if (filterFrom && filterBefore && filterFrom >= filterBefore) {
+      setFilterError('"Created from" must be earlier than "Created before".');
+      return;
+    }
+    setFilterError(null);
+    // Whole UTC days: the window is [from 00:00Z, before 00:00Z).
+    const query: AnalyticsQuery = {};
+    if (filterFrom) query.created_from = `${filterFrom}T00:00:00Z`;
+    if (filterBefore) query.created_before = `${filterBefore}T00:00:00Z`;
+    if (filterStatus) query.status = filterStatus;
+    setAnalyticsQuery(query);
+    loadAnalytics(query);
+  };
+
+  const clearAnalyticsFilters = () => {
+    setFilterFrom('');
+    setFilterBefore('');
+    setFilterStatus('');
+    setFilterError(null);
+    setAnalyticsQuery({});
+    loadAnalytics({});
   };
 
   const openCaseDetail = async (caseId: string) => {
@@ -181,48 +242,52 @@ export const FounderConsole: React.FC = () => {
       return;
     }
 
+    const selected = selectDecisionTarget(caseDetail, pendingDecision);
+    if ('unavailable' in selected) {
+      setDecisionError(selected.unavailable);
+      return;
+    }
+    const payload: FounderDecisionRequest = {
+      expected_case_version: caseDetail.case_version,
+      decision: pendingDecision,
+      reason: decisionReason.trim(),
+      ...selected.target,
+    };
+
+    // Reuse the key while the case and body are unchanged (a retry after a lost
+    // response or a 503); mint a new one when the intent changes.
+    const payloadStr = JSON.stringify({ case_id: caseDetail.case_id, payload });
+    let keyToUse = pendingDecisionKey;
+    if (!keyToUse || payloadStr !== lastDecisionPayload) {
+      keyToUse = generateIdempotencyKey('decision_idem');
+      setPendingDecisionKey(keyToUse);
+      setLastDecisionPayload(payloadStr);
+    }
+
     setIsSubmittingDecision(true);
     setDecisionError(null);
 
     try {
-      const payload: FounderDecisionRequest = {
-        expected_case_version: caseDetail.case_version,
-        decision: pendingDecision,
-        reason: decisionReason.trim(),
-      };
+      await recordFounderDecision(caseDetail.case_id, payload, keyToUse);
 
-      if (pendingDecision === 'APPROVE') {
-        payload.proposal_id = caseDetail.current_proposal?.proposal_id;
-        payload.proposal_version = caseDetail.current_proposal?.proposal_version;
-        payload.preview_id = caseDetail.action_preview?.preview_id;
-        payload.scope_fingerprint = caseDetail.action_preview?.scope_fingerprint;
-      } else if (pendingDecision === 'REJECT' || pendingDecision === 'REQUEST_REVISION') {
-        payload.proposal_id = caseDetail.current_proposal?.proposal_id;
-        payload.proposal_version = caseDetail.current_proposal?.proposal_version;
-      } else if (pendingDecision === 'MANUAL_HANDLING') {
-        if (caseDetail.processing_failure) {
-          payload.processing_failure_id = caseDetail.processing_failure.failure_id;
-        } else if (caseDetail.order_lookup_block) {
-          payload.order_lookup_block_id = caseDetail.order_lookup_block.block_id;
-        } else {
-          payload.proposal_id = caseDetail.current_proposal?.proposal_id;
-          payload.proposal_version = caseDetail.current_proposal?.proposal_version;
-        }
-      }
-
-      await recordFounderDecision(caseDetail.case_id, payload);
-
+      setPendingDecisionKey(null);
+      setLastDecisionPayload(null);
       setDecisionModalOpen(false);
       // Reload detail and queue
       await openCaseDetail(caseDetail.case_id);
       loadCases();
     } catch (err: unknown) {
-      setDecisionError(
-        err instanceof ApiError ? `[${err.code}] ${err.message}` : 'Decision execution failed.'
-      );
+      setDecisionError(describeDecisionError(err));
     } finally {
       setIsSubmittingDecision(false);
     }
+  };
+
+  // Why a decision cannot be built from the current case view, or null if it can.
+  const decisionUnavailable = (decision: FounderDecisionType): string | null => {
+    if (!caseDetail) return 'No case is loaded.';
+    const selected = selectDecisionTarget(caseDetail, decision);
+    return 'unavailable' in selected ? selected.unavailable : null;
   };
 
   const filteredCases = cases.filter((c) => {
@@ -707,14 +772,28 @@ export const FounderConsole: React.FC = () => {
                           Governed Execution Preview (UC-04 / Operations Service)
                         </h4>
                       </div>
-                      <div className="text-xs bg-white p-3.5 rounded-xl border border-sky-200 space-y-1 font-mono">
-                        <div>
-                          <strong>Operation Type:</strong> {caseDetail.action_preview.operation_type}
-                        </div>
-                        <div>
-                          <strong>Parameters:</strong> {JSON.stringify(caseDetail.action_preview.details)}
-                        </div>
+                      <div className="bg-white p-3.5 rounded-xl border border-sky-200">
+                        <ApprovalScopeSummary preview={caseDetail.action_preview} />
                       </div>
+                      {/* Demo-only extension fields: shown only when a fixture carries them */}
+                      {(caseDetail.action_preview.operation_type !== undefined ||
+                        caseDetail.action_preview.details !== undefined) && (
+                        <div className="text-xs bg-white p-3.5 rounded-xl border border-dashed border-slate-300 space-y-1 font-mono">
+                          <div className="font-sans font-semibold text-slate-500">
+                            Demo-only fixture fields — not part of the approval scope
+                          </div>
+                          {caseDetail.action_preview.operation_type !== undefined && (
+                            <div>
+                              <strong>Operation Type:</strong> {caseDetail.action_preview.operation_type}
+                            </div>
+                          )}
+                          {caseDetail.action_preview.details !== undefined && (
+                            <div>
+                              <strong>Parameters:</strong> {JSON.stringify(caseDetail.action_preview.details)}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -792,6 +871,10 @@ export const FounderConsole: React.FC = () => {
                       No order snapshot projected for this case.
                     </div>
                   )}
+
+                  {caseDetail.facts && (
+                    <AdvisoryFactsCard facts={caseDetail.facts} isMock={isMockMode()} />
+                  )}
                 </div>
               )}
 
@@ -823,10 +906,10 @@ export const FounderConsole: React.FC = () => {
                       </div>
                     </div>
                   ) : auditEvents.length > 0 ? (
-                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 text-xs flex items-center space-x-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 text-xs flex items-center space-x-2">
+                      <FileText className="w-4 h-4 text-slate-500 flex-shrink-0" />
                       <span>
-                        Cryptographic Audit Chain Integrity Validated: Every transition is bound by SHA-256 hash pointer.
+                        Recorded Audit Events: each event shows its recorded SHA-256 hash and, where present, its previous-hash link. This view does not recompute or verify the chain.
                       </span>
                     </div>
                   ) : (
@@ -869,32 +952,38 @@ export const FounderConsole: React.FC = () => {
 
             {/* Modal Footer: Governed Decision Controls (UC-04 / UC-03 / Findings 4 & 11) */}
             <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 flex-shrink-0">
-              <div className="text-xs text-slate-500">
-                {!isMockMode() ? (
-                  <span className="text-amber-700 font-semibold">
-                    Live Mode Notice: Decision recording (POST /v1/founder/decisions) is not yet deployed on backend main. Switch to Mock Mode to test decisions.
-                  </span>
-                ) : caseDetail.status === 'ESCALATED' ? (
+              <div className="text-xs text-slate-500 space-y-1">
+                {caseDetail.status === 'ESCALATED' ? (
                   <span className="text-rose-600 font-semibold">
-                    Escalated Case: Direct approval blocked. Manual takeover or rejection required.
+                    {/* The server accepts only REQUEST_REVISION (on the current proposal)
+                        and MANUAL_HANDLING for an escalated case. */}
+                    Escalated Case: Direct approval blocked.{' '}
+                    {caseDetail.current_proposal
+                      ? 'Manual takeover or revision required.'
+                      : 'Manual takeover required.'}
                   </span>
+                ) : decisionUnavailable('APPROVE') ? (
+                  <span className="text-amber-700 font-semibold">{decisionUnavailable('APPROVE')}</span>
                 ) : (
                   <span>Governed Decision Controls · Approval Guard Active</span>
+                )}
+                {!isMockMode() && (
+                  <div>
+                    Live Mode: decisions are sent to the server, which applies its own guards and may refuse them.
+                  </div>
                 )}
               </div>
 
               <div className="flex items-center space-x-2">
                 <button
                   type="button"
-                  disabled={!isMockMode() || caseDetail.status === 'ESCALATED'}
+                  disabled={caseDetail.status === 'ESCALATED' || decisionUnavailable('APPROVE') !== null}
                   onClick={() => handleOpenDecision('APPROVE')}
                   className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition-colors shadow-sm flex items-center space-x-1"
                   title={
-                    !isMockMode()
-                      ? 'Decision recording is not yet deployed in live mode'
-                      : caseDetail.status === 'ESCALATED'
+                    caseDetail.status === 'ESCALATED'
                       ? 'Approval is blocked for escalated cases'
-                      : 'Approve Return'
+                      : decisionUnavailable('APPROVE') ?? 'Approve Return'
                   }
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
@@ -903,18 +992,24 @@ export const FounderConsole: React.FC = () => {
 
                 <button
                   type="button"
-                  disabled={!isMockMode()}
+                  disabled={decisionUnavailable('REQUEST_REVISION') !== null}
                   onClick={() => handleOpenDecision('REQUEST_REVISION')}
                   className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition-colors shadow-sm"
+                  title={decisionUnavailable('REQUEST_REVISION') ?? 'Request Revision'}
                 >
                   Request Revision
                 </button>
 
                 <button
                   type="button"
-                  disabled={!isMockMode()}
+                  disabled={caseDetail.status === 'ESCALATED' || decisionUnavailable('REJECT') !== null}
                   onClick={() => handleOpenDecision('REJECT')}
                   className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition-colors shadow-sm flex items-center space-x-1"
+                  title={
+                    caseDetail.status === 'ESCALATED'
+                      ? 'Rejection is blocked for escalated cases: the server accepts Reject only for a case awaiting approval'
+                      : decisionUnavailable('REJECT') ?? 'Reject'
+                  }
                 >
                   <XCircle className="w-3.5 h-3.5" />
                   <span>Reject</span>
@@ -922,9 +1017,10 @@ export const FounderConsole: React.FC = () => {
 
                 <button
                   type="button"
-                  disabled={!isMockMode()}
+                  disabled={decisionUnavailable('MANUAL_HANDLING') !== null}
                   onClick={() => handleOpenDecision('MANUAL_HANDLING')}
                   className="px-3 py-2 bg-slate-600 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition-colors shadow-sm"
+                  title={decisionUnavailable('MANUAL_HANDLING') ?? 'Manual Takeover'}
                 >
                   Manual Takeover
                 </button>
@@ -940,9 +1036,13 @@ export const FounderConsole: React.FC = () => {
       {/* ========================================================= */}
       {decisionModalOpen && caseDetail && (
         <div className="fixed inset-0 z-[60] overflow-y-auto bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden">
+          <div
+            role="dialog"
+            aria-labelledby="decision-dialog-title"
+            className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden"
+          >
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-              <h4 className="font-bold text-slate-900 text-sm">
+              <h4 id="decision-dialog-title" className="font-bold text-slate-900 text-sm">
                 Confirm Founder Decision: {pendingDecision}
               </h4>
               <button
@@ -975,6 +1075,15 @@ export const FounderConsole: React.FC = () => {
                 )}
               </div>
 
+              {pendingDecision === 'APPROVE' && caseDetail.action_preview && (
+                <div className="p-3.5 bg-sky-50 border border-sky-200 rounded-xl space-y-2">
+                  <div className="text-xs font-bold uppercase tracking-wider text-sky-900">
+                    Approval scope: this is all the approval authorises
+                  </div>
+                  <ApprovalScopeSummary preview={caseDetail.action_preview} />
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                   Mandatory Governance Rationale <span className="text-rose-500">*</span>
@@ -982,6 +1091,7 @@ export const FounderConsole: React.FC = () => {
                 <textarea
                   rows={3}
                   required
+                  maxLength={2000}
                   value={decisionReason}
                   onChange={(e) => setDecisionReason(e.target.value)}
                   placeholder="Record justification for statutory audit and customer notification..."
@@ -1002,7 +1112,7 @@ export const FounderConsole: React.FC = () => {
                   disabled={isSubmittingDecision || decisionReason.trim().length === 0}
                   className="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold transition-colors shadow-sm disabled:opacity-50"
                 >
-                  {isSubmittingDecision ? 'Submitting...' : 'Record & Execute'}
+                  {isSubmittingDecision ? 'Submitting...' : 'Record decision'}
                 </button>
               </div>
             </form>
@@ -1015,13 +1125,74 @@ export const FounderConsole: React.FC = () => {
       {/* ========================================================= */}
       {activeSubTab === 'analytics' && (
         <div className="space-y-6 animate-fade-in">
-          {!isMockMode() && (
-            <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-amber-900 text-xs flex items-center space-x-2">
-              <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0" />
-              <div>
-                <strong className="font-semibold">Live Mode Notice:</strong> Operations analytics (OF-006) backend endpoint is not yet deployed on backend main. Switch to Mock Mode (top navigation) to interact with complete operational throughput and latency statistics.
-              </div>
+          {/* Contract query filters: created_from, created_before and one status */}
+          <form
+            onSubmit={applyAnalyticsFilters}
+            className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-end gap-3 text-xs"
+          >
+            <label className="flex flex-col gap-1 font-semibold text-slate-600">
+              Created from (UTC, inclusive)
+              <input
+                type="date"
+                value={filterFrom}
+                onChange={(e) => setFilterFrom(e.target.value)}
+                disabled={isMockMode()}
+                className="px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-normal text-slate-700 disabled:opacity-50"
+              />
+            </label>
+            <label className="flex flex-col gap-1 font-semibold text-slate-600">
+              Created before (UTC, exclusive)
+              <input
+                type="date"
+                value={filterBefore}
+                onChange={(e) => setFilterBefore(e.target.value)}
+                disabled={isMockMode()}
+                className="px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-normal text-slate-700 disabled:opacity-50"
+              />
+            </label>
+            <label className="flex flex-col gap-1 font-semibold text-slate-600">
+              Current status
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value as CaseStatus | '')}
+                disabled={isMockMode()}
+                className="px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-normal text-slate-700 disabled:opacity-50"
+              >
+                <option value="">All statuses</option>
+                {CASE_STATUSES.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="flex items-center gap-2">
+              <button
+                type="submit"
+                disabled={isMockMode() || isLoadingAnalytics}
+                className="px-4 py-2 bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white rounded-xl font-bold transition-colors shadow-sm"
+              >
+                Apply Filters
+              </button>
+              <button
+                type="button"
+                onClick={clearAnalyticsFilters}
+                disabled={isMockMode() || isLoadingAnalytics}
+                className="px-3 py-2 text-slate-600 hover:text-slate-900 disabled:opacity-50 font-semibold"
+              >
+                Clear
+              </button>
             </div>
+          </form>
+
+          {isMockMode() && (
+            <p className="text-xs text-slate-500">
+              Mock Mode shows one fixed synthetic snapshot, so the filters are disabled; the live server applies them.
+            </p>
+          )}
+
+          {filterError && (
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs">{filterError}</div>
           )}
 
           {analyticsError && (
@@ -1058,9 +1229,14 @@ export const FounderConsole: React.FC = () => {
                     p50 Median Latency
                   </div>
                   <div className="text-3xl font-extrabold text-indigo-600 mt-2">
-                    {analytics.proposal_latency?.p50_ms !== undefined
+                    {analytics.proposal_latency.p50_ms !== undefined
                       ? `${(analytics.proposal_latency.p50_ms / 1000).toFixed(2)}s`
                       : '—'}
+                  </div>
+                  <div className="text-[11px] text-slate-400 mt-1">
+                    {analytics.proposal_latency.p50_ms !== undefined
+                      ? `From ${analytics.proposal_latency.sample_count} measured cases`
+                      : 'Not measured (no samples)'}
                   </div>
                 </div>
 
@@ -1069,11 +1245,45 @@ export const FounderConsole: React.FC = () => {
                     p95 Latency SLA
                   </div>
                   <div className="text-3xl font-extrabold text-purple-600 mt-2">
-                    {analytics.proposal_latency?.p95_ms !== undefined
+                    {analytics.proposal_latency.p95_ms !== undefined
                       ? `${(analytics.proposal_latency.p95_ms / 1000).toFixed(2)}s`
                       : '—'}
                   </div>
+                  <div className="text-[11px] text-slate-400 mt-1">
+                    {analytics.proposal_latency.p95_ms !== undefined
+                      ? `From ${analytics.proposal_latency.sample_count} measured cases`
+                      : 'Not measured (no samples)'}
+                  </div>
                 </div>
+              </div>
+
+              {/* Latency counts and snapshot basis: measured + failed + unmeasured = total cases */}
+              <div className="bg-white px-5 py-3 rounded-2xl border border-slate-200 shadow-sm text-xs text-slate-600 flex flex-wrap gap-x-6 gap-y-1">
+                <span>
+                  Measured: <strong className="text-slate-900">{analytics.proposal_latency.sample_count}</strong>
+                </span>
+                <span>
+                  Failed: <strong className="text-slate-900">{analytics.proposal_latency.failed_count}</strong>
+                </span>
+                <span>
+                  Unmeasured: <strong className="text-slate-900">{analytics.proposal_latency.unmeasured_count}</strong>
+                </span>
+                <span>
+                  As of:{' '}
+                  <strong className="text-slate-900" title={analytics.as_of}>
+                    {formatDate(analytics.as_of)}
+                  </strong>
+                </span>
+                <span>
+                  Filters applied:{' '}
+                  <strong className="text-slate-900">
+                    {Object.keys(analytics.filters).length > 0
+                      ? Object.entries(analytics.filters)
+                          .map(([key, value]) => `${key}=${value}`)
+                          .join(', ')
+                      : 'none'}
+                  </strong>
+                </span>
               </div>
 
               {/* Status Breakdown Bar Chart */}
@@ -1084,6 +1294,9 @@ export const FounderConsole: React.FC = () => {
                 </h3>
 
                 <div className="space-y-3">
+                  {analytics.cases_by_status.length === 0 && (
+                    <p className="text-xs text-slate-400">No cases in this snapshot.</p>
+                  )}
                   {analytics.cases_by_status.map(({ status, count }) => {
                     const pct = analytics.case_count > 0 ? (count / analytics.case_count) * 100 : 0;
                     return (
@@ -1104,6 +1317,7 @@ export const FounderConsole: React.FC = () => {
                     );
                   })}
                 </div>
+                <p className="text-[11px] text-slate-400">Statuses with no cases are not listed.</p>
               </div>
 
               {/* Risk Review Distribution */}
@@ -1113,6 +1327,9 @@ export const FounderConsole: React.FC = () => {
                   <span>Risk Review Outcome Distribution</span>
                 </h3>
 
+                {analytics.current_risk_counts.length === 0 && (
+                  <p className="text-xs text-slate-400">No case has a current risk review in this snapshot.</p>
+                )}
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                   {analytics.current_risk_counts.map(({ outcome, count }) => (
                     <div
@@ -1124,6 +1341,7 @@ export const FounderConsole: React.FC = () => {
                     </div>
                   ))}
                 </div>
+                <p className="text-[11px] text-slate-400">Outcomes with no cases are not listed.</p>
               </div>
             </div>
           ) : (

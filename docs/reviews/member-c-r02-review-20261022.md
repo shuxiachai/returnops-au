@@ -305,3 +305,116 @@ tests do not establish these defects are fixed. No user key, live model, private
 Gold or actual participant timing was used. Corpus admission, C2 production
 routing, real Risk/C3 evidence, joint acceptance and C's personal explanation
 remain separate outstanding items. A's owner disposition is still required.
+
+## 7. Adoption and owner-fix follow-up — 23 October 2026
+
+This section supersedes section 6's pending/failed PR status and R02-C-01
+disposition, without deleting the original observations. It does not close
+R02-C-02 or claim personal/team acceptance.
+
+### Exact source and adoption chronology
+
+1. A [approved PR #61](https://github.com/shuxiachai/returnops-au/pull/61#pullrequestreview-5622537263)
+   at 00:27:16 UTC for exact head
+   `be21f39bc502100ddd96c129bc9116b6fdcfceba`, limited to the four C documents.
+2. A retried failed jobs on that same head. [Run 39770369525, attempt 2](https://github.com/shuxiachai/returnops-au/actions/runs/39770369525/attempts/2)
+   finished successfully at 01:01:46 UTC: 13 effective jobs successful, including
+   the replacement Founder revision job 120168070410 and final gate.
+3. A merged #61 at 01:04:56 UTC with lead-written squash
+   `29fd233a520bd37ee1c9aa2c61302b0417a25853`. No C rerun or main merge occurred.
+4. Later, [PR #108](https://github.com/shuxiachai/returnops-au/pull/108) was adopted
+   at 03:13:44 UTC as `b04d0a327ded021b030ad803662bc2c62719d9e7`.
+   This later fix did **not** cause the earlier PR #61 rerun to pass.
+   C's current reviewed runtime source is main
+   `c4d08799adf555604a235e61ca325f50a2218618` (includes #107–#110).
+
+The C review branch uses an ordinary merge of that main, preserving its README,
+A/B implementation and fixed allocation. Branch publication is not an approval
+of the new C review commit and does not bypass required checks for later adoption.
+
+### R.02 dispositions after #108
+
+| Finding | Current C observation | Remaining limit |
+|---|---|---|
+| R02-C-01 | FIX VERIFIED, BOUNDED: interruption yields FAILED/INTERRUPTED and attempts cleanup, both with keep-api false and true | Fake API/context only; not a real-process SIGINT or PostgreSQL/HTTP end-to-end cancellation acceptance |
+| R02-C-02 | OPEN: a synthetic dispose exception still prevents later private cleanup and receipt publication; keep-api-log still selects the public output path before screening | No real secret was used or leaked; A must disposition the cleanup/log failure matrix and artifact-upload boundary |
+
+New reproducible C-only diagnostic:
+
+```sh
+PYTHONPATH=apps/api:packages python -B \
+  docs/reviews/member-c-r02-followup-probe-20261023.py .
+```
+
+It patches external effects in memory, uses dummy paths, prints no credentials
+and performs no database, process or file-write operation. **Exit 1 is expected
+while R02-C-02 remains open**, not a claim that the fixed interrupt path failed.
+The original 22 October failure probe is retained as historical evidence; use
+the new probe for the current disposition.
+
+The owner fix should ensure cleanup stages are independently attempted, private
+logs stay outside publishable artifacts until validated, and a safe terminal
+receipt survives cleanup/log/read/write failures. Test these paths rather than
+silently treating them as successful acceptance. C has not changed A's driver.
+
+### R04: improved evidence, not a proven flake cure
+
+#108 records each child attempt's safe status/code/audit and elapsed duration,
+and permits one bounded same-key retry only for DENIED / INTERNAL_ERROR /
+NOT_RECORDED with no receipt. The test still requires both final same-key
+results ACCEPTED, one durable claim/acceptance/outcome and zero observed effects.
+It now measures eventual success within that bounded retry, not two guaranteed
+first-attempt successes. The previously disclosed effect-observation limits
+remain.
+
+[Issue #103](https://github.com/shuxiachai/returnops-au/issues/103) / KAN-43 owns
+the concurrency follow-up. A's lock-holder/load explanation is still a hypothesis
+without both failed caller outcomes and holder timing. A useful remaining
+diagnostic is to force the transient failure and cover NOT_RECORDED versus
+RECORDED/UNKNOWN, proving retries stay safe and bounded; the ordinary happy-path
+run does not establish that classification. This is a review request, not an
+authorised change to A's acceptance conditions.
+
+**New observed failure after #108:** main
+`c4d08799adf555604a235e61ca325f50a2218618` completed
+[run 39900838149](https://github.com/shuxiachai/returnops-au/actions/runs/39900838149)
+with 11 successful jobs, failed
+[Founder revision job 120242146957](https://github.com/shuxiachai/returnops-au/actions/runs/39900838149/job/120242146957)
+and a dependent failed final gate (120263074076). At 04:59:06 UTC the same-key
+R04 test failed line 188's all-ACCEPTED/identical-receipt assertion:
+351 passed / 1 failed in 1503.52 seconds. PG logs again report a lock timeout.
+The public traceback does not expose the two safe attempt records or holder
+duration, so C cannot identify which retry classification or outcome occurred.
+This disproves a blanket "the failure is solved" statement but does not by
+itself diagnose a business duplication or prove the same root cause.
+Do not rerun repeatedly or weaken the assertion; A should retain safe per-attempt
+diagnostics even when the assertion fails and disposition the failing outcome.
+
+### Local check receipt
+
+On the main-equivalent runtime files, the focused R.02/C1/C2/handoff pytest
+selection passed **137 tests / 136 subtests in 1.19 seconds**. The full offline
+runner then passed **all six steps**: 371 contracts, six static groups,
+12 model-checker regressions, 32 runner regressions, 14 Mermaid parses and
+64 synthetic-provider tests. WBS ID/owner/reviewer/S/F matched origin/main.
+Counts overlap; they are not independent new business scenarios.
+
+The first offline attempt lacked Node on PATH; the second reached the provider
+test but picked up the older editable package from the reused environment.
+The final run explicitly selected the current checkout with
+`PYTHONPATH=packages:apps/api` and the already installed Node path. Both earlier
+failure records are retained; no package installation or source workaround was
+used. The package/lock-identical Mermaid cache was linked temporarily only.
+
+The additional PG17 reproduction **did not execute**. A fresh pinned PG17.11
+container became ready, but the task-owned test container stayed Created with
+Pid 0, zero StartedAt and no daemon Error. A no-bind/tmpfs control also did
+not start. This is a local container-start blocker, not a failed/passed R04
+test and not proven to be a permission or network problem. No settings or
+permissions were changed. Both unstarted task containers and the temporary
+PG container/tmpfs data were removed; no existing database, volume or older
+backup was changed.
+
+These are local offline and review results, not live Risk/C3, Gold, measured
+human time, clean final application deployment or named personal/team acceptance.
+AI-assisted C preparation and verification; no A/B implementation edits.

@@ -139,9 +139,10 @@ upload that directory as a CI artifact.
 ## If a step fails
 
 If an HTTP step fails with 503 `INTERNAL_ERROR` on a slow runner, first check
-the API child's production engine: `build_engine` sets a 2 s
-`statement_timeout` (the driver's own engine uses 10 s, like the tests). The
-driver does not change it.
+the API child's production engine: `build_engine` sets a 10 s
+`statement_timeout` (since 23 October 2026; the fence's `lock_timeout` is 5 s
+and the driver's own engine also uses 10 s, like the tests). The driver does
+not change it.
 
 ## Demo mode (live demo only)
 
@@ -171,7 +172,11 @@ What step 0 checks in demo mode, in addition to the normal environment checks:
 * Never relaxed: the chosen store has no case (`STORE_HAS_CASES`), no
   investigation service (`STORE_INVESTIGATION_CONFIGURED`) and no lifecycle
   authority (`STORE_AUTHORITIES_EXIST`), and no case anywhere has `PENDING` or
-  `RUNNING` intake or investigation work (`FOREIGN_PENDING_WORK`).
+  `RUNNING` intake or investigation work (`FOREIGN_PENDING_WORK`). Such rows are
+  usually left by a `demo.py serve` stopped while a worker held a claim, or by a
+  case lodged against a kept API child (which runs no worker): run `demo.py
+  serve` for about ten seconds so the workers finish or reclaim them, stop it,
+  and rerun the driver with a new `--output`.
 * At least 420 s of the session window remain: the 300 s preview plus 120 s
   (`IDENTITY_SESSION_WINDOW_TOO_SHORT`).
 
@@ -248,9 +253,11 @@ Demo-mode limitations:
   `--store` gives a new Founder token that can read the store's cases; the
   customer-one view of the case cannot be renewed (there is no session command).
 * The kept API child runs no worker: a case lodged through the UI against it
-  stays `SUBMITTED`. It registers the Founder decision route, but the current
-  client refuses live decisions and live analytics with `501 NOT_IMPLEMENTED`
-  (`client.ts`), so the UI is read-only here; the driver has already approved.
+  stays `SUBMITTED`. It registers the Founder decision route, and since B's #102
+  (23 October 2026) the client sends live decisions and reads live analytics;
+  the driver's case is already approved and executed, so a further decision on
+  it is refused by the server as a governed denial, which is the expected
+  demonstration here.
 * The free-port check runs before the child binds, so another process could
   still take the port in between.
 * Only the offline tests have run. A PostgreSQL run in demo mode and the browser

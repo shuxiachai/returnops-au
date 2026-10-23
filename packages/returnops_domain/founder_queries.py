@@ -225,7 +225,7 @@ def _order(uow, proof, head, projection_id):
     return body
 
 
-def case_view(uow, actor, head, now, ttl):
+def case_view(uow, actor, head, now, ttl, facts_provider=None):
     proof = CaseProof(uow, head)
     snap = snapshot(uow, actor, 'HISTORY', now, ttl, head)
     result = {name: head[name] for name in SUMMARY}
@@ -259,5 +259,11 @@ def case_view(uow, actor, head, now, ttl):
         result['order_snapshot'] = _order(uow, proof, head, state['current_projection_id'])
     from .lifecycle_projection import project
     project(uow,head,result)
+    if facts_provider is not None:
+        # A1.06 showcase (docs/44): advisory facts only for the re-verified
+        # current input; None keeps the view unchanged.
+        facts = facts_provider(uow, head)
+        if facts is not None:
+            result['facts'] = facts
     finite.validate('CaseView', result)
     return result, snap

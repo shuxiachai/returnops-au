@@ -49,6 +49,19 @@ def request(query):
                     'query_string': query.encode('ascii')})
 
 
+@pytest.mark.parametrize('value', ['1_0', '+5', '%205%20', '%EF%BC%95', '0x10', '', '01', '1.', '.5e1', 'Infinity', 'NaN'])
+def test_http_integer_query_parameters_must_be_json_number_literals(value):
+    with pytest.raises(FlowError) as caught:
+        _query(request('limit=' + value), 'listFounderCaseHistory')
+    assert caught.value.code == 'VALIDATION_ERROR'
+
+
+def test_http_integer_query_parameters_accept_integral_json_numbers():
+    assert _query(request('limit=10&object_version=0'), 'listFounderCaseHistory') == {'limit': 10, 'object_version': 0}
+    assert _query(request('limit=1e0&object_version=10e-1'), 'listFounderCaseHistory') == {'limit': 1, 'object_version': 1}
+    assert _query(request('limit=2.0'), 'listFounderCaseHistory') == {'limit': 2}
+
+
 def test_http_query_whitelist_for_analytics():
     assert _query(request(''), 'getFounderAnalytics') == {}
     assert _query(request('status=SUBMITTED&created_from=2026-09-06T00:00:00Z'), 'getFounderAnalytics') == {

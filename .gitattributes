@@ -1,0 +1,20 @@
+# Line endings: every text file is stored and checked out with LF, whatever the
+# platform's core.autocrlf setting. The repository's digest-pinned fixtures
+# (for example the C1 corpus manifests) and the CI "no carriage return" checks
+# depend on byte-exact files; a Windows clone with core.autocrlf=true would
+# otherwise convert them to CRLF and fail tests/contracts/test_c1_corpus_admission.py.
+* text=auto eol=lf
+
+# Binary artifacts are never converted.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.docx binary
+*.pptx binary
+*.xlsx binary
+*.woff binary
+*.woff2 binary

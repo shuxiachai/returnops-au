@@ -2,6 +2,7 @@
 from __future__ import annotations
 import json
 import asyncio
+import re
 from decimal import Decimal,InvalidOperation
 from fastapi import Request
 from fastapi.responses import Response
@@ -13,6 +14,10 @@ from returnops_domain.evidence_validation import validate_evidence
 from returnops_domain.wire import decode_json_document,normalize_json_numbers,validate
 from .customer_authority import CurrentRequestAuthority
 from .customer_upload import read_upload
+
+# A query integer must be written as a JSON number literal (RFC 8259): no '_', '+', spaces or
+# non-ASCII digits. Integral exponent or fraction forms such as 1e0 and 1.0 stay accepted, as before.
+JSON_NUMBER=re.compile(r'-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?',re.ASCII)
 
 # Twenty 12,000-codepoint answers can require about 2.9 MiB when
 # astral characters use standard ASCII JSON surrogate-pair escapes.
@@ -42,7 +47,7 @@ def _query(request,history=False):
         if key in {'limit','object_version'}:
             failed=False
             try:
-                if len(value)>64: raise ValueError()
+                if len(value)>64 or not JSON_NUMBER.fullmatch(value): raise ValueError()
                 number=Decimal(value)
                 value=normalize_json_numbers(number)
             except (InvalidOperation,ValueError): failed=True

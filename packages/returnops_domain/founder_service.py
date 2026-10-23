@@ -13,11 +13,14 @@ from .wire import validate
 
 class FounderQueries:
     def __init__(self, engine, authority, *, clock=lambda: datetime.now(timezone.utc),
-                 snapshot_ttl=900, uow_factory=CustomerUnitOfWork):
+                 snapshot_ttl=900, uow_factory=CustomerUnitOfWork, facts_provider=None):
         if type(snapshot_ttl) is not int or not 1 <= snapshot_ttl <= 900:
+            raise FlowError()
+        if facts_provider is not None and not callable(facts_provider):
             raise FlowError()
         self.engine, self.authority, self.clock = engine, authority, clock
         self.snapshot_ttl, self.uow_factory = snapshot_ttl, uow_factory
+        self.facts_provider = facts_provider
 
     def _authorize(self, uow, operation, case_id):
         actor = self.authority(uow.connection, 'getSession')
@@ -51,7 +54,7 @@ class FounderQueries:
                     if operation == 'getFounderCase':
                         if query != {}:
                             raise FlowError('VALIDATION_ERROR')
-                        result, snap = queries.case_view(uow, actor, head, now, self.snapshot_ttl)
+                        result, snap = queries.case_view(uow, actor, head, now, self.snapshot_ttl, self.facts_provider)
                     elif operation == 'listFounderCaseHistory':
                         result, snap = queries.history_page(uow, actor, head, query, now, self.snapshot_ttl)
                     else:

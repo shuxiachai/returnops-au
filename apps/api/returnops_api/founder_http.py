@@ -7,7 +7,7 @@ from returnops_domain.errors import FlowError
 from returnops_domain.founder_service import FounderQueries
 from returnops_domain.wire import normalize_json_numbers
 from .customer_authority import CurrentRequestAuthority
-from .customer_http import one_header, safe_json
+from .customer_http import JSON_NUMBER, one_header, safe_json
 
 
 def _query(request, operation):
@@ -25,7 +25,7 @@ def _query(request, operation):
         if key in {'limit', 'object_version'}:
             failed = False
             try:
-                if len(value) > 64:
+                if len(value) > 64 or not JSON_NUMBER.fullmatch(value):
                     raise ValueError()
                 value = normalize_json_numbers(Decimal(value))
             except (InvalidOperation, ValueError):
@@ -44,7 +44,9 @@ def register_founder_routes(app):
             if config is None:
                 raise FlowError()
             authority = CurrentRequestAuthority(config, one_header(request, 'authorization'))
-            flow = FounderQueries(request.app.state.engine, authority)
+            # A1.06 showcase: trusted app state only; None unless the flag is on.
+            flow = FounderQueries(request.app.state.engine, authority,
+                                  facts_provider=getattr(request.app.state, 'coordinator_facts', None))
             result = await run_in_threadpool(flow.read, operation, case_id, lambda: _query(request, operation))
             return safe_json(result.body, result.status, correlation=correlation)
         except FlowError as error:

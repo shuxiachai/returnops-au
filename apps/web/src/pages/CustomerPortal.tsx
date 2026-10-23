@@ -151,8 +151,11 @@ export const CustomerPortal: React.FC = () => {
   // ---------------------------------------------------------
   // File Upload Handlers
   // ---------------------------------------------------------
+  // While a POST is pending its draft is frozen (#88): the form's inputs, Add File,
+  // Stage and Remove are disabled and their change and click handlers return early,
+  // so the success reset can only clear what was actually submitted.
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files) return;
+    if (!e.target.files || isSubmitting) return;
     const newFiles = Array.from(e.target.files).map((f) => ({
       file: f,
       description: '',
@@ -165,7 +168,7 @@ export const CustomerPortal: React.FC = () => {
 
   const handleStageFile = async (fileKey: string) => {
     const item = selectedFiles.find((file) => file.idempotencyKey === fileKey);
-    if (!item || item.staged || activeLodgementUploads.current.has(fileKey)) return;
+    if (isSubmitting || !item || item.staged || activeLodgementUploads.current.has(fileKey)) return;
 
     activeLodgementUploads.current.add(fileKey);
     setSelectedFiles((files) => files.map((file) =>
@@ -188,6 +191,7 @@ export const CustomerPortal: React.FC = () => {
   };
 
   const handleRemoveFile = (fileKey: string) => {
+    if (isSubmitting) return;
     activeLodgementUploads.current.delete(fileKey);
     setSelectedFiles((files) => files.filter((file) => file.idempotencyKey !== fileKey));
   };
@@ -256,7 +260,7 @@ export const CustomerPortal: React.FC = () => {
   // Clarification File Upload Handlers (UC-01E / Finding 8)
   // ---------------------------------------------------------
   const handleClarificationFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files) return;
+    if (!e.target.files || isSubmittingClarify) return;
     const newFiles = Array.from(e.target.files).map((f) => ({
       file: f,
       description: '',
@@ -268,7 +272,7 @@ export const CustomerPortal: React.FC = () => {
 
   const handleStageClarificationFile = async (fileKey: string) => {
     const item = clarificationFiles.find((file) => file.idempotencyKey === fileKey);
-    if (!item || item.staged || activeClarificationUploads.current.has(fileKey)) return;
+    if (isSubmittingClarify || !item || item.staged || activeClarificationUploads.current.has(fileKey)) return;
     const generation = clarificationGeneration.current;
 
     activeClarificationUploads.current.add(fileKey);
@@ -292,6 +296,7 @@ export const CustomerPortal: React.FC = () => {
   };
 
   const handleRemoveClarificationFile = (fileKey: string) => {
+    if (isSubmittingClarify) return;
     activeClarificationUploads.current.delete(fileKey);
     setClarificationFiles((files) => files.filter((file) => file.idempotencyKey !== fileKey));
   };
@@ -510,9 +515,12 @@ export const CustomerPortal: React.FC = () => {
                   rows={5}
                   required
                   value={originalMessage}
-                  onChange={(e) => setOriginalMessage(e.target.value)}
+                  disabled={isSubmitting}
+                  onChange={(e) => {
+                    if (!isSubmitting) setOriginalMessage(e.target.value);
+                  }}
                   placeholder="Tell us what happened with your purchase in your own words (e.g., 'I received a damaged wool sweater with a broken zipper yesterday; ordered size M in Blue')..."
-                  className="w-full text-sm p-4 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-500 focus:bg-white transition-all resize-y"
+                  className="w-full text-sm p-4 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-500 focus:bg-white transition-all resize-y disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <p className="text-xs text-slate-500 mt-1.5 flex items-center space-x-1">
                   <Sparkles className="w-3.5 h-3.5 text-sky-500" />
@@ -532,9 +540,12 @@ export const CustomerPortal: React.FC = () => {
                   <input
                     type="text"
                     value={orderReference}
-                    onChange={(e) => setOrderReference(e.target.value)}
+                    disabled={isSubmitting}
+                    onChange={(e) => {
+                      if (!isSubmitting) setOrderReference(e.target.value);
+                    }}
                     placeholder="e.g. ORD-2026-9042"
-                    className="w-full text-sm px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-500 focus:bg-white transition-all font-mono"
+                    className="w-full text-sm px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-500 focus:bg-white transition-all font-mono disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                   <span className="text-[11px] text-slate-400 mt-1 block">
                     If missing, our intake processor can request clarification or search by email.
@@ -548,8 +559,11 @@ export const CustomerPortal: React.FC = () => {
                   </label>
                   <select
                     value={requestedOutcome}
-                    onChange={(e) => setRequestedOutcome(e.target.value as RequestedOutcome)}
-                    className="w-full text-sm px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-500 focus:bg-white transition-all font-medium text-slate-800"
+                    disabled={isSubmitting}
+                    onChange={(e) => {
+                      if (!isSubmitting) setRequestedOutcome(e.target.value as RequestedOutcome);
+                    }}
+                    className="w-full text-sm px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-500 focus:bg-white transition-all font-medium text-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <option value="REFUND">Refund to Original Payment Method</option>
                     <option value="REPLACEMENT">Replacement Item</option>
@@ -573,13 +587,14 @@ export const CustomerPortal: React.FC = () => {
                       Files are securely staged under F.01 contracts (max 10MB per file, up to 10 files).
                     </p>
                   </div>
-                  <label className="cursor-pointer px-3.5 py-1.5 bg-sky-50 hover:bg-sky-100 text-sky-700 text-xs font-semibold rounded-xl border border-sky-200 transition-colors flex items-center space-x-1">
+                  <label className={`px-3.5 py-1.5 bg-sky-50 text-sky-700 text-xs font-semibold rounded-xl border border-sky-200 transition-colors flex items-center space-x-1 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-sky-100'}`}>
                     <Plus className="w-3.5 h-3.5" />
                     <span>Add File</span>
                     <input
                       type="file"
                       multiple
                       accept="image/jpeg,image/png,application/pdf"
+                      disabled={isSubmitting}
                       onChange={handleFileSelect}
                       className="hidden"
                     />
@@ -618,7 +633,7 @@ export const CustomerPortal: React.FC = () => {
                           ) : (
                             <button
                               type="button"
-                              disabled={item.uploading}
+                              disabled={item.uploading || isSubmitting}
                               onClick={() => handleStageFile(item.idempotencyKey)}
                               className="px-2.5 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-medium text-xs disabled:opacity-50"
                             >
@@ -628,9 +643,10 @@ export const CustomerPortal: React.FC = () => {
 
                           <button
                             type="button"
+                            disabled={isSubmitting}
                             onClick={() => handleRemoveFile(item.idempotencyKey)}
                             aria-label={`Remove ${item.file.name}`}
-                            className="text-slate-400 hover:text-rose-600 p-1"
+                            className="text-slate-400 hover:text-rose-600 p-1 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -846,14 +862,16 @@ export const CustomerPortal: React.FC = () => {
                         <textarea
                           rows={2}
                           value={answers[q.question_id] || ''}
-                          onChange={(e) =>
+                          disabled={isSubmittingClarify}
+                          onChange={(e) => {
+                            if (isSubmittingClarify) return;
                             setAnswers((prev) => ({
                               ...prev,
                               [q.question_id]: e.target.value,
-                            }))
-                          }
+                            }));
+                          }}
                           placeholder="Your answer..."
-                          className="w-full text-xs p-3 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:bg-white"
+                          className="w-full text-xs p-3 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:bg-white disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                       </div>
                     ))}
@@ -870,13 +888,14 @@ export const CustomerPortal: React.FC = () => {
                             Upload photos, barcode images, or receipts requested in clarification.
                           </p>
                         </div>
-                        <label className="cursor-pointer px-3 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-semibold rounded-lg border border-amber-200 transition-colors flex items-center space-x-1">
+                        <label className={`px-3 py-1 bg-amber-50 text-amber-800 text-xs font-semibold rounded-lg border border-amber-200 transition-colors flex items-center space-x-1 ${isSubmittingClarify ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-amber-100'}`}>
                           <Plus className="w-3 h-3" />
                           <span>Add File</span>
                           <input
                             type="file"
                             multiple
                             accept="image/jpeg,image/png,application/pdf"
+                            disabled={isSubmittingClarify}
                             onChange={handleClarificationFileSelect}
                             className="hidden"
                           />
@@ -905,7 +924,7 @@ export const CustomerPortal: React.FC = () => {
                                 ) : (
                                   <button
                                     type="button"
-                                    disabled={item.uploading}
+                                    disabled={item.uploading || isSubmittingClarify}
                                     onClick={() => handleStageClarificationFile(item.idempotencyKey)}
                                     className="px-2 py-0.5 bg-amber-600 hover:bg-amber-700 text-white rounded font-medium text-xs disabled:opacity-50"
                                   >
@@ -914,9 +933,10 @@ export const CustomerPortal: React.FC = () => {
                                 )}
                                 <button
                                   type="button"
+                                  disabled={isSubmittingClarify}
                                   onClick={() => handleRemoveClarificationFile(item.idempotencyKey)}
                                   aria-label={`Remove ${item.file.name}`}
-                                  className="text-slate-400 hover:text-rose-600 p-1"
+                                  className="text-slate-400 hover:text-rose-600 p-1 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </button>

@@ -53,9 +53,24 @@ if __name__ == '__main__':
         return original_claim(self, uow, work_id, *args, **kwargs)
     LifecycleGuards.claim = claim
     socket.create_connection = outbound
-    sys.setprofile(profile)
-    result = service.accept(config['case'], config['request'], config.get('key', 'original-reject-key'), identifier('corr'))
-    sys.setprofile(None)
+    # Attempts mirror the HTTP client contract (docs/40): a DENIED result whose safe code is the
+    # retryable INTERNAL_ERROR and whose denial audit is NOT_RECORDED means nothing was written
+    # (for example the fence's lock_timeout expired while another caller held it), so the same
+    # key may be re-sent once. Every attempt is recorded with its wall-clock duration.
+    import time as _time
+    attempts = []
+    max_attempts = int(config.get('max_attempts', 2))
+    for attempt in range(1, max_attempts + 1):
+        started = _time.monotonic()
+        sys.setprofile(profile)
+        result = service.accept(config['case'], config['request'], config.get('key', 'original-reject-key'), identifier('corr'))
+        sys.setprofile(None)
+        attempts.append({'attempt': attempt, 'status': result.status, 'safe_code': result.safe_code,
+                         'audit': result.audit, 'duration_ms': round((_time.monotonic() - started) * 1000)})
+        retryable_transient = (result.status == 'DENIED' and result.safe_code == 'INTERNAL_ERROR'
+                               and result.audit == 'NOT_RECORDED' and result.receipt is None)
+        if not retryable_transient:
+            break
     assert not any(counts.values())
-    print(json.dumps({**asdict(result), 'effects':counts, 'reject_claims':reject_claims[0]}))
+    print(json.dumps({**asdict(result), 'effects':counts, 'reject_claims':reject_claims[0], 'attempts':attempts}))
     engine.dispose()

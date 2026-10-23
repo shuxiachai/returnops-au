@@ -880,6 +880,8 @@ class Run:
                     self.data['finished_at'] = _text(_now())
                     self.publish()
                     self.hold(api)
+        except KeyboardInterrupt as error:
+            self.conclude(error)
         except Exception as error:
             self.conclude(error)
         finally:
@@ -897,6 +899,8 @@ class Run:
             self.data.update(result='FAILED', stop=dict(code=error.code, step=self.step_number, **error.detail))
         elif isinstance(error, api_child.ApiChildError):
             self.data.update(result='FAILED', stop=dict(code=str(error), step=self.step_number))
+        elif isinstance(error, KeyboardInterrupt):
+            self.data.update(result='FAILED', stop=dict(code='INTERRUPTED', step=self.step_number))
         else:  # no message or local value: they may carry SQL or connection detail
             self.data.update(result='FAILED', stop=dict(code='UNEXPECTED_ERROR', step=self.step_number,
                                                         error_type=type(error).__name__,

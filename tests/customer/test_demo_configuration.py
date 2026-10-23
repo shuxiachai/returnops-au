@@ -3,6 +3,40 @@ from types import SimpleNamespace
 import pytest
 from returnops_api import demo
 
+
+def _provision_argv(directory, founder='synthetic_founder'):
+    return ['provision', '--private-dir', str(directory), '--store', 'synthetic_au_store', '--customer-one',
+            'synthetic_customer_a', '--customer-two', 'synthetic_customer_b', '--founder', founder]
+
+
+@pytest.mark.parametrize('case', ['existing_directory', 'duplicate_principals'])
+def test_cli_prints_the_safe_reason_for_configuration_errors(tmp_path, monkeypatch, capsys, case):
+    monkeypatch.setattr(demo.sys, 'version_info', (3, 12, 9))
+    monkeypatch.delenv('DATABASE_URL', raising=False)
+    existing = tmp_path / 'already-there'
+    existing.mkdir()
+    argv = _provision_argv(existing) if case == 'existing_directory' else _provision_argv(tmp_path / 'fresh', 'synthetic_customer_a')
+    assert demo.cli(argv) == 1
+    printed = capsys.readouterr().out
+    assert printed.startswith('Demo setup or startup failed: ') and 'No credentials are printed.' in printed
+    expected = 'Use a new absolute private output directory.' if case == 'existing_directory' else 'Use three distinct demo principal IDs.'
+    assert expected in printed and str(tmp_path) not in printed
+    assert not (tmp_path / 'fresh').exists()
+
+
+def test_cli_keeps_the_generic_sentence_for_unexpected_errors(monkeypatch, capsys):
+    def explode(argv=None):
+        raise RuntimeError('private detail dsn=postgresql://user:secret@host/db')
+    monkeypatch.setattr(demo, 'main', explode)
+    assert demo.cli(['provision']) == 1
+    printed = capsys.readouterr().out
+    assert printed.strip() == demo.GENERIC_FAILURE and 'secret' not in printed
+
+
+def test_cli_returns_zero_when_main_succeeds(monkeypatch, capsys):
+    monkeypatch.setattr(demo, 'main', lambda argv=None: None)
+    assert demo.cli(['provision']) == 0 and capsys.readouterr().out == ''
+
 @pytest.mark.parametrize('version',[(3,12,0),(3,12,3)])
 def test_old_windows_issuance_rejected_before_path_or_secret_generation(monkeypatch,version):
     monkeypatch.setattr(demo,'os',SimpleNamespace(name='nt'))
