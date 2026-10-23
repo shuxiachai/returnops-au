@@ -10,6 +10,176 @@
 
 # ReturnOps AU
 
+## C review publication follow-up — 23 October 2026 evening (Sydney)
+
+Primary delivery: [KAN-41](https://lucastaooo.atlassian.net/browse/KAN-41).
+This dated C notice supersedes the current-state wording in earlier C receipts,
+without deleting their source-specific findings or test results.
+
+- Following [A's request](https://github.com/shuxiachai/returnops-au/pull/61#issuecomment-6359315897),
+  this six-file C review/handoff branch is submitted for A's exact-head review
+  and lead-written squash via its PR against main. PR #17 and #61 are already merged;
+  this separate review packet is not yet adopted merely because it is published.
+- The branch ordinary-merges main `2a4d3ae258734ab91c90d9e27e3da14eccbde0c6`
+  (#112), preserving all main README lines and A/B runtime files. #112 widens
+  the bounded transient retry classification; the earlier `c4d0879` failure is
+  historical evidence, not a check result for this newer source.
+- C independently checked [PR #114](https://github.com/shuxiachai/returnops-au/pull/114)
+  at `590b4229ca20cd6e6ad34f026fd32d6ae93e421b`: **105 offline tests passed**.
+  The original narrow interruption/cleanup/log observations improved. However,
+  a new synthetic failure probe shows that an unwritable final receipt can
+  still leave the command claiming `PASSED` with exit 0. This is **R02-C-03**,
+  sent for A's disposition; no actual filesystem failure or secret leak is claimed.
+  #114 is a separately reviewed candidate, not code merged into this C branch.
+- The [C review record](docs/reviews/member-c-r02-review-20261022.md#8-pr114-bounded-review-and-receipt-publication-finding--23-october-2026)
+  distinguishes exact sources, safe reproduction, remaining failure-matrix/PG
+  limits and current review findings. Neither offline tests nor green CI alone
+  establish Gate 1 or a personal/team sign-off.
+
+Next independent follow-up: review the owner's response and recheck any fix
+against its exact source. Still requiring actual people or approved
+runtime evidence: C's own S6 explanation and contribution/AI-use confirmation,
+team rehearsal, exact-byte corpus admission, real Risk/pilot/Gold/C3 and final
+submission-source acceptance. A's scheduling deferral is not a tutor waiver.
+AI-assisted C preparation; no A/B implementation edits, main merge by C,
+live model call, invented timing, contribution agreement or Done transition.
+
+## C adoption and review update — 23 October 2026 (Sydney)
+
+Tracking: [KAN-23](https://lucastaooo.atlassian.net/browse/KAN-23) /
+[KAN-41](https://lucastaooo.atlassian.net/browse/KAN-41).
+This dated notice supersedes the pending/failed statuses in the older C
+snapshots below; their original evidence is retained.
+
+- **PR #61 is merged**, not waiting for adoption: A approved exact source
+  `be21f39bc502100ddd96c129bc9116b6fdcfceba` in
+  [review 5622537263](https://github.com/shuxiachai/returnops-au/pull/61#pullrequestreview-5622537263).
+  A's [attempt 2 of run 39770369525](https://github.com/shuxiachai/returnops-au/actions/runs/39770369525/attempts/2)
+  passed all 13 effective jobs without changing that source. A adopted it
+  at 01:04:56 UTC as `29fd233a520bd37ee1c9aa2c61302b0417a25853`.
+  Attempt 1's lock-timeout failure remains historical evidence; rerun success
+  does not prove its cause was fixed.
+- This C review branch now integrates main
+  `c4d08799adf555604a235e61ca325f50a2218618` by ordinary merge, retaining
+  the complete main README and the earlier C receipts. A/B runtime files,
+  frozen ownership/dependencies and corpus-admission pins match that main.
+  B's stacked #101/#102 changes reached main through #107; #108 subsequently
+  added bounded R04 attempt records and the R.02 interruption correction.
+- **Latest main is not fully green:** [run 39900838149](https://github.com/shuxiachai/returnops-au/actions/runs/39900838149)
+  on that exact `c4d0879` failed the same-key R04 assertion again
+  (351 passed / 1 failed; PG lock timeout), followed by the dependent final
+  gate. This is a new main failure, not a reversal of PR #61's merge.
+  A's existing [Issue #103](https://github.com/shuxiachai/returnops-au/issues/103)
+  / KAN-43 remains the concurrency follow-up.
+- C independently verified **R02-C-01's terminal FAILED/INTERRUPTED receipt
+  in bounded in-memory probes**. **R02-C-02 remains open**: an earlier cleanup
+  failure can prevent later private cleanup/receipt publication; raw API logs
+  can still target the public output directory before screening. No actual
+  secret leak was observed. See the [updated review and evidence limits](docs/reviews/member-c-r02-review-20261022.md#7-adoption-and-owner-fix-follow-up--23-october-2026).
+- Local checks: 137 focused tests / 136 subtests; the complete six-step offline
+  check passed (371 contract tests, 6 static groups, 12 model-checker tests,
+  32 runner tests, 14 Mermaid parses and 64 synthetic-provider tests).
+  These overlapping checks are not Gold, a live Risk run, a personal rehearsal
+  or acceptance of the whole application.
+  The additional PG17 test container did not start (Created/Pid 0), including
+  a no-bind control attempt: **no new local PG pass or failure is claimed**.
+  Only this task's temporary test containers/data were removed.
+
+Still needed: A's remaining cleanup/log disposition; approved real-corpus
+admission and runtime C2 wiring; separately authorised real Risk/C3 evaluation;
+blind Gold and actual participant timing; C's own S6 explanation and team
+rehearsal/acceptance. Merge is not Done. AI-assisted C verification; no main
+merge by C, live model call or teammate signature.
+
+## C local proof follow-up — 22 October 2026, 12:54 UTC
+
+Tracking: [KAN-23](https://lucastaooo.atlassian.net/browse/KAN-23) /
+[KAN-41](https://lucastaooo.atlassian.net/browse/KAN-41).
+This dated C-only notice supersedes the older C status snapshots below;
+their source-specific results remain history. **PR #17 is merged. PR #61
+remains open at `be21f39bc502100ddd96c129bc9116b6fdcfceba`.** Its
+[normal CI run](https://github.com/shuxiachai/returnops-au/actions/runs/39770369525)
+has finished with 11 successful jobs, one failed Founder revision job and the
+dependent failed final gate. It is not ready to claim green/accepted.
+
+C now has [new local proof and E.10 dispositions](docs/reviews/member-c-r02-review-20261022.md#6-local-proof-follow-up--22-october-2026):
+five unchanged R04 same/different-key pairs passed on isolated PG17.11;
+two preparation/restart and six installed label-process cases passed. This
+does **not** reproduce or fix the cloud lock timeout. The R.02 cancellation
+and cleanup defects still reproduce in memory; A's disposition remains needed.
+
+The same clean `be21f39` checkout passed 263 focused C offline tests and generated
+the 13-file synthetic evidence bundle. A source archive passed the 116 C1/C2
+tests, pilot and example human-time accounting; it correctly refused new
+Git-provenance evidence without `.git`. See the [C reproduction boundary](experiments/evaluation_candidate/README.md#clean-checkout-versus-source-archive--22-october-2026).
+
+Only C documentation is updated on this separate review branch; PR #61's head,
+A/B implementation, source-admission pins and WBS remain unchanged. No Actions
+rerun, live model, Gold, measured human timing, personal sign-off, main merge or
+Done transition is claimed. Future integration still needs exact-source review
+and required checks; these local results do not replace them.
+
+## C follow-up — 22 October 2026 evening (Sydney)
+
+Tracking: [KAN-41](https://lucastaooo.atlassian.net/browse/KAN-41) and
+[Issue #66](https://github.com/shuxiachai/returnops-au/issues/66).
+This is a C-only preparation branch, **not current main**. The remote-main
+snapshot checked was `51862f4bcc06eebf1c1804647c21d0908960ebc7`; A/B runtime
+changes from that snapshot have not been merged into this branch.
+
+- PR #17 head `b6dcc7552c2e52ca4dafd9d4b9400ad860db9365` and PR #61 head
+  `7bb1f5ad6e95a13a4aaffbae3056794116fedea7` remain OPEN. Their existing
+  [39724718286](https://github.com/shuxiachai/returnops-au/actions/runs/39724718286)
+  and [39724719271](https://github.com/shuxiachai/returnops-au/actions/runs/39724719271)
+  CI runs have now finished: **13/13 jobs successful each**. Older approvals
+  concern older heads; this is not approval or CI for current main. Neither
+  pending branch was changed by this follow-up.
+- A published the advisory Coordinator (#94), demo/roadmap/runbook (#96),
+  Canvas packaging clarification (#97), and explicit private-HTTP opt-in
+  (#98). These are not C2 Risk integration or permission for C to read keys,
+  enable the transport, send data or call a model. No live-model evidence was
+  verified in this follow-up.
+- C's [S6 speaking draft and display checklist](experiments/c2_risk_candidate/README.md#s6-demo-preparation--22-october-evening)
+  now map to A's two-minute segment. The existing synthetic evidence command
+  was actually run locally; it is accounting rehearsal, not a human rehearsal,
+  Gold result or model benchmark. Contract tests: **371 passed / 1685 subtests**
+  (overlapping existing suites, not additional independent scenarios).
+- The [C latency-event disposition](experiments/evaluation_candidate/README.md#22-october-f06-tier-1-technical-disposition)
+  explains why Tier 0 should stay until the complete episode boundary is
+  established. A's R.02 interruption/cleanup findings also remain unresolved;
+  `tools/r02` is unchanged between reviewed `4aec7c0` and checked `51862f4`.
+- [A's submission runbook at the checked source](https://github.com/shuxiachai/returnops-au/blob/51862f4bcc06eebf1c1804647c21d0908960ebc7/docs/47-stage2-submission-runbook.md)
+  records a ZIP-only group submission, opening 26 October and due 1 November
+  23:59 Sydney. Its contribution percentages are **A's proposal, not agreed**.
+  The student must confirm their own contribution/AI-use statement and practise
+  the segment; team rehearsal and tutor scope disposition remain separate.
+
+AI-assisted C preparation; no main merge, A/B code edit, new CI run, personal
+signature, contribution-percentage agreement or Done transition.
+
+## C technical review and handoff — 22 October 2026 (Sydney)
+
+C's [R.02 technical review packet](docs/reviews/member-c-r02-review-20261022.md)
+checks main `4aec7c0de6536075f6691567a3f609b8f3093279` without changing A/B
+code. Local R.02/C2 checks passed **100 tests and 82 subtests**. The downloaded
+R.02 receipt from [run 39724718286](https://github.com/shuxiachai/returnops-au/actions/runs/39724718286/job/119645897403)
+has 32/32 checks true; all three code-tree digests match that main. This is
+CI-artifact verification, not a new local PostgreSQL run or human acceptance.
+
+Two failure-path findings are sent to A: interruption can publish a nonterminal
+`RUNNING` receipt; cleanup/log-screening failures can leave private files and
+unscreened output behind. The packet includes an isolated reproduction and
+acceptance checklist. No actual credential leak was observed.
+
+The [C2 README handoff](experiments/c2_risk_candidate/README.md#22-october-handoff--near-term-delivery)
+now separates the five-outcome contract from runtime routing and lists the
+remaining decisions. A's Gate 2 deferral is a team scheduling note, not a tutor
+waiver: the real Risk model, admitted corpus, pilot/Gold, C3 and original WBS
+conditions remain outstanding unless explicitly resolved. Personal explanation,
+review signatures and joint acceptance are not prefilled. This C-only review
+branch is not a merge request or a replacement for the pending PR #17/#61
+heads; any later integration still needs exact-source review and required CI.
+
 ## R.05 demo script, Gate 2 roadmap and submission runbook - 22 October 2026 (Sydney)
 
 Owner A (`shuxiachai`, Jingbo Chai); reviewer C under docs/08. Documents only.

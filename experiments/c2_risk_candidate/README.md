@@ -113,6 +113,104 @@ provenance, current-version/expiry revalidation after await and acceptance into
 Domain remain A's integration responsibilities. No extra generic transport
 wrapper is needed: `ModelInvocation → ModelReply` is already the internal port.
 
+## 22 October handoff — near-term delivery
+
+[A's KAN-24 scope note](https://lucastaooo.atlassian.net/browse/KAN-24?focusedCommentId=10141)
+keeps real-model Risk in deferred Gate 2 / KAN-39 and asks for C2.04 contract/
+routing evidence, C2.05 handoff and C's two-minute grounding/risk-design segment.
+This is scheduling, not a course waiver or completion of these WBS items.
+The frozen owners, reviewers, nine features and all 89 S/F rows stay unchanged.
+
+| Outcome / condition | Consumer obligation from frozen C2.04 | Evidence boundary |
+|---|---|---|
+| `PASS` | Domain verifies the current retained inputs/review; Founder still approves exact scope | Output shape and bindings tested; no automatic approval |
+| `PASS_WITH_WARNING` | Preserve visible findings and the same current-version/approval guards | Warning preservation tested, not semantic correctness of a live model |
+| `REVISE` | Return requests to Assessment; generate a new proposal and review | Contract handoff; not proof that the production consumer is connected |
+| `NEEDS_INFORMATION` | Coordinator/intake asks questions; reevaluate the new input | Old review must not authorize a changed case |
+| `ESCALATE` | Founder manual handling; the escalated proposal cannot be approved | Return to automation requires a new proposal/review |
+| Technical failure | Existing processing-failure/ErrorEnvelope path | Not a sixth business outcome; never fallback `PASS` |
+
+Relevant test nodes: `test_five_outcomes_are_structured_without_operation_authority`,
+`test_blocking_conflict_cannot_be_warning_only`,
+`test_timeout_and_transport_error_are_not_business_outcomes`
+([component tests](../../tests/contracts/test_c2_risk_preparation.py));
+`test_new_proposal_and_input_versions_reject_old_handoff` and
+`test_real_c1_citation_failure_cannot_be_promoted_to_pass`
+([handoff tests](../../tests/contracts/test_c_handoff_rehearsal.py)).
+These prove local component/binding behavior, not all consumer routes.
+
+The [C review packet](../../docs/reviews/member-c-r02-review-20261022.md)
+records 100 tests / 82 subtests across R.02 offline and these C2 files, plus
+independently checked no-LLM CI receipt provenance. It does not add a live
+provider, qualify the controlled PASS stub as independent Risk, or accept Gate 1.
+The [spoken draft and display notes](https://github.com/shuxiachai/returnops-au/issues/66#issuecomment-6333101141)
+are ready for C to practise; no rehearsal or duration measurement is claimed.
+
+Before the next runtime increment A must identify the actual admitted corpus
+pin, approved model/adapter/data flow and post-await/current-state ownership,
+then record the original Gate 1/A1.08/R.03 dependencies. Please also confirm
+whether deferred AI/Gold/C3 work is still due for this course delivery or has an
+explicit tutor disposition; until then it remains an unresolved requirement,
+not cancelled scope. C can maintain local contract tests and review evidence
+independently, but cannot manufacture these decisions or personal acceptance.
+
+A's new [PR #94](https://github.com/shuxiachai/returnops-au/pull/94) is a
+default-off advisory Coordinator candidate, not this independent reviewer.
+At that initial inspection its live result was pending. A subsequently recorded
+advisory Coordinator calls in docs/44–47 (published by main `f6de49d6` and its
+successors). Those are not this independent C2 Risk invocation; neither that
+showcase nor the R.02 stub establishes C2 model-quality or full three-role
+integration evidence.
+
+### S6 demo preparation — 22 October evening
+
+Tracking: [KAN-41](https://lucastaooo.atlassian.net/browse/KAN-41), Issue #66.
+A's [demo script S6 at `51862f4`](https://github.com/shuxiachai/returnops-au/blob/51862f4bcc06eebf1c1804647c21d0908960ebc7/docs/45-stage2-demo-script.md#s6-grounding-risk-contract-and-evaluation-definitions-c-1030-200)
+allocates two minutes to C. PR #94 is now merged; it still does not implement
+independent Risk. This dated update supersedes the earlier Draft status, not
+the outstanding real-call, review or acceptance boundaries.
+
+**AI-assisted spoken draft for C to understand, adapt and practise:**
+
+> My area covers grounding, risk review and evaluation. First, retrieval keeps
+> each passage tied to a source, version and content hash. Citation checks reject
+> missing sources, wrong versions and changed text. A working URL alone does not
+> prove that a claim is supported.
+>
+> Second, the reviewer has five outcomes: pass, pass with warning, revise, request
+> more information, or escalate. For example, an unresolved blocking source
+> conflict must escalate. It cannot authorize an operation. Even a pass still
+> needs current-version checks and the Founder's exact approval. Invalid output
+> and timeouts are technical failures, never an automatic pass.
+>
+> Finally, our evaluation tools keep failed and invalid cases in the denominator.
+> Unknown token costs stay unknown. This display uses five invented cases and
+> fixed responses to test accounting, not real model quality. The independent
+> live reviewer, formal evaluation and image feature remain unfinished. Our next
+> step is reviewed integration and a separate pilot, under the original gates.
+
+Display order: C1 provenance/checks (about 30 seconds), the five-outcome table
+above and conflict example (about 45 seconds), synthetic accounting scope and
+failure counts (about 30 seconds), leaving about 15 seconds for transitions.
+These are planned timings, not measured personal speaking speed.
+
+The accounting command from A's S6 was run on clean C head
+`b52a7ca0e11e4e2e03fc2ca01c568d135d07cf0b`, producing 13 local files and manifest
+SHA-256 `56ef5af3b208b8a99f6b94bf8c8657f01485c86311746c7d63a0479dccc1e4fe`:
+
+```sh
+python -B -m experiments.evaluation_candidate.evidence --output-dir <new-absolute-directory>
+```
+
+The parent directory must already exist; the command refuses to replace an
+existing output directory. Show `summaries.json` scope flags before any numbers:
+each fixture configuration has three successful, one failed and one invalid
+case. Declared fixture latency is not a measured runtime result; the paired
+integrity check is not proof that B1/B4 agents ran. No Gold labels, timed human
+answers, credentials or live endpoint were used. Before demo day, regenerate
+from the exact submission source and record the new manifest. C must personally
+practise and confirm the final wording; no rehearsal/sign-off is claimed here.
+
 ## Reproduce offline checks
 
 From repository root with the existing locked dependencies:
