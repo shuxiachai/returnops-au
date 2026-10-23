@@ -37,6 +37,19 @@ export type RequestedOutcome =
   | 'UNSPECIFIED'
   | 'OTHER';
 
+export type PossibleBasis =
+  | 'STORE_POLICY'
+  | 'CONSUMER_GUIDANCE'
+  | 'BOTH'
+  | 'UNDETERMINED';
+
+export type AssessmentStatus =
+  | 'SUPPORTED'
+  | 'MISSING_INFORMATION'
+  | 'CONFLICTING'
+  | 'UNCERTAIN'
+  | 'OUT_OF_SCOPE';
+
 export type RiskOutcome =
   | 'PASS'
   | 'PASS_WITH_WARNING'
@@ -232,6 +245,21 @@ export interface LineItem {
   unit_price_minor: number;
 }
 
+export interface LineSelection {
+  line_item_id: string;
+  quantity: number;
+}
+
+// Contract ExtractedFacts: all six fields are required and no other key is allowed.
+export interface ExtractedFacts {
+  issue_category: IssueCategory;
+  customer_requested_outcome: RequestedOutcome;
+  possible_basis: PossibleBasis;
+  assessment_status: AssessmentStatus;
+  line_items: LineSelection[];
+  summary: string;
+}
+
 export interface OrderSnapshot {
   snapshot_id?: string;
   order_id: string;
@@ -243,10 +271,37 @@ export interface OrderSnapshot {
   retrieved_at?: string;
 }
 
+// One command inside an ApprovalScope. The contract fixes two: CREATE_RETURN
+// (order_id, line_items, parcel_id) then GENERATE_LABEL (parcel_id,
+// return_command_id, label_format 'PDF', chargeable false).
+export interface ApprovalCommand {
+  command_id: string;
+  type: 'CREATE_RETURN' | 'GENERATE_LABEL';
+  provider_id: string;
+  parameters: Record<string, unknown>;
+}
+
+// Contract ApprovalScope: exactly what an APPROVE of this preview authorises.
+export interface ApprovalScope {
+  case_id: string;
+  input_version: number;
+  proposal_id: string;
+  proposal_version: number;
+  review_id: string;
+  parcel_id: string;
+  commands: ApprovalCommand[];
+  currency: 'AUD';
+  // Always 0 in v1: an approval authorises no payment.
+  amount_ceiling_minor: number;
+  expires_at: string;
+  allowlist_version: string;
+  environment: 'SIMULATED' | 'SANDBOX';
+}
+
 export interface ActionPreview {
   preview_id: string;
   scope_fingerprint: string;
-  scope: Record<string, unknown>;
+  scope: ApprovalScope;
   // Frontend-only demo extensions: the v1 ActionPreview carries no operation
   // type or parameter map, so a live response leaves these undefined and the
   // preview rows render with no fabricated operation or parameters.
@@ -263,7 +318,7 @@ export interface CaseView {
   updated_at: string;
   statements: CustomerStatement[];
   evidence: EvidenceAttachment[];
-  facts?: Record<string, unknown>;
+  facts?: ExtractedFacts;
   order_snapshot?: OrderSnapshot;
   clarification?: ClarificationSet;
   current_proposal?: ProposalDetail;
@@ -392,15 +447,27 @@ export interface FounderHistoryPage {
   next_cursor?: string;
 }
 
+// GET /v1/founder/analytics query: created_at window [created_from, created_before)
+// in RFC 3339 UTC, plus one current status. Every key is optional and sent once.
+export interface AnalyticsQuery {
+  created_from?: string;
+  created_before?: string;
+  status?: CaseStatus;
+}
+
 export interface AnalyticsSnapshot {
   as_of: string;
-  filters?: Record<string, unknown>;
+  // The server echoes the validated query here, {} when none was sent.
+  filters: AnalyticsQuery;
   case_count: number;
+  // Zero buckets are omitted; the rest arrive in contract enum order.
   cases_by_status: Array<{ status: CaseStatus; count: number }>;
   current_risk_counts: Array<{ outcome: RiskOutcome; count: number }>;
   cases_without_current_review: number;
-  proposal_latency?: {
-    metric_version?: string;
+  // sample_count + failed_count + unmeasured_count == case_count. p50_ms and
+  // p95_ms are present only when sample_count > 0.
+  proposal_latency: {
+    metric_version: 'proposal-latency-v1';
     sample_count: number;
     failed_count: number;
     unmeasured_count: number;
