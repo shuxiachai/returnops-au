@@ -522,9 +522,11 @@ WBS ID/owner/reviewer/S/F and A/B runtime remain unchanged.
 the local 105-test result does not stand in for them. The new P2 still needs
 A's disposition and an exact-fix recheck even if that run becomes green.
 At the 07:21 UTC check, the PostgreSQL lifecycle_core job
-[120284664997](https://github.com/shuxiachai/returnops-au/actions/runs/39914418314/job/120284664997)
-was FAILURE while other PG jobs were still running. Its log download returned
-HTTP 503 / account egress limit; C therefore does not name a failing test or
+[120284664998](https://github.com/shuxiachai/returnops-au/actions/runs/39914418314/job/120284664998)
+was FAILURE while other PG jobs were still running. A first log request
+mistakenly targeted notification job 120284664997 and returned HTTP 503 /
+account egress limit. The later job-list check corrected that ID; no failing
+lifecycle_core log was obtained. C therefore does not name a failing test or
 attribute that failure to C03 or R04. No repeated download or CI rerun was made.
 No workflow was disabled or manually rerun. C's own PR needs its separate
 required checks and non-author review before adoption.
