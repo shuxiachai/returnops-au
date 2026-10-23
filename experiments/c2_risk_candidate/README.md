@@ -8,6 +8,46 @@ Offline preparation for **C2.01–C2.05**, `FR-008`, `NFR-001/002/009`,
 ProposalReview state model`. C owns this component; A reviews and integrates.
 This is not a live LLM, Gate 2, feature acceptance or semantic-quality result.
 
+## C R.02 follow-up — 23 October 2026, late evening (Sydney)
+
+Tracking: [KAN-41](https://lucastaooo.atlassian.net/browse/KAN-41).
+A's [new reply](https://github.com/shuxiachai/returnops-au/pull/115#issuecomment-6361803851)
+confirms the review-packet adoption, not personal acceptance.
+
+- PR #115 is merged as `33b0a93c`; PR #114 is merged as `55fd717a`.
+  Their exact-head CI runs finished with 13/13 successful jobs each.
+- C independently ran **110 focused offline tests** against #116 exact
+  `aad38db6ce77f0cd108b655d78533a5297d733d1`, then added a
+  [22-row in-memory cleanup/receipt matrix](../../docs/reviews/member-c-r02-cleanup-matrix-20261023.json).
+  The [reproducible script](../../docs/reviews/member-c-r02-cleanup-matrix-20261023.py)
+  covers disposal/log read/screen/write/removal/receipt errors, combined errors,
+  and full/reduced/bare/withheld receipts through both CLI modes.
+- **These results target #116, not this branch's base main `55fd717a`.**
+  That base still fails the withheld-receipt diagnostic. Do not run the script
+  against a different source and describe the saved result as its result.
+  #116/#117 were still awaiting their final checks/adoption at publication.
+- #117's proposed README rearrangement preserves all 44 old section blocks
+  byte-for-byte and the 32 delivery-log sections in order. There is no technical
+  preservation objection; this is not C's personal sign-off.
+- R02-C-02 remains open: ordinary exception paths now have bounded evidence,
+  but real OS failure/second-interruption, child/process and PG/browser demo
+  evidence and the designated acceptance decision are separate. Cleanup errors
+  can retain a business `PASSED` alongside failure codes or
+  `private_directory_removed=false`; this is not an all-clean acceptance.
+  No A/B implementation or frozen WBS field was changed.
+
+**Final-delivery gap:** this review is shared R.02 support, not completion of
+C1/C2/C3. The original 20 C-owned Stage 2 work packages still require a
+row-by-row acceptance audit; no completion percentage is inferred from test or
+PR counts. Exact-byte corpus admission/runtime wiring, real independent Risk,
+R.03 pilot, blind Gold/human timing, C3 image integration, personal S6 and
+contribution confirmation, joint rehearsal and final-source submission checks
+remain separate evidence obligations. No model, secret access, new local PG
+run, personal timing, signature, main merge or Done is claimed here.
+
+AI-assisted C technical preparation. The dated evidence and limitations in
+older sections remain unchanged.
+
 ## Implemented boundary
 
 `RiskReviewerCandidate.review` validates the existing `RiskReviewRequest`, then

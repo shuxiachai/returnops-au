@@ -1,0 +1,325 @@
+{
+  "scope": "synthetic-in-memory-ordinary-exceptions-only",
+  "driver_sha256": "ce4eb18aa827dec2420a88cbb5c82eae2e2c0f5434649267336ed7f4b43349fe",
+  "total_rows": 22,
+  "cleanup": [
+    {
+      "name": "normal",
+      "assertions": "PASS",
+      "operations": [
+        "dispose",
+        "log_read",
+        "screen",
+        "log_write",
+        "remove",
+        "receipt"
+      ],
+      "cleanup_codes": [],
+      "private_removed": true,
+      "receipt_captured": true,
+      "recorded_business_result": "PASSED"
+    },
+    {
+      "name": "dispose",
+      "assertions": "PASS",
+      "operations": [
+        "dispose",
+        "log_read",
+        "screen",
+        "log_write",
+        "remove",
+        "receipt"
+      ],
+      "cleanup_codes": [
+        "ENGINE_DISPOSE_FAILED"
+      ],
+      "private_removed": true,
+      "receipt_captured": true,
+      "recorded_business_result": "PASSED"
+    },
+    {
+      "name": "log_read",
+      "assertions": "PASS",
+      "operations": [
+        "dispose",
+        "log_read",
+        "log_write",
+        "remove",
+        "receipt"
+      ],
+      "cleanup_codes": [
+        "API_LOG_SCREEN_FAILED"
+      ],
+      "private_removed": true,
+      "receipt_captured": true,
+      "recorded_business_result": "PASSED"
+    },
+    {
+      "name": "screen",
+      "assertions": "PASS",
+      "operations": [
+        "dispose",
+        "log_read",
+        "screen",
+        "log_write",
+        "remove",
+        "receipt"
+      ],
+      "cleanup_codes": [
+        "API_LOG_SCREEN_FAILED"
+      ],
+      "private_removed": true,
+      "receipt_captured": true,
+      "recorded_business_result": "PASSED"
+    },
+    {
+      "name": "log_write",
+      "assertions": "PASS",
+      "operations": [
+        "dispose",
+        "log_read",
+        "screen",
+        "log_write",
+        "remove",
+        "receipt"
+      ],
+      "cleanup_codes": [
+        "API_LOG_SCREEN_FAILED"
+      ],
+      "private_removed": true,
+      "receipt_captured": true,
+      "recorded_business_result": "PASSED"
+    },
+    {
+      "name": "remove_raises",
+      "assertions": "PASS",
+      "operations": [
+        "dispose",
+        "log_read",
+        "screen",
+        "log_write",
+        "remove",
+        "receipt"
+      ],
+      "cleanup_codes": [
+        "PRIVATE_DIRECTORY_REMOVE_FAILED"
+      ],
+      "private_removed": false,
+      "receipt_captured": true,
+      "recorded_business_result": "PASSED"
+    },
+    {
+      "name": "screen_and_notice_write",
+      "assertions": "PASS",
+      "operations": [
+        "dispose",
+        "log_read",
+        "screen",
+        "log_write",
+        "remove",
+        "receipt"
+      ],
+      "cleanup_codes": [
+        "API_LOG_SCREEN_FAILED"
+      ],
+      "private_removed": true,
+      "receipt_captured": true,
+      "recorded_business_result": "PASSED"
+    },
+    {
+      "name": "remove_survives",
+      "assertions": "PASS",
+      "operations": [
+        "dispose",
+        "log_read",
+        "screen",
+        "log_write",
+        "remove",
+        "receipt"
+      ],
+      "cleanup_codes": [],
+      "private_removed": false,
+      "receipt_captured": true,
+      "recorded_business_result": "PASSED"
+    },
+    {
+      "name": "receipt_io",
+      "assertions": "PASS",
+      "operations": [
+        "dispose",
+        "log_read",
+        "screen",
+        "log_write",
+        "remove",
+        "receipt"
+      ],
+      "cleanup_codes": [],
+      "private_removed": true,
+      "receipt_captured": false,
+      "recorded_business_result": "PASSED"
+    },
+    {
+      "name": "combined",
+      "assertions": "PASS",
+      "operations": [
+        "dispose",
+        "log_read",
+        "log_write",
+        "remove",
+        "receipt"
+      ],
+      "cleanup_codes": [
+        "ENGINE_DISPOSE_FAILED",
+        "API_LOG_SCREEN_FAILED",
+        "PRIVATE_DIRECTORY_REMOVE_FAILED"
+      ],
+      "private_removed": false,
+      "receipt_captured": false,
+      "recorded_business_result": "PASSED"
+    },
+    {
+      "name": "credential_log_withheld",
+      "assertions": "PASS",
+      "operations": [
+        "dispose",
+        "log_read",
+        "screen",
+        "log_write",
+        "remove",
+        "receipt"
+      ],
+      "cleanup_codes": [],
+      "private_removed": true,
+      "receipt_captured": true,
+      "recorded_business_result": "PASSED"
+    },
+    {
+      "name": "credential_notice_write",
+      "assertions": "PASS",
+      "operations": [
+        "dispose",
+        "log_read",
+        "screen",
+        "log_write",
+        "remove",
+        "receipt"
+      ],
+      "cleanup_codes": [
+        "API_LOG_SCREEN_FAILED"
+      ],
+      "private_removed": true,
+      "receipt_captured": true,
+      "recorded_business_result": "PASSED"
+    }
+  ],
+  "receipt_forms": [
+    {
+      "name": "full",
+      "keep_api": false,
+      "assertions": "PASS",
+      "exit_code": 0,
+      "render_attempts": 1,
+      "receipt_captured": true,
+      "hold_called": false,
+      "withheld": false
+    },
+    {
+      "name": "reduced",
+      "keep_api": false,
+      "assertions": "PASS",
+      "exit_code": 1,
+      "render_attempts": 2,
+      "receipt_captured": true,
+      "hold_called": false,
+      "withheld": false
+    },
+    {
+      "name": "bare",
+      "keep_api": false,
+      "assertions": "PASS",
+      "exit_code": 1,
+      "render_attempts": 3,
+      "receipt_captured": true,
+      "hold_called": false,
+      "withheld": false
+    },
+    {
+      "name": "withheld",
+      "keep_api": false,
+      "assertions": "PASS",
+      "exit_code": 1,
+      "render_attempts": 3,
+      "receipt_captured": false,
+      "hold_called": false,
+      "withheld": true
+    },
+    {
+      "name": "io_error",
+      "keep_api": false,
+      "assertions": "PASS",
+      "exit_code": 1,
+      "render_attempts": 1,
+      "receipt_captured": false,
+      "hold_called": false,
+      "withheld": false
+    },
+    {
+      "name": "full",
+      "keep_api": true,
+      "assertions": "PASS",
+      "exit_code": 0,
+      "render_attempts": 1,
+      "receipt_captured": true,
+      "hold_called": true,
+      "withheld": false
+    },
+    {
+      "name": "reduced",
+      "keep_api": true,
+      "assertions": "PASS",
+      "exit_code": 1,
+      "render_attempts": 2,
+      "receipt_captured": true,
+      "hold_called": true,
+      "withheld": false
+    },
+    {
+      "name": "bare",
+      "keep_api": true,
+      "assertions": "PASS",
+      "exit_code": 1,
+      "render_attempts": 3,
+      "receipt_captured": true,
+      "hold_called": true,
+      "withheld": false
+    },
+    {
+      "name": "withheld",
+      "keep_api": true,
+      "assertions": "PASS",
+      "exit_code": 1,
+      "render_attempts": 3,
+      "receipt_captured": false,
+      "hold_called": false,
+      "withheld": true
+    },
+    {
+      "name": "io_error",
+      "keep_api": true,
+      "assertions": "PASS",
+      "exit_code": 1,
+      "render_attempts": 2,
+      "receipt_captured": false,
+      "hold_called": false,
+      "withheld": false
+    }
+  ],
+  "disposition": "BOUNDED_MATRIX_PASS_NOT_FULL_R02_C02_CLOSURE",
+  "unverified": [
+    "real OS read/write/delete faults",
+    "cleanup interrupted a second time",
+    "SIGKILL/power loss",
+    "child termination and actual PostgreSQL/browser demo",
+    "designated human acceptance"
+  ]
+}

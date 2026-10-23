@@ -536,3 +536,73 @@ corpus/runtime pin, real independent C2 and five-branch integration, pilot/Gold,
 C3, C's own-words explanation/contribution confirmation and joint rehearsal.
 This packet supplies review-to-fix evidence, not a completion percentage or
 a tutor waiver for deferred work.
+
+## 9. Adopted packet and #116 bounded matrix — 23 October 2026
+
+Jira: [KAN-41](https://lucastaooo.atlassian.net/browse/KAN-41).
+A's [09:28 UTC reply](https://github.com/shuxiachai/returnops-au/pull/115#issuecomment-6361803851)
+corrects the adoption/closure distinction. PR #115 source `dd3b6f4833d8fbde432315a292c8381c9f7189d7`
+was adopted as `33b0a93cb8d912d3b978a1835b60d6be7ce33523`; PR #114 source
+`8b52ca9e3d36e9486a8c574fc3be1d1e905098aa` as
+`55fd717a9b67745e21462338bcd04d5764d0afce`. CI runs 39918805084 and
+39922372195 each finished 13/13 successful. Earlier failing/pending snapshots
+remain historical, not the current conclusion for those exact heads.
+
+### New exact review source and independently executed evidence
+
+- #116: `aad38db6ce77f0cd108b655d78533a5297d733d1`.
+- Driver SHA256: `ce4eb18aa827dec2420a88cbb5c82eae2e2c0f5434649267336ed7f4b43349fe`.
+- 110 focused offline tests passed (driver, demo-mode, Founder rejection files).
+  The 0.93s runner duration is not a proposal latency measurement.
+- The C publication checkout passed all six local offline steps: 371 contract
+  tests, six static groups, 12 model-checker tests, 32 runner tests, 14 Mermaid
+  parses and 64 synthetic-provider tests. The first invocation inherited macOS
+  TMPDIR and failed seven dummy-child receipt checks. Re-running unchanged
+  sources with TMPDIR unset for that child command passed; the initial failure
+  log is retained, not represented as a product fix or silently discarded.
+- [C cleanup/receipt matrix](member-c-r02-cleanup-matrix-20261023.json):
+  **22 synthetic in-memory rows passed**. Twelve cleanup/log cases include
+  ordinary disposal, read, screen, safe-copy write, withheld-notice write,
+  deletion raising, ignored deletion leaving the directory, receipt I/O and
+  combined failures. Ten CLI cases cover five receipt forms in default and
+  keep-api mode. Actual `render_receipt` chooses full/reduced/bare/withheld;
+  I/O, child, HTTP and environment are fakes. Synthetic markers are not secrets.
+- The old main driver fails this new diagnostic at the nonexistent receipt
+  reference, as expected. The new script is an explicitly invoked diagnostic,
+  **not** an always-green CI test on pre-#116 source. No old test was weakened.
+- Read-only review of #116 found no new blocking regression in its stated delta.
+  The previous follow-up probe also exits 0 with C01/C03 bounded and C02 still
+  `NEEDS_FULL_FAILURE_MATRIX_REVIEW`.
+
+Reproduce with the locked project environment and an exact #116 checkout:
+
+```sh
+python -B docs/reviews/member-c-r02-cleanup-matrix-20261023.py /path/to/exact-pr116-checkout
+```
+
+The script prints its actual driver hash and asserts each row; nonzero exit is
+not a passed matrix. Its own file needs to come from this C review packet.
+No subprocess, DB connection, real credential, real filesystem write/delete,
+model call or external transfer is performed by the diagnostic.
+
+### Limits and follow-up
+
+R02-C-02 is **not closed** by these 22 rows. This bounds ordinary-exception
+control flow, not a real disk/permission failure, second Ctrl+C during cleanup,
+SIGKILL/power loss, process termination or a PG/browser demonstration. The
+recorded business result can remain PASSED even when cleanup codes or a false
+private-directory-removal flag exist; consumers must inspect those fields and
+must not treat that as all-clean Gate acceptance. A remains owner of runtime
+changes; C supplies reviewer evidence. Exact-source final checks and the
+human/team acceptance boundary remain required.
+
+#117 exact `c36e04d24eea2aecd2836fb9b01b25157e170ceb` was separately inspected:
+only README changes; all 44 original heading blocks are byte-identical,
+classified as 7 definition, 5 technical and 32 log blocks; log relative order
+and preamble are retained. The overview explicitly keeps C Risk/Gold/C3 runtime
+and course gaps open. No technical placement change is requested. This does not
+sign on behalf of C or approve unrelated product changes.
+
+No A/B source, API/schema, security guard, frozen owner/reviewer/S/F or source
+admission pin was changed by this C packet. No final main merge, fresh local
+PG acceptance, personal contribution agreement, Gold or Done is claimed.
