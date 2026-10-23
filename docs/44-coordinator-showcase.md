@@ -140,7 +140,7 @@ coordinator_showcase outcome=<RECORDED|REJECTED|FAILED|STALE|STOPPED> failure_co
 
 - The store is in process: facts disappear on restart, and the worker then calls the model again for current cases (cost and quota).
 - PENDING leases are per process. The CLI uses its own store, so a CLI run and a running API can both call the model for one case; the CLI result is never shown in the API.
-- Customers never see model output. The Founder console does not render `facts` yet: B's issue asks for a card labelled "Model extraction, advisory - does not change any decision", hidden when `facts` is absent, and for the `mockData` facts shape to follow the contract.
+- Customers never see model output. Since B's #101 (23 October 2026) the Founder console renders `facts` as the card "Model extraction (advisory)" on the Order & Facts Projection tab, only when `facts` is present, with the summary as plain text and no controls; the `mockData` example follows the contract and is badged as mock data.
 - The campus connection guide is now known (see First live result): the course proxy is plain http on a private VPN address, so `RETURNOPS_MODEL_ALLOW_PRIVATE_HTTP=1` is required and the key travels in clear text only inside the VPN tunnel. The live result used the API on the host; Docker access through the host VPN and TLS trust inside the image remain unverified. Quota is unknown.
 - Only one leading think block and one surrounding fence are tolerated; in the two live calls of 22 October 2026 both replies were accepted as sent, so no other wrapping has been observed yet.
 - A non-transient failure is remembered for its digest until the API restarts (see Acceptance chain).

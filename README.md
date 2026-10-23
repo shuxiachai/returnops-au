@@ -217,9 +217,11 @@ reloads). Reopening **Auth Tokens** calls `GET /v1/session` and shows
 .venv/bin/python -c 'import json,sys; print(json.load(open(sys.argv[1]))["tokens"][sys.argv[2]], end="")' tmp/demo-shop/sessions.json synthetic_founder | pbcopy   # Linux: xclip -selection clipboard
 ```
 
-In live mode the current client refuses Founder decisions and analytics with
-`501 NOT_IMPLEMENTED` (`client.ts`); Mock Mode remains the frontend path for
-interactive decisions.
+Since 23 October 2026 (B's #102) the client sends Founder decisions to
+`POST /v1/founder/cases/{case_id}/decisions` and reads `GET /v1/founder/analytics`
+live; the decision route is served only when the API runs with `--founder-decisions`
+(docs/40), and the console shows the approval scope before a decision is recorded.
+Mock Mode remains available for a database-free walkthrough.
 
 ### 5. The R.02 driver's case in the frontend (`tools/r02`, demo mode)
 

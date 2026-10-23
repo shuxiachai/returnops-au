@@ -117,13 +117,15 @@ Attach this list (updated on the submission day) with the package, for example a
 2. Gate 2 deferred: full A1.06, A1.07, A1.08, the real C2 reviewer, E.09, R.03 and E.12 ([docs/46](46-gate2-roadmap.md)). There are no evaluation results.
 3. A3 (OF-004) unmet: no carrier contract or test account; tutor disposition: **to record** (docs/46, section 5).
 4. C3 (OF-001) not started: depends on R.03.
-5. Advisory model showcase: only if PR #94 is merged; first live call pending; results in memory only; no audit event; customers never see it; Founder card depends on Issue #95.
-6. Frontend: live Founder decisions and live analytics refused with `501` until Issue #91 is in the package; follow-ups in Issue #88.
+5. Advisory model showcase: merged (PR #94, #98); first live call recorded on 22 October 2026 ([docs/44](44-coordinator-showcase.md)); results in memory only; no audit event; customers never see it; the Founder card is in since #101.
+6. Frontend: live Founder decisions and live analytics are in the client since #102 (23 October 2026); the review follow-ups for B are in Issue #104.
 7. The only proposer is the fixed synthetic one (`fixture-no-live-model`); the risk result in the end-to-end run is the controlled PASS receiver and risk stub.
 8. Proposal latency is Tier 0 (no samples): trusted start and end events are open ([docs/43](43-f06-analytics.md)).
 9. The driver composes its own API; `demo.py serve` and the image default CMD do not run the governed chain; Docker evidence is the image build and import probe; the Compose API is health-only ([docs/41](41-r02-end-to-end-evidence.md)).
 10. Which Founder decision a `demo.py serve` case can reach is unverified; escalation has no live route ([docs/45](45-stage2-demo-script.md), S3).
 11. Fault injection of `UNKNOWN` and `REPLAYED` paths in an end-to-end run, and Windows file permissions, are not covered (docs/41, Deferred).
+12. Scale and consistency findings of the 23 October 2026 review are open (GitHub issue #106; [docs/46](46-gate2-roadmap.md) section 8): the customer case view scans the whole audit table and fails closed above 16,384 audit rows; history snapshots are never pruned; customer reads take the exclusive fence; clarification rounds have no cap; three decision-boundary consistency items. None affects the demonstration volumes.
+13. Line endings: `.gitattributes` (#108) pins LF for every text file; the 24 Python files stored with CRLF from earlier Windows commits are converted by the whitespace-only pull request #109.
 12. The contract operations `reconcileOperation` and `retryNotification` are not registered as routes (R.05 research record, 22 October 2026).
 13. Deploy-from-zero steps other than the 7 September virtual-environment and Compose run are unverified until the rehearsal in section 5.
 

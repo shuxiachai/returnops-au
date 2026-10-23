@@ -253,9 +253,11 @@ Demo-mode limitations:
   `--store` gives a new Founder token that can read the store's cases; the
   customer-one view of the case cannot be renewed (there is no session command).
 * The kept API child runs no worker: a case lodged through the UI against it
-  stays `SUBMITTED`. It registers the Founder decision route, but the current
-  client refuses live decisions and live analytics with `501 NOT_IMPLEMENTED`
-  (`client.ts`), so the UI is read-only here; the driver has already approved.
+  stays `SUBMITTED`. It registers the Founder decision route, and since B's #102
+  (23 October 2026) the client sends live decisions and reads live analytics;
+  the driver's case is already approved and executed, so a further decision on
+  it is refused by the server as a governed denial, which is the expected
+  demonstration here.
 * The free-port check runs before the child binds, so another process could
   still take the port in between.
 * Only the offline tests have run. A PostgreSQL run in demo mode and the browser
