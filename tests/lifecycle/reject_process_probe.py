@@ -53,13 +53,15 @@ if __name__ == '__main__':
         return original_claim(self, uow, work_id, *args, **kwargs)
     LifecycleGuards.claim = claim
     socket.create_connection = outbound
-    # Attempts mirror the HTTP client contract (docs/40): a DENIED result whose safe code is the
-    # retryable INTERNAL_ERROR and whose denial audit is NOT_RECORDED means nothing was written
-    # (for example the fence's lock_timeout expired while another caller held it), so the same
-    # key may be re-sent once. Every attempt is recorded with its wall-clock duration.
+    # Attempts mirror the HTTP client contract (docs/40): a DENIED result whose safe code is
+    # INTERNAL_ERROR is answered as 503, retryable, "keep the original request key", so the same
+    # key is re-sent, at most twice. This happens when the fence's lock_timeout expires while the
+    # other caller still holds it; the acceptance itself wrote nothing, but record_denial may then
+    # find the fence free and record a FOUNDER_REJECT_DENIED audit with reason INTERNAL_ERROR
+    # (audit RECORDED), as on main CI run 39900838149. Every attempt is recorded with its duration.
     import time as _time
     attempts = []
-    max_attempts = int(config.get('max_attempts', 2))
+    max_attempts = int(config.get('max_attempts', 3))
     for attempt in range(1, max_attempts + 1):
         started = _time.monotonic()
         sys.setprofile(profile)
@@ -68,7 +70,7 @@ if __name__ == '__main__':
         attempts.append({'attempt': attempt, 'status': result.status, 'safe_code': result.safe_code,
                          'audit': result.audit, 'duration_ms': round((_time.monotonic() - started) * 1000)})
         retryable_transient = (result.status == 'DENIED' and result.safe_code == 'INTERNAL_ERROR'
-                               and result.audit == 'NOT_RECORDED' and result.receipt is None)
+                               and result.receipt is None)
         if not retryable_transient:
             break
     assert not any(counts.values())
