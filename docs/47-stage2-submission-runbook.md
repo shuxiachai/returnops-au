@@ -71,12 +71,13 @@ Derived from the README chapter [Deploy from zero](../README.md#deploy-from-zero
 | 11 | `apps/web`: `npm ci`; `npm run dev`; open `http://localhost:5173` | Page loads; Vite proxies `/v1` to 8000 | B | | |
 | 12 | Token login as customer and as Founder in two browser profiles | **Auth Tokens** shows `Valid: <principal> (<ROLE>)` | B | | |
 | 13 | Demo S2: case without order reference, answer `SYN-1001` | Question shown; case reaches `RISK_REVIEW` | B | | |
-| 14 | Demo S3: case list, detail, audit, analytics; one Founder decision | Live analytics and decision only if Issue #91 is in the package; record which decision the server accepts or refuses | B | | |
+| 14 | Demo S3: case list, detail, audit, analytics; one Founder decision | Live analytics and the decision dialog are in the client since #102; record which decision the server accepts or refuses | B | | |
 | 15 | Demo S4 (only with PR #94 merged and a key): facts on the case; one rejected reply | Facts shown, or WARNING `outcome=REJECTED`; record tokens and latency from `run_once.py` evidence | A | | |
-| 16 | Stop `serve`; provision `tmp/demo-cups` without the two flags; set `DATABASE_URL`; driver with `--identities --api-port 8000 --keep-api --allow-existing-data` | `R.02 demo mode: driver result PASSED (see run-receipt.json).` | A | | |
-| 17 | Founder UI with `demo_cups_founder`: inspect the driver's case | Status `COMPLETED` | B | | |
-| 18 | Timed run of the whole demo script | 12-15 minutes; note overruns per segment | A, B, C | | |
-| 19 | Clean up: Ctrl+C; delete `tmp/demo-shop`, `tmp/demo-cups`; **Clear token**; unset model variables | No private files left | A | | |
+| 16 | Latency check on the running `demo.py serve` API, before it is stopped: 100 sequential `POST /v1/cases` as `synthetic_customer_b` (each with a new `Idempotency-Key`) and 100 `GET /v1/cases/{case_id}` of one of those cases, timed on the client with `httpx` from the locked environment | p50 and p95 in milliseconds for each call, the number of non-2xx answers (expected 0), the machine and the time; recorded here as a demonstration-machine observation, not a load test, and copied to [docs/48](48-agile-evidence-and-technology-data.md) row 1 only if the rehearsal passes | A | | |
+| 17 | Stop `serve`; provision `tmp/demo-cups` without the two flags; set `DATABASE_URL`; driver with `--identities --api-port 8000 --keep-api --allow-existing-data` | `R.02 demo mode: driver result PASSED (see run-receipt.json).` | A | | |
+| 18 | Founder UI with `demo_cups_founder`: inspect the driver's case | Status `COMPLETED` | B | | |
+| 19 | Timed run of the whole demo script | 12-15 minutes; note overruns per segment | A, B, C | | |
+| 20 | Clean up: Ctrl+C; delete `tmp/demo-shop`, `tmp/demo-cups`; **Clear token**; unset model variables | No private files left | A | | |
 
 ## 6. Contribution statement draft
 
