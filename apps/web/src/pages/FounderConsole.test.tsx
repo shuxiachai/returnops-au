@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { FounderConsole } from './FounderConsole';
 import { setMockMode } from '../api/client';
+import { MOCK_DEMO_003_SCOPE_FINGERPRINT } from '../api/mockData';
 
 describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
   beforeEach(() => {
@@ -151,13 +152,22 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
       expect(screen.getByText(/Confirm Founder Decision: APPROVE/i)).toBeInTheDocument();
     });
 
+    // The confirmation shows what the approval authorises (FR-012).
+    const dialog = screen.getByRole('dialog', { name: /Confirm Founder Decision: APPROVE/i });
+    expect(within(dialog).getByText('Approval scope: this is all the approval authorises')).toBeInTheDocument();
+    expect(within(dialog).getByText('prev_demo_003')).toBeInTheDocument();
+    expect(within(dialog).getByText(MOCK_DEMO_003_SCOPE_FINGERPRINT)).toBeInTheDocument();
+    expect(within(dialog).getByText('CREATE_RETURN')).toBeInTheDocument();
+    expect(within(dialog).getByText('GENERATE_LABEL')).toBeInTheDocument();
+    expect(within(dialog).getByText('$0.00 AUD')).toBeInTheDocument();
+
     // Fill mandatory rationale
     const rationaleInput = screen.getByPlaceholderText(/Record justification for statutory audit/i);
     fireEvent.change(rationaleInput, {
       target: { value: 'Approved under store 30-day change of mind policy.' },
     });
 
-    const executeBtn = screen.getByRole('button', { name: /Record & Execute/i });
+    const executeBtn = screen.getByRole('button', { name: /Record decision/i });
     fireEvent.click(executeBtn);
 
     // Modal should close upon successful admission
@@ -186,6 +196,17 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
     // Status breakdown chart should be displayed
     expect(screen.getByText('Case Status Distribution')).toBeInTheDocument();
     expect(screen.getByText('Risk Review Outcome Distribution')).toBeInTheDocument();
+
+    // The latency counts sit next to the tiles and add up to the case total
+    // (70 + 2 + 56 = 128), as the contract requires.
+    expect(screen.getByText('Measured:').parentElement).toHaveTextContent('Measured: 70');
+    expect(screen.getByText('Failed:').parentElement).toHaveTextContent('Failed: 2');
+    expect(screen.getByText('Unmeasured:').parentElement).toHaveTextContent('Unmeasured: 56');
+    expect(screen.getByText('Filters applied:').parentElement).toHaveTextContent('Filters applied: none');
+
+    // The fixed mock snapshot cannot be filtered, so the filter form is disabled.
+    expect(screen.getByLabelText(/Current status/i)).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Apply Filters/i })).toBeDisabled();
   });
 
   it('loads the next queue page so the twenty-first case is reachable (Finding 6)', async () => {
@@ -235,7 +256,7 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
 
       // The confirmation overlay and its rationale/confirm controls must be reachable.
       expect(await screen.findByText(`Confirm Founder Decision: ${decision}`)).toBeInTheDocument();
-      const confirm = screen.getByRole('button', { name: /Record & Execute/i });
+      const confirm = screen.getByRole('button', { name: /Record decision/i });
       const rationale = screen.getByPlaceholderText(/Record justification for statutory audit/i);
       expect(rationale).toBeInTheDocument();
 
@@ -264,7 +285,7 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
     fireEvent.click(await screen.findByRole('button', { name: /Approve Return \(UC-04\)/i }));
 
-    const confirm = await screen.findByRole('button', { name: /Record & Execute/i });
+    const confirm = await screen.findByRole('button', { name: /Record decision/i });
     expect(confirm).toBeDisabled();
 
     // Even a forced click must leave the confirmation open and record nothing.
@@ -292,14 +313,16 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
 
     // The advertised escalated case must resolve to a real detail view, not a 404.
+    // The text names the decisions the server accepts for an escalated case.
     expect(
-      await screen.findByText(/Escalated Case: Direct approval blocked/i)
+      await screen.findByText(/Escalated Case: Direct approval blocked\. Manual takeover or revision required\./i)
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Approve Return \(UC-04\)/i })).toBeDisabled();
 
-    // Manual handling and rejection remain the documented available outcomes.
+    // Manual handling remains available. Rejection is blocked for an escalated
+    // case: the server accepts Reject only for a case awaiting approval.
     expect(screen.getByRole('button', { name: /Manual Takeover/i })).toBeEnabled();
-    expect(screen.getByRole('button', { name: /^Reject$/i })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /^Reject$/i })).toBeDisabled();
   });
 
   it('shows the completed lifecycle audit history for case_demo_005 (Finding 11)', async () => {

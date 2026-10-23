@@ -7,6 +7,7 @@ import {
   CaseView,
   FounderDecisionRequest,
   DecisionReceipt,
+  AnalyticsQuery,
   AnalyticsSnapshot,
   AuditEvent,
   AuditPage,
@@ -444,6 +445,18 @@ export async function listFounderCases(cursor?: string, limit = 20): Promise<Cas
 export async function getFounderCase(caseId: string): Promise<CaseView> {
   if (isMockMode()) {
     const view = MOCK_FOUNDER_CASE_VIEWS[caseId];
+    if (view?.action_preview) {
+      // An expiry fixed when the module loaded could already have passed by the
+      // time the demo reaches the approval, so each read gets a fresh five-minute
+      // window, like a newly issued server preview.
+      return {
+        ...view,
+        action_preview: {
+          ...view.action_preview,
+          scope: { ...view.action_preview.scope, expires_at: new Date(Date.now() + 300000).toISOString() },
+        },
+      };
+    }
     if (view) return view;
     const cust = MOCK_CUSTOMER_CASES[caseId];
     if (cust) return cust;
@@ -491,10 +504,16 @@ export async function listFounderCaseHistory(
 
 export async function recordFounderDecision(
   caseId: string,
-  req: FounderDecisionRequest
+  req: FounderDecisionRequest,
+  idempotencyKey?: string
 ): Promise<DecisionReceipt> {
   if (isMockMode()) {
     const c = MOCK_FOUNDER_CASE_VIEWS[caseId];
+    // Same rule as the server: REJECT is accepted only for a case awaiting
+    // approval, so an escalated mock case is refused and left unchanged.
+    if (c && c.status === 'ESCALATED' && req.decision === 'REJECT') {
+      throw new ApiError(409, 'The request is not available in the current state.', 'INVALID_STATE');
+    }
     if (c) {
       if (req.decision === 'APPROVE') c.status = 'APPROVED';
       else if (req.decision === 'REJECT') c.status = 'REJECTED';
@@ -519,22 +538,61 @@ export async function recordFounderDecision(
     };
   }
 
-  // Gate Founder capabilities that have no runtime endpoint on current backend main
-  throw new ApiError(
-    501,
-    'Founder decision recording (POST /v1/founder/cases/{id}/decisions) is a planned contract not yet registered in current live backend. Please switch to Mock Mode in the top navbar to interactively demonstrate governed decisions.',
-    'NOT_IMPLEMENTED'
-  );
+  let receipt: DecisionReceipt;
+  try {
+    receipt = await request<DecisionReceipt>(
+      `/v1/founder/cases/${encodeURIComponent(caseId)}/decisions`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req),
+      },
+      true,
+      idempotencyKey
+    );
+  } catch (err: unknown) {
+    // The server registers this route only when started with the decision flag
+    // (`demo.py serve --founder-decisions` or RETURNOPS_FOUNDER_DECISIONS=1).
+    // Without it the framework answers 404 with no contract error envelope, so
+    // request() falls back to the code HTTP_404. A refusal from the route itself
+    // always carries a contract code such as NOT_FOUND.
+    if (err instanceof ApiError && err.code === 'HTTP_404') {
+      throw new ApiError(
+        err.status,
+        'This server does not serve the Founder decision route (POST /v1/founder/cases/{id}/decisions). It is registered only when the API is started with --founder-decisions. Nothing was recorded.',
+        'DECISION_ROUTE_NOT_SERVED',
+        err.correlationId
+      );
+    }
+    throw err;
+  }
+
+  // A 2xx body that is not an accepted receipt for this case and decision proves
+  // nothing, so it is reported with status 0, like a lost response: outcome unknown.
+  if (
+    receipt?.case_id !== caseId ||
+    receipt.decision !== req.decision ||
+    receipt.processing_status !== 'ACCEPTED'
+  ) {
+    throw new ApiError(
+      0,
+      'The server replied without an accepted receipt for this case and decision.',
+      'RECEIPT_MISMATCH'
+    );
+  }
+  return receipt;
 }
 
-export async function getFounderAnalytics(): Promise<AnalyticsSnapshot> {
+export async function getFounderAnalytics(query: AnalyticsQuery = {}): Promise<AnalyticsSnapshot> {
   if (isMockMode()) {
     return MOCK_ANALYTICS;
   }
-  // Gate Founder capabilities that have no runtime endpoint on current backend main
-  throw new ApiError(
-    501,
-    'Founder analytics aggregation (GET /v1/founder/analytics) is a planned contract not yet registered in current live backend. Please switch to Mock Mode in the top navbar to view simulated analytics.',
-    'NOT_IMPLEMENTED'
-  );
+  // Only the contract's three keys, each at most once and only when set: the
+  // server answers 422 to unknown or repeated keys.
+  const params = new URLSearchParams();
+  if (query.created_from) params.set('created_from', query.created_from);
+  if (query.created_before) params.set('created_before', query.created_before);
+  if (query.status) params.set('status', query.status);
+  const qs = params.toString();
+  return request<AnalyticsSnapshot>(`/v1/founder/analytics${qs ? `?${qs}` : ''}`);
 }
