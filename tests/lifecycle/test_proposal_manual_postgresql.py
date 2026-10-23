@@ -409,6 +409,12 @@ def test_group11_independent_process_original_key_race(flow_engine,identities,en
         out,err=process.communicate(timeout=60)
         assert process.returncode==0 and err==b''
         outputs.append(json.loads(out))
+    if entry=='manual':
+        for x in outputs:
+            attempts=x['attempts']['manual']
+            assert 1<=len(attempts)<=3 and attempts[-1]['status']==x['results']['manual']['status'], json.dumps(attempts)
+            for earlier in attempts[:-1]:
+                assert (earlier['status'],earlier['safe_code'])==('DENIED','INTERNAL_ERROR'), json.dumps(attempts)
     assert all(x['results'][entry]['status']=='ACCEPTED' for x in outputs), _original_key_race_failure(outputs,entry)
     assert outputs[0]['results']==outputs[1]['results']
     assert sum(x['claims']['REVIEW' if entry=='review' else 'OUTCOME'] for x in outputs)==1

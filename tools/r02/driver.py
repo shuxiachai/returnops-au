@@ -85,6 +85,8 @@ import scenario
 RECEIPT = 'run-receipt.json'
 CATALOGUE_FILE = 'cups-catalogue.json'
 API_LOG = 'api-child.log'
+LOG_WITHHELD = b'R.02: API child log withheld because it contained private material.\n'
+LOG_UNSCREENED = b'R.02: API child log withheld because it could not be screened.\n'
 STORE = 'r02_synthetic_store'
 CUSTOMER_ONE, CUSTOMER_TWO, FOUNDER = 'r02_customer_one', 'r02_customer_two', 'r02_founder'
 PEOPLE = {'customer_one': CUSTOMER_ONE, 'customer_two': CUSTOMER_TWO, 'founder': FOUNDER}
@@ -857,7 +859,7 @@ class Run:
             self.environment()
             self.provision()
             self.step_number = 2
-            log = (self.output if self.keep_api_log else self.private) / API_LOG
+            log = self.private / API_LOG  # raw child output stays private until finish() screens it
             with api_child.api_process(self.auth_file, log, **self.port_option()) as api:
                 self.record(2, 'api_child', 'READY', loopback=api.url.startswith('http://127.0.0.1:'),
                             composition=api.composition, environment_names=list(api.environment_names))
@@ -886,7 +888,8 @@ class Run:
             self.conclude(error)
         finally:
             self.finish()
-        return self.data['result']
+        # R02-C-03: without a written (or deliberately withheld) receipt the run is not evidence.
+        return self.data['result'] if self.receipt_written else 'FAILED'
 
     def port_option(self):
         return {} if self.api_port is None else dict(port=self.api_port)
@@ -919,33 +922,68 @@ class Run:
                                                           'it exited by itself') + ').')
 
     def finish(self):
+        """Each cleanup stage runs on its own: a failure is recorded as a code and the later stages
+        (log screening, private removal, receipt) still run. Codes, never messages, reach the receipt."""
+        failures = []
+
+        def stage(code, function):
+            try:
+                function()
+            except Exception:
+                failures.append(code)
+
         if not self.receipt_written:
             self.data['finished_at'] = _text(_now())
         if self.engine is not None:
-            self.engine.dispose()
-        log = self.output / API_LOG
-        if self.keep_api_log and log.exists():
-            screened, replaced = screen_log(log.read_bytes(), self.secrets, self.locations)
-            if screened is None:
-                log.write_bytes(b'R.02: API child log withheld because it contained private material.\n')
-                self.data['api_log'] = 'WITHHELD'
-            else:
-                log.write_bytes(screened)
-                self.data.update(api_log=API_LOG, api_log_directories_replaced=replaced)
+            stage('ENGINE_DISPOSE_FAILED', self.engine.dispose)
+        if self.keep_api_log:
+            stage('API_LOG_SCREEN_FAILED', self.publish_api_log)
+        removed = None
         if self.private is not None:
-            shutil.rmtree(self.private, ignore_errors=True)
-            removed = not self.private.exists()
-            if self.receipt_written:  # --keep-api: the receipt was written before the API stopped
-                if not removed:
-                    print('R.02 demo mode: the private temporary directory could not be removed.', file=sys.stderr)
-                return
-            self.data['private_directory_removed'] = removed
-        if not self.receipt_written:
+            def remove():
+                nonlocal removed
+                shutil.rmtree(self.private, ignore_errors=True)
+                removed = not self.private.exists()
+            stage('PRIVATE_DIRECTORY_REMOVE_FAILED', remove)
+        if self.receipt_written:  # --keep-api: the receipt was written before the API stopped
+            if self.private is not None and removed is not True:
+                print('R.02 demo mode: the private temporary directory could not be removed.', file=sys.stderr)
+            if failures:
+                print('R.02 demo mode: cleanup stages failed after the receipt: ' + ', '.join(failures) + '.',
+                      file=sys.stderr)
+            return
+        if self.private is not None:
+            self.data['private_directory_removed'] = removed is True
+        if failures:
+            self.data['cleanup_failures'] = failures
+        try:
             self.publish()
+        except Exception:
+            print('R.02: the run receipt could not be written.', file=sys.stderr)
+
+    def publish_api_log(self):
+        """--keep-api-log: screen the private raw log and publish only the screened copy or a note."""
+        raw = None if self.private is None else self.private / API_LOG
+        if raw is None or not raw.exists():
+            return
+        target = self.output / API_LOG
+        try:
+            screened, replaced = screen_log(raw.read_bytes(), self.secrets, self.locations)
+        except Exception:
+            self.data['api_log'] = 'WITHHELD'
+            target.write_bytes(LOG_UNSCREENED)
+            raise
+        if screened is None:
+            target.write_bytes(LOG_WITHHELD)
+            self.data['api_log'] = 'WITHHELD'
+        else:
+            target.write_bytes(screened)
+            self.data.update(api_log=API_LOG, api_log_directories_replaced=replaced)
 
     def publish(self):
-        """Write run-receipt.json once; a form that would contain a forbidden value is replaced by a smaller one."""
-        self.receipt_written = True
+        """Write run-receipt.json once; a form that would contain a forbidden value is replaced by a smaller one.
+        receipt_written becomes true only after the file is written (or every form was withheld on purpose);
+        any other write failure propagates and leaves it false."""
         stop = self.data.get('stop', {}).get('code')
         reduced = dict(format='r02-run-receipt/v1', work_package='R.02', result='FAILED',
                        stop=dict(code='RECEIPT_REDACTION_FAILED', original_result=self.data['result'],
@@ -956,9 +994,11 @@ class Run:
                 write_receipt(self.output / RECEIPT, candidate, self.forbidden())
             except ReceiptLeak:
                 continue
+            self.receipt_written = True
             if index:
                 self.data = candidate
             return
+        self.receipt_written = True
         self.data = bare
         print('R.02: the run receipt was withheld because every form contained private material.', file=sys.stderr)
 
@@ -1011,9 +1051,13 @@ def main(argv=None):
     if (output / RECEIPT).exists():
         print('Refusing to overwrite an earlier run receipt; choose a new output directory.', file=sys.stderr)
         return 2
-    result = Run(output, keep_api_log=args.keep_api_log, allow_existing_data=args.allow_existing_data,
-                 identities=identities, api_port=args.api_port, keep_api=args.keep_api).execute()
-    print('R.02 driver result: ' + result + ' (see ' + RECEIPT + ').')
+    run = Run(output, keep_api_log=args.keep_api_log, allow_existing_data=args.allow_existing_data,
+              identities=identities, api_port=args.api_port, keep_api=args.keep_api)
+    result = run.execute()
+    if run.receipt_written:
+        print('R.02 driver result: ' + result + ' (see ' + RECEIPT + ').')
+    else:
+        print('R.02 driver result: FAILED (the run receipt could not be written).')
     return {'PASSED': 0, 'REFUSED': 2}.get(result, 1)
 
 

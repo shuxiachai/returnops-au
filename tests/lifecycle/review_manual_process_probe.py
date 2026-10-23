@@ -40,16 +40,24 @@ if __name__=='__main__':
         module=__import__(name,fromlist=['__file__']);path=Path(module.__file__).resolve()
         if len(sys.argv)>2:assert path.is_relative_to(Path(sys.argv[2]).resolve())
         modules[name]=dict(path=str(path),sha256=sha256(path.read_bytes()).hexdigest())
-    results={};adapter=ControlledReviewer()
+    # Same-key re-send rule (tests/lifecycle/same_key_retry.py), loaded from its exact file so that
+    # the installed-package runs (python -I) keep the test directory off sys.path.
+    import importlib.util
+    _spec = importlib.util.spec_from_file_location('same_key_retry', Path(__file__).with_name('same_key_retry.py'))
+    same_key_retry = importlib.util.module_from_spec(_spec)
+    _spec.loader.exec_module(same_key_retry)
+    results={};attempts={};adapter=ControlledReviewer()
     if config['entry'] in {'review','both'}:
         result=compose_private_review(engine,adapter).accept(config['case'],config['version'],'original-review-key','child_review')
         results['review']=asdict(result)
     if config['entry'] in {'manual','both'}:
         authority=AuthConfig(config['issuer'],config['audience'],bytes.fromhex(config['signing_key']),leeway_seconds=0)
-        result=compose_private_manual(engine,authority,'Bearer '+config['token']).accept(config['case'],config['request'],
-            'original-manual-key','child_manual')
+        manual=compose_private_manual(engine,authority,'Bearer '+config['token'])
+        result,attempts['manual']=same_key_retry.accept_with_same_key_retries(
+            lambda: manual.accept(config['case'],config['request'],'original-manual-key','child_manual'))
         results['manual']=asdict(result)
     sys.setprofile(None)
     assert not any(counts.values())
-    print(json.dumps(dict(results=results,effects=counts,claims=claims,adapter_calls=len(adapter.calls),modules=modules),default=str))
+    print(json.dumps(dict(results=results,effects=counts,claims=claims,adapter_calls=len(adapter.calls),modules=modules,
+        attempts=attempts),default=str))
     engine.dispose()

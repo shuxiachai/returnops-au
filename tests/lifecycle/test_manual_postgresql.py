@@ -515,8 +515,17 @@ def test_A201_25_independent_processes(flow_engine, identities, enabled, request
         stdout, stderr = process.communicate(timeout=45)
         assert process.returncode == 0 and stderr == b''
         outputs.append(json.loads(stdout))
-    assert outputs[0] == outputs[1] and outputs[0]['status'] == 'ACCEPTED'
-    assert not any(outputs[0]['effects'].values())
+    # Each caller may re-send its key after the retryable 503 transient (#103); the attempt records
+    # are compared separately and every other field must be identical.
+    diagnostics = json.dumps([{name: output.get(name) for name in ('status', 'safe_code', 'audit', 'attempts')}
+                              for output in outputs], sort_keys=True)
+    for output in outputs:
+        assert 1 <= len(output['attempts']) <= 3 and output['attempts'][-1]['status'] == output['status'], diagnostics
+        for earlier in output['attempts'][:-1]:
+            assert (earlier['status'], earlier['safe_code']) == ('DENIED', 'INTERNAL_ERROR'), diagnostics
+    final = [{name: value for name, value in output.items() if name != 'attempts'} for output in outputs]
+    assert final[0] == final[1] and final[0]['status'] == 'ACCEPTED', diagnostics
+    assert not any(outputs[0]['effects'].values()), diagnostics
     assert len([r for r in rows(flow_engine, old.acceptances) if r['operation'] == OPERATION]) == 1
     assert len([r for r in rows(flow_engine, old.history) if r['kind'] == 'DECISION']) == 1
     assert len([r for r in rows(flow_engine, t.work) if r['purpose'] == 'NOTIFICATION']) == 1

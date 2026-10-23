@@ -222,8 +222,13 @@ def test_REV04_independent_process_same_key(flow_engine, identities, enabled, re
         out,err=child.communicate(timeout=60)
         assert child.returncode==0 and err==b''
         outputs.append(json.loads(out))
-    assert all(x['status']=='ACCEPTED' and not any(x['effects'].values()) for x in outputs)
-    assert outputs[0]['receipt']==outputs[1]['receipt'] and sum(x['revision_claims'] for x in outputs)==1
+    diagnostics=json.dumps([{name:x.get(name) for name in ('status','safe_code','audit','revision_claims','attempts')} for x in outputs],sort_keys=True)
+    for x in outputs:
+        assert 1<=len(x['attempts'])<=3 and x['attempts'][-1]['status']==x['status'], diagnostics
+        for earlier in x['attempts'][:-1]:
+            assert (earlier['status'],earlier['safe_code'])==('DENIED','INTERNAL_ERROR'), diagnostics
+    assert all(x['status']=='ACCEPTED' and not any(x['effects'].values()) for x in outputs), diagnostics
+    assert outputs[0]['receipt']==outputs[1]['receipt'] and sum(x['revision_claims'] for x in outputs)==1, diagnostics
     assert len([r for r in rows(flow_engine,old.acceptances) if r['operation']==OPERATION])==1
     assert len([r for r in rows(flow_engine,t.events) if r['event_kind']=='REVISION'])==1
     assert snapshot(flow_engine)['lifecycle_authorities']==before['lifecycle_authorities']

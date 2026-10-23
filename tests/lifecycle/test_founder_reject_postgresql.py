@@ -143,6 +143,13 @@ def test_R02_lowlevel_cannot_bypass_source_proof(flow_engine, identities, enable
 
 
 
+def safe_outputs(outputs):
+    """Per-caller diagnostics for assertion messages: status, code, audit, claims and attempts only
+    (no token, key, configuration or receipt body)."""
+    return json.dumps([{name: output.get(name) for name in ('status', 'safe_code', 'audit', 'reject_claims', 'attempts')}
+                       for output in outputs], sort_keys=True)
+
+
 def child_config(engine, identities, case, body):
     c = identities.auth_config
     return dict(case=case,request=body,schema=engine._customer_test_schema,issuer=c.issuer,audience=c.audience,
@@ -175,24 +182,87 @@ def test_R04_independent_process_competition(flow_engine, identities, enabled, r
     finally:
         for child in children:
             if child.poll() is None:child.kill();child.communicate(timeout=10)
-    assert not any(value for output in outputs for value in output['effects'].values())
-    assert sum(x['reject_claims'] for x in outputs)==1
+    diagnostics=safe_outputs(outputs)
+    assert not any(value for output in outputs for value in output['effects'].values()), diagnostics
+    assert sum(x['reject_claims'] for x in outputs)==1, diagnostics
     # A caller may have re-sent its key after the retryable 503 transient (fence lock_timeout under
     # load); every such earlier attempt is DENIED/INTERNAL_ERROR (its denial audit may or may not
     # have been recorded) and never carries a receipt; at most two re-sends.
     for output in outputs:
         attempts=output['attempts']
-        assert 1<=len(attempts)<=3 and attempts[-1]['status']==output['status']
+        assert 1<=len(attempts)<=3 and attempts[-1]['status']==output['status'], diagnostics
         for earlier in attempts[:-1]:
-            assert (earlier['status'],earlier['safe_code'])==('DENIED','INTERNAL_ERROR')
-            assert earlier['audit'] in {'RECORDED','NOT_RECORDED','UNKNOWN'}
+            assert (earlier['status'],earlier['safe_code'])==('DENIED','INTERNAL_ERROR'), diagnostics
+            assert earlier['audit'] in {'RECORDED','NOT_RECORDED','UNKNOWN'}, diagnostics
     if keys=='same':
-        assert all(x['status']=='ACCEPTED' for x in outputs) and outputs[0]['receipt']==outputs[1]['receipt']
-    else:assert sorted(x['status'] for x in outputs)==['ACCEPTED','DENIED']
-    assert len([r for r in rows(flow_engine,old.acceptances) if r['operation']==OPERATION])==1
-    assert len([r for r in rows(flow_engine,t.events) if r['event_kind']=='OUTCOME'])==1
+        assert all(x['status']=='ACCEPTED' for x in outputs) and outputs[0]['receipt']==outputs[1]['receipt'], diagnostics
+    else:assert sorted(x['status'] for x in outputs)==['ACCEPTED','DENIED'], diagnostics
+    assert len([r for r in rows(flow_engine,old.acceptances) if r['operation']==OPERATION])==1, diagnostics
+    assert len([r for r in rows(flow_engine,t.events) if r['event_kind']=='OUTCOME'])==1, diagnostics
     assert snapshot(flow_engine)['lifecycle_authorities']==before['lifecycle_authorities']
     evidence(request.node.nodeid,before=before,after=snapshot(flow_engine),outputs=outputs,independent_processes=2,barrier_ready_count=2,keys=keys)
+
+
+@pytest.mark.parametrize('hold_seconds,expected_audit', [(6.5, 'RECORDED'), (11.5, 'NOT_RECORDED')])
+def test_R04_forced_fence_timeout_then_same_key_resend(flow_engine, identities, enabled, request, tmp_path,
+                                                       hold_seconds, expected_audit):
+    """Force the CI transient deterministically: the test holds the global write fence while one
+    independent caller is blocked on it, so its first acceptance hits lock_timeout (5 s). Released
+    after 6.5 s, the denial audit finds the fence free (RECORDED); after 11.5 s the denial times
+    out too (NOT_RECORDED). Either way the same-key re-send must be accepted exactly once."""
+    import time
+    from sqlalchemy import text
+    from returnops_domain.canonical import decode_document, digest
+    case,body=ready(flow_engine,identities)
+    barrier=tmp_path/'barrier';barrier.mkdir()
+    name='reject-forced-'+str(os.getpid())+'-'+expected_audit.lower()
+    config={**child_config(flow_engine,identities,case,body),'barrier':str(barrier),'worker':'0',
+        'key':'original-reject-key','application_name':name}
+    path=tmp_path/'synthetic-reject-forced.json';path.write_text(json.dumps(config),encoding='utf-8')
+    before=snapshot(flow_engine)
+    args=[sys.executable,'-B',str(Path(__file__).with_name('reject_process_probe.py')),str(path)]
+    child=subprocess.Popen(args,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env=os.environ.copy())
+    held_for=None
+    try:
+        deadline=time.monotonic()+30
+        while not list(barrier.glob('ready-*')):
+            assert time.monotonic()<deadline and child.poll() is None, 'The caller must become ready'
+            time.sleep(0.01)
+        with CustomerUnitOfWork(flow_engine,write=True) as holder:
+            (barrier/'release').write_text('release',encoding='utf-8')
+            deadline=time.monotonic()+20;waiting_since=None
+            while waiting_since is None:
+                with flow_engine.connect() as observer:
+                    blocked=observer.execute(text("SELECT count(*) FROM pg_stat_activity "
+                        "WHERE application_name=:name AND wait_event_type='Lock'"),dict(name=name)).scalar_one()
+                if blocked:waiting_since=time.monotonic()
+                else:
+                    assert time.monotonic()<deadline and child.poll() is None, 'The caller must block on the held fence'
+                    time.sleep(0.01)
+            time.sleep(max(0.0,hold_seconds-(time.monotonic()-waiting_since)))
+            held_for=round(time.monotonic()-waiting_since,3)
+            holder.commit()
+        out,err=child.communicate(timeout=60)
+        assert child.returncode==0 and err==b''
+    finally:
+        if child.poll() is None:child.kill();child.communicate(timeout=10)
+    output=json.loads(out);attempts=output['attempts']
+    diagnostics=safe_outputs([output])+' held_for='+str(held_for)
+    assert [a['status'] for a in attempts]==['DENIED','ACCEPTED'], diagnostics
+    assert (attempts[0]['safe_code'],attempts[0]['audit'])==('INTERNAL_ERROR',expected_audit), diagnostics
+    assert attempts[0]['duration_ms']>=4500, diagnostics
+    assert output['status']=='ACCEPTED' and output['receipt'] is not None, diagnostics
+    assert output['reject_claims']==1 and not any(output['effects'].values()), diagnostics
+    assert len([r for r in rows(flow_engine,old.acceptances) if r['operation']==OPERATION])==1, diagnostics
+    assert len([r for r in rows(flow_engine,t.events) if r['event_kind']=='OUTCOME'])==1, diagnostics
+    denials=[decode_document(row['body']) for row in rows(flow_engine,old.audit)
+        if decode_document(row['body'])['event_type']=='FOUNDER_REJECT_DENIED']
+    assert len(denials)==int(expected_audit=='RECORDED'), diagnostics
+    for event in denials:
+        assert event['payload_hash']==digest(dict(purpose='OUTCOME',reason='INTERNAL_ERROR'),'audit-payload/v1')
+    assert snapshot(flow_engine)['lifecycle_authorities']==before['lifecycle_authorities']
+    evidence(request.node.nodeid,before=before,after=snapshot(flow_engine),output=output,held_for=held_for,
+        expected_audit=expected_audit)
 
 
 @pytest.mark.parametrize('committed',[True,False])

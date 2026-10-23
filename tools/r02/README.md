@@ -127,10 +127,18 @@ not re-run with new keys.
   trips it; use a distinctive password. Existing receipts are never
   overwritten.
 * `cups-catalogue.json`: the synthetic catalogue document; no secret.
-* `api-child.log` only with `--keep-api-log`: withheld if it contains
-  `Bearer`, a token, the key, the database URL or its password; the output,
-  private and home directories are replaced by `<output>`, `<private>` and
-  `<home>`.
+* `api-child.log` only with `--keep-api-log`: the child writes its raw output
+  into the private temporary directory only; at the end of the run the driver
+  screens it and publishes the screened copy here. It is withheld if it
+  contains `Bearer`, a token, the key, the database URL or its password, or if
+  it cannot be screened; the output, private and home directories are replaced
+  by `<output>`, `<private>` and `<home>`.
+* Cleanup stages (closing the database engine, screening the log, removing the
+  private directory, writing the receipt) run independently; a stage that fails
+  is listed by code in the receipt's `cleanup_failures` and the later stages
+  still run. If the receipt itself cannot be written, the run is reported as
+  `FAILED (the run receipt could not be written)` with exit code 1, whatever
+  the chain's result was, and demo mode does not keep the API running.
 
 The signing key and tokens exist only in memory and in a 0600 `auth.json`
 inside a 0700 temporary directory that is removed at the end of the run. Never
