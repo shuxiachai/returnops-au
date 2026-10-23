@@ -7,6 +7,7 @@ from returnops_api.private_reject import compose_private_reject
 from returnops_api.security.authentication import AuthConfig
 from returnops_domain.errors import AcceptanceOutcomeUnknown, FlowError
 from returnops_domain.reject_decision import FounderRejectService
+import same_key_retry
 
 
 REQUEST=dict(expected_case_version=7,proposal_id='proposal_fixture',proposal_version=1,
@@ -123,3 +124,58 @@ def test_R01_offline_schema_gate_reaches_original_version_check(monkeypatch,revi
         with pytest.raises(ReachedCurrentState):
             caller._new(uow,None,head,None,REQUEST,None,None,None)
         assert calls==['schema','current']
+
+
+# ---------------------------------------------------------------- R04 same-key re-send rule (#103)
+
+def _result(status, code=None, audit='NOT_ATTEMPTED', receipt=None):
+    return SimpleNamespace(status=status, safe_code=code, audit=audit, receipt=receipt)
+
+
+def _ticks(*values):
+    values = iter(values)
+    return lambda: next(values)
+
+
+@pytest.mark.parametrize('audit', ['RECORDED', 'NOT_RECORDED', 'UNKNOWN'])
+def test_R04_offline_resend_after_retryable_transient_whatever_the_audit(audit):
+    script = iter([_result('DENIED', 'INTERNAL_ERROR', audit), _result('ACCEPTED', receipt={'receipt': 1})])
+    result, attempts = same_key_retry.accept_with_same_key_retries(lambda: next(script),
+                                                                 clock=_ticks(0.0, 5.0, 5.0, 5.25))
+    assert result.status == 'ACCEPTED' and result.receipt == {'receipt': 1}
+    assert attempts == [
+        {'attempt': 1, 'status': 'DENIED', 'safe_code': 'INTERNAL_ERROR', 'audit': audit, 'duration_ms': 5000},
+        {'attempt': 2, 'status': 'ACCEPTED', 'safe_code': None, 'audit': 'NOT_ATTEMPTED', 'duration_ms': 250}]
+
+
+@pytest.mark.parametrize('first', [
+    _result('ACCEPTED', receipt={'receipt': 1}),
+    _result('DENIED', 'STALE_CASE_VERSION', 'RECORDED'),
+    _result('DENIED', 'INVALID_STATE', 'NOT_RECORDED'),
+    _result('DENIED', 'IDEMPOTENCY_CONFLICT', 'RECORDED'),
+    _result('UNKNOWN'),
+    _result('DENIED', 'INTERNAL_ERROR', 'RECORDED', receipt={'receipt': 1}),
+])
+def test_R04_offline_no_resend_for_any_other_outcome(first):
+    calls = []
+    def accept():
+        calls.append(1)
+        return first
+    result, attempts = same_key_retry.accept_with_same_key_retries(accept, clock=_ticks(0.0, 0.1))
+    assert result is first and len(calls) == 1 and len(attempts) == 1
+
+
+def test_R04_offline_resends_are_bounded():
+    calls = []
+    def accept():
+        calls.append(1)
+        return _result('DENIED', 'INTERNAL_ERROR', 'RECORDED')
+    result, attempts = same_key_retry.accept_with_same_key_retries(accept, clock=_ticks(*[0.0] * 6))
+    assert len(calls) == same_key_retry.MAX_ATTEMPTS == 3 and [a['attempt'] for a in attempts] == [1, 2, 3]
+    assert result.status == 'DENIED' and result.safe_code == 'INTERNAL_ERROR'
+
+
+@pytest.mark.parametrize('bound', [0, 4, True, 2.0, '3'])
+def test_R04_offline_attempt_bound_is_validated(bound):
+    with pytest.raises(ValueError):
+        same_key_retry.accept_with_same_key_retries(lambda: _result('ACCEPTED'), max_attempts=bound)

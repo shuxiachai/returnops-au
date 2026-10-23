@@ -28,7 +28,8 @@ if __name__ == '__main__':
             if time.monotonic()>=deadline:raise AssertionError('Parent did not release both ready callers')
             time.sleep(0.01)
     engine = create_engine(os.environ['DATABASE_URL'], hide_parameters=True, echo=False,
-        connect_args={'options':'-c search_path=' + config['schema'] + ' -c statement_timeout=10000'})
+        connect_args={'options':'-c search_path=' + config['schema'] + ' -c statement_timeout=10000',
+                      'application_name':config.get('application_name', 'reject-process-probe')})
     authority = AuthConfig(config['issuer'], config['audience'], bytes.fromhex(config['signing_key']), leeway_seconds=0)
     service = compose_private_reject(engine, authority, 'Bearer ' + config['token'])
     from sqlalchemy import select
@@ -53,26 +54,20 @@ if __name__ == '__main__':
         return original_claim(self, uow, work_id, *args, **kwargs)
     LifecycleGuards.claim = claim
     socket.create_connection = outbound
-    # Attempts mirror the HTTP client contract (docs/40): a DENIED result whose safe code is
-    # INTERNAL_ERROR is answered as 503, retryable, "keep the original request key", so the same
-    # key is re-sent, at most twice. This happens when the fence's lock_timeout expires while the
-    # other caller still holds it; the acceptance itself wrote nothing, but record_denial may then
-    # find the fence free and record a FOUNDER_REJECT_DENIED audit with reason INTERNAL_ERROR
-    # (audit RECORDED), as on main CI run 39900838149. Every attempt is recorded with its duration.
-    import time as _time
-    attempts = []
-    max_attempts = int(config.get('max_attempts', 3))
-    for attempt in range(1, max_attempts + 1):
-        started = _time.monotonic()
-        sys.setprofile(profile)
-        result = service.accept(config['case'], config['request'], config.get('key', 'original-reject-key'), identifier('corr'))
+    # Same-key re-send rule (tests/lifecycle/same_key_retry.py), loaded from its exact file so that
+    # the installed-package runs (python -I) keep the test directory off sys.path.
+    import importlib.util
+    _spec = importlib.util.spec_from_file_location('same_key_retry', Path(__file__).with_name('same_key_retry.py'))
+    same_key_retry = importlib.util.module_from_spec(_spec)
+    _spec.loader.exec_module(same_key_retry)
+    def accept_once():
+        return service.accept(config['case'], config['request'], config.get('key', 'original-reject-key'), identifier('corr'))
+    sys.setprofile(profile)
+    try:
+        result, attempts = same_key_retry.accept_with_same_key_retries(
+            accept_once, max_attempts=int(config.get('max_attempts', same_key_retry.MAX_ATTEMPTS)))
+    finally:
         sys.setprofile(None)
-        attempts.append({'attempt': attempt, 'status': result.status, 'safe_code': result.safe_code,
-                         'audit': result.audit, 'duration_ms': round((_time.monotonic() - started) * 1000)})
-        retryable_transient = (result.status == 'DENIED' and result.safe_code == 'INTERNAL_ERROR'
-                               and result.receipt is None)
-        if not retryable_transient:
-            break
     assert not any(counts.values())
     print(json.dumps({**asdict(result), 'effects':counts, 'reject_claims':reject_claims[0], 'attempts':attempts}))
     engine.dispose()
