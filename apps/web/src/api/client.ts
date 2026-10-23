@@ -446,12 +446,7 @@ export async function getFounderCase(caseId: string): Promise<CaseView> {
     const view = MOCK_FOUNDER_CASE_VIEWS[caseId];
     if (view) return view;
     const cust = MOCK_CUSTOMER_CASES[caseId];
-    if (cust) {
-      return {
-        ...cust,
-        facts: { raw_note: 'Synthesized from customer case view' },
-      };
-    }
+    if (cust) return cust;
     throw new ApiError(404, `Founder case ${caseId} not found`, 'NOT_FOUND');
   }
   return request<CaseView>(`/v1/founder/cases/${encodeURIComponent(caseId)}`);

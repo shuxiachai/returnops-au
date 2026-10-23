@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { FounderConsole } from './FounderConsole';
 import { setMockMode } from '../api/client';
 
@@ -90,6 +90,42 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
       ).toBeInTheDocument();
       expect(screen.getByText(/CASE_CREATED/i)).toBeInTheDocument();
     });
+  });
+
+  it('shows the mock advisory facts card on case_demo_001, marked as mock data (Issue #95)', async () => {
+    render(<FounderConsole />);
+
+    await waitFor(() => {
+      expect(screen.getByText('case_demo_001')).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByPlaceholderText(/Filter by Case ID or Category/i), {
+      target: { value: 'case_demo_001' },
+    });
+    fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /Order & Facts Projection/i }));
+
+    const card = await screen.findByRole('region', { name: 'Model extraction (advisory)' });
+    expect(within(card).getByText('Mock data: not a model result')).toBeInTheDocument();
+    expect(within(card).getByText('WRONG_ITEM')).toBeInTheDocument();
+    expect(within(card).getByText('No line items selected (empty list).')).toBeInTheDocument();
+  });
+
+  it('shows no advisory facts card on a mock case without facts (Issue #95)', async () => {
+    render(<FounderConsole />);
+
+    await waitFor(() => {
+      expect(screen.getByText('case_demo_002')).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByPlaceholderText(/Filter by Case ID or Category/i), {
+      target: { value: 'case_demo_002' },
+    });
+    fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /Order & Facts Projection/i }));
+
+    expect(await screen.findByText('ord_8819')).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Model extraction (advisory)' })).not.toBeInTheDocument();
   });
 
   it('executes governed APPROVE decision with mandatory rationale', async () => {

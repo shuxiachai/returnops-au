@@ -37,6 +37,19 @@ export type RequestedOutcome =
   | 'UNSPECIFIED'
   | 'OTHER';
 
+export type PossibleBasis =
+  | 'STORE_POLICY'
+  | 'CONSUMER_GUIDANCE'
+  | 'BOTH'
+  | 'UNDETERMINED';
+
+export type AssessmentStatus =
+  | 'SUPPORTED'
+  | 'MISSING_INFORMATION'
+  | 'CONFLICTING'
+  | 'UNCERTAIN'
+  | 'OUT_OF_SCOPE';
+
 export type RiskOutcome =
   | 'PASS'
   | 'PASS_WITH_WARNING'
@@ -232,6 +245,21 @@ export interface LineItem {
   unit_price_minor: number;
 }
 
+export interface LineSelection {
+  line_item_id: string;
+  quantity: number;
+}
+
+// Contract ExtractedFacts: all six fields are required and no other key is allowed.
+export interface ExtractedFacts {
+  issue_category: IssueCategory;
+  customer_requested_outcome: RequestedOutcome;
+  possible_basis: PossibleBasis;
+  assessment_status: AssessmentStatus;
+  line_items: LineSelection[];
+  summary: string;
+}
+
 export interface OrderSnapshot {
   snapshot_id?: string;
   order_id: string;
@@ -263,7 +291,7 @@ export interface CaseView {
   updated_at: string;
   statements: CustomerStatement[];
   evidence: EvidenceAttachment[];
-  facts?: Record<string, unknown>;
+  facts?: ExtractedFacts;
   order_snapshot?: OrderSnapshot;
   clarification?: ClarificationSet;
   current_proposal?: ProposalDetail;

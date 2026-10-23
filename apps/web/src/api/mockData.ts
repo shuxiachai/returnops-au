@@ -266,10 +266,16 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
       ],
       retrieved_at: '2026-10-02T10:16:00Z',
     },
+    // Hand-written, contract-shaped ExtractedFacts for Mock Mode; no model produced
+    // it, and the Founder Console labels it as mock data.
     facts: {
-      reported_issue: 'WRONG_ITEM',
-      received_item: 'Forest Green Wool Cardigan (Size L)',
-      customer_intent: 'REPLACEMENT',
+      issue_category: 'WRONG_ITEM',
+      customer_requested_outcome: 'REPLACEMENT',
+      possible_basis: 'UNDETERMINED',
+      assessment_status: 'MISSING_INFORMATION',
+      line_items: [],
+      summary:
+        'The customer reports receiving a different garment from the one ordered (wrong colour, style and size) and asks for a replacement.',
     },
   },
   'case_demo_002': {

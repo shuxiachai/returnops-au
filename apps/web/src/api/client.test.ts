@@ -129,6 +129,18 @@ describe('client', () => {
       expect(detail.current_review).not.toHaveProperty('risk_outcome');
     });
 
+    it('adds no facts when a founder view falls back to a mock customer case (Issue #95)', async () => {
+      const created = await createCase({
+        original_message: 'The toaster arrived with a cracked casing.',
+        requested_outcome: 'REFUND',
+        evidence_ids: [],
+      });
+
+      const detail = await getFounderCase(created.case_id);
+      expect(detail.case_id).toBe(created.case_id);
+      expect(detail).not.toHaveProperty('facts');
+    });
+
     it('retrieves tamper-evident audit trail for a case', async () => {
       const audit = await listFounderCaseAudit('case_demo_001');
       expect(audit.length).toBeGreaterThan(0);
