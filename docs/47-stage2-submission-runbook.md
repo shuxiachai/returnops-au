@@ -1,6 +1,6 @@
 # Stage 2 submission runbook (R.05.a and R.05.b)
 
-Owner: A Jingbo Chai (integrates and submits). Reviewer: C Yuwei Tao. Work package R.05 and its two course sub-checks, R.05.a source submission and R.05.b final-week demo, in the unchanged [work packages](08-delivery-work-packages.md). This runbook turns the open items of the [submission checklist](28-stage2-submission-checklist.md) into steps with owners and dates. Nothing in it has been executed: no tag, package, upload, rehearsal or contribution statement exists yet (22 October 2026, Sydney). A course submission receipt is not R.05 acceptance (docs/08, R.05).
+Owner: A Jingbo Chai (integrates and submits). Reviewer: C Yuwei Tao. Work package R.05 and its two course sub-checks, R.05.a source submission and R.05.b final-week demo, in the unchanged [work packages](08-delivery-work-packages.md). This runbook turns the open items of the [submission checklist](28-stage2-submission-checklist.md) into steps with owners and dates. As of 24 October 2026 (Sydney) only an early rehearsal from a zip of `main` has been run (section 5, pass 0); no tag, submission package, upload or contribution statement exists yet. A course submission receipt is not R.05 acceptance (docs/08, R.05).
 
 Companion documents: [demo script](45-stage2-demo-script.md), [Gate 2 roadmap](46-gate2-roadmap.md).
 
@@ -20,8 +20,9 @@ Companion documents: [demo script](45-stage2-demo-script.md), [Gate 2 roadmap](4
 
 | Date (Sydney) | Item | Who |
 |---|---|---|
+| 24 Oct | Pass 0: early rehearsal from a zip of `main` on A's machine (section 5) | A |
 | 26 Oct | Canvas item opens; ask the tutor at the Monday practical how the contribution statement is to be handed in (the item accepts zip files only) and record the answer in section 4; demo script final; each speaker's own wording | A; A, B, C |
-| 27-28 Oct | Contribution statement draft sent to the three; A3 tutor disposition requested and recorded; first full rehearsal on A's machine; B's Issues #91, #95, #88 and C's PRs #17, #61 merged or recorded as not merged | A; B; C |
+| 27-28 Oct | Contribution statement draft sent to the three; A3 tutor disposition requested and recorded; first full rehearsal on A's machine; B's Issue #111 items 1-6 merged or recorded as not merged (B's Issues #88, #91 and #95 were closed and C's PRs #17 and #61 merged by 23 October) | A; B; C |
 | 29 Oct | Clean-machine rehearsal (section 5, pass 1) | A runs, B checks UI steps, C records |
 | 30-31 Oct | Fixes; contribution statement final; tag and package (section 3) | A; all three sign off the statement |
 | 1 Nov, before noon | Canvas upload and download-and-reopen check (section 4) | A |
@@ -33,7 +34,7 @@ Preconditions: every pull request intended for submission is merged into main an
 
 1. Choose the commit: the main commit whose CI run is green. Record its full SHA and the run URL.
 2. Tag it (name is a proposal): `git tag -a stage2-submission-v1 <sha> -m "Stage 2 source submission"`, then `git push origin stage2-submission-v1`. The tag message carries no AI tool attribution (repository rule).
-3. Zip the tag: `git archive --format=zip --prefix=returnops-au/ -o returnops-au-stage2-submission-v1.zip stage2-submission-v1`. `git archive` packs only files tracked at the tag, so git-ignored local material (`.env`, `.venv/`, `node_modules/`, `tmp/`, `dist/`, `__pycache__/`, `data/private/`) is left out. For a zip given a tag, git stores the commit ID as the archive comment; check it with `unzip -z` **(not verified here)**.
+3. Zip the tag: `git archive --format=zip --prefix=returnops-au/ -o returnops-au-stage2-submission-v1.zip stage2-submission-v1`. `git archive` packs only files tracked at the tag, so git-ignored local material (`.env`, `.venv/`, `node_modules/`, `tmp/`, `dist/`, `__pycache__/`, `data/private/`) is left out. For a zip given a commit or a tag, git stores the commit ID as the archive comment; check it with `unzip -z` or Python's `zipfile` (verified for a commit in pass 0, section 5).
 4. Add the contribution statement: unless the tutor named another channel (section 2, 26 Oct), append `CONTRIBUTION-STATEMENT-Group10.pdf` at the root of the zip, next to `returnops-au/`, with Python's `zipfile` in append mode (`zipfile.ZipFile(path, 'a').write(pdf, 'CONTRIBUTION-STATEMENT-Group10.pdf')`); the repository tree inside `returnops-au/` stays untouched. Then hash: PowerShell `Get-FileHash -Algorithm SHA256 returnops-au-stage2-submission-v1.zip`; bash `sha256sum returnops-au-stage2-submission-v1.zip`. Record the value and the size in bytes.
 5. Content check: list the archive (`unzip -l`, or `tar -tf` on Windows) and confirm that none of these is present:
    - `.env` (only `.env.example` may appear), `auth.json`, `sessions.json`, `*.pem`, `*.key`, any file holding a value for `RETURNOPS_MODEL_API_KEY` or a database password;
@@ -63,7 +64,7 @@ Derived from the README chapter [Deploy from zero](../README.md#deploy-from-zero
 | 3 | Unzip into a new directory | `returnops-au/` with README, `compose.yaml`, `Dockerfile`, lock files | A | | |
 | 4 | Create `.venv`; `pip install --require-hashes -r requirements-dev.lock`; `pip install --no-deps --no-build-isolation -e .`; `pip check` | Installs without error; `pip check` reports no broken requirements | A | | |
 | 5 | `python -B tools/environment/local.py init`; set `API_PORT=8001` in `.env` | `Created ignored local configuration with a fresh password; no secret displayed.` | A | | |
-| 6 | `docker compose config --quiet`; `docker compose up --build -d --wait --wait-timeout 180`; `docker compose ps -a` | `db` healthy, `migrate` Exited (0), `api` healthy | A | | |
+| 6 | First `docker volume ls`: if `returnops-au-f02_postgres-data` exists from an earlier deployment, follow the README pitfall (reuse that deployment's `.env`, add `-p <name>` to every Compose command, or remove the volume deliberately; on the demonstration machine it was removed on 24 October 2026 and must stay absent). Then `docker compose config --quiet`; `docker compose up --build -d --wait --wait-timeout 180`; `docker compose ps -a` | `db` healthy, `migrate` Exited (0), `api` healthy | A | | |
 | 7 | `/health/live` and `/health/ready` on port 8001 | `{"status":"alive"}`; `{"status":"ready"}` | A | | |
 | 8 | Host migration via `local.py run python -m alembic upgrade head` | Exits 0 (README: not verified) | A | | |
 | 9 | `demo.py provision` for `tmp/demo-shop` with `--order-investigation --fixed-proposal` | `Private synthetic demo registration completed. ...` | A | | |
@@ -71,13 +72,35 @@ Derived from the README chapter [Deploy from zero](../README.md#deploy-from-zero
 | 11 | `apps/web`: `npm ci`; `npm run dev`; open `http://localhost:5173` | Page loads; Vite proxies `/v1` to 8000 | B | | |
 | 12 | Token login as customer and as Founder in two browser profiles | **Auth Tokens** shows `Valid: <principal> (<ROLE>)` | B | | |
 | 13 | Demo S2: case without order reference, answer `SYN-1001` | Question shown; case reaches `RISK_REVIEW` | B | | |
-| 14 | Demo S3: case list, detail, audit, analytics; one Founder decision | Live analytics and the decision dialog are in the client since #102; record which decision the server accepts or refuses | B | | |
+| 14 | Demo S3: case list, detail, audit, analytics; one Founder decision | Live analytics and the decision dialog are in the client since #102; record which decision the server accepts or refuses (pass 0: `MANUAL_HANDLING` refused with 403 `FORBIDDEN`, so the docs/45 S3 fallback applies) | B | | |
 | 15 | Demo S4 (only with PR #94 merged and a key): facts on the case; one rejected reply | Facts shown, or WARNING `outcome=REJECTED`; record tokens and latency from `run_once.py` evidence | A | | |
 | 16 | Latency check on the running `demo.py serve` API, before it is stopped: 100 sequential `POST /v1/cases` as `synthetic_customer_b` (each with a new `Idempotency-Key`) and 100 `GET /v1/cases/{case_id}` of one of those cases, timed on the client with `httpx` from the locked environment | p50 and p95 in milliseconds for each call, the number of non-2xx answers (expected 0), the machine and the time; recorded here as a demonstration-machine observation, not a load test, and copied to [docs/48](48-agile-evidence-and-technology-data.md) row 1 only if the rehearsal passes | A | | |
 | 17 | Stop `serve`; provision `tmp/demo-cups` without the two flags; set `DATABASE_URL`; driver with `--identities --api-port 8000 --keep-api --allow-existing-data` | `R.02 demo mode: driver result PASSED (see run-receipt.json).` | A | | |
 | 18 | Founder UI with `demo_cups_founder`: inspect the driver's case | Status `COMPLETED` | B | | |
 | 19 | Timed run of the whole demo script | 12-15 minutes; note overruns per segment | A, B, C | | |
-| 20 | Clean up: Ctrl+C; delete `tmp/demo-shop`, `tmp/demo-cups`; **Clear token**; unset model variables | No private files left | A | | |
+| 20 | Clean up: Ctrl+C; delete `tmp/demo-shop`, `tmp/demo-cups`; **Clear token**; unset model variables; `docker compose down -v` (with the same `-p <name>` if one was used), so that the next fresh deployment does not meet this run's volume and password | No private files left; `docker volume ls` lists no `returnops-au-f02_postgres-data` | A | | |
+
+### Pass 0 record (24 October 2026, Sydney)
+
+An early pass on the lead's machine, which is also the Week 13 demonstration machine, run before pass 1 so that problems surface early. It used a zip of `main`, not the submission tag, so it is not the R.05.a record.
+
+| Item | Record |
+|---|---|
+| Package | `git archive --format=zip --prefix=returnops-au/` of `main` at `46a8afaa0b284e2528398cb6352469878e562008` (the merge of #118; the main CI run 39963508928 of that commit had not finished when the zip was made); 14,744,474 bytes; SHA-256 `2ce9ed42349e469014f7b8c64ddcd5f159c4163b36097964fbce71416f95539a`; 796 entries |
+| Section 3 checks | The zip comment equals the commit ID (read with Python's `zipfile`); no forbidden name; no student ID; no assignment of `POSTGRES_PASSWORD` or `RETURNOPS_MODEL_API_KEY` outside `.env.example`; `python -B tools/model-checks/check.py --skip-baseline`: `Static check groups: 6/6 passed.` |
+| Environment | Windows 11 Home China 10.0.26300; CPython 3.12.9; Docker 29.6.2 with Compose v5.3.1; Node 24.14.0 with npm 11.9.0; package unzipped under the user's Downloads folder |
+| Passed | Steps 1-14, 16-18 and 20, with the observations below. Times on this machine: Python dependencies 15 s (pip cache present), `docker compose up` 41 s (images cached), driver chain about 100 s |
+| Not run | Step 15 (no model key in the environment and no VPN check in this pass); step 19 (needs all three members) |
+
+Observations:
+
+1. **Old Compose volume.** `compose.yaml` fixes the project name `returnops-au-f02`, and this machine still holds the volume `returnops-au-f02_postgres-data` from September. A fresh `local.py init` writes a password that the old data directory does not know (the README pitfall of 22 October), so this pass ran every Compose command with `-p returnops-rehearsal0` and removed its own volume at the end; the old volume was not touched. Decision of 24 October 2026 (lead): remove the old volume and deploy exactly as the README says. The lead removed `returnops-au-f02_postgres-data` by hand the same day, and `docker volume ls` confirmed it gone. Because the project name is fixed, every deployment that follows the README, rehearsal or demonstration, must end with `docker compose down -v` (step 20); otherwise the next fresh unzip meets the same password mismatch. Step 6 now starts with this check.
+2. **Node.** 24.14.0 is below the README range (`^24.15.0`). `npm ci` only warned (`EBADENGINE`, from test dependencies) and the dev server ran; upgrade before pass 1.
+3. **Step 13.** Without an order reference the case reached `AWAITING_INFORMATION` with the order question; after `SYN-1001` it reached `RISK_REVIEW` (case version 7). The customer page needed a manual refresh and shows raw status names (Issue #111, items 2 and 6).
+4. **Step 14.** Case list, detail, audit chain (7 hash-linked events) and live analytics worked. The Founder decision `MANUAL_HANDLING` on that case was refused with HTTP 403 `FORBIDDEN` (not retryable): `demo.py provision` grants no `founder-manual-v1` OUTCOME capability, REJECT and REQUEST_REVISION check their own capabilities (`founder-reject-v1`, `founder-revision-v1`) in the same way, and APPROVE needs the review and preview grants that only the driver inserts. The docs/45 S3 fallback therefore applies (section 7, gap 10).
+5. **Step 16.** 100 calls each, 0 non-2xx, client-side with `httpx` on the same machine: `POST /v1/cases` p50 192.7 ms, p95 238.3 ms; `GET /v1/cases/{case_id}` p50 180.8 ms, p95 218.9 ms. Not copied to docs/48 row 1, because that needs a passed rehearsal (step 16).
+6. **Steps 17-18.** The driver printed `R.02 demo mode: driver result PASSED (see run-receipt.json).`, and the Founder console showed its case `COMPLETED` (case version 13). Stopping the kept API child let the driver finish its own cleanup (`stopping the API child (it exited by itself)`, final line PASSED, exit code 0, no `r02-private-*` directory left).
+7. **Frontend items already in Issue #111 seen live:** a stale "Valid" session and the previous token pre-filled in the Auth Tokens dialog (items 1 and 12); mock demo cases and the hard-coded "Store: store_demo" label in live mode (item 3); "AI Proposal", "Autonomous" and "AI Confidence 0%" on the fixed proposal (item 4); dialogs that do not close with Esc (item 13).
 
 ## 6. Contribution statement draft
 
@@ -119,16 +142,16 @@ Attach this list (updated on the submission day) with the package, for example a
 3. A3 (OF-004) unmet: no carrier contract or test account; tutor disposition: **to record** (docs/46, section 5).
 4. C3 (OF-001) not started: depends on R.03.
 5. Advisory model showcase: merged (PR #94, #98); first live call recorded on 22 October 2026 ([docs/44](44-coordinator-showcase.md)); results in memory only; no audit event; customers never see it; the Founder card is in since #101.
-6. Frontend: live Founder decisions and live analytics are in the client since #102 (23 October 2026); the review follow-ups for B are in Issue #104.
+6. Frontend: live Founder decisions and live analytics are in the client since #102 (23 October 2026); the review follow-ups for B are in Issues #104 and #111 (items 1-6 required before the 29 October rehearsal; several were seen live in pass 0, section 5).
 7. The only proposer is the fixed synthetic one (`fixture-no-live-model`); the risk result in the end-to-end run is the controlled PASS receiver and risk stub.
 8. Proposal latency is Tier 0 (no samples): trusted start and end events are open ([docs/43](43-f06-analytics.md)).
 9. The driver composes its own API; `demo.py serve` and the image default CMD do not run the governed chain; Docker evidence is the image build and import probe; the Compose API is health-only ([docs/41](41-r02-end-to-end-evidence.md)).
-10. Which Founder decision a `demo.py serve` case can reach is unverified; escalation has no live route ([docs/45](45-stage2-demo-script.md), S3).
+10. On a `demo.py serve` case the Founder decisions are refused with 403 `FORBIDDEN`, because `demo.py provision` grants none of the decision capabilities (`MANUAL_HANDLING` tried in pass 0, section 5; REJECT and REQUEST_REVISION check their own capabilities the same way); APPROVE is shown only through the driver; escalation has no live route ([docs/45](45-stage2-demo-script.md), S3).
 11. Fault injection of `UNKNOWN` and `REPLAYED` paths in an end-to-end run, and Windows file permissions, are not covered (docs/41, Deferred).
 12. Scale and consistency findings of the 23 October 2026 review are open (GitHub issue #106; [docs/46](46-gate2-roadmap.md) section 8): the customer case view scans the whole audit table and fails closed above 16,384 audit rows; history snapshots are never pruned; customer reads take the exclusive fence; clarification rounds have no cap; three decision-boundary consistency items. None affects the demonstration volumes.
-13. Line endings: `.gitattributes` (#108) pins LF for every text file; the 24 Python files stored with CRLF from earlier Windows commits are converted by the whitespace-only pull request #109.
-12. The contract operations `reconcileOperation` and `retryNotification` are not registered as routes (R.05 research record, 22 October 2026).
-13. Deploy-from-zero steps other than the 7 September virtual-environment and Compose run are unverified until the rehearsal in section 5.
+13. Line endings (resolved): `.gitattributes` (#108) pins LF for every text file; the 24 Python files stored with CRLF from earlier Windows commits were converted by the whitespace-only pull request #109, merged on 23 October 2026.
+14. The contract operations `reconcileOperation` and `retryNotification` are not registered as routes (R.05 research record, 22 October 2026).
+15. Deploy-from-zero: pass 0 (24 October 2026, section 5) ran the README chapter from a zip of `main` on the demonstration machine, except the model showcase; pass 1 (29 October) and pass 2 (from the Canvas download) are still required.
 
 ## 8. Jira and GitHub evidence links
 
