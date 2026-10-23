@@ -310,6 +310,7 @@ class Run:
         self.identities_dir, self.api_port, self.keep_api = identities, api_port, keep_api
         self.engine = self.private = self.http = self.auth = self.case = self.ids = None
         self.store, self.people, self.receipt_written = STORE, dict(PEOPLE), False
+        self.receipt_withheld = False  # every receipt form contained private material; no file exists
         # Credentials withhold a log and refuse a receipt; local directories are
         # replaced in a kept log and refused in a receipt.
         self.tokens, self.secrets, self.locations, self.step_number = {}, [], [], 0
@@ -881,7 +882,8 @@ class Run:
                 if self.keep_api:  # demo mode: receipt first, then keep the child until Ctrl+C
                     self.data['finished_at'] = _text(_now())
                     self.publish()
-                    self.hold(api)
+                    if not self.receipt_withheld:  # no demo hold without a published receipt
+                        self.hold(api)
         except KeyboardInterrupt as error:
             self.conclude(error)
         except Exception as error:
@@ -982,8 +984,8 @@ class Run:
 
     def publish(self):
         """Write run-receipt.json once; a form that would contain a forbidden value is replaced by a smaller one.
-        receipt_written becomes true only after the file is written (or every form was withheld on purpose);
-        any other write failure propagates and leaves it false."""
+        receipt_written becomes true only after the file is written (or every form was withheld on purpose,
+        which also sets receipt_withheld: no file exists); any other write failure propagates and leaves it false."""
         stop = self.data.get('stop', {}).get('code')
         reduced = dict(format='r02-run-receipt/v1', work_package='R.02', result='FAILED',
                        stop=dict(code='RECEIPT_REDACTION_FAILED', original_result=self.data['result'],
@@ -999,6 +1001,7 @@ class Run:
                 self.data = candidate
             return
         self.receipt_written = True
+        self.receipt_withheld = True
         self.data = bare
         print('R.02: the run receipt was withheld because every form contained private material.', file=sys.stderr)
 
@@ -1054,7 +1057,9 @@ def main(argv=None):
     run = Run(output, keep_api_log=args.keep_api_log, allow_existing_data=args.allow_existing_data,
               identities=identities, api_port=args.api_port, keep_api=args.keep_api)
     result = run.execute()
-    if run.receipt_written:
+    if run.receipt_withheld:
+        print('R.02 driver result: FAILED (the run receipt was withheld because it contained private material).')
+    elif run.receipt_written:
         print('R.02 driver result: ' + result + ' (see ' + RECEIPT + ').')
     else:
         print('R.02 driver result: FAILED (the run receipt could not be written).')
