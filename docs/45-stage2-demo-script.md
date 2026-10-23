@@ -134,7 +134,7 @@ Actions (profile 2, Founder):
 
 Preconditions, to be settled at the rehearsal:
 
-- The live analytics call and the live decision POST need B's frontend change (Issue #91: remove the `501 NOT_IMPLEMENTED` gates in `client.ts`). Until it is merged and in the submitted tag, the client refuses both in live mode ([apps/web README](../apps/web/README.md), section 1.3).
+- The live analytics call and the live decision POST are in the client since B's #102 (23 October 2026): the console sends the decision built from the server's case view, shows the approval scope first, and treats only a matching ACCEPTED receipt as success ([apps/web README](../apps/web/README.md), section 1.3). The decision route exists only when `serve` runs with `--founder-decisions`.
 - Which decision is reachable on a `demo.py serve` case is unverified. From the files: REJECT needs an `AWAITING_APPROVAL` case with an accepted PASS or PASS_WITH_WARNING review ([docs/34](34-a201-founder-reject.md)), which only the driver produces; MANUAL_HANDLING without a proposal needs a processing-failure or order-lookup-block target and the `founder-manual-v1` OUTCOME capability ([docs/30](30-a201-manual-decision.md)), which `demo.py provision` does not grant. The rehearsal must find a case and decision that the server accepts, or use the fallback.
 - Fallback, said as such: show the server's refusal (a governed denial is itself the guard working), then the four decisions accepted against PostgreSQL in CI ([docs/40](40-founder-decision-http-boundary.md), DH01), or the decision screen in Mock Mode, announced as mock data.
 
@@ -148,7 +148,7 @@ Gloss: the model reads the customer's words and suggests structured facts; it ca
 
 Only if PR #94 is in the submitted tag, the key is present and `serve` runs with `--model-showcase`:
 
-1. Profile 2: open B's case. If B's facts card is merged (Issue #95), it reads "Model extraction, advisory - does not change any decision"; otherwise open the browser's developer tools, Network tab, and show the `facts` object in the response of `GET /v1/founder/cases/{case_id}` **(not verified)**.
+1. Profile 2: open B's case and its Order & Facts Projection tab. The card "Model extraction (advisory)" (B's #101, 23 October 2026) shows the facts with the line "Advisory only: these facts do not change any proposal, review, decision or execution. The Founder decides." If the card is absent, the model produced no accepted facts for this case; say so and show the `GET /v1/founder/cases/{case_id}` response in the browser's Network tab instead.
 2. Point at the six fields: `issue_category`, `customer_requested_outcome` (must equal what the customer chose), `possible_basis` (always `UNDETERMINED`), `assessment_status` (never `SUPPORTED`), `line_items` (always empty) and `summary` (at most 1000 characters).
 3. Fail-closed case: open B's second case. If the model followed the injected instruction, terminal 1 shows a WARNING line `coordinator_showcase outcome=REJECTED failure_code=SUPPORTED` (or `LINE_ITEMS`) and the Founder view has no facts. If the model ignored it, the facts still say `UNDETERMINED` and not `SUPPORTED`. Either way, say which of the two happened. In the live run of 22 October 2026 the model ignored the instruction and classified the case `OUT_OF_SCOPE` ([docs/44](44-coordinator-showcase.md), First live result).
 4. If a CLI run was made at the rehearsal, show its evidence file: model ID, prompt version, outcome, attempts, input and output tokens, latency; no statement text and no key.
@@ -203,7 +203,7 @@ Gloss: how we worked, and proof that the work is real.
 
 Actions:
 
-1. GitHub Actions: the CI run of the submission tag, all jobs; then run 39634415393 with the `end-to-end-no-llm` job.
+1. GitHub Actions: the CI run of the submission tag, all jobs; then run 39634415393 with the `end-to-end-no-llm` job. Keep [docs/48](48-agile-evidence-and-technology-data.md) open: its iteration table, the feedback-loop list and the technology table are the material for this segment.
 2. Jira KAN board: timeline and the R.05 / Gate 2 issues (KAN-38, KAN-39, KAN-40, KAN-41, KAN-42).
 3. Pull requests: one cycle each, for example #60 (B's frontend: review comments, fixes, merge), #89 and #90 (A: CI green, merged), #94 (advisory showcase, if merged).
 4. Core and optional mapping ([docs/07](07-frozen-work-allocation.md)):

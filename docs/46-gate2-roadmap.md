@@ -72,4 +72,16 @@ C3 is C's selected optional. C3.01 starts only after R.03 (the Gate 2 pilot), an
 
 These decisions do not change docs/08: Owners, Reviewers, S/F dependencies and acceptance texts stay as they are, and the deferred items remain open, not cancelled.
 
+## 8. Hardening backlog from the review of 23 October 2026
+
+Three independent read-only reviews of main on 23 October 2026 (decision boundary; customer, privacy and notification paths; analytics, driver and deployment tooling) found no exploitable authorization, upload, token or notification defect. The small fixes landed the same day (LF attributes, the API statement timeout, the R04 probe, `demo.py` error reasons, the interrupted driver receipt, strict query integers). The structural findings are scheduled after the 1 November submission because each changes a shared read path or a guard and needs its own PostgreSQL tests; they are tracked in GitHub issue #106 and are listed in [docs/47](47-stage2-submission-runbook.md) section 7 as known gaps:
+
+| Finding | Why it is deferred | Direction |
+|---|---|---|
+| Every customer case view scans the whole audit table for notification markers and fails closed with 409 above 16,384 audit rows (a few thousand cases) | Changes `history.case_view` and the notification marker discovery used by 36 guard modules | Scope marker discovery to the case with an index; keep the per-case bound; pin with a test that lowers the limit |
+| History snapshots and cursors are inserted on every read and never pruned | Touches the retention sweep and the read path | Prune expired rows in the sweep; test that reads do not grow the tables without bound |
+| Customer reads take the global exclusive fence because of those inserts | Follows from the previous item | Shared fence for reads once the inserts move |
+| Clarification rounds have no cap | New typed refusal in the customer contract path | Documented cap with a test |
+| Authority loss during a decision's service body is reported as 409 rather than 401/403; replay receipts are JSON-equal but not byte-identical; acceptance facts store 200 for the 202 route | Consistency, no data or safety effect | One PostgreSQL test each, then the mapping and `sort_keys` changes together |
+
 AI-assisted implementation and metadata preparation; author shuxiachai.
