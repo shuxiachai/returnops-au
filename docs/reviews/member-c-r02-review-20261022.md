@@ -418,3 +418,119 @@ backup was changed.
 These are local offline and review results, not live Risk/C3, Gold, measured
 human time, clean final application deployment or named personal/team acceptance.
 AI-assisted C preparation and verification; no A/B implementation edits.
+
+## 8. PR114 bounded review and receipt-publication finding — 23 October 2026
+
+Primary delivery: KAN-41; this section is AI-assisted C technical review,
+not C's personal signature or R.02/E.10 acceptance. It supersedes section 7's
+current-state conclusions only at the exact sources identified below.
+
+### Sources and owner response
+
+- A merged [PR #112](https://github.com/shuxiachai/returnops-au/pull/112) into main
+  `2a4d3ae258734ab91c90d9e27e3da14eccbde0c6` at 06:54:17 UTC. C's publication
+  branch ordinary-merges that source; all main README lines and A/B runtime
+  contents are preserved. No #114 implementation is included in this branch.
+- [A's Issue #103 response](https://github.com/shuxiachai/returnops-au/issues/103#issuecomment-6359315096)
+  explains the previously missed RECORDED-denial retry classification.
+  #112 now retries DENIED / INTERNAL_ERROR with no receipt irrespective of
+  denial-audit persistence, still with a bounded attempt count and unchanged
+  final receipt/claim/effect assertions. This is A's code-path diagnosis;
+  C did not reconstruct the two original failed cloud callers.
+- [A's PR #93 response](https://github.com/shuxiachai/returnops-au/pull/93#issuecomment-6359315535)
+  points to [PR #114](https://github.com/shuxiachai/returnops-au/pull/114)
+  exact head `590b4229ca20cd6e6ad34f026fd32d6ae93e421b`.
+  C inspected an isolated archive of that head, not a floating branch.
+  The candidate moves raw API logs into the private directory and independently
+  attempts dispose, screening, private removal and receipt publication.
+- [A requested a PR for this six-file C review packet](https://github.com/shuxiachai/returnops-au/pull/61#issuecomment-6359315897).
+  Publication still requires A's exact-new-head review and lead-written
+  squash; #17/#61's adoption does not adopt this separate packet.
+
+### Independent offline verification
+
+On the isolated #114 source, with existing locked dependencies and explicit
+source-local imports:
+
+```sh
+env -u DATABASE_URL -u TMPDIR PYTHONPATH=packages:apps/api \
+  PYTHONDONTWRITEBYTECODE=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 \
+  python -B -m pytest tests/founder/test_r02_driver_offline.py \
+  tests/founder/test_r02_demo_mode_offline.py \
+  tests/lifecycle/test_founder_reject_offline.py -q -p no:cacheprovider
+```
+
+**105 tests passed.** An initial command used the wrong directory for the
+reject test and collected no tests (exit 4); the corrected command above is the
+passing run. Both records are retained. No dependency install, database,
+real child process, provider call, credential or private Gold input was used.
+
+The original follow-up probe's interruption/disposal paths now show terminal
+FAILED/INTERRUPTED, private raw-log targeting, and later cleanup/publication
+attempts even when disposal raises. This narrows **R02-C-01** and the original
+**R02-C-02** observations; it is not complete filesystem/permission/signal/PG
+failure-matrix acceptance. A's forced-PG RECORDED/NOT_RECORDED tests and claimed
+local results are distinct from C's offline execution.
+
+### R02-C-03 — P2: an unwritable final receipt can still report PASSED
+
+At exact #114 head, `tools/r02/driver.py:958–961` catches receipt-publication
+exceptions and prints a fixed safe message but leaves the successful result
+unchanged. `publish()` also sets `receipt_written=True` before attempting
+the write. `main()` at lines 1051–1053 then prints PASSED and returns 0.
+
+C reproduced this using the actual execute/main/finish/publish control flow,
+a successful synthetic chain and a patched `write_receipt` raising OSError.
+All API, client, directory and cleanup effects are replaced in memory. The
+observation is successful process status despite failed receipt persistence,
+not a real disk-full event, leaked secret or failed business operation.
+The same probe against main-equivalent `2a4d3ae` propagates OSError and does
+not claim PASSED/exit 0; the new false-success observation is specific to the
+#114 candidate, not retrospectively assigned to the older source.
+The safe stderr message and continued cleanup are improvements; they do not
+make the missing receipt a successful evidence-producing run.
+
+Use the updated C-only diagnostic against the exact candidate:
+
+```sh
+PYTHONPATH=packages:apps/api python -B \
+  docs/reviews/member-c-r02-followup-probe-20261023.py /path/to/pr114-exact-source
+```
+
+The output names each finding separately. An open C03 makes the overall probe
+exit nonzero even when C01 and the original C02 paths improved. Do not count
+that diagnostic exit as a new failed PostgreSQL run or add the historical
+expected-bug probe to normal CI.
+
+**Requested owner disposition:** keep cleanup stages independent, but make an
+unsuccessful final receipt write yield a sanitized non-success result/exit;
+do not claim receipt-written success before durable publication. Add regressions
+for the CLI exit/stdout/receipt-state combination, including the keep-api path,
+with no exception payload/DSN leakage. C has not changed A's driver.
+
+### C publication checks and remaining boundary
+
+On C's main-equivalent runtime at `2a4d3ae`, the focused R.02/C2/handoff command
+passed **101 tests / 82 subtests**. The full offline runner passed all six steps:
+371 contracts, six static groups, 12 model-checker tests, 32 runner tests,
+14 Mermaid parses and 64 synthetic-provider tests. Counts overlap earlier
+checks and are not additional independent business scenarios. The inherited
+WBS ID/owner/reviewer/S/F and A/B runtime remain unchanged.
+
+#114's required PG/final checks must be read from its actual CI run
+[39914418314](https://github.com/shuxiachai/returnops-au/actions/runs/39914418314);
+the local 105-test result does not stand in for them. The new P2 still needs
+A's disposition and an exact-fix recheck even if that run becomes green.
+At the 07:21 UTC check, the PostgreSQL lifecycle_core job
+[120284664997](https://github.com/shuxiachai/returnops-au/actions/runs/39914418314/job/120284664997)
+was FAILURE while other PG jobs were still running. Its log download returned
+HTTP 503 / account egress limit; C therefore does not name a failing test or
+attribute that failure to C03 or R04. No repeated download or CI rerun was made.
+No workflow was disabled or manually rerun. C's own PR needs its separate
+required checks and non-author review before adoption.
+
+Still outstanding: original Gate 1 dependencies/acceptance, approved exact
+corpus/runtime pin, real independent C2 and five-branch integration, pilot/Gold,
+C3, C's own-words explanation/contribution confirmation and joint rehearsal.
+This packet supplies review-to-fix evidence, not a completion percentage or
+a tutor waiver for deferred work.

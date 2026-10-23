@@ -10,6 +10,40 @@
 
 # ReturnOps AU
 
+## C review publication follow-up — 23 October 2026 evening (Sydney)
+
+Primary delivery: [KAN-41](https://lucastaooo.atlassian.net/browse/KAN-41).
+This dated C notice supersedes the current-state wording in earlier C receipts,
+without deleting their source-specific findings or test results.
+
+- Following [A's request](https://github.com/shuxiachai/returnops-au/pull/61#issuecomment-6359315897),
+  this six-file C review/handoff branch is submitted for A's exact-head review
+  and lead-written squash via its PR against main. PR #17 and #61 are already merged;
+  this separate review packet is not yet adopted merely because it is published.
+- The branch ordinary-merges main `2a4d3ae258734ab91c90d9e27e3da14eccbde0c6`
+  (#112), preserving all main README lines and A/B runtime files. #112 widens
+  the bounded transient retry classification; the earlier `c4d0879` failure is
+  historical evidence, not a check result for this newer source.
+- C independently checked [PR #114](https://github.com/shuxiachai/returnops-au/pull/114)
+  at `590b4229ca20cd6e6ad34f026fd32d6ae93e421b`: **105 offline tests passed**.
+  The original narrow interruption/cleanup/log observations improved. However,
+  a new synthetic failure probe shows that an unwritable final receipt can
+  still leave the command claiming `PASSED` with exit 0. This is **R02-C-03**,
+  sent for A's disposition; no actual filesystem failure or secret leak is claimed.
+  #114 is a separately reviewed candidate, not code merged into this C branch.
+- The [C review record](docs/reviews/member-c-r02-review-20261022.md#8-pr114-bounded-review-and-receipt-publication-finding--23-october-2026)
+  distinguishes exact sources, safe reproduction, remaining failure-matrix/PG
+  limits and current review findings. Neither offline tests nor green CI alone
+  establish Gate 1 or a personal/team sign-off.
+
+Next independent follow-up: review the owner's response and recheck any fix
+against its exact source. Still requiring actual people or approved
+runtime evidence: C's own S6 explanation and contribution/AI-use confirmation,
+team rehearsal, exact-byte corpus admission, real Risk/pilot/Gold/C3 and final
+submission-source acceptance. A's scheduling deferral is not a tutor waiver.
+AI-assisted C preparation; no A/B implementation edits, main merge by C,
+live model call, invented timing, contribution agreement or Done transition.
+
 ## C adoption and review update — 23 October 2026 (Sydney)
 
 Tracking: [KAN-23](https://lucastaooo.atlassian.net/browse/KAN-23) /

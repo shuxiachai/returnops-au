@@ -156,8 +156,11 @@ independently, but cannot manufacture these decisions or personal acceptance.
 
 A's new [PR #94](https://github.com/shuxiachai/returnops-au/pull/94) is a
 default-off advisory Coordinator candidate, not this independent reviewer.
-Its live result is still pending; neither that candidate nor the R.02 stub
-establishes C2 model-quality or full three-role integration evidence.
+At that initial inspection its live result was pending. A subsequently recorded
+advisory Coordinator calls in docs/44–47 (published by main `f6de49d6` and its
+successors). Those are not this independent C2 Risk invocation; neither that
+showcase nor the R.02 stub establishes C2 model-quality or full three-role
+integration evidence.
 
 ### S6 demo preparation — 22 October evening
 
