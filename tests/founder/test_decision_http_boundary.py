@@ -255,6 +255,23 @@ def test_invalid_or_missing_key_rejected_before_body(boundary, key):
     assert boundary.body_reads == 0 and boundary.calls == []
 
 
+@pytest.mark.parametrize('key', ['k' * 8, 'K.9_:-' + 'a' * 122, 'abc.def:ghi-jkl_01'])
+def test_key_length_boundaries_are_accepted_and_forwarded_unchanged(boundary, key):
+    assert 8 <= len(key) <= 128
+    response = boundary.send(headers=headers(boundary, key))
+    assert response.status == 202 and len(boundary.calls) == 1 and boundary.calls[0][3] == key
+    assert boundary.body_reads == 1
+
+
+@pytest.mark.parametrize('raw_key', [b'k\xc3\xa9y-00000000', b'key\x00padding00', b'key\x7fpadding00',
+                                     b'\xe2\x80\x8bzero-width-key', b'key-with-tab\t0000'])
+def test_non_ascii_or_control_bytes_in_key_rejected_before_body(boundary, raw_key):
+    wire = [(b'authorization', boundary.bearer().encode()), (b'idempotency-key', raw_key),
+            (b'content-type', b'application/json')]
+    assert_error(boundary.send(headers=wire), 422, 'VALIDATION_ERROR')
+    assert boundary.body_reads == 0 and boundary.calls == []
+
+
 @pytest.mark.parametrize('duplicate', [b'idempotency-key', b'content-type'])
 def test_duplicate_non_auth_headers_rejected(boundary, duplicate):
     wire = headers(boundary)

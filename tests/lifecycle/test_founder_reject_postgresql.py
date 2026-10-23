@@ -177,6 +177,13 @@ def test_R04_independent_process_competition(flow_engine, identities, enabled, r
             if child.poll() is None:child.kill();child.communicate(timeout=10)
     assert not any(value for output in outputs for value in output['effects'].values())
     assert sum(x['reject_claims'] for x in outputs)==1
+    # A caller may have re-sent its key once after the retryable transient (fence lock_timeout
+    # under load); such an attempt is DENIED/INTERNAL_ERROR with no denial audit, never a receipt.
+    for output in outputs:
+        attempts=output['attempts']
+        assert 1<=len(attempts)<=2 and attempts[-1]['status']==output['status']
+        for earlier in attempts[:-1]:
+            assert (earlier['status'],earlier['safe_code'],earlier['audit'])==('DENIED','INTERNAL_ERROR','NOT_RECORDED')
     if keys=='same':
         assert all(x['status']=='ACCEPTED' for x in outputs) and outputs[0]['receipt']==outputs[1]['receipt']
     else:assert sorted(x['status'] for x in outputs)==['ACCEPTED','DENIED']

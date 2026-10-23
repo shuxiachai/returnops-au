@@ -438,6 +438,29 @@ def test_keep_api_writes_the_receipt_then_holds_then_stops(tmp_path, monkeypatch
         assert value not in content and value not in printed.out and value not in printed.err
 
 
+def test_ctrl_c_during_the_chain_records_interrupted_and_stops_the_child(tmp_path, monkeypatch, capsys):
+    directory, _ = _provision(tmp_path, monkeypatch)
+    output, events = tmp_path / 'out', []
+    output.mkdir()
+    _fake_run(monkeypatch, tmp_path, events, 'PASSED')
+
+    def customer_create(self):
+        self.step_number, self.case = 3, 'case_r02_demo'
+        raise KeyboardInterrupt()
+
+    monkeypatch.setattr(driver.Run, 'customer_create', customer_create)
+    monkeypatch.setattr(driver.api_child, 'hold', lambda api, **options: pytest.fail('an interrupted run never holds'))
+    run = driver.Run(output, identities=directory, api_port=8765, keep_api=False)
+    assert run.execute() == 'FAILED'
+    assert events == [('start', {'port': 8765}), 'stop']
+    receipt = json.loads((output / driver.RECEIPT).read_text(encoding='ascii'))
+    assert receipt['result'] == 'FAILED' and receipt['stop'] == dict(code='INTERRUPTED', step=3)
+    assert 'finished_at' in receipt and receipt['private_directory_removed'] is True
+    printed = capsys.readouterr()
+    for value in [*run.ids.secret_values(), 'Bearer', str(directory)]:
+        assert value not in printed.out and value not in printed.err
+
+
 def test_default_mode_stops_the_child_before_the_receipt_and_never_holds(tmp_path, monkeypatch):
     output, events = tmp_path / 'out', []
     output.mkdir()

@@ -90,6 +90,12 @@ python3.12 -m venv .venv
 .venv/bin/python -B tools/environment/local.py init
 ```
 
+Line endings: `.gitattributes` checks every text file out with LF on every
+platform, so a Windows clone with `core.autocrlf=true` still gets byte-exact
+files; the digest-pinned C1 corpus fixtures and the CI "no carriage return"
+checks depend on this (a clone made before 23 October 2026 needs
+`git add --renormalize .` or a fresh clone).
+
 `requirements-dev.lock` is needed, not only `requirements.lock`: the R.02
 driver uses `httpx`, a development dependency. `local.py init` creates the
 git-ignored `.env` once (0600, never overwritten, nothing secret printed) with
@@ -118,6 +124,18 @@ docker compose ps -a
 curl -s http://127.0.0.1:8001/health/live
 curl -s http://127.0.0.1:8001/health/ready
 ```
+
+Pitfall seen on 22 October 2026: a volume left by an earlier deployment on the
+same machine (the project name is fixed to `returnops-au-f02`, so every checkout
+shares the volume `returnops-au-f02_postgres-data`, and PostgreSQL keeps the
+password of the existing data directory) makes `migrate` exit 1 while `db`
+reports healthy; `docker compose up --wait` only says the dependency failed, and
+`docker compose logs migrate` shows the fixed `Database migration failed` line.
+Either reuse that deployment's `.env`, or start under another project name
+(`docker compose -p returnops-live up --build -d --wait --wait-timeout 180`,
+then use `-p returnops-live` on every later command), or remove the old volume
+deliberately (`docker compose down -v`, or `docker volume rm
+returnops-au-f02_postgres-data`; this deletes its data).
 
 Order inside Compose: `db` (PostgreSQL 17, healthy through `pg_isready`,
 published only on `127.0.0.1:DB_PORT`) -> `migrate` (`python -m alembic upgrade
@@ -259,9 +277,11 @@ evidence; an evidence run needs a fresh database (docs/41, "Re-running").
   followed by lowercase letters, digits or underscores (at most 63
   characters), with no `?` or `#` (`settings.require_environment_database`).
   Otherwise Alembic, `demo.py` and the driver refuse (`DATABASE_URL_REJECTED`).
-- **Statement timeout:** the API engine sets `statement_timeout=2000` (2 s,
-  `database.py`); the driver's own engine uses 10 s. A slow machine can turn
-  an HTTP step into 503 `INTERNAL_ERROR`; see "If a step fails" in
+- **Statement timeout:** the API engine sets `statement_timeout=10000` (10 s,
+  `database.py`, since 23 October 2026; it was 2 s, shorter than the 5 s fence
+  `lock_timeout` it has to outlast), the same as the driver's engine and the
+  test engines. A slow machine can still turn an HTTP step into 503
+  `INTERNAL_ERROR` (retryable, keep the key); see "If a step fails" in
   `tools/r02/README.md`.
 - **401 in the frontend after about 15 minutes:** the 899 s sessions have
   expired. Provision new principal IDs (the registry refuses existing IDs);
@@ -272,7 +292,15 @@ evidence; an evidence run needs a fresh database (docs/41, "Re-running").
   docker command (docs/10).
 - **Driver refusals in demo mode** (`STORE_HAS_CASES`,
   `STORE_INVESTIGATION_CONFIGURED`, `FOREIGN_PENDING_WORK`, `IDENTITIES_*`,
-  `IDENTITY_SESSION_WINDOW_TOO_SHORT`): see the driver README.
+  `IDENTITY_SESSION_WINDOW_TOO_SHORT`): see the driver README. For
+  `FOREIGN_PENDING_WORK` after stopping `demo.py serve` mid-work: start
+  `demo.py serve` again for about ten seconds so its workers finish or reclaim
+  the `PENDING` / `RUNNING` rows, stop it, then rerun the driver with a new
+  `--output`.
+- **`demo.py` prints "Demo setup or startup failed: ..."**: the sentence after
+  the colon is the safe reason (for example a reused `--private-dir`, duplicate
+  principal IDs, a missing authentication file or a missing `RETURNOPS_MODEL_*`
+  variable); it never contains a key, a database URL or a path.
 
 AI-assisted implementation and metadata preparation; author shuxiachai.
 
