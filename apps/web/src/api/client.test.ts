@@ -16,6 +16,7 @@ import {
   downloadEvidence,
   ApiError,
 } from './client';
+import type { AnalyticsSnapshot, CaseStatus, RiskOutcome } from '../types/domain';
 
 describe('client', () => {
   beforeEach(() => {
@@ -129,6 +130,18 @@ describe('client', () => {
       expect(detail.current_review).not.toHaveProperty('risk_outcome');
     });
 
+    it('adds no facts when a founder view falls back to a mock customer case (Issue #95)', async () => {
+      const created = await createCase({
+        original_message: 'The toaster arrived with a cracked casing.',
+        requested_outcome: 'REFUND',
+        evidence_ids: [],
+      });
+
+      const detail = await getFounderCase(created.case_id);
+      expect(detail.case_id).toBe(created.case_id);
+      expect(detail).not.toHaveProperty('facts');
+    });
+
     it('retrieves tamper-evident audit trail for a case', async () => {
       const audit = await listFounderCaseAudit('case_demo_001');
       expect(audit.length).toBeGreaterThan(0);
@@ -167,13 +180,36 @@ describe('client', () => {
       expect(receipt).not.toHaveProperty('approval_id');
     });
 
-    it('fetches operations analytics snapshot with throughput and latency', async () => {
+    it('serves a mock analytics snapshot that keeps the contract invariants', async () => {
       const analytics = await getFounderAnalytics();
-      expect(analytics.case_count).toBeGreaterThan(0);
-      expect(analytics.proposal_latency?.p50_ms).toBeGreaterThan(0);
-      expect(analytics.proposal_latency?.p95_ms).toBeGreaterThan(0);
-      expect(analytics.cases_by_status.length).toBeGreaterThan(0);
-      expect(analytics.current_risk_counts.length).toBeGreaterThan(0);
+      const total = (buckets: Array<{ count: number }>) => buckets.reduce((sum, b) => sum + b.count, 0);
+      const latency = analytics.proposal_latency;
+
+      expect(analytics.filters).toEqual({});
+      expect(analytics.case_count).toBe(128);
+      expect(total(analytics.cases_by_status)).toBe(analytics.case_count);
+      expect(total(analytics.current_risk_counts) + analytics.cases_without_current_review).toBe(
+        analytics.case_count
+      );
+      expect(latency.sample_count + latency.failed_count + latency.unmeasured_count).toBe(analytics.case_count);
+      // Percentiles are present because there are samples, and p50 <= p95.
+      expect(latency.sample_count).toBeGreaterThan(0);
+      expect(latency.p50_ms).toBeGreaterThan(0);
+      expect(latency.p95_ms).toBeGreaterThanOrEqual(latency.p50_ms ?? Infinity);
+
+      // No zero buckets, no repeats, and buckets in contract enum order.
+      const statusOrder: CaseStatus[] = [
+        'SUBMITTED', 'AWAITING_INFORMATION', 'UNDER_INVESTIGATION', 'POLICY_ASSESSMENT',
+        'RISK_REVIEW', 'AWAITING_APPROVAL', 'APPROVED', 'ACTION_IN_PROGRESS', 'ACTION_FAILED',
+        'RECONCILING', 'ESCALATED', 'NOTIFICATION_PENDING', 'NOTIFICATION_FAILED', 'COMPLETED',
+        'REJECTED', 'MANUAL_HANDLED',
+      ];
+      const riskOrder: RiskOutcome[] = ['PASS', 'PASS_WITH_WARNING', 'REVISE', 'NEEDS_INFORMATION', 'ESCALATE'];
+      const statuses = analytics.cases_by_status.map((b) => b.status);
+      const outcomes = analytics.current_risk_counts.map((b) => b.outcome);
+      expect(statuses).toEqual(statusOrder.filter((s) => statuses.includes(s)));
+      expect(outcomes).toEqual(riskOrder.filter((o) => outcomes.includes(o)));
+      expect([...analytics.cases_by_status, ...analytics.current_risk_counts].every((b) => b.count > 0)).toBe(true);
     });
 
     it('stages evidence file mock successfully', async () => {
@@ -365,16 +401,181 @@ describe('client', () => {
       expect(seen[1]?.url).toContain('/v1/cases');
     });
 
-    it('gates undeployed Founder decision and analytics endpoints with an explicit 501', async () => {
-      await expect(
-        recordFounderDecision('case_demo_001', {
-          expected_case_version: 2,
-          decision: 'APPROVE',
-          reason: 'x',
-        })
-      ).rejects.toMatchObject({ status: 501, code: 'NOT_IMPLEMENTED' });
+    // Latency tier 0, as the server reports today: no samples and no percentiles.
+    const TIER0_SNAPSHOT: AnalyticsSnapshot = {
+      as_of: '2026-10-22T09:30:00.123456Z',
+      filters: {},
+      case_count: 3,
+      cases_by_status: [
+        { status: 'SUBMITTED', count: 2 },
+        { status: 'REJECTED', count: 1 },
+      ],
+      current_risk_counts: [{ outcome: 'PASS', count: 1 }],
+      cases_without_current_review: 2,
+      proposal_latency: {
+        metric_version: 'proposal-latency-v1',
+        sample_count: 0,
+        failed_count: 1,
+        unmeasured_count: 2,
+      },
+    };
 
-      await expect(getFounderAnalytics()).rejects.toMatchObject({ status: 501, code: 'NOT_IMPLEMENTED' });
+    it('reads live analytics with the Bearer token and sends only the contract filters that are set', async () => {
+      setStoredToken('founder.bearer.token');
+      const calls: Array<{ url: URL; auth: string | null }> = [];
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (url: string, init: RequestInit = {}) => {
+          calls.push({
+            url: new URL(String(url), 'http://localhost'),
+            auth: new Headers(init.headers).get('Authorization'),
+          });
+          return jsonResponse(200, TIER0_SNAPSHOT);
+        })
+      );
+
+      await expect(getFounderAnalytics()).resolves.toEqual(TIER0_SNAPSHOT);
+      await getFounderAnalytics({
+        created_from: '2026-10-01T00:00:00Z',
+        created_before: '2026-10-08T00:00:00Z',
+        status: 'REJECTED',
+      });
+      await getFounderAnalytics({ status: 'AWAITING_APPROVAL' });
+
+      expect(calls.map((call) => call.url.pathname)).toEqual([
+        '/v1/founder/analytics',
+        '/v1/founder/analytics',
+        '/v1/founder/analytics',
+      ]);
+      expect(calls[0].url.search).toBe('');
+      expect([...calls[1].url.searchParams.entries()]).toEqual([
+        ['created_from', '2026-10-01T00:00:00Z'],
+        ['created_before', '2026-10-08T00:00:00Z'],
+        ['status', 'REJECTED'],
+      ]);
+      expect([...calls[2].url.searchParams.entries()]).toEqual([['status', 'AWAITING_APPROVAL']]);
+      expect(calls.every((call) => call.auth === 'Bearer founder.bearer.token')).toBe(true);
+    });
+
+    it('passes an analytics error response through as an ApiError (stubbed 422, query not validated here)', async () => {
+      // The stub answers 422 whatever the query is; only the pass-through is checked.
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () =>
+          jsonResponse(422, { error: { code: 'VALIDATION_ERROR', message: 'Request fields are invalid.' } })
+        )
+      );
+
+      await expect(getFounderAnalytics({ created_from: '2026-10-08T00:00:00Z' })).rejects.toMatchObject({
+        status: 422,
+        code: 'VALIDATION_ERROR',
+      });
+    });
+
+    it('posts a contract-exact Founder decision with the Bearer token and an Idempotency-Key', async () => {
+      setStoredToken('founder.bearer.token');
+      const seen: Array<{ url: URL; method?: string; headers: Headers; body: unknown }> = [];
+      const receipt = {
+        case_id: 'case_live_01',
+        case_version: 5,
+        decision_id: 'dec_live_01',
+        decision: 'REJECT',
+        accepted_at: '2026-10-22T10:00:00Z',
+        processing_status: 'ACCEPTED',
+      };
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (url: string, init: RequestInit = {}) => {
+          seen.push({
+            url: new URL(String(url), 'http://localhost'),
+            method: init.method,
+            headers: new Headers(init.headers),
+            body: JSON.parse(String(init.body)),
+          });
+          return jsonResponse(202, receipt);
+        })
+      );
+
+      const body = {
+        expected_case_version: 4,
+        decision: 'REJECT' as const,
+        reason: 'Outside the change-of-mind window.',
+        proposal_id: 'prop_live_01',
+        proposal_version: 2,
+      };
+      await expect(recordFounderDecision('case_live_01', body, 'decision_idem_live_01')).resolves.toEqual(receipt);
+      // Without a caller key the client still sends a contract-shaped one.
+      await recordFounderDecision('case_live_01', body);
+
+      expect(seen[0].url.pathname).toBe('/v1/founder/cases/case_live_01/decisions');
+      expect(seen[0].method).toBe('POST');
+      expect(seen[0].headers.get('Authorization')).toBe('Bearer founder.bearer.token');
+      expect(seen[0].headers.get('Content-Type')).toBe('application/json');
+      expect(seen[0].headers.get('Idempotency-Key')).toBe('decision_idem_live_01');
+      // Exactly the request fields: the client adds nothing to the body.
+      expect(seen[0].body).toStrictEqual(body);
+      expect(seen[1].headers.get('Idempotency-Key')).toMatch(/^[A-Za-z0-9._:-]{8,128}$/);
+    });
+
+    it('reports a server without the decision route and keeps contract refusals unchanged', async () => {
+      const body = {
+        expected_case_version: 2,
+        decision: 'MANUAL_HANDLING' as const,
+        reason: 'Take the case over manually.',
+        processing_failure_id: 'fail_live_01',
+      };
+
+      // Flag off: the framework's 404 carries no contract error envelope.
+      vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(404, { detail: 'Not Found' })));
+      await expect(recordFounderDecision('case_live_01', body)).rejects.toMatchObject({
+        status: 404,
+        code: 'DECISION_ROUTE_NOT_SERVED',
+      });
+
+      // Refusals from the route itself keep their contract status and code.
+      const refusals: Array<[number, string]> = [
+        [403, 'FORBIDDEN'],
+        [404, 'NOT_FOUND'],
+        [409, 'STALE_CASE_VERSION'],
+        [422, 'VALIDATION_ERROR'],
+        [503, 'INTERNAL_ERROR'],
+      ];
+      for (const [status, code] of refusals) {
+        vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(status, { error: { code, message: 'Refused.' } })));
+        await expect(recordFounderDecision('case_live_01', body)).rejects.toMatchObject({ status, code });
+      }
+    });
+
+    it('treats a 2xx reply that is not a matching accepted receipt as an unknown outcome', async () => {
+      const body = {
+        expected_case_version: 4,
+        decision: 'REJECT' as const,
+        reason: 'Outside the change-of-mind window.',
+        proposal_id: 'prop_live_01',
+        proposal_version: 2,
+      };
+      const receipt = {
+        case_id: 'case_live_01',
+        case_version: 5,
+        decision_id: 'dec_live_01',
+        decision: 'REJECT',
+        accepted_at: '2026-10-22T10:00:00Z',
+        processing_status: 'ACCEPTED',
+      };
+      const replies = [
+        { ...receipt, case_id: 'case_other_01' },
+        { ...receipt, decision: 'APPROVE', approval_id: 'appr_live_01' },
+        { ...receipt, processing_status: 'PENDING' },
+        {},
+      ];
+
+      for (const reply of replies) {
+        vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(202, reply)));
+        await expect(recordFounderDecision('case_live_01', body)).rejects.toMatchObject({
+          status: 0,
+          code: 'RECEIPT_MISMATCH',
+        });
+      }
     });
   });
 
