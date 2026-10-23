@@ -45,7 +45,7 @@ Follow the [README "Deploy from zero"](../README.md#deploy-from-zero---22-octobe
 1. Download the package from the Canvas submission, compute its SHA-256 and compare it with the value recorded in the [runbook](47-stage2-submission-runbook.md) (section 4). Unzip.
 2. `python -m venv .venv`; `pip install --require-hashes -r requirements-dev.lock`; `pip install --no-deps --no-build-isolation -e .`; `pip check` (README step 1).
 3. `python -B tools/environment/local.py init`. Expected: `Created ignored local configuration with a fresh password; no secret displayed.` Change `API_PORT=8000` to `API_PORT=8001` in `.env`.
-4. `docker compose config --quiet`, then `docker compose up --build -d --wait --wait-timeout 180` and `docker compose ps -a`. Expected: `db` healthy (PostgreSQL 17), `migrate` Exited (0) after `alembic upgrade head`, `api` healthy; `/health/live` on 8001 returns `{"status":"alive"}`, `/health/ready` returns `{"status":"ready"}` (README step 2). This Compose API is health-only (no auth file, business routes 503); it is not the demo API.
+4. Check that `docker volume ls` lists no `returnops-au-f02_postgres-data` (removed from the demonstration machine on 24 October 2026; every rehearsal ends with `docker compose down -v`, [runbook](47-stage2-submission-runbook.md) section 5, steps 6 and 20). Then `docker compose config --quiet`, then `docker compose up --build -d --wait --wait-timeout 180` and `docker compose ps -a`. Expected: `db` healthy (PostgreSQL 17), `migrate` Exited (0) after `alembic upgrade head`, `api` healthy; `/health/live` on 8001 returns `{"status":"alive"}`, `/health/ready` returns `{"status":"ready"}` (README step 2). This Compose API is health-only (no auth file, business routes 503); it is not the demo API.
 5. Optional host check of the migration: `local.py run python -m alembic upgrade head` (README step 2, **not verified**).
 6. In `apps/web`: `npm ci` (README step 4). Leave `VITE_API_BASE_URL` unset.
 
@@ -246,6 +246,7 @@ Say: "Gate 2 connects the three model roles, Coordinator, Assessment and an inde
 ## 5. After the demo
 
 - Ctrl+C in the driver's terminal stops the kept API. Delete `tmp/demo-shop` and `tmp/demo-cups` (signing keys and tokens) and use **Clear token** in both browser profiles (README step 5).
+- `docker compose down -v` in the package directory removes the Compose containers and the database volume, so the next fresh deployment on this machine starts clean (runbook section 5, step 20).
 - Unset the `RETURNOPS_MODEL_*` variables and close the serving shell.
 - Record in the runbook's R.05.b section: date, machine, package hash, which segments ran live, which fallbacks were used and any failure, without editing the outcome afterwards.
 
