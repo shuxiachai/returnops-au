@@ -32,7 +32,7 @@ Lecture 8 asks for representative agent results, failure cases and operating cos
 
 ### 2.1 Machine and network
 
-- [ ] Demo machine chosen. Prefer Linux, macOS or WSL: the driver's 0700/0600 private files were exercised on the Linux CI runner only and are unverified on Windows ([docs/41](41-r02-end-to-end-evidence.md), Deferred). On Windows, CPython 3.12.4 or later is required ([README](../README.md#deploy-from-zero---22-october-2026-sydney), Prerequisites).
+- [ ] Demo machine: the lead's Windows 11 laptop, where pass 0 ran the whole README chapter and the driver on 24 October 2026 ([runbook](47-stage2-submission-runbook.md) section 5). The driver's 0700/0600 private file modes were exercised on the Linux CI runner only and are not enforced the same way on Windows ([docs/41](41-r02-end-to-end-evidence.md), Deferred), so keep `tmp/demo-shop` and `tmp/demo-cups` inside the package folder and delete them after the demo. On Windows, CPython 3.12.4 or later is required ([README](../README.md#deploy-from-zero---22-october-2026-sydney), Prerequisites).
 - [ ] Prerequisites from README section 0: CPython 3.12, Docker with Compose v2, Node.js `^22.22.2 || ^24.15.0 || >=26.0.0` with npm 10 or later, free loopback ports 5433, 8001 (Compose API after the `.env` edit), 8000 (demo API) and 5173 (Vite).
 - [ ] Network reaches PyPI, the npm registry and Docker Hub (the on-site deployment installs locked dependencies and pulls digest-pinned images) **(not verified at the venue)**.
 - [ ] Model showcase only: the course proxy's base URL, model name and any VPN or proxy requirement are known, and the key is available to type into the serving shell's environment. None of these is in the repository; what was learned on 22 October 2026 (the course proxy is plain http on a private VPN address, hence `RETURNOPS_MODEL_ALLOW_PRIVATE_HTTP=1`) is in `docs/44-coordinator-showcase.md` (Provider record, Limitations and First live result; PR #94 and #98, merged 22 October 2026).
@@ -47,7 +47,7 @@ Follow the [README "Deploy from zero"](../README.md#deploy-from-zero---22-octobe
 3. `python -B tools/environment/local.py init`. Expected: `Created ignored local configuration with a fresh password; no secret displayed.` Change `API_PORT=8000` to `API_PORT=8001` in `.env`.
 4. Check that `docker volume ls` lists no `returnops-au-f02_postgres-data` (removed from the demonstration machine on 24 October 2026; every rehearsal ends with `docker compose down -v`, [runbook](47-stage2-submission-runbook.md) section 5, steps 6 and 20). Then `docker compose config --quiet`, then `docker compose up --build -d --wait --wait-timeout 180` and `docker compose ps -a`. Expected: `db` healthy (PostgreSQL 17), `migrate` Exited (0) after `alembic upgrade head`, `api` healthy; `/health/live` on 8001 returns `{"status":"alive"}`, `/health/ready` returns `{"status":"ready"}` (README step 2). This Compose API is health-only (no auth file, business routes 503); it is not the demo API.
 5. Optional host check of the migration: `local.py run python -m alembic upgrade head` (README step 2, **not verified**).
-6. In `apps/web`: `npm ci` (README step 4). Leave `VITE_API_BASE_URL` unset.
+6. In `apps/web`: `npm ci --no-audit --no-fund` (README step 4; the flags only shorten the output, see known gap 17 in the [runbook](47-stage2-submission-runbook.md)). Leave `VITE_API_BASE_URL` unset.
 
 ### 2.3 Demo identities, API and frontend (T-5 minutes)
 
