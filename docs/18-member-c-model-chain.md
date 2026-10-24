@@ -287,3 +287,54 @@ B's APPROVED review is a real recorded consumer-review event on C `c9f205d`; its
 F.03 / [KAN-34](https://lucastaooo.atlassian.net/browse/KAN-34) at `5bc59f5741d35e48f344fc3533889c3655f8823d` adds an isolated identity/access candidate. Owner A, Reviewer C, S=F.01, F=F.02 remain fixed. It does not implement C1/C2/C3 or replace Domain's atomic current-authority/identity/version checks. C's review preparation, any actual reproduction and its limitations must be recorded separately from A's CI and from the student's own explanation. F.02 is now identified in A's current PR #11 as KAN-33; older unmapped-key paragraphs above are dated history. Clean Git/PG17 Compose and joint acceptance remain pending.
 
 No diagram, A/B-owned source, wire field, WBS dependency, Gold label or historical result is changed here. Personal explanation and actual shared contribution fields remain unfilled. A reviews this exact later C revision; B/A integrate the supplied text and return an exact report/index commit after correcting the noted mismatches.
+
+## 13. Stage 2 implementation trace — 24 October 2026
+
+This dated implementation view answers [A's Issue #123](https://github.com/shuxiachai/returnops-au/issues/123)
+and supplements §8's historical planned-verification column. It changes no
+diagram, requirement, owner or frozen acceptance dependency. C1 maps to
+[KAN-23](https://lucastaooo.atlassian.net/browse/KAN-23), C2 to
+[KAN-24](https://lucastaooo.atlassian.net/browse/KAN-24); this model document
+retains KAN-22 as its primary modelling link.
+
+Paths in the test column are exact pytest node IDs, run from the repository
+root. These tests exercise offline candidates with synthetic data/fake
+transports, not accepted business transitions or real Risk-model quality.
+
+| Model step / requirement | Current code | Exact test nodes / demonstrated boundary |
+|---|---|---|
+| C02 retrieval; AH-08 → UC-02; FR-006, NFR-001 | [grounding.py](../experiments/c1_grounding_candidate/grounding.py), `GroundingCandidate.retrieve` | `tests/contracts/test_c1_grounding_preparation.py::GroundingCandidateTests::test_retrieval_has_exact_provenance_and_request_binding`; `tests/contracts/test_c1_grounding_preparation.py::GroundingCandidateTests::test_conflict_retains_nonmatching_partner_beyond_top_k`. Provenance and registered conflicts are retained; no semantic conflict detection or approved real corpus is implied. |
+| C03 citation resolution; FR-006/007, NFR-001 | [grounding.py](../experiments/c1_grounding_candidate/grounding.py), `GroundingCandidate.verify_citations` | `tests/contracts/test_c1_grounding_preparation.py::GroundingCandidateTests::test_each_reference_failure_is_reported_without_repairing_the_input`; `tests/contracts/test_c1_grounding_preparation.py::GroundingCandidateTests::test_multi_paragraph_citation_binds_qualifiers_location_and_generation`. Identity/version/hash/location checks preserve exact source binding; a Citation carries no quoted excerpt, so neither invented-quotation detection nor claim support is established. |
+| C05 complete independent input/invocation; FR-008, NFR-009 | [reviewer.py](../experiments/c2_risk_candidate/reviewer.py), `_prepare` and `RiskReviewerCandidate.review` | `tests/contracts/test_c2_risk_preparation.py::RiskPreparationTests::test_separate_prompt_and_full_immutable_input`; `tests/contracts/test_c2_risk_preparation.py::RiskPreparationTests::test_stale_packet_or_stripped_original_retrieval_never_invokes`; `tests/contracts/test_c2_risk_preparation.py::RiskPreparationTests::test_reusing_assessment_invocation_id_is_rejected`. A separate stub invocation and supplied snapshot equality are checked; source authority and post-await DB freshness are not authenticated by this component. |
+| C06 candidate outcome guards; FR-008, NFR-009; MC-T02/05/06 | [reviewer.py](../experiments/c2_risk_candidate/reviewer.py), `_assemble` | `tests/contracts/test_c2_risk_preparation.py::RiskPreparationTests::test_five_outcomes_are_structured_without_operation_authority`; `tests/contracts/test_c2_risk_preparation.py::RiskPreparationTests::test_source_conflicts_must_all_be_dispositioned_and_preserved`; `tests/contracts/test_c2_risk_preparation.py::RiskPreparationTests::test_blocking_conflict_cannot_be_warning_only`. Five output shapes and preserved conflict findings are checked; model-declared blocking conflicts cannot become warnings. This does **not** implement C06's Domain acceptance/store/audit transaction or prove correct semantic classification. |
+| Technical-failure branch; MC-T08 | [reviewer.py](../experiments/c2_risk_candidate/reviewer.py), `RiskReviewerCandidate.review` | `tests/contracts/test_c2_risk_preparation.py::RiskPreparationTests::test_timeout_and_transport_error_are_not_business_outcomes`; `tests/contracts/test_c2_risk_preparation.py::RiskPreparationTests::test_swallowed_external_cancellation_cannot_return_pass`. Timeout/transport failure and external cancellation cannot manufacture a passing review. No durable retry reservation or recovery lifecycle is implemented here. |
+
+Reproduction with the existing locked Python 3.12 environment:
+
+```sh
+python -B -m pytest tests/contracts/test_c1_grounding_preparation.py tests/contracts/test_c1_corpus_admission.py tests/contracts/test_c2_risk_preparation.py -q -p no:cacheprovider
+```
+
+Local verification on 24 October 2026, CPython 3.12.7/macOS, source
+`e424f6d2283a51e0f9b031d7a3a395fcebed8c0b`: **110 passed / 197 subtests passed**.
+The command used source-local `PYTHONPATH=packages:apps/api`, disabled bytecode,
+pytest plugin autoload/cache, and unset `DATABASE_URL`/`TMPDIR` only in that
+child environment. No install, database, model call or Gold input was used.
+Counts overlap prior evidence; they are not 110 new business scenarios.
+The [C1 README](../experiments/c1_grounding_candidate/README.md) gives the pilot
+command, actual counts, retained relevance miss and platform limits; the
+[C2 README](../experiments/c2_risk_candidate/README.md) describes its handoff.
+
+**Not implemented by these candidates:** MC-SM's seven-phase persisted review
+lifecycle, atomic selected-invocation/current-version acceptance, retirement
+and crash/concurrent recovery; C07–C10's integrated five-branch business routing;
+and the full Gate 2 three-role runtime. The fake-transport tests must not be
+presented as a real independent Risk model or as A's controlled PASS receiver
+becoming independent AI. C1's real ACCC capture remains pending exact-byte
+review/admission; the ordinary pilot remains wholly synthetic. Actual R.03
+integration/pilot, private Gold freeze, human timing and formal E.12 comparison
+remain separate, uncompleted evidence. Team deferral is not a tutor waiver or
+an amendment of the fixed work packages.
+
+AI-assisted implementation trace and local verification, not a personal review
+signature, joint acceptance, new diagram render or course-completion claim.

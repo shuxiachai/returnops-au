@@ -8,6 +8,79 @@ Offline preparation for **C2.01–C2.05**, `FR-008`, `NFR-001/002/009`,
 ProposalReview state model`. C owns this component; A reviews and integrates.
 This is not a live LLM, Gate 2, feature acceptance or semantic-quality result.
 
+## Current status — 24 October 2026 (Sydney)
+
+[Issue #123](https://github.com/shuxiachai/returnops-au/issues/123) tracks this
+C-owned documentation/demo follow-up; KAN-41 remains the active handoff card.
+The older dated entries below describe their own source and publication time.
+
+- A approved [PR #118 at `f3c4bb42`](https://github.com/shuxiachai/returnops-au/pull/118#pullrequestreview-5629076842)
+  and adopted it as `46a8afaa`; [CI 39936383045](https://github.com/shuxiachai/returnops-au/actions/runs/39936383045)
+  finished **13/13 successful jobs**. #116/#117 and #119 are also merged.
+  #119's exact-source CI was 13/13; its CLI now distinguishes a business result
+  from unfinished cleanup. These receipts supersede the pending states below.
+- A's [portability finding](https://github.com/shuxiachai/returnops-au/pull/118#issuecomment-6366377086)
+  is addressed in C's matrix script by resolving the synthetic private/output/
+  identity paths before passing them to the real CLI. This matches the CLI's
+  Windows drive qualification. No files are created at those synthetic paths.
+  Native Windows re-verification remains with A; a macOS pass is not a Windows
+  run. The old saved matrix JSON remains evidence for #116, not a new result.
+- C's local macOS recheck against the unchanged driver from main
+  `e424f6d2283a51e0f9b031d7a3a395fcebed8c0b` passed **22 matrix rows** and
+  **68 driver/demo-mode offline tests**. The S6 selection below passed four
+  tests. These are overlapping preparation checks, not new business cases.
+  The first driver-test command used an old editable-package lookup and failed
+  collection; using this checkout's `PYTHONPATH=apps/api:packages` passed without
+  an implementation change. Both logs are retained in the local checkpoint.
+- R02-C-02 remains open for full OS/process/second-interruption and actual
+  PG/browser failure coverage. The in-memory matrix is shared R.02/E.10 review
+  support, not an extra completed C-owned WBS item.
+- C2's component contract/handoff is available; real independent Risk and
+  semantic-quality evaluation are deferred to Gate 2 / KAN-39 by the 22 October
+  planning decision. This is not a course waiver or C2.01–C2.05 acceptance.
+
+### S6 handoff for the Windows demonstration machine
+
+Use the following bounded offline command from the repository root:
+
+```sh
+python -B -m pytest tests/contracts/test_c2_risk_preparation.py -k "five_outcomes or blocking_conflict or timeout_and_transport" -q -p no:cacheprovider
+```
+
+A reported **4 passed on Windows** in Issue #123. This checks contract-shaped
+outcomes, blocking-conflict rejection and technical-error handling with stubs;
+it does not run a model or prove that all production consumer routes are wired.
+Use the [C1 README](../c1_grounding_candidate/README.md) for the companion
+retrieval/citation pilot command. Its citation checks cover an unknown passage,
+wrong version, changed text/hash or wrong location, **not a quoted-excerpt or
+semantic-support check**. A real reviewer must assess fabricated/support claims;
+the current C2 candidate does not itself establish that semantic capability.
+
+E.01 is a **metric-definition draft, not yet reviewed/frozen**, not a completed
+label guide. The [evaluation README](../evaluation_candidate/README.md) explains
+the optional Mac/Linux pre-generated synthetic bundle. Do not run the secure
+evidence/timing/admission commands on Windows or weaken their platform refusal.
+Show pre-generated evidence as pre-generated, with exact source and content ID;
+do not call it a live result from the submission package. C must still understand,
+adapt and time the spoken draft below; no personal rehearsal is recorded here.
+
+### Remaining work and who supplies the evidence
+
+| Area | Existing preparation | Missing before full acceptance / next owner |
+|---|---|---|
+| C1 | Retrieval/citation candidate and captured-source review packet | A exact-byte admission and trusted corpus pin; C verifies admitted coverage; A integrates authorised runtime inputs |
+| C2 | Independent prompt/contract, five outcomes and failure-closed stub tests | Approved provider/data flow and real independent invocation; A post-await/current-state integration; C real pilot and handoff evidence |
+| C3 | Separate local mock preparation only; no accepted public runtime | Tutor disposition (A/C), R.03 prerequisite and authorised attachment boundary, then C real image observations and A/B integration |
+| Evaluation | Metric/scorer/timing/evidence tools and synthetic rehearsal | A freezes E.01; C seals private labels; A/B blind timing before label handoff; adjudication then real B1/B4 and E.12 evidence |
+| Review / Agile | #17/#61/#115/#118 adopted; bounded R.02 reviews | C full R02-C-02 review and R.05 comments; A decides acceptance against exact evidence |
+| Personal / final delivery | S6 draft, linked contribution evidence, submission runbook | C own-words explanation and actual contribution/AI-use confirmation; all three rehearse; A packages/uploads and C verifies the final source/download |
+
+The fixed denominator is 20 C-owned Stage 2 WBS rows in docs/08. They have not
+all been audited to their original S/F and acceptance criteria, so no accepted
+`n/20` or percentage is claimed. Readiness for the reduced near-term demo is
+different from satisfying all frozen requirements. Gate 2 deferral does not
+close missing Risk, C3, Gold or human-timing evidence. AI-assisted preparation.
+
 ## C R.02 follow-up — 23 October 2026, late evening (Sydney)
 
 Tracking: [KAN-41](https://lucastaooo.atlassian.net/browse/KAN-41).
