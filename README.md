@@ -175,16 +175,19 @@ report/video. The links below are navigation, not a second task or status board.
 | Final Stage 1 slides and A/B/C script — synced 17 October | [Preserved nine-slide PPTX, 560-word spoken script and Drive source checks](stage1/presentation/README.md); this archive update is not a new course submission |
 | A: personal models and design rationale | [A model chain](docs/12-member-a-model-chain.md), [A design decisions](docs/14-member-a-design-decisions.md), [A review PR #11](https://github.com/shuxiachai/returnops-au/pull/11) |
 | B: intake/UI work and model-index integration | [B review PR #8](https://github.com/shuxiachai/returnops-au/pull/8); use its actual files/review history, with responsibilities fixed by docs/07–08 |
-| C: personal models and report text | [C model chain](https://github.com/shuxiachai/returnops-au/blob/docs/kan-22-c-model-review/docs/18-member-c-model-chain.md), [C Stage 1 report](https://github.com/shuxiachai/returnops-au/blob/docs/kan-22-c-model-review/docs/reports/member-c-stage1-draft.md) |
-| C: figures, actual contribution and explanation | [Editable PUML and SVG figures](https://github.com/shuxiachai/returnops-au/tree/docs/kan-22-c-model-review/docs/diagrams/member-c), [Personal contribution / interview worksheet](https://github.com/shuxiachai/returnops-au/blob/docs/kan-22-c-model-review/docs/reports/member-c-contribution-and-interview.md), [Dated course-alignment checks](https://github.com/shuxiachai/returnops-au/blob/docs/kan-22-c-model-review/docs/reviews/member-c-course-alignment-20260914.md) |
+| C: personal models and report text | [C model chain and Stage 2 implementation trace](docs/18-member-c-model-chain.md), [C Stage 1 report draft](stage1/drafts/member-c-stage1-draft.md) |
+| C: figures, actual contribution and explanation | [Editable PUML and SVG figures](docs/diagrams/member-c), [Personal contribution / interview worksheet](stage1/drafts/member-c-contribution-and-interview.md), [Dated course-alignment checks](docs/reviews/member-c-course-alignment-20260914.md) |
+| C: current Stage 2 technical preparation | [C1 grounding](experiments/c1_grounding_candidate/README.md), [C2 risk / S6 handoff](experiments/c2_risk_candidate/README.md), [Evaluation definitions and evidence](experiments/evaluation_candidate/README.md); current follow-up [Issue #123](https://github.com/shuxiachai/returnops-au/issues/123) |
 | Shared structure and team integration | [Class model](docs/diagrams/01-domain-class-diagram.md), [Composite views](docs/13-shared-composite-structure.md); C's proposed Object slice is in the figure directory above, for A review and B indexing |
 | Workflow and evidence | [Jira/GitHub workflow](docs/03-team-and-github-workflow.md), [Model-check instructions](tools/model-checks/README.md) |
 
-C's links deliberately point to the separate [C review branch / PR #12](https://github.com/shuxiachai/returnops-au/pull/12);
-the shared course update is [PR #13](https://github.com/shuxiachai/returnops-au/pull/13).
-These review locations do not imply a main merge, personal explanation or team
-acceptance. Keep full editable models alongside report-sized views; retain actual
-contribution and review evidence rather than treating a file's presence as completion.
+C's entry links above now use the adopted files in this checkout (24 October
+2026). [PR #12](https://github.com/shuxiachai/returnops-au/pull/12) and
+[PR #13](https://github.com/shuxiachai/returnops-au/pull/13) remain historical
+review locations; C's later #17/#61/#115/#118 follow-ups are also merged.
+Technical adoption does not establish personal explanation, actual contribution
+confirmation or team acceptance. Keep editable models alongside report-sized
+views and preserve the dated history below.
 
 ### Full document catalogue
 

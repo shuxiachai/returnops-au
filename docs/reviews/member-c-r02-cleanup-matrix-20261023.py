@@ -20,8 +20,11 @@ source_hash = hashlib.sha256(driver_path.read_bytes()).hexdigest()
 sys.path[:0] = [str(root / "tools/r02"), str(root / "apps/api"), str(root / "packages")]
 import driver
 
-PRIVATE = Path("/c-matrix-never-created-private")
-OUTPUT = Path("/c-matrix-never-created-output")
+# Match the CLI's canonical paths, including drive qualification on Windows.
+# Resolve before mocking filesystem methods; these synthetic paths are never created.
+PRIVATE = Path("/c-matrix-never-created-private").resolve()
+OUTPUT = Path("/c-matrix-never-created-output").resolve()
+IDENTITIES = Path("/c-matrix-never-created-identities").resolve()
 SENTINEL = "C_SYNTHETIC_PRIVATE_VALUE_7821"
 
 
@@ -119,7 +122,7 @@ def receipt_case(form, keep_api):
     """
     calls, receipts = [], []
     stdout, stderr = StringIO(), StringIO()
-    identities = Path("/c-matrix-never-created-identities") if keep_api else None
+    identities = IDENTITIES if keep_api else None
     run = driver.Run(OUTPUT, identities=identities, keep_api=keep_api)
     run.private, run.auth_file = PRIVATE, PRIVATE / "auth.json"
     run.environment = lambda: None

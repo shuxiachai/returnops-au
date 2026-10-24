@@ -11,6 +11,64 @@ The [fixed evaluation protocol](../../docs/00-project-definition-v1.md),
 [allocation](../../docs/07-frozen-work-allocation.md) and
 [E.01/E.09 dependencies](../../docs/08-delivery-work-packages.md) remain authoritative.
 
+## Current submission status — 24 October 2026
+
+This dated update follows [Issue #123](https://github.com/shuxiachai/returnops-au/issues/123).
+**E.01 remains a metric-definition draft, not an A-reviewed or frozen label
+guide.** The adopted accounting tools do not establish completed E.01/E.09,
+real B1/B4 execution, model quality or acceptance. Under the
+[Gate 2 deferral roadmap](../../docs/46-gate2-roadmap.md), real
+Gold evaluation, actual human timing, real B1/B4 and E.12 remain deferred to
+Gate 2; they are not waived, and the original protocol, dependencies, owners
+and S/F criteria remain in force.
+
+The 18–19 October coordination windows later in this document are historical
+proposals, not evidence of a current booking or completed participation. A new
+session requires an agreed E.01 definition, an E.02 sealed initial 30-case set
+and its 20-case timing subset, and independently recorded A/B answers. C must
+seal the initial labels before seeing timed answers; neither operator receives
+Gold answers before both answer records are locked. Only actual records may
+be used for the human baseline. The public example below is never such a record.
+
+### S6 evidence preparation and Windows boundary
+
+The native Windows CLI refusals remain intentional:
+`EVIDENCE_PLATFORM_UNSUPPORTED` (exit 1) and
+`HUMAN_TIMING_PLATFORM_UNSUPPORTED` (exit 2). Do not remove file-safety checks
+or substitute weaker APIs to make these commands run during the presentation.
+Portable arithmetic tests are distinct from those filesystem-dependent CLIs.
+
+For S6, prepare the public synthetic bundle on macOS/Linux before the demo:
+
+1. Use a complete Git checkout at the lead-selected submission tag/commit and
+   the documented Python 3.12 environment. A source ZIP without `.git` cannot
+   establish the source identity required by this command.
+2. Run the [evidence command](#evidence-command) into a new physical directory
+   outside the checkout. It uses no provider, database, private Gold or human
+   answer file. Retain all 13 files, not just the summary.
+3. Record the exact source commit, evaluation-module hashes, actual working-tree
+   state, environment and `manifest.json`'s `content_id`; verify the file hashes
+   in `index.json` before copying the bundle. Regenerate it when the selected
+   source/environment changes, rather than relabelling an older bundle.
+4. On Windows, show those pre-generated files with their source record, or the
+   corresponding exact-source offline CI result. Label this as a **synthetic
+   accounting rehearsal**, not a live B1/B4 run, human-timing session, personal
+   sign-off or completed Gate 2. The final S6 command choice and submission
+   source still require the lead's demo/submission coordination.
+
+Local preparation check on 24 October: the public evidence command ran with
+CPython 3.12.7 on macOS at source
+`e424f6d2283a51e0f9b031d7a3a395fcebed8c0b`. All seven recorded evaluation
+modules matched that commit; the shared worktree was **not clean**, which the
+source manifest records as `repository_worktree_clean_at_capture: false`.
+The resulting 13-file bundle has content ID
+`6e47c467246a62d198d4c525d3d2f553a76a14d016acaedb9d0b3572e27bf59c`.
+Each fixed stub configuration retained all five cases: three successful,
+one failed and one invalid. The public synthetic human-timing example also
+ran and produced its arithmetic report; it establishes no participation,
+blindness, sealing or acceptance. These are preparation checks from the stated
+source, **not evidence generated from the final submission tag or a live demo**.
+
 ## Review correction — 18 October 2026
 
 A's review found that known-cost addition could round or raise under a caller's
