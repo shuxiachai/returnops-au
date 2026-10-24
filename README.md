@@ -374,9 +374,11 @@ fixed-proposal workers and the Founder decision POST; check
 
 ```text
 cd apps/web
-npm ci
+npm ci --no-audit --no-fund
 npm run dev
 ```
+
+`--no-audit --no-fund` only shortens the install output. On 24 October 2026 `npm audit` reported no advisory in the frontend's production dependencies and 10 in development tools (test runner, dev server and CSS toolchain); see [docs/47](docs/47-stage2-submission-runbook.md), known gap 17. The dev server listens on localhost only.
 
 Open `http://localhost:5173`. The dev server proxies `/v1` and `/health` to
 `http://127.0.0.1:8000`. Leave `VITE_API_BASE_URL` unset: the client would use

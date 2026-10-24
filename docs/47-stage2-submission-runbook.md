@@ -30,7 +30,7 @@ Companion documents: [demo script](45-stage2-demo-script.md), [Gate 2 roadmap](4
 
 ## 3. Packaging (R.05.a)
 
-Preconditions: every pull request intended for submission is merged into main and the CI run of that main commit has finished with all jobs successful; README notices and docs/41, docs/43, docs/45-47 describe the submitted state; anything not merged is listed in the known gaps (section 7).
+Preconditions: every pull request intended for submission is merged into main and the CI run of that main commit has finished with all jobs successful; the README overview (its Status section re-dated on the packaging day) and docs/41, docs/43, docs/45-47 describe the submitted state; anything not merged is listed in the known gaps (section 7).
 
 1. Choose the commit: the main commit whose CI run is green. Record its full SHA and the run URL.
 2. Tag it (name is a proposal): `git tag -a stage2-submission-v1 <sha> -m "Stage 2 source submission"`, then `git push origin stage2-submission-v1`. The tag message carries no AI tool attribution (repository rule).
@@ -47,7 +47,7 @@ Preconditions: every pull request intended for submission is merged into main an
 1. Open "Stage 2 Code Submission" from the course's Assignments list (open from 26 October); confirm that it still shows due 1 November 23:59 Sydney and zip files only; record any change.
 2. Upload `returnops-au-stage2-submission-v1.zip` (with the statement PDF inside at the zip root, section 3 step 4). A separate PDF cannot be uploaded to a zip-only item; if the tutor named another channel for the statement, use it and record it here. One member uploads for the group; the submission is shared by all three.
 3. Record the Canvas receipt: submission time shown by Canvas, attempt number, file names and sizes; keep a screenshot outside the repository.
-4. Download the submitted zip from Canvas into a new empty directory. Compute its SHA-256: it must equal the value from section 3 step 4. Check the archive comment (commit ID) and that `returnops-au/README.md` opens with the expected newest notice.
+4. Download the submitted zip from Canvas into a new empty directory. Compute its SHA-256: it must equal the value from section 3 step 4. Check the archive comment (commit ID) and that `returnops-au/README.md` opens with the project overview, whose Status section carries the packaging date.
 5. Open the statement PDF from the downloaded zip; check group number (10), names, student IDs and that each criterion row totals 100%.
 6. If anything differs, re-upload before the deadline and record both attempts; never edit a record afterwards to hide the first.
 
@@ -69,7 +69,7 @@ Derived from the README chapter [Deploy from zero](../README.md#deploy-from-zero
 | 8 | Host migration via `local.py run python -m alembic upgrade head` | Exits 0 (README: not verified) | A | | |
 | 9 | `demo.py provision` for `tmp/demo-shop` with `--order-investigation --fixed-proposal` | `Private synthetic demo registration completed. ...` | A | | |
 | 10 | `demo.py serve --auth-file ... --port 8000 --fixed-proposal --founder-decisions` (plus `--model-showcase` only with a key) | `http://127.0.0.1:8000/health/ready` ready | A | | |
-| 11 | `apps/web`: `npm ci`; `npm run dev`; open `http://localhost:5173` | Page loads; Vite proxies `/v1` to 8000 | B | | |
+| 11 | `apps/web`: `npm ci --no-audit --no-fund`; `npm run dev`; open `http://localhost:5173` | Page loads; Vite proxies `/v1` to 8000 | B | | |
 | 12 | Token login as customer and as Founder in two browser profiles | **Auth Tokens** shows `Valid: <principal> (<ROLE>)` | B | | |
 | 13 | Demo S2: case without order reference, answer `SYN-1001` | Question shown; case reaches `RISK_REVIEW` | B | | |
 | 14 | Demo S3: case list, detail, audit, analytics; one Founder decision | Live analytics and the decision dialog are in the client since #102; record which decision the server accepts or refuses (pass 0: `MANUAL_HANDLING` refused with 403 `FORBIDDEN`, so the docs/45 S3 fallback applies) | B | | |
@@ -153,6 +153,7 @@ Attach this list (updated on the submission day) with the package, for example a
 14. The contract operations `reconcileOperation` and `retryNotification` are not registered as routes (R.05 research record, 22 October 2026).
 15. Deploy-from-zero: pass 0 (24 October 2026, section 5) ran the README chapter from a zip of `main` on the demonstration machine, except the model showcase; pass 1 (29 October) and pass 2 (from the Canvas download) are still required.
 16. C's candidates (C1 retrieval and citation checks, the C2 risk reviewer, the evaluation definitions) are offline and not wired into the API; the ACCC real-source capture is hashed but not admitted (exact-byte review by A pending); C's evidence-bundle and timing commands and the corpus admission loader need macOS or Linux and refuse on Windows (`EVIDENCE_PLATFORM_UNSUPPORTED`), which affects S6 on the Windows demonstration machine (to settle with C before 29 October).
+17. `npm audit` on 24 October 2026: no advisory in the frontend's production dependencies; 10 in development tools only (critical: `vitest` and `tinypool`; high: `vite` and `undici`; 6 moderate). `undici` and `postcss-nested` have non-breaking fixes; the others need major upgrades (`vite` 8, `vitest` 5, `tailwindcss` 4), deferred past submission. The Vite dev server listens on localhost only; the demo commands use `npm ci --no-audit --no-fund` only to shorten the install output.
 
 ## 8. Jira and GitHub evidence links
 
