@@ -73,7 +73,7 @@ Derived from the README chapter [Deploy from zero](../README.md#deploy-from-zero
 | 12 | Token login as customer and as Founder in two browser profiles | **Auth Tokens** shows `Valid: <principal> (<ROLE>)` | B | | |
 | 13 | Demo S2: case without order reference, answer `SYN-1001` | Question shown; case reaches `RISK_REVIEW` | B | | |
 | 14 | Demo S3: case list, detail, audit, analytics; one Founder decision | Live analytics and the decision dialog are in the client since #102; record which decision the server accepts or refuses (pass 0: `MANUAL_HANDLING` refused with 403 `FORBIDDEN`, so the docs/45 S3 fallback applies) | B | | |
-| 15 | Demo S4 (only with PR #94 merged and a key): facts on the case; one rejected reply | Facts shown, or WARNING `outcome=REJECTED`; record tokens and latency from `run_once.py` evidence | A | | |
+| 15 | Demo S4 (only with a key; PR #94 is in `main`): facts on the case; one rejected reply | Facts shown, or WARNING `outcome=REJECTED`; record tokens and latency from `run_once.py` evidence | A | | |
 | 16 | Latency check on the running `demo.py serve` API, before it is stopped: 100 sequential `POST /v1/cases` as `synthetic_customer_b` (each with a new `Idempotency-Key`) and 100 `GET /v1/cases/{case_id}` of one of those cases, timed on the client with `httpx` from the locked environment | p50 and p95 in milliseconds for each call, the number of non-2xx answers (expected 0), the machine and the time; recorded here as a demonstration-machine observation, not a load test, and copied to [docs/48](48-agile-evidence-and-technology-data.md) row 1 only if the rehearsal passes | A | | |
 | 17 | Stop `serve`; provision `tmp/demo-cups` without the two flags; set `DATABASE_URL`; driver with `--identities --api-port 8000 --keep-api --allow-existing-data` | `R.02 demo mode: driver result PASSED (see run-receipt.json).` | A | | |
 | 18 | Founder UI with `demo_cups_founder`: inspect the driver's case | Status `COMPLETED` | B | | |
@@ -128,8 +128,8 @@ Tasks and deliverables (starting points from repository records; each member rep
 | Member | Draft |
 |---|---|
 | A | A1 case lifecycle, customer backend, order investigation and fixed proposal ([docs/21](21-customer-flow.md), [docs/23](23-order-investigation.md), [docs/29](29-a105-fixed-proposal-runtime.md)); A2 approval admission, execution preparation, simulated return, label, PDF and notification ([docs/37](37-a202-approval-admission.md), [docs/39](39-a203-core-return-execution.md), [A2.06](a206-notification-outcome.md)); Founder decision HTTP boundary ([docs/40](40-founder-decision-http-boundary.md)); F.06 analytics ([docs/43](43-f06-analytics.md)); R.02 driver and demo mode ([docs/41](41-r02-end-to-end-evidence.md)); advisory Coordinator showcase ([docs/44](44-coordinator-showcase.md), PR #94); Jira hosting; R.05 documents |
-| B | Web frontend: customer portal, Founder console, operations analytics page ([apps/web README](../apps/web/README.md), PR #60); [interactive demo walkthrough](35-b205-interactive-demo-walkthrough.md); live wiring per Issues #91, #95, #88 (state on the day) |
-| C | C1 grounding and citation checks ([experiments/c1_grounding_candidate](../experiments/c1_grounding_candidate)); C2 risk-review candidate ([README](../experiments/c2_risk_candidate/README.md)); E.01/E.09 evaluation preparation ([README](../experiments/evaluation_candidate/README.md)); [C's model chain](18-member-c-model-chain.md); PRs #17 and #61 (state on the day) |
+| B | Web frontend: customer portal, Founder console, operations analytics page ([apps/web README](../apps/web/README.md), PR #60); [interactive demo walkthrough](35-b205-interactive-demo-walkthrough.md); live wiring: PRs #100, #101 and #102 (the last two reached `main` through #107), closing Issues #88, #91 and #95; open follow-ups #104 and #111 (state on the day) |
+| C | C1 grounding and citation checks ([experiments/c1_grounding_candidate](../experiments/c1_grounding_candidate)); C2 risk-review candidate ([README](../experiments/c2_risk_candidate/README.md)); E.01/E.09 evaluation preparation ([README](../experiments/evaluation_candidate/README.md)); [C's model chain](18-member-c-model-chain.md); code PRs #59 and #68 (C1), #69 (C2), #79 (C1 to C2 handoff) and #70 (evaluation); review and receipt records #17, #61, #115 and #118 (state on the day) |
 
 Each member also states their own AI assistance. Student IDs, percentages and task claims are confirmed by the member concerned, never by AI preparation. The final statement is uploaded to Canvas as a PDF and is not committed to the public repository.
 
@@ -140,7 +140,7 @@ Attach this list (updated on the submission day) with the package, for example a
 1. No acceptance record exists for R.02, Gate 1 or the other delivered work packages; a merge, a green CI job or a `PASSED` receipt is not acceptance.
 2. Gate 2 deferred: full A1.06, A1.07, A1.08, the real C2 reviewer, E.09, R.03 and E.12 ([docs/46](46-gate2-roadmap.md)). There are no evaluation results.
 3. A3 (OF-004) unmet: no carrier contract or test account; tutor disposition: **to record** (docs/46, section 5).
-4. C3 (OF-001) not started: depends on R.03.
+4. C3 (OF-001) not started: depends on R.03; tutor disposition: **to record** (as for A3).
 5. Advisory model showcase: merged (PR #94, #98); first live call recorded on 22 October 2026 ([docs/44](44-coordinator-showcase.md)); results in memory only; no audit event; customers never see it; the Founder card is in since #101.
 6. Frontend: live Founder decisions and live analytics are in the client since #102 (23 October 2026); the review follow-ups for B are in Issues #104 and #111 (items 1-6 required before the 29 October rehearsal; several were seen live in pass 0, section 5).
 7. The only proposer is the fixed synthetic one (`fixture-no-live-model`); the risk result in the end-to-end run is the controlled PASS receiver and risk stub.
@@ -152,6 +152,7 @@ Attach this list (updated on the submission day) with the package, for example a
 13. Line endings (resolved): `.gitattributes` (#108) pins LF for every text file; the 24 Python files stored with CRLF from earlier Windows commits were converted by the whitespace-only pull request #109, merged on 23 October 2026.
 14. The contract operations `reconcileOperation` and `retryNotification` are not registered as routes (R.05 research record, 22 October 2026).
 15. Deploy-from-zero: pass 0 (24 October 2026, section 5) ran the README chapter from a zip of `main` on the demonstration machine, except the model showcase; pass 1 (29 October) and pass 2 (from the Canvas download) are still required.
+16. C's candidates (C1 retrieval and citation checks, the C2 risk reviewer, the evaluation definitions) are offline and not wired into the API; the ACCC real-source capture is hashed but not admitted (exact-byte review by A pending); C's evidence-bundle and timing commands and the corpus admission loader need macOS or Linux and refuse on Windows (`EVIDENCE_PLATFORM_UNSUPPORTED`), which affects S6 on the Windows demonstration machine (to settle with C before 29 October).
 
 ## 8. Jira and GitHub evidence links
 
@@ -165,13 +166,22 @@ Jira (project KAN on `https://lucastaooo.atlassian.net`; copy the board URL from
 | [KAN-38](https://lucastaooo.atlassian.net/browse/KAN-38) | R.05 final delivery package |
 | [KAN-39](https://lucastaooo.atlassian.net/browse/KAN-39) | Gate 2 model scope decision |
 | [KAN-40](https://lucastaooo.atlassian.net/browse/KAN-40) | B: live interfaces (#91, #95, #88) |
-| [KAN-41](https://lucastaooo.atlassian.net/browse/KAN-41) | C: #17 / #61 and demo material |
+| [KAN-41](https://lucastaooo.atlassian.net/browse/KAN-41) | C: #17, #61, #115, #118 and the demo segment |
 | [KAN-42](https://lucastaooo.atlassian.net/browse/KAN-42) | A: A1.06 showcase (PR #94) |
 | [KAN-16](https://lucastaooo.atlassian.net/browse/KAN-16) | A3 logistics sandbox |
+| [KAN-18](https://lucastaooo.atlassian.net/browse/KAN-18) | B: customer portal (B1) |
+| [KAN-19](https://lucastaooo.atlassian.net/browse/KAN-19) | B: Founder console (B2) |
+| [KAN-20](https://lucastaooo.atlassian.net/browse/KAN-20) | B: UI end-to-end tests and demo fixtures |
+| [KAN-21](https://lucastaooo.atlassian.net/browse/KAN-21) | B: operations analytics page (optional B3) |
+| [KAN-23](https://lucastaooo.atlassian.net/browse/KAN-23) | C: C1 corpus and citation verification |
+| [KAN-24](https://lucastaooo.atlassian.net/browse/KAN-24) | C: C2 independent risk review (runtime part deferred to Gate 2) |
+| [KAN-25](https://lucastaooo.atlassian.net/browse/KAN-25) | C: Gold set and evaluation (E.12 deferred) |
+| [KAN-26](https://lucastaooo.atlassian.net/browse/KAN-26) | C: C3 image evidence (optional, not started) |
+| [KAN-43](https://lucastaooo.atlassian.net/browse/KAN-43) | A: load-sensitive competition test (closed) |
 
 GitHub pull requests and issues (`https://github.com/shuxiachai/returnops-au`):
 
-| Link | Subject | State on 22 October 2026 |
+| Link | Subject | State on 24 October 2026 (Sydney) |
 |---|---|---|
 | [PR #78](https://github.com/shuxiachai/returnops-au/pull/78) | A2.07 Founder decision boundary | Merged 22 Oct (`0758696681cc706fda14ba378b7baa8e8c6580b3`) |
 | [PR #87](https://github.com/shuxiachai/returnops-au/pull/87) | A2.06 notification outcome ([record](a206-notification-outcome.md)) | In main |
@@ -179,10 +189,30 @@ GitHub pull requests and issues (`https://github.com/shuxiachai/returnops-au`):
 | [PR #90](https://github.com/shuxiachai/returnops-au/pull/90) | F.06 analytics | Merged 22 Oct; run 39701255799 |
 | [PR #92](https://github.com/shuxiachai/returnops-au/pull/92) | E.10 / F.06 documentation close-out | In main |
 | [PR #93](https://github.com/shuxiachai/returnops-au/pull/93) | Driver demo mode and Deploy from zero | In main |
-| [PR #94](https://github.com/shuxiachai/returnops-au/pull/94) | A1.06 advisory Coordinator showcase | Draft, pending merge |
-| [Issue #88](https://github.com/shuxiachai/returnops-au/issues/88) | B: follow-ups from the PR #60 review | Open (B) |
-| [Issue #91](https://github.com/shuxiachai/returnops-au/issues/91) | B: live Founder decisions and analytics in the frontend | Open (B) |
-| [Issue #95](https://github.com/shuxiachai/returnops-au/issues/95) | B: Founder facts card and mock facts shape | Open (B); subject to confirm on GitHub |
+| [PR #94](https://github.com/shuxiachai/returnops-au/pull/94) | A1.06 advisory Coordinator showcase | Merged 22 Oct (`6545f206`) |
+| [Issue #88](https://github.com/shuxiachai/returnops-au/issues/88) | B: follow-ups from the PR #60 review | Closed 23 Oct; delivered by #100 |
+| [Issue #91](https://github.com/shuxiachai/returnops-au/issues/91) | B: live Founder decisions and analytics in the frontend | Closed 23 Oct; delivered by #102 through #107 |
+| [Issue #95](https://github.com/shuxiachai/returnops-au/issues/95) | B: Founder facts card and mock facts shape | Closed 23 Oct; delivered by #101 through #107 |
+| [PR #59](https://github.com/shuxiachai/returnops-au/pull/59) | C: C1 offline retrieval and exact citation verification | Merged (`cdfc3c11`) |
+| [PR #68](https://github.com/shuxiachai/returnops-au/pull/68) | C: reviewed-corpus admission candidate (ACCC capture) | Merged (`437b4eb6`) |
+| [PR #69](https://github.com/shuxiachai/returnops-au/pull/69) | C: C2 independent risk reviewer candidate, fail-closed stub tests | Merged (`5006da1a`) |
+| [PR #70](https://github.com/shuxiachai/returnops-au/pull/70) | C: evaluation guide and synthetic scorer accounting | Merged (`d9813d6d`) |
+| [PR #79](https://github.com/shuxiachai/returnops-au/pull/79) | C: C1 to C2 handoff regression and validation evidence | Merged (`e35c61d2`) |
+| [PR #98](https://github.com/shuxiachai/returnops-au/pull/98) | A: explicit opt-in for plain http to a private model proxy | Merged (`51862f4b`) |
+| [PR #100](https://github.com/shuxiachai/returnops-au/pull/100) | B: customer edits kept safe while a submission is pending (Issue #88) | Merged (`85e5d944`) |
+| [PR #101](https://github.com/shuxiachai/returnops-au/pull/101), [PR #102](https://github.com/shuxiachai/returnops-au/pull/102) | B: Founder facts card (Issue #95); live analytics and decisions (Issue #91) | Merged into B's stacked branches; reached `main` through [PR #107](https://github.com/shuxiachai/returnops-au/pull/107) (`e4afc332`) |
+| [PR #108](https://github.com/shuxiachai/returnops-au/pull/108) | A: robustness fixes from the 23 October review | Merged (`b04d0a32`) |
+| [PR #109](https://github.com/shuxiachai/returnops-au/pull/109) | A: remaining CRLF Python files normalised to LF | Merged (`c4d08799`) |
+| [PR #110](https://github.com/shuxiachai/returnops-au/pull/110) | A: docs/48 agile evidence and technology data | Merged (`c4151a11`) |
+| [PR #112](https://github.com/shuxiachai/returnops-au/pull/112), [PR #114](https://github.com/shuxiachai/returnops-au/pull/114) | A: same-key re-send in the competition tests; isolated, fail-closed driver cleanup (answer to C's review) | Merged (`2a4d3ae2`, `55fd717a`) |
+| [PR #113](https://github.com/shuxiachai/returnops-au/pull/113) | A: CI speed-up data and the rehearsal latency check | Merged (`0c2de081`) |
+| [PR #115](https://github.com/shuxiachai/returnops-au/pull/115), [PR #118](https://github.com/shuxiachai/returnops-au/pull/118) | C: R.02 review, failure probes and cleanup matrix | Merged (`33b0a93c`, `46a8afaa`) |
+| [PR #116](https://github.com/shuxiachai/returnops-au/pull/116), [PR #119](https://github.com/shuxiachai/returnops-au/pull/119) | A: driver receipt and cleanup reporting | Merged (`a971978e`, `90fa35ec`) |
+| [PR #117](https://github.com/shuxiachai/returnops-au/pull/117) | A: README overview first | Merged (`291cde84`) |
+| [PR #120](https://github.com/shuxiachai/returnops-au/pull/120) | A: pass 0 rehearsal record | Merged (`ecf68527`) |
+| [Issue #103](https://github.com/shuxiachai/returnops-au/issues/103) | A: load-sensitive same-key competition test | Closed 23 Oct after #114 |
+| [Issue #104](https://github.com/shuxiachai/returnops-au/issues/104), [Issue #111](https://github.com/shuxiachai/returnops-au/issues/111) | B: review follow-ups; frontend demo readiness (items 1-6 before 29 Oct) | Open (B) |
+| [Issue #106](https://github.com/shuxiachai/returnops-au/issues/106) | A: hardening backlog from the 23 October review | Open (A); deferred past submission ([docs/46](46-gate2-roadmap.md) section 8) |
 
 Also link the CI run of the submission tag (section 3 step 1) and [run 39634415393](https://github.com/shuxiachai/returnops-au/actions/runs/39634415393).
 
