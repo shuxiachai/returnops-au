@@ -72,6 +72,7 @@ The sessions written by `demo.py provision` last 899 s. The segments that use th
 | Editor | Rehearsal `run-receipt.json` (demo mode, not evidence) and, if a live model call was made, the `tools/model_showcase/run_once.py` evidence file |
 | Terminal 1 | `demo.py serve` (its WARNING lines show model failures) |
 | Terminal 2 | Pre-typed S5 commands: provision `demo-cups`, set `DATABASE_URL` from `.env`, start the driver (README step 5) |
+| Terminal 3 (C) | S6 commands, run from the package root: the C1 pilot summary and the four selected C2 tests (S6 item 4) |
 
 ### 2.5 Fallbacks, prepared during the rehearsal
 
@@ -189,9 +190,10 @@ Gloss: how a proposal is grounded in sources, how it is challenged, and how we w
 
 C writes and delivers this segment in C's own words from C's own material (Jira KAN-41). Suggested content, all from the repository:
 
-1. C1 grounding and citation verification ([experiments/c1_grounding_candidate](../experiments/c1_grounding_candidate)): versioned retrieval; a non-existent citation, a wrong version, a hash mismatch or an excerpt that does not match the source is detected; "has a URL" is not "cited correctly" ([docs/08](08-delivery-work-packages.md), C1.04).
+1. C1 grounding and citation verification ([C1 README](../experiments/c1_grounding_candidate/README.md)): versioned keyword-overlap retrieval; an unknown passage, a wrong version, changed text (hash mismatch) and a wrong location are detected, while a made-up quotation is C2's job, because a citation carries a passage hash, not quoted text; "has a URL" is not "cited correctly" ([docs/08](08-delivery-work-packages.md), C1.04).
 2. C2 five-outcome risk contract and fail-closed behaviour ([C2 candidate README](../experiments/c2_risk_candidate/README.md)): PASS, PASS_WITH_WARNING, REVISE, NEEDS_INFORMATION and ESCALATE, each with reasons and citations; unresolved blocking conflicts require ESCALATE; invalid JSON, timeouts, transport failures and forged authority never become PASS. In Gate 1 the reviewer slot is filled by the controlled PASS receiver and risk stub seen in S5, which is a fixed result, not an independent assessment.
-3. Evaluation definitions ([evaluation candidate README](../experiments/evaluation_candidate/README.md)): E.01 label guide and metric denominators, the bounded E.09 scorer, token and cost accounting where unknown costs stay unknown. Optionally show the output of `python -B -m experiments.evaluation_candidate.evidence --output-dir <scratch>` prepared at the rehearsal (synthetic accounting only, no real model).
+3. Evaluation definitions ([evaluation candidate README](../experiments/evaluation_candidate/README.md)): the E.01 metric-definition draft (not yet reviewed or frozen) and metric denominators, the bounded E.09 scorer, token and cost accounting where unknown costs stay unknown. Optionally show the 13-file evidence bundle that C pre-generated on macOS or Linux from the submission tag, with its source commit and manifest `content_id` in the runbook's R.05.a record (synthetic accounting only, no real model); the command itself refuses on Windows (`EVIDENCE_PLATFORM_UNSUPPORTED`).
+4. Live on the demonstration machine (Terminal 3; both checked on Windows on 24 October 2026): the C1 pilot summary `.\.venv\Scripts\python.exe -B -c "import json; from experiments.c1_grounding_candidate.pilot import run_pilot; r=run_pilot(); print(json.dumps({k:r[k] for k in ('retrieval_summary','citation_summary')}, indent=1))"` (ranked recall 16/22, returned-set recall 20/22, citation outcomes 8 of 8 as expected) and the four selected C2 tests `.\.venv\Scripts\python.exe -B -m pytest tests/contracts/test_c2_risk_preparation.py -k "five_outcomes or blocking_conflict or timeout_and_transport" -q -p no:cacheprovider` (`4 passed`).
 
 Say (C to adapt): "None of these components calls a live model in today's chain, and we do not claim any quality numbers yet. What exists is the contract the real reviewer must meet, the checks that catch bad citations, and the accounting rules our evaluation will use."
 

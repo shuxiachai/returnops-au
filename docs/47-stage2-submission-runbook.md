@@ -51,7 +51,7 @@ Preconditions: every pull request intended for submission is merged into main an
 5. Open the statement PDF from the downloaded zip; check group number (10), names, student IDs and that each criterion row totals 100%.
 6. If anything differs, re-upload before the deadline and record both attempts; never edit a record afterwards to hide the first.
 
-R.05.a record (to fill): deadline source and wording; tag; commit SHA; CI run URL; package file name, size and SHA-256; Canvas item title; receipt time and attempt; reopen check result; known gaps attached (yes/no).
+R.05.a record (to fill): deadline source and wording; tag; commit SHA; CI run URL; package file name, size and SHA-256; Canvas item title; receipt time and attempt; reopen check result; known gaps attached (yes/no); C's pre-generated S6 evidence bundle (source commit and manifest `content_id`).
 
 ## 5. Clean-machine rehearsal checklist
 
@@ -77,6 +77,7 @@ Derived from the README chapter [Deploy from zero](../README.md#deploy-from-zero
 | 16 | Latency check on the running `demo.py serve` API, before it is stopped: 100 sequential `POST /v1/cases` as `synthetic_customer_b` (each with a new `Idempotency-Key`) and 100 `GET /v1/cases/{case_id}` of one of those cases, timed on the client with `httpx` from the locked environment | p50 and p95 in milliseconds for each call, the number of non-2xx answers (expected 0), the machine and the time; recorded here as a demonstration-machine observation, not a load test, and copied to [docs/48](48-agile-evidence-and-technology-data.md) row 1 only if the rehearsal passes | A | | |
 | 17 | Stop `serve`; provision `tmp/demo-cups` without the two flags; set `DATABASE_URL`; driver with `--identities --api-port 8000 --keep-api --allow-existing-data` | `R.02 demo mode: driver result PASSED (see run-receipt.json).` | A | | |
 | 18 | Founder UI with `demo_cups_founder`: inspect the driver's case | Status `COMPLETED` | B | | |
+| 18a | Demo S6 (C): in Terminal 3 run the C1 pilot summary and the four selected C2 tests (docs/45 S6 item 4); show the evidence bundle pre-generated on macOS or Linux | Pilot: ranked recall 16/22, returned-set recall 20/22, citation outcomes 8 of 8; `4 passed`; the bundle's commit and `content_id` match the R.05.a record | C | | |
 | 19 | Timed run of the whole demo script | 12-15 minutes; note overruns per segment | A, B, C | | |
 | 20 | Clean up: Ctrl+C; delete `tmp/demo-shop`, `tmp/demo-cups`; **Clear token**; unset model variables; `docker compose down -v` (with the same `-p <name>` if one was used), so that the next fresh deployment does not meet this run's volume and password | No private files left; `docker volume ls` lists no `returnops-au-f02_postgres-data` | A | | |
 
