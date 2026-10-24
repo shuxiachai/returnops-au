@@ -17,10 +17,13 @@ This dated update follows [Issue #123](https://github.com/shuxiachai/returnops-a
 **E.01 remains a metric-definition draft, not an A-reviewed or frozen label
 guide.** The adopted accounting tools do not establish completed E.01/E.09,
 real B1/B4 execution, model quality or acceptance. Under the
-[Gate 2 deferral roadmap](../../docs/46-gate2-roadmap.md), real
-Gold evaluation, actual human timing, real B1/B4 and E.12 remain deferred to
-Gate 2; they are not waived, and the original protocol, dependencies, owners
-and S/F criteria remain in force.
+[Gate 2 deferral roadmap](../../docs/46-gate2-roadmap.md), the real B1/B4 runner
+and formal E.12 comparison are deferred, not waived. A's 22 October
+[KAN-25 scope note](https://lucastaooo.atlassian.net/browse/KAN-25) keeps E.01/E.02
+definitions, E.03–E.08 label/timing records with A/B, and an honest measurement
+report in the near-term submission scope. Those records remain missing; they
+are **not** automatically deferred with E.12. KAN-25 stays In Progress. The
+original protocol, dependencies, owners and S/F criteria remain in force.
 
 The 18–19 October coordination windows later in this document are historical
 proposals, not evidence of a current booking or completed participation. A new
