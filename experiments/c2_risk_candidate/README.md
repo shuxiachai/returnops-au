@@ -8,6 +8,64 @@ Offline preparation for **C2.01–C2.05**, `FR-008`, `NFR-001/002/009`,
 ProposalReview state model`. C owns this component; A reviews and integrates.
 This is not a live LLM, Gate 2, feature acceptance or semantic-quality result.
 
+## S6 practice card — 25 October 2026 follow-up (Sydney)
+
+A adopted [PR #127](https://github.com/shuxiachai/returnops-au/pull/127) source
+`d06abbc8644a451efff1776b0d41874474f54230` as
+`03ad23d5fd57561037bd89bbcf1cb3e73170fde5` after
+[CI 40165160985](https://github.com/shuxiachai/returnops-au/actions/runs/40165160985)
+completed 13/13 successfully. A's [reply](https://github.com/shuxiachai/returnops-au/pull/127#issuecomment-6394706447)
+confirms the status/link checks and retains the outstanding acceptance items.
+This new practice card follows the current [S6 actions](../../docs/45-stage2-demo-script.md#s6-grounding-risk-contract-and-evaluation-definitions-c-1030-200);
+the older 22 October spoken draft remains a dated record below.
+
+C's [bounded OS/process review](../../docs/reviews/member-c-r02-review-20261022.md#10-real-os-and-owned-process-follow-up--25-october-2026)
+adds eight successful fault/cleanup observations and one reproduced open gap:
+a second interrupt can leave the owned child alive after the driver reports
+FAILED/INTERRUPTED and removes its private directory. The diagnostic finally
+reaps that child. This uses real macOS permissions/signals with a synthetic
+chain and no-network sleep child, not a real API/PG/browser run. A owns the
+runtime correction; R02-C-02 remains open. No original C WBS item is newly
+counted as accepted by this shared review evidence.
+
+Run the existing Windows-safe commands in S6 from the repository root, using
+the locked environment. On macOS/Linux, use that environment's `python` in
+place of `.\\.venv\\Scripts\\python.exe`. No secure file-admission or evidence
+CLI needs to run on the Windows demonstration machine.
+
+| Action | Point to / say | Planned budget, not measured |
+|---|---|---|
+| Run the C1 pilot summary command from S6 / the [C1 README](../c1_grounding_candidate/README.md#run-the-public-synthetic-pilot) | 12 synthetic queries; ranked recall 16/22 and conflict-expanded returned-set recall 20/22 are different measures; retain the miss and the 8/8 expected citation outcomes | 40 seconds |
+| Run the four C2 tests in the command below | Point to the observed result; explain blocking conflict → ESCALATE → no approval authority | 40 seconds |
+| Point to the [evaluation draft](../evaluation_candidate/README.md), then stop | Definitions remain unfrozen; do not imply the optional bundle is on screen | 20 seconds |
+| Allow command completion and screen changes | Aim to leave a buffer; personally time the entire segment | 20 seconds |
+
+**AI-assisted spoken draft; C must understand, adapt and practise it:**
+
+> My part covers grounding, risk review and evaluation. This first command uses
+> twelve synthetic queries. It shows citation checks, retrieval counts and
+> misses. These are development results, not real model quality.
+>
+> Next, these four tests check the risk contract using fixed responses. For
+> example, a blocking source conflict requires escalation. It cannot authorize
+> an operation. Invalid output or a timeout must never become a pass. Even a
+> pass still needs the Founder's exact approval.
+>
+> Finally, the evaluation draft keeps failures in the denominator and leaves
+> unknown costs unknown. Its definitions still need review and freezing. The
+> live independent reviewer, image feature and formal evaluation remain
+> unfinished. We will integrate and test them under the original gates.
+
+Only if the separately prepared bundle is actually displayed, add:
+"This pre-generated bundle uses invented cases to check accounting; it is not
+a live model result." Record its exact source and content ID in the runbook;
+the final-tag bundle remains pending until A selects the submission source.
+
+If either command fails, say it failed. If showing an earlier result, label its
+source/date and say it is recorded, not a live pass. Do not edit expected output
+or remove failures for the presentation. These budgets are a rehearsal plan,
+not a personal speaking-speed measurement, attendance record or acceptance.
+
 ## Current status — 25 October 2026 (Sydney)
 
 [PR #125](https://github.com/shuxiachai/returnops-au/pull/125) was approved at
