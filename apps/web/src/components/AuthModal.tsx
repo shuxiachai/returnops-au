@@ -99,7 +99,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 }`}
               >
                 <span className="font-semibold">Customer (End-User)</span>
-                <span className="text-xs text-slate-500">Access UC-01 / UC-01E routes</span>
+                <span className="text-xs text-slate-500">Lodge and track your own returns</span>
               </button>
 
               <button
@@ -112,7 +112,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 }`}
               >
                 <span className="font-semibold">Founder (Merchant)</span>
-                <span className="text-xs text-slate-500">Access UC-04 / OF-006 routes</span>
+                <span className="text-xs text-slate-500">Review cases, record decisions, view analytics</span>
               </button>
             </div>
           </div>

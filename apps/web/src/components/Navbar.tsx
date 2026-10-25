@@ -61,11 +61,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                   ReturnOps AU
                 </span>
                 <span className="bg-sky-50 text-sky-700 border border-sky-200 text-xs font-semibold px-2 py-0.5 rounded-full">
-                  Stage 2 · Member B
+                  ELEC5620 · Group 10
                 </span>
               </div>
               <p className="text-xs text-slate-500 font-medium">
-                Customer Intake (UC-01/01E) & Founder Console (UC-04/OF-006)
+                Returns assistant for a small Australian online shop
               </p>
             </div>
           </div>
@@ -85,9 +85,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <User className="w-4 h-4" />
               <span>Customer Portal</span>
-              <span className="text-[10px] bg-slate-200/70 text-slate-600 px-1.5 py-0.2 rounded font-mono">
-                UC-01/01E
-              </span>
             </button>
 
             <button
@@ -103,9 +100,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <ShieldCheck className="w-4 h-4" />
               <span>Founder Console</span>
-              <span className="text-[10px] bg-sky-100 text-sky-700 px-1.5 py-0.2 rounded font-mono">
-                UC-04/OF-006
-              </span>
             </button>
           </nav>
 

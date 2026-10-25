@@ -36,9 +36,7 @@ export const App: React.FC = () => {
             <span className="font-semibold text-slate-700">ReturnOps AU</span> · University of Sydney · ELEC5620 Stage 2
           </div>
           <div className="flex items-center space-x-4 text-slate-400">
-            <span>Member B: Chengsi Li (Front-end & Portal Lead)</span>
-            <span>·</span>
-            <span>UC-01 / UC-01E / UC-04 / OF-006</span>
+            <span>Group 10 · Synthetic data and simulated providers only</span>
           </div>
         </div>
       </footer>

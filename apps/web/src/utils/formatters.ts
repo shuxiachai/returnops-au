@@ -1,4 +1,4 @@
-import { CaseStatus, RiskOutcome, IssueCategory, ActorProvenance } from '../types/domain';
+import { CaseStatus, RiskOutcome, IssueCategory, ActorProvenance, RequestedOutcome } from '../types/domain';
 
 export function formatDate(isoStr?: string): string {
   if (!isoStr) return '—';
@@ -104,4 +104,74 @@ export function formatActor(actor?: string | ActorProvenance): string {
     return `Service: ${actor.component_id}`;
   }
   return 'System';
+}
+
+// Customer screens show plain words, not internal status names (#111 item 6).
+export function formatCustomerStatus(status?: CaseStatus): string {
+  switch (status) {
+    case 'SUBMITTED':
+      return 'Received';
+    case 'AWAITING_INFORMATION':
+      return 'We need a bit more information';
+    case 'UNDER_INVESTIGATION':
+    case 'POLICY_ASSESSMENT':
+    case 'RISK_REVIEW':
+      return 'Being reviewed';
+    case 'AWAITING_APPROVAL':
+      return "Waiting for the shop's decision";
+    case 'APPROVED':
+    case 'ACTION_IN_PROGRESS':
+    case 'RECONCILING':
+    case 'NOTIFICATION_PENDING':
+      return 'Approved, being processed';
+    case 'COMPLETED':
+      return 'Completed';
+    case 'REJECTED':
+      return 'Not approved';
+    case 'MANUAL_HANDLED':
+      return 'The shop is handling this personally';
+    case 'ESCALATED':
+    case 'ACTION_FAILED':
+    case 'NOTIFICATION_FAILED':
+      return 'The shop is looking into this';
+    default:
+      return status || 'Unknown';
+  }
+}
+
+export function formatRequestedOutcome(outcome?: RequestedOutcome): string {
+  switch (outcome) {
+    case 'REFUND':
+      return 'Refund';
+    case 'REPLACEMENT':
+      return 'Replacement';
+    case 'REPAIR':
+      return 'Repair';
+    case 'RETURN':
+      return 'Return or store credit';
+    case 'INFORMATION':
+      return 'Information only';
+    case 'OTHER':
+      return 'Other';
+    case 'UNSPECIFIED':
+      return 'Not sure';
+    default:
+      return outcome || '—';
+  }
+}
+
+// Who produced a proposal (#111 item 4). The fixed Gate 1 proposal reports this model ID and is not a model.
+export const FIXED_PROPOSAL_MODEL_ID = 'fixture-no-live-model';
+
+export function describeProposalSource(modelRun?: { model_id?: string; prompt_version?: string }): {
+  label: string;
+  isModel: boolean;
+} {
+  const modelId = modelRun?.model_id;
+  if (!modelId) return { label: 'Not recorded', isModel: false };
+  if (modelId === FIXED_PROPOSAL_MODEL_ID) return { label: 'Fixed rule-based proposal (no model)', isModel: false };
+  return {
+    label: modelRun?.prompt_version ? `Model ${modelId} (prompt ${modelRun.prompt_version})` : `Model ${modelId}`,
+    isModel: true,
+  };
 }

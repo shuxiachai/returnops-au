@@ -96,7 +96,7 @@ afterEach(() => {
 
 describe('lodgement while createCase is pending', () => {
   const statementField = () => screen.getByPlaceholderText(/Tell us what happened with your purchase/i);
-  const orderField = () => screen.getByPlaceholderText('e.g. ORD-2026-9042');
+  const orderField = () => screen.getByPlaceholderText('e.g. SYN-1001');
   const outcomeField = () => screen.getByRole('combobox');
 
   async function submitPending() {
@@ -118,8 +118,8 @@ describe('lodgement while createCase is pending', () => {
     draftControls().forEach(control => expect(control).toBeDisabled());
     expect(statementField()).toHaveValue(statement);
     expect(orderField()).toHaveValue('ORD-1');
-    expect(outcomeField()).toHaveValue('REFUND');
-    expect(screen.getByText('Staged: ev_receipt_png')).toBeInTheDocument();
+    expect(outcomeField()).toHaveValue('UNSPECIFIED');
+    expect(screen.getByText('Staged', { exact: true })).toHaveAttribute('data-evidence-id', 'ev_receipt_png');
     expect(screen.queryByText('late.png')).not.toBeInTheDocument();
     // Every submitted file is already staged and adding is refused, so nothing can be staged.
     expect(screen.queryByRole('button', { name: /^Stage File$/i })).not.toBeInTheDocument();
@@ -141,13 +141,13 @@ describe('lodgement while createCase is pending', () => {
     expect(vi.mocked(createCase).mock.calls[0][0]).toEqual({
       original_message: statement,
       order_reference: 'ORD-1',
-      requested_outcome: 'REFUND',
+      requested_outcome: 'UNSPECIFIED', // #111 item 5: "Not sure" is the default
       evidence_ids: ['ev_receipt_png'],
     });
     fireEvent.click(screen.getByRole('button', { name: /Lodge Another Return/i }));
     expect(statementField()).toHaveValue('');
     expect(orderField()).toHaveValue('');
-    expect(outcomeField()).toHaveValue('REFUND');
+    expect(outcomeField()).toHaveValue('UNSPECIFIED');
     expect(screen.queryByText('receipt.png')).not.toBeInTheDocument();
     expect(statementField()).toBeEnabled();
   });
@@ -164,7 +164,7 @@ describe('lodgement while createCase is pending', () => {
 
     expect(screen.getByText(/\[NETWORK_ERROR\] response lost/i)).toBeInTheDocument();
     expect(statementField()).toHaveValue(statement);
-    expect(screen.getByText('Staged: ev_receipt_png')).toBeInTheDocument();
+    expect(screen.getByText('Staged', { exact: true })).toHaveAttribute('data-evidence-id', 'ev_receipt_png');
     draftControls().forEach(control => expect(control).toBeEnabled());
     vi.mocked(createCase).mockRejectedValueOnce(new ApiError(0, 'response lost', 'NETWORK_ERROR'));
     fireEvent.click(screen.getByRole('button', { name: /Submit Return Request/i }));
@@ -180,11 +180,11 @@ describe('clarification while submitClarification is pending', () => {
     const pending = deferred<CustomerCaseView>();
     vi.mocked(submitClarification).mockReturnValueOnce(pending.promise);
     render(<CustomerPortal />);
-    fireEvent.click(screen.getByRole('button', { name: /Track & Clarify \(UC-01E\)/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Track & Clarify/i }));
     await screen.findByText(caseId, { exact: true });
     fireEvent.change(answerField(), { target: { value: answer } });
     await attachAndStage('barcode.png');
-    fireEvent.click(screen.getByRole('button', { name: /Submit Supplementary Clarification/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Submit Answers/i }));
     await waitFor(() => expect(submitClarification).toHaveBeenCalledTimes(1));
     return pending;
   }
@@ -212,7 +212,7 @@ describe('clarification while submitClarification is pending', () => {
       await pending.promise;
     });
 
-    expect(screen.getByText(/Clarification successfully admitted/i)).toBeInTheDocument();
+    expect(screen.getByText(/Your answers were received/i)).toBeInTheDocument();
     expect(vi.mocked(submitClarification).mock.calls[0][1]).toEqual({
       expected_case_version: 2,
       question_set_id: 'qset_1',
@@ -237,7 +237,7 @@ describe('clarification while submitClarification is pending', () => {
     expect(screen.getByText('Staged')).toBeInTheDocument();
     draftControls().forEach(control => expect(control).toBeEnabled());
     vi.mocked(submitClarification).mockRejectedValueOnce(new ApiError(0, 'response lost', 'NETWORK_ERROR'));
-    fireEvent.click(screen.getByRole('button', { name: /Submit Supplementary Clarification/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Submit Answers/i }));
     await waitFor(() => expect(submitClarification).toHaveBeenCalledTimes(2));
     expect(vi.mocked(submitClarification).mock.calls[1]).toEqual(vi.mocked(submitClarification).mock.calls[0]);
   });
