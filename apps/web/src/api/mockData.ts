@@ -146,7 +146,7 @@ export const MOCK_CUSTOMER_CASES: Record<string, CustomerCaseView> = {
       {
         statement_id: 'stmt_orig_005',
         kind: 'ORIGINAL',
-        raw_text: 'DeLonghi coffee machine element blew within 2 hours of unboxing; full electrical fault.',
+        raw_text: 'My Synthbrew S2 coffee machine stopped heating within 2 hours of unboxing and trips the power switch.',
         submitted_at: new Date(Date.now() - 3600000 * 48).toISOString(),
         order_reference: 'ORD-2026-5501',
         requested_outcome: 'REFUND',
@@ -168,6 +168,47 @@ export const MOCK_CUSTOMER_CASES: Record<string, CustomerCaseView> = {
     ],
   },
 };
+
+// Cases case_demo_006 to case_demo_025 fill the queue past one page. They are
+// still before risk review, so they carry no risk outcome, and each has a small
+// case view so that every queue row can be opened (#122 item 1).
+const GENERATED_QUEUE_SUMMARIES: CaseSummary[] = Array.from({ length: 20 }, (_, i) => {
+  const num = String(i + 6).padStart(3, '0');
+  return {
+    case_id: `case_demo_${num}`,
+    case_version: 1,
+    input_version: 1,
+    status: i % 2 === 0 ? 'UNDER_INVESTIGATION' : 'POLICY_ASSESSMENT',
+    created_at: new Date(Date.now() - 3600000 * (50 + i * 2)).toISOString(),
+    updated_at: new Date(Date.now() - 3600000 * (40 + i * 2)).toISOString(),
+    issue_category: i % 3 === 0 ? 'CHANGE_OF_MIND' : 'FAULTY_OR_QUALITY_ISSUE',
+  };
+});
+
+function generatedQueueView(summary: CaseSummary, index: number): CaseView {
+  const changeOfMind = summary.issue_category === 'CHANGE_OF_MIND';
+  return {
+    case_id: summary.case_id,
+    case_version: summary.case_version,
+    input_version: summary.input_version,
+    status: summary.status,
+    created_at: summary.created_at,
+    updated_at: summary.updated_at,
+    statements: [
+      {
+        statement_id: `stmt_orig_${summary.case_id}`,
+        kind: 'ORIGINAL',
+        raw_text: changeOfMind
+          ? 'I changed my mind about this item. It is unused and still in its original box.'
+          : 'The item stopped working properly after a few days of normal use.',
+        submitted_at: summary.created_at,
+        order_reference: `SYN-${1106 + index}`,
+        requested_outcome: 'UNSPECIFIED',
+      },
+    ],
+    evidence: [],
+  };
+}
 
 // 25 synthetic cases to exercise limit=20 pagination and ensure 21st case is reachable
 export const MOCK_FOUNDER_SUMMARIES: CaseSummary[] = [
@@ -221,20 +262,7 @@ export const MOCK_FOUNDER_SUMMARIES: CaseSummary[] = [
     issue_category: 'FAULTY_OR_QUALITY_ISSUE',
     current_risk_outcome: 'PASS',
   },
-  ...Array.from({ length: 20 }, (_, i) => {
-    const num = String(i + 6).padStart(3, '0');
-    const caseId = `case_demo_${num}`;
-    return {
-      case_id: caseId,
-      case_version: 1,
-      input_version: 1,
-      status: (i % 2 === 0 ? 'UNDER_INVESTIGATION' : 'POLICY_ASSESSMENT') as any,
-      created_at: new Date(Date.now() - 3600000 * (50 + i * 2)).toISOString(),
-      updated_at: new Date(Date.now() - 3600000 * (40 + i * 2)).toISOString(),
-      issue_category: (i % 3 === 0 ? 'CHANGE_OF_MIND' : 'FAULTY_OR_QUALITY_ISSUE') as any,
-      current_risk_outcome: 'PASS' as const,
-    };
-  }),
+  ...GENERATED_QUEUE_SUMMARIES,
 ];
 
 // Synthetic contract Hash (64 lowercase hex characters) for case_demo_003's preview.
@@ -317,7 +345,7 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
       refund_amount_cents: 8900,
       return_label_required: false,
       rationale:
-        'Product is unrepairable and shattered glassware/ceramic presents safety hazard. Australian Consumer Law statutory guarantee entitles full refund without return under safety policy §4.2.',
+        'The teapot arrived broken and the pieces are a safety hazard. Under the Australian Consumer Law this may be a major failure, and store policy §4.2 lets the Founder waive the return of broken items. The Founder decides; this proposal approves nothing.',
       created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
     },
     current_review: {
@@ -326,13 +354,13 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
       risk_score: 0.18,
       reviewed_at: new Date(Date.now() - 3600000 * 1).toISOString(),
       summary:
-        'Low fraud probability. Delivery within 5 days, customer has 0 prior return history. Recommend instant refund authorisation.',
+        'Low risk signals: delivered within 5 days and no earlier returns on record. No conflicting evidence found; the decision stays with the Founder.',
       findings: [
         {
           finding_id: 'find_02a',
           category: 'SUPPORT',
           severity: 'INFO',
-          message: 'Shattered ceramics in transit meet statutory ACL failure threshold.',
+          message: 'Ceramics broken in transit may be a major failure under the ACL (conditional guidance, not a legal determination).',
           citation_ids: ['ACL s54'],
           evidence_ids: ['ev_demo_02'],
         },
@@ -340,7 +368,7 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
           finding_id: 'find_02b',
           category: 'SCOPE',
           severity: 'WARNING',
-          message: 'Zero prior return history on customer record; waiver granted under safety policy.',
+          message: 'No earlier returns on record. Store policy §4.2 lets the Founder waive the return of broken items; nothing is waived until the Founder decides.',
           citation_ids: ['Merchant Policy §4.2'],
           evidence_ids: [],
         },
@@ -395,7 +423,7 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
       risk_score: 0.05,
       reviewed_at: new Date(Date.now() - 3600000 * 3).toISOString(),
       summary:
-        'Unopened standard item within 30-day return window. Authorize Australia Post return consignment.',
+        'Unopened item within the 30-day return window. If the Founder approves, the simulated return and label in the preview are the only actions.',
       findings: [
         {
           finding_id: 'find_03',
@@ -476,7 +504,7 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
       line_items: [
         {
           line_item_id: 'item_401',
-          sku: 'CM-DELONGHI-EC680',
+          sku: 'SYN-ESP-COMM-50',
           description: 'Commercial Bulk Espresso Machine Lot (50 units)',
           quantity: 50,
           unit_price_minor: 49000,
@@ -499,7 +527,7 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
       risk_score: 0.92,
       reviewed_at: new Date(Date.now() - 3600000 * 19).toISOString(),
       summary:
-        'Severe business risk. Bulk commercial order exceeds standard retail consumer terms. Direct approval is blocked; manual takeover or rejection required.',
+        'High business risk: a bulk commercial order is outside the store retail consumer terms. The case is escalated, so the Founder can take it over manually or ask for a revised proposal.',
       findings: [
         {
           finding_id: 'find_04a',
@@ -513,14 +541,14 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
           finding_id: 'find_04b',
           category: 'AUTHORITY',
           severity: 'BLOCK',
-          message: 'Total return claim ($24,500.00) exceeds autonomous refund limit ($500.00). Direct automated approval blocked.',
+          message: 'The claim ($24,500.00) is far above a retail return. Only the Founder can decide it, and this prototype moves no money.',
           citation_ids: ['Operations Guard §3.1'],
           evidence_ids: [],
         },
       ],
       policy_citations: [
         'Store Policy §1.4 (Commercial Exclusions)',
-        'Operations Guard §3.1 (Autonomous Approval Ceiling)',
+        'Operations Guard §3.1 (Founder-only decisions)',
       ],
     },
   },
@@ -543,8 +571,8 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
       line_items: [
         {
           line_item_id: 'item_501',
-          sku: 'DELONGHI-SPEC-01',
-          description: 'DeLonghi La Specialista Espresso Machine',
+          sku: 'SYN-ESP-S2',
+          description: 'Synthbrew S2 Espresso Machine',
           quantity: 1,
           unit_price_minor: 69900,
         },
@@ -559,7 +587,7 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
       refund_amount_cents: 69900,
       return_label_required: false,
       rationale:
-        'Catastrophic electrical element failure within 2 hours of receipt constitutes major failure under ACL Section 54. Full refund completed.',
+        'An electrical fault within 2 hours of delivery may be a major failure under ACL section 54 (conditional guidance). The Founder approved the simulated return and label; this prototype moves no money.',
       created_at: new Date(Date.now() - 3600000 * 44).toISOString(),
     },
     current_review: {
@@ -568,7 +596,7 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
       risk_score: 0.02,
       reviewed_at: new Date(Date.now() - 3600000 * 43).toISOString(),
       summary:
-        'Full photographic proof verified. Complete statutory compliance and ledger closure.',
+        'The photo evidence matches the reported fault. No conflicting evidence found.',
       findings: [
         {
           finding_id: 'find_05',
@@ -582,6 +610,9 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
       policy_citations: ['ACL Section 54 (Acceptable Quality)'],
     },
   },
+  ...Object.fromEntries(
+    GENERATED_QUEUE_SUMMARIES.map((summary, index) => [summary.case_id, generatedQueueView(summary, index)])
+  ),
 };
 
 export const MOCK_AUDIT_EVENTS: Record<string, AuditEvent[]> = {
@@ -747,23 +778,23 @@ export const MOCK_AUDIT_EVENTS: Record<string, AuditEvent[]> = {
       occurred_at: new Date(Date.now() - 3600000 * 40).toISOString(),
       previous_event_hash: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       event_hash: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
-      payload: { rationale: 'Approved statutory warranty refund for dangerous element failure.' },
+      payload: { rationale: 'Approved the simulated return and label for the reported electrical fault.' },
     },
     {
       event_id: 'evt_005_4',
       sequence: 4,
-      event_type: 'REFUND_DISPATCHED',
+      event_type: 'SIMULATED_RETURN_AND_LABEL_CREATED',
       actor: { kind: 'SERVICE', component_id: 'operations-service' },
       occurred_at: new Date(Date.now() - 3600000 * 38).toISOString(),
       previous_event_hash: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
       event_hash: 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
-      payload: { amount_cents: 69900, payment_method: 'VISA_DEBIT' },
+      payload: { commands: ['CREATE_RETURN', 'GENERATE_LABEL'], environment: 'SIMULATED', amount_ceiling_minor: 0 },
     },
     {
       event_id: 'evt_005_5',
       sequence: 5,
       event_type: 'CASE_COMPLETED',
-      actor: { kind: 'SERVICE', component_id: 'coordinator-agent' },
+      actor: { kind: 'SERVICE', component_id: 'operations-service' },
       occurred_at: new Date(Date.now() - 3600000 * 36).toISOString(),
       previous_event_hash: 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
       event_hash: 'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd',

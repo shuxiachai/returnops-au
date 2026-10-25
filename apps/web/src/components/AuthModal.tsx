@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, KeyRound, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 import {
   getStoredToken,
   setStoredToken,
   getActiveRole,
   setActiveRole,
-  getSession,
+  verifySessionToken,
   isMockMode,
   setMockMode,
+  ApiError,
 } from '../api/client';
 import { SessionPrincipal } from '../types/domain';
 
@@ -23,27 +24,60 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [mock, setMock] = useState(isMockMode());
+  // Only the latest check may update the status, so an older reply cannot
+  // confirm a token that has since been edited.
+  const verifyRun = useRef(0);
 
   useEffect(() => {
     if (isOpen) {
-      setTokenInput(getStoredToken());
+      const stored = getStoredToken();
+      const storedMock = isMockMode();
+      setTokenInput(stored);
       setLocalRole(getActiveRole());
-      setMock(isMockMode());
-      checkCurrentSession();
+      setMock(storedMock);
+      verifyToken(stored, storedMock);
     }
   }, [isOpen]);
 
-  const checkCurrentSession = async () => {
-    setTestStatus('testing');
+  const resetVerification = () => {
+    verifyRun.current += 1;
+    setCurrentSession(null);
+    setTestStatus('idle');
     setErrorMessage('');
+  };
+
+  // Verify checks the text in the box, not the token saved earlier (#111 item 1).
+  // In Live API mode the persona then follows the role the server reports.
+  const verifyToken = async (candidate: string, mockSelected: boolean) => {
+    const run = ++verifyRun.current;
+    setCurrentSession(null);
+    setErrorMessage('');
+    if (mockSelected) {
+      setTestStatus('idle');
+      return;
+    }
+    if (!candidate) {
+      setTestStatus('error');
+      setErrorMessage('Paste a token first. Nothing was checked.');
+      return;
+    }
+    setTestStatus('testing');
     try {
-      const sess = await getSession();
+      const sess = await verifySessionToken(candidate);
+      if (run !== verifyRun.current) return;
       setCurrentSession(sess);
       setTestStatus('success');
+      if (sess.role === 'CUSTOMER' || sess.role === 'FOUNDER') setLocalRole(sess.role);
     } catch (err: unknown) {
-      setCurrentSession(null);
+      if (run !== verifyRun.current) return;
       setTestStatus('error');
-      setErrorMessage(err instanceof Error ? err.message : 'Authentication verification failed');
+      setErrorMessage(
+        err instanceof ApiError && err.status === 401
+          ? 'This token was refused: it has expired or is not valid. Paste a new token from sessions.json.'
+          : err instanceof Error
+            ? err.message
+            : 'Authentication verification failed'
+      );
     }
   };
 
@@ -58,8 +92,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const handleClear = () => {
     setTokenInput('');
     setStoredToken('');
-    setCurrentSession(null);
-    setTestStatus('idle');
+    resetVerification();
   };
 
   if (!isOpen) return null;
@@ -129,7 +162,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
               <input
                 type="checkbox"
                 checked={mock}
-                onChange={(e) => setMock(e.target.checked)}
+                onChange={(e) => {
+                  setMock(e.target.checked);
+                  resetVerification();
+                }}
                 className="sr-only peer"
               />
               <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600"></div>
@@ -155,7 +191,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             <textarea
               rows={3}
               value={tokenInput}
-              onChange={(e) => setTokenInput(e.target.value)}
+              onChange={(e) => {
+                setTokenInput(e.target.value);
+                resetVerification();
+              }}
               placeholder="Paste JWT issued by returnops_api.demo provision (from sessions.json) or leave blank for mock mode..."
               className="w-full text-xs font-mono p-3 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-500 focus:bg-white transition-all resize-none"
             />
@@ -167,6 +206,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           {/* Session Verification Status */}
           <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
             <div className="flex items-center space-x-2 text-xs">
+              {mock && (
+                <span className="text-slate-500">Mock Mode uses built-in synthetic data, so no token is checked.</span>
+              )}
               {testStatus === 'testing' && (
                 <span className="text-slate-500 flex items-center space-x-1">
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -190,8 +232,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             </div>
             <button
               type="button"
-              onClick={checkCurrentSession}
-              className="text-xs text-sky-700 hover:text-sky-800 font-medium hover:underline flex items-center space-x-1"
+              onClick={() => verifyToken(tokenInput.trim(), mock)}
+              disabled={mock || testStatus === 'testing'}
+              className="text-xs text-sky-700 hover:text-sky-800 font-medium hover:underline flex items-center space-x-1 disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed"
             >
               <RefreshCw className="w-3 h-3" />
               <span>Verify</span>

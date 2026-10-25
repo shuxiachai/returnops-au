@@ -3,6 +3,7 @@ import { Navbar } from './components/Navbar';
 import { CustomerPortal } from './pages/CustomerPortal';
 import { FounderConsole } from './pages/FounderConsole';
 import { AuthModal } from './components/AuthModal';
+import { SessionBanner } from './components/SessionBanner';
 import { getActiveRole } from './api/client';
 
 export const App: React.FC = () => {
@@ -20,6 +21,7 @@ export const App: React.FC = () => {
         onTabChange={setCurrentTab}
         onOpenAuth={() => setAuthModalOpen(true)}
       />
+      <SessionBanner onOpenAuth={() => setAuthModalOpen(true)} />
 
       {/* Main Content Area */}
       <main className="flex-1 pb-16">

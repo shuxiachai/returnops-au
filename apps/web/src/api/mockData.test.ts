@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import schemas from '../../../../contracts/v1/schemas.json';
-import { MOCK_FOUNDER_CASE_VIEWS } from './mockData';
+import {
+  MOCK_AUDIT_EVENTS,
+  MOCK_CUSTOMER_CASES,
+  MOCK_FOUNDER_CASE_VIEWS,
+  MOCK_FOUNDER_SUMMARIES,
+} from './mockData';
 
 const defs = schemas.$defs;
 const mockViewsWithFacts = Object.values(MOCK_FOUNDER_CASE_VIEWS).filter((view) => view.facts);
@@ -35,6 +40,52 @@ describe('mock Founder facts (Issue #95)', () => {
       expect(facts.customer_requested_outcome).toBe(original?.requested_outcome);
       expect(facts.summary.trim().length).toBeGreaterThan(0);
       expect(facts.summary.length).toBeLessThanOrEqual(1000);
+    }
+  });
+});
+
+describe('mock queue and wording (#122 items 1 and 3)', () => {
+  it('gives every queue row a case view with the same status and version, so every row can be opened', () => {
+    expect(MOCK_FOUNDER_SUMMARIES).toHaveLength(25);
+    for (const summary of MOCK_FOUNDER_SUMMARIES) {
+      const view = MOCK_FOUNDER_CASE_VIEWS[summary.case_id];
+      expect(view, summary.case_id).toBeDefined();
+      expect(view.status).toBe(summary.status);
+      expect(view.case_version).toBe(summary.case_version);
+      expect(view.statements.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('claims no PASS review for a case that has not reached risk review', () => {
+    for (const summary of MOCK_FOUNDER_SUMMARIES) {
+      if (summary.status === 'UNDER_INVESTIGATION' || summary.status === 'POLICY_ASSESSMENT') {
+        expect(summary.current_risk_outcome, summary.case_id).not.toBe('PASS');
+      }
+    }
+  });
+
+  it('uses Founder-only, simulated-only wording and no real brand', () => {
+    const text = JSON.stringify({ MOCK_CUSTOMER_CASES, MOCK_FOUNDER_CASE_VIEWS, MOCK_AUDIT_EVENTS });
+    for (const phrase of [
+      /autonomous/i,
+      /instant refund/i,
+      /waiver granted/i,
+      /REFUND_DISPATCHED/,
+      /payment_method/,
+      /VISA/,
+      /DeLonghi/i,
+    ]) {
+      expect(text).not.toMatch(phrase);
+    }
+    const events = Object.values(MOCK_AUDIT_EVENTS).flat();
+    // Only the Founder approves, and no agent closes a case.
+    for (const event of events.filter((e) => e.event_type === 'FOUNDER_APPROVED')) {
+      expect(event.actor).toMatchObject({ kind: 'HUMAN', role: 'FOUNDER' });
+    }
+    const completed = events.filter((e) => e.event_type === 'CASE_COMPLETED');
+    expect(completed.length).toBeGreaterThan(0);
+    for (const event of completed) {
+      expect(JSON.stringify(event.actor)).not.toMatch(/agent/i);
     }
   });
 });

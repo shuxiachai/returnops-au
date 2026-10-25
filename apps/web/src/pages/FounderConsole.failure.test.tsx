@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { FounderConsole } from './FounderConsole';
 import type { AnalyticsSnapshot, CaseView } from '../types/domain';
 import { formatDate } from '../utils/formatters';
@@ -333,7 +333,7 @@ describe('FounderConsole failure and live-mode paths', () => {
   it('live mode: shows a server refusal in the dialog and does not treat it as success', async () => {
     vi.mocked(isMockMode).mockReturnValue(false);
     vi.mocked(recordFounderDecision).mockRejectedValue(
-      new ApiError(409, 'The case version has changed.', 'STALE_CASE_VERSION')
+      new ApiError(409, 'The request is not available in the current state.', 'INVALID_STATE')
     );
 
     render(<FounderConsole />);
@@ -344,7 +344,9 @@ describe('FounderConsole failure and live-mode paths', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: /Record decision/i }));
 
-    expect(await screen.findByText('[STALE_CASE_VERSION] The case version has changed.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('[INVALID_STATE] The request is not available in the current state.')
+    ).toBeInTheDocument();
     expect(screen.getByText(/Confirm Founder Decision: REJECT/i)).toBeInTheDocument();
     expect(vi.mocked(recordFounderDecision).mock.calls[0][1]).toStrictEqual({
       expected_case_version: 1,
@@ -355,6 +357,152 @@ describe('FounderConsole failure and live-mode paths', () => {
     });
     // No reload of the case as if the decision had been accepted.
     expect(getFounderCase).toHaveBeenCalledTimes(1);
+  });
+
+  it('live mode: a 409 STALE_CASE_VERSION reloads the case behind the dialog (#122 item 2)', async () => {
+    vi.mocked(isMockMode).mockReturnValue(false);
+    const newer: CaseView = { ...CONTRACT_SHAPED_VIEW, case_version: 2, updated_at: '2026-10-01T00:10:00Z' };
+    vi.mocked(getFounderCase).mockResolvedValueOnce(CONTRACT_SHAPED_VIEW).mockResolvedValue(newer);
+    vi.mocked(recordFounderDecision)
+      .mockRejectedValueOnce(new ApiError(409, 'The case version has changed.', 'STALE_CASE_VERSION'))
+      .mockResolvedValue({
+        case_id: 'case_contract_shape',
+        case_version: 3,
+        decision_id: 'dec_after_reload',
+        decision: 'REJECT',
+        accepted_at: '2026-10-22T00:00:00Z',
+        processing_status: 'ACCEPTED',
+      });
+
+    render(<FounderConsole />);
+    fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /^Reject$/i }));
+    fireEvent.change(await screen.findByPlaceholderText(/Record justification for statutory audit/i), {
+      target: { value: 'Outside the policy window.' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Record decision/i }));
+
+    // docs/09: reload, then confirm the current version. The server's message stays.
+    expect(
+      await screen.findByText(
+        '[STALE_CASE_VERSION] The case version has changed. The case changed; the view was reloaded. Check it and decide again.'
+      )
+    ).toBeInTheDocument();
+    const dialog = screen.getByRole('dialog', { name: /Confirm Founder Decision: REJECT/i });
+    expect(getFounderCase).toHaveBeenCalledTimes(2);
+    expect(listFounderCaseAudit).toHaveBeenCalledTimes(2);
+    expect(within(dialog).getByText(/\(v2\)/)).toBeInTheDocument();
+    expect(vi.mocked(recordFounderDecision).mock.calls[0][1]).toMatchObject({ expected_case_version: 1 });
+
+    // Deciding again sends the reloaded version under a new request key.
+    fireEvent.click(within(dialog).getByRole('button', { name: /Record decision/i }));
+    await waitFor(() => expect(recordFounderDecision).toHaveBeenCalledTimes(2));
+    const [first, second] = vi.mocked(recordFounderDecision).mock.calls;
+    expect(second[1]).toMatchObject({ expected_case_version: 2, decision: 'REJECT' });
+    expect(second[2]).not.toBe(first[2]);
+  });
+
+  it('shows a case that cannot be opened on the page, not in a browser alert (#122 item 1)', async () => {
+    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => undefined);
+    vi.mocked(getFounderCase).mockRejectedValue(new ApiError(404, 'Case not found.', 'NOT_FOUND'));
+
+    render(<FounderConsole />);
+    fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Could not open case_contract_shape: [NOT_FOUND] Case not found.'
+    );
+    expect(screen.queryByText(/Loading case details/i)).not.toBeInTheDocument();
+    expect(alertSpy).not.toHaveBeenCalled();
+    alertSpy.mockRestore();
+  });
+
+  describe('auto-refresh (#111 item 2)', () => {
+    const setVisibility = (state: DocumentVisibilityState) => {
+      Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => state });
+    };
+
+    beforeEach(() => {
+      // Only the interval is faked, so Testing Library's own timers keep running.
+      vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+      setVisibility('visible');
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+      setVisibility('visible');
+    });
+
+    it('re-reads the open case every 5 s, pauses while a decision is confirmed and stops at a final status', async () => {
+      const completed: CaseView = {
+        ...CONTRACT_SHAPED_VIEW,
+        case_version: 3,
+        status: 'COMPLETED',
+        action_preview: undefined,
+      };
+      vi.mocked(getFounderCase)
+        .mockResolvedValueOnce(CONTRACT_SHAPED_VIEW)
+        .mockResolvedValueOnce(CONTRACT_SHAPED_VIEW)
+        .mockResolvedValue(completed);
+
+      render(<FounderConsole />);
+      fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
+      expect(await screen.findByText('Updates every 5 seconds')).toBeInTheDocument();
+      expect(getFounderCase).toHaveBeenCalledTimes(1);
+
+      // Nothing is read while the Founder confirms a decision.
+      fireEvent.click(screen.getByRole('button', { name: /^Reject$/i }));
+      expect(await screen.findByText(/Confirm Founder Decision: REJECT/i)).toBeInTheDocument();
+      act(() => {
+        vi.advanceTimersByTime(15000);
+      });
+      expect(getFounderCase).toHaveBeenCalledTimes(1);
+      fireEvent.click(screen.getByRole('button', { name: /^Cancel$/i }));
+
+      // Nothing is read while the tab is hidden.
+      setVisibility('hidden');
+      act(() => {
+        vi.advanceTimersByTime(15000);
+      });
+      expect(getFounderCase).toHaveBeenCalledTimes(1);
+      setVisibility('visible');
+
+      act(() => {
+        vi.advanceTimersByTime(5000);
+      });
+      await waitFor(() => expect(getFounderCase).toHaveBeenCalledTimes(2));
+      act(() => {
+        vi.advanceTimersByTime(5000);
+      });
+      await waitFor(() => expect(getFounderCase).toHaveBeenCalledTimes(3));
+
+      // The third read is COMPLETED, a final status, so polling stops.
+      expect(await screen.findByText('COMPLETED')).toBeInTheDocument();
+      expect(screen.queryByText('Updates every 5 seconds')).not.toBeInTheDocument();
+      act(() => {
+        vi.advanceTimersByTime(30000);
+      });
+      expect(getFounderCase).toHaveBeenCalledTimes(3);
+    });
+
+    it('reloads the queue when the window regains focus, so a case lodged meanwhile appears', async () => {
+      vi.mocked(listFounderCases)
+        .mockResolvedValueOnce({ items: [CONTRACT_SUMMARY], next_cursor: undefined })
+        .mockResolvedValue({
+          items: [CONTRACT_SUMMARY, { ...CONTRACT_SUMMARY, case_id: 'case_lodged_meanwhile', status: 'SUBMITTED' }],
+          next_cursor: undefined,
+        });
+
+      render(<FounderConsole />);
+      expect(await screen.findByText('case_contract_shape')).toBeInTheDocument();
+      expect(screen.queryByText('case_lodged_meanwhile')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^Refresh$/ })).toBeInTheDocument();
+
+      fireEvent.focus(window);
+
+      expect(await screen.findByText('case_lodged_meanwhile')).toBeInTheDocument();
+      expect(listFounderCases).toHaveBeenLastCalledWith(undefined, 20);
+    });
   });
 
   it('live mode: reuses the request key after a 503 and mints a new one when the rationale changes', async () => {

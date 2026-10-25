@@ -349,6 +349,27 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
     // The whole closure of the demo case must be present, not just a summary row.
     expect(screen.getByText(/#5 CASE_COMPLETED/i)).toBeInTheDocument();
     expect(screen.getByText(/#3 FOUNDER_APPROVED/i)).toBeInTheDocument();
-    expect(screen.getByText(/#4 REFUND_DISPATCHED/i)).toBeInTheDocument();
+    // The approval covered a simulated return and label only; no money moved (#122 item 3).
+    expect(screen.getByText(/#4 SIMULATED_RETURN_AND_LABEL_CREATED/i)).toBeInTheDocument();
+    expect(screen.queryByText(/REFUND_DISPATCHED/i)).not.toBeInTheDocument();
+  });
+
+  it('opens a generated queue row instead of failing with a not-found alert (#122 item 1)', async () => {
+    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => undefined);
+    render(<FounderConsole />);
+
+    await waitFor(() => {
+      expect(screen.getByText('case_demo_006')).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByPlaceholderText(/Filter by Case ID or Category/i), {
+      target: { value: 'case_demo_006' },
+    });
+    fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
+
+    // The row opens: it is still under investigation, so there is no proposal yet.
+    expect(await screen.findByText('No active proposal generated for this case yet.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Approve Return/i })).toBeDisabled();
+    expect(alertSpy).not.toHaveBeenCalled();
   });
 });
