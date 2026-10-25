@@ -606,3 +606,86 @@ sign on behalf of C or approve unrelated product changes.
 No A/B source, API/schema, security guard, frozen owner/reviewer/S/F or source
 admission pin was changed by this C packet. No final main merge, fresh local
 PG acceptance, personal contribution agreement, Gold or Done is claimed.
+
+## 10. Real OS and owned-process follow-up — 25 October 2026
+
+Tracking: [KAN-41](https://lucastaooo.atlassian.net/browse/KAN-41).
+A adopted [PR #127](https://github.com/shuxiachai/returnops-au/pull/127), source
+`d06abbc8644a451efff1776b0d41874474f54230`, as
+`03ad23d5fd57561037bd89bbcf1cb3e73170fde5`; its CI completed 13/13 successfully.
+[A's reply](https://github.com/shuxiachai/returnops-au/pull/127#issuecomment-6394706447)
+retains full R02-C-02 review as an open item. The following is a new bounded
+review, not closure of that item or personal/whole-package acceptance.
+
+### Source and observed results
+
+The [diagnostic](member-c-r02-os-process-probe-20261025.py) pins the two runtime
+files from adopted source `03ad23d5` before importing them; the bytes also match
+the adopted PR #127 head. It requires a non-root POSIX account and a new output
+directory, restores only its own temporary permissions, and reaps only its own
+child processes in `finally`. The [saved result](member-c-r02-os-process-probe-20261025.json)
+records runtime-file and diagnostic hashes, CPython version/macOS platform, and each
+observation. Synthetic HTTP/business/DB seams are replaced; no API listener,
+database, model or external service is started or contacted.
+
+| Real local scenario | Observed result |
+|---|---|
+| Raw-log read denied by `chmod` | OS EACCES; safe withheld note, screening failure code, private cleanup and receipt retained |
+| Public log target is a directory | Screening/publication failure recorded; later cleanup and receipt still attempted |
+| Receipt output write denied by `chmod` | OS EACCES; no receipt-written flag or receipt; private directory removed; failure reported |
+| Private-file deletion denied by `chmod` | OS EACCES; receipt reports private directory not removed and CLI warning remains |
+| Receipt target is a directory | No false receipt-written flag; private cleanup still runs |
+| Existing receipt at CLI entry | Exit 2; original receipt bytes preserved |
+| Normal child termination | Real owned sleep child stops on SIGTERM and is reaped |
+| Child ignores SIGTERM | Actual ten-second timeout reaches SIGKILL and reaps the owned child |
+| Second SIGINT during child stop | **Open gap reproduced**: FAILED/INTERRUPTED receipt, private directory removed, but owned child still alive until diagnostic teardown kills and reaps it |
+
+These are **8 passing bounded observations plus 1 reproduced defect**, not
+nine passing acceptance tests. Durations in the JSON describe this diagnostic,
+not proposal latency. The synthetic marker is not a credential-redaction test.
+
+### R02-C-02 remaining P2: second interrupt bypasses child termination
+
+At the pinned source, `tools/r02/api_child.py:108–115` catches
+`subprocess.TimeoutExpired` around `wait`, but does not finish termination when
+that stop path is interrupted by `KeyboardInterrupt`. Its API context invokes
+the same function at lines 174–175. The diagnostic issues one real SIGINT in a
+synthetic chain, then another after entering the child-stop context, and records
+that `_stop` itself was interrupted. The owned child ignores SIGTERM so a missed
+kill/reap is observable. It is a no-network sleep process, not the production
+API child.
+
+`Run.execute` catches the interrupt and calls `finish` (driver lines 888–893).
+The observed receipt truthfully says **FAILED / INTERRUPTED**, and its
+`private_directory_removed=true` is true. Nevertheless, the owned child is
+still alive and no child-cleanup error is recorded. Directory removal therefore
+does not establish that the process stopped. This is **not** a business
+false-PASS or evidence of a real API/credential leak. The diagnostic finally
+kills and waits for its own child, so this review leaves no child running.
+
+A should disposition an interruption-safe, bounded terminate/kill/reap path and
+explicit failed-stop reporting while retaining the original interruption
+semantics. C has not changed A's implementation. After A publishes an exact fix,
+C can review its diff and independently verify the corrected behavior; the
+pinned reproducer intentionally refuses changed source bytes pending review.
+
+```sh
+python -B docs/reviews/member-c-r02-os-process-probe-20261025.py /path/to/exact-review-checkout /path/to/new-output
+```
+
+Run as a separate Python process: the diagnostic sends SIGINT to itself, not
+to the caller's terminal process group. Exit zero means the recorded
+observations, **including the open defect**, were reproduced. This explicitly
+invoked diagnostic is not an automatic CI gate or an always-green regression
+test of future fixed implementations. Do not reuse or overwrite the output.
+
+Still unverified: the real API/PG/browser workflow, native Windows failures,
+disk-full, power loss/SIGKILL and the full failure matrix. R02-C-02, Gate 1
+acceptance, real Risk/C3/Gold and personal/team sign-off remain open.
+
+The same follow-up also provides a 116-word S6 practice card in C's README.
+Its main narration matches the two current required offline commands; the
+pre-generated evidence bundle has a separate optional sentence. C1 still
+reports its retained miss (ranked 16/22 versus returned-set 20/22); the selected
+C2 command passed four tests locally. This is recorded technical preparation,
+not a timed personal rehearsal, a Windows rerun or final-tag delivery evidence.

@@ -1,0 +1,104 @@
+{
+  "scope": "C-owned real-OS fault review; synthetic chain and no-network sleep children",
+  "reference_source_commit": "03ad23d5fd57561037bd89bbcf1cb3e73170fde5",
+  "source_sha256": {
+    "driver.py": "b71980ebbe1dcb41b930e0f75463feb09ee1fa5b837d2ecf16c0de3c742dfc0e",
+    "api_child.py": "2eedc0c493485520d53127b745744a1d19689918b4c44774d4f4b3cdb965755c"
+  },
+  "diagnostic_sha256": "7392104cc16d67e495ac4d7f0ee4bbc9309b78f2e925bc572c50d3e99f11962b",
+  "platform": "darwin",
+  "python": "3.12.7",
+  "rows": [
+    {
+      "name": "log_read_eacces",
+      "assertions": "PASS",
+      "actual_permission_errno": 13,
+      "receipt_written": true,
+      "cleanup_codes": [
+        "API_LOG_SCREEN_FAILED"
+      ],
+      "private_left": false
+    },
+    {
+      "name": "log_write_is_directory",
+      "assertions": "PASS",
+      "actual_permission_errno": null,
+      "receipt_written": true,
+      "cleanup_codes": [
+        "API_LOG_SCREEN_FAILED"
+      ],
+      "private_left": false
+    },
+    {
+      "name": "receipt_write_eacces",
+      "assertions": "PASS",
+      "actual_permission_errno": 13,
+      "receipt_written": false,
+      "cleanup_codes": [],
+      "private_left": false
+    },
+    {
+      "name": "private_removal_eacces",
+      "assertions": "PASS",
+      "actual_permission_errno": 13,
+      "receipt_written": true,
+      "cleanup_codes": [],
+      "private_left": true
+    },
+    {
+      "name": "receipt_target_is_directory",
+      "assertions": "PASS",
+      "actual_permission_errno": null,
+      "receipt_written": false,
+      "cleanup_codes": [],
+      "private_left": false
+    },
+    {
+      "name": "existing_receipt_cli_refused",
+      "assertions": "PASS",
+      "cli_exit": 2,
+      "original_bytes_preserved": true
+    },
+    {
+      "name": "normal_sigterm_stop",
+      "assertions": "PASS",
+      "returncode": -15,
+      "elapsed_seconds": 0.002,
+      "child_reaped": true
+    },
+    {
+      "name": "ignore_sigterm_forced_kill",
+      "assertions": "PASS",
+      "returncode": -9,
+      "elapsed_seconds": 10.016,
+      "child_reaped": true
+    },
+    {
+      "name": "second_sigint_during_real_child_stop",
+      "assertions": "REPRODUCED_OPEN_GAP",
+      "first_sigint": "synthetic chain",
+      "second_sigint": "real child stop interrupted",
+      "stop_interrupted": true,
+      "driver_result": "FAILED",
+      "receipt_stop_code": "INTERRUPTED",
+      "receipt_private_removed": true,
+      "cleanup_codes": [],
+      "child_alive_after_execute": true,
+      "harness_kill_and_reap_required": true
+    }
+  ],
+  "row_count": 9,
+  "duration_seconds": 10.595,
+  "no_database": true,
+  "no_network": true,
+  "no_model": true,
+  "children_reaped_by_harness": true,
+  "disposition": "R02_C02_REMAINS_OPEN_SECOND_INTERRUPT_CHILD_LEAK_REPRODUCED",
+  "unverified": [
+    "real API child and DB/browser workflow",
+    "Windows process/file behavior",
+    "disk full/power loss/SIGKILL",
+    "whole failure matrix",
+    "human/gate acceptance"
+  ]
+}
