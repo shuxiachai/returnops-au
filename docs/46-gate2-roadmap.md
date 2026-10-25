@@ -12,7 +12,7 @@ Delivered means merged into main with its own CI record, or published for merge 
 | Founder decision HTTP boundary (A2.07): the frozen decision POST behind an explicit flag | [docs/40](40-founder-decision-http-boundary.md) | In main; A2.07's PR #78 was merged on 22 October 2026 ([docs/41](41-r02-end-to-end-evidence.md)) |
 | F.06 Founder analytics read API | [docs/43](43-f06-analytics.md) | PR #90 merged; latency Tier 0 (no samples) |
 | A1.06 advisory Coordinator showcase (extraction half only, default off, outside the execution chain) | `docs/44-coordinator-showcase.md`, added by [PR #94](https://github.com/shuxiachai/returnops-au/pull/94) | Merged 22 October 2026 (PR #94; private-HTTP opt-in #98); first live result recorded on 22 October 2026 ([docs/44](44-coordinator-showcase.md#first-live-result-22-october-2026)) |
-| B's web frontend (customer portal, Founder console, analytics page) | [apps/web README](../apps/web/README.md) | PR #60 merged; live decisions and live analytics still refused in the client until Issue #91 is done |
+| B's web frontend (customer portal, Founder console, analytics page) | [apps/web README](../apps/web/README.md) | PR #60 merged; live Founder decisions and live analytics in the client since #102 (merged 23 October 2026 through #107, closing Issue #91); open follow-ups in Issues #104, #111 and #122 |
 | C's offline candidates: C1 grounding, C2 risk reviewer, evaluation accounting | [experiments](../experiments) | Offline; not connected to the execution chain |
 
 The Gate 1 condition itself, "Before connecting an LLM, demonstrate:" the chain Create Case to Audit ([docs/00](00-project-definition-v1.md), Gate 1), and the Gate 1 row of docs/08 are not claimed as met: R.02 and Gate 1 have no acceptance record.
