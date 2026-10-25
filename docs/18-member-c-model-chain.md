@@ -272,7 +272,7 @@ The existing shared Composite is a part/port/connector model and stays intact; t
 
 ## 12. September 16 consumer/report integration follow-up
 
-B's APPROVED review is a real recorded consumer-review event on C `c9f205d`; its statements are not adopted where they conflict with the existing contract and A's selected decisions. B's PR #14 now contains a modular team report and shared Object/Collaboration candidates at `6ddd8aa0c8b0c52d2d84b97143896cea4917165b`. Their presence does not prove C's classification table was correctly integrated or that C authored B's new shared diagram. The detailed [C integration review](reviews/member-c-integration-followup-20260916.md) identifies the source and unresolved corrections; [MC-RPT-0.4 §10](reports/member-c-stage1-draft.md#10-september-16-team-report-integration-text) supplies replacement C text for A/B to integrate.
+B's APPROVED review is a real recorded consumer-review event on C `c9f205d`; its statements are not adopted where they conflict with the existing contract and A's selected decisions. B's PR #14 now contains a modular team report and shared Object/Collaboration candidates at `6ddd8aa0c8b0c52d2d84b97143896cea4917165b`. Their presence does not prove C's classification table was correctly integrated or that C authored B's new shared diagram. The detailed [C integration review](reviews/member-c-integration-followup-20260916.md) identifies the source and unresolved corrections; [MC-RPT-0.4 §10](../stage1/drafts/member-c-stage1-draft.md#10-september-16-team-report-integration-text) supplies replacement C text for A/B to integrate.
 
 | Consumer/report topic | Existing rule to preserve |
 |---|---|

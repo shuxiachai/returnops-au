@@ -8,6 +8,44 @@ Offline preparation for **C2.01–C2.05**, `FR-008`, `NFR-001/002/009`,
 ProposalReview state model`. C owns this component; A reviews and integrates.
 This is not a live LLM, Gate 2, feature acceptance or semantic-quality result.
 
+## Current status — 25 October 2026 (Sydney)
+
+[PR #125](https://github.com/shuxiachai/returnops-au/pull/125) was approved at
+exact source `e1f16703564aa888721de1e2776c81de23132821`
+([review 5640650438](https://github.com/shuxiachai/returnops-au/pull/125#pullrequestreview-5640650438))
+and adopted as `a3af4175296ab644ee2880f5c77a9ac95943e345`.
+[CI 40068928975](https://github.com/shuxiachai/returnops-au/actions/runs/40068928975)
+completed **13/13 successfully**; A closed Issue #123. This adopts six technical
+files, not personal explanation, feature acceptance or the whole submission.
+
+A's [25 October Windows verification](https://github.com/shuxiachai/returnops-au/pull/125#issuecomment-6391097681)
+now supplies the native recheck requested in the older entry: the unchanged
+matrix passed **22/22**, the C reproduction command passed **80 tests with 30
+POSIX-only skips**, and the model trace's 12 nodes passed. These are A's reported
+runs on the approved source integrated with main `b345ac59`, not C runs or a
+claim that POSIX-only file operations work on Windows. R02-C-02's full
+OS/process/second-interruption and PG/browser failure review remains open.
+
+[PR #126](https://github.com/shuxiachai/returnops-au/pull/126), source
+`02eb274b4a1385a740996eaf4bf2e235e7fd28a8`, is also adopted as `c9eb3176`;
+[its CI](https://github.com/shuxiachai/returnops-au/actions/runs/40144502996)
+completed 13/13 successfully. The [S6 script](../../docs/45-stage2-demo-script.md)
+now contains Terminal 3 and the two Windows-safe commands, and the
+[runbook](../../docs/47-stage2-submission-runbook.md) contains rehearsal row 18a
+and the pre-generated bundle's source/content-ID fields. The commands and
+boundaries below still apply; these are preparation, not a completed rehearsal.
+
+A explicitly retains the ACCC exact-byte review and E.01 review/freeze as open.
+C3 is included in A's planned 26 October tutor question, with the answer to be
+recorded in the runbook and KAN-26; no tutor disposition exists yet. E.01/E.02
+and the actual blind-label/timing protocol remain near-term work; a Gate 2
+planning deferral is not a course waiver. A final submission tag is still needed
+before C can generate the final-source evidence bundle. Personal S6, actual
+contribution/AI-use confirmation and team rehearsal require actual participation.
+The 20 original C-owned WBS rows are not counted as accepted by this adoption.
+
+AI-assisted C status reconciliation; older dated receipts remain unchanged.
+
 ## Current status — 24 October 2026 (Sydney)
 
 [Issue #123](https://github.com/shuxiachai/returnops-au/issues/123) tracks this
