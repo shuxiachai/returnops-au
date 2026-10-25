@@ -43,7 +43,7 @@ describe('CustomerPortal clarification evidence binding (Finding 8)', () => {
   it('carries the staged evidence_id on the clarification submit wire payload', async () => {
     render(<CustomerPortal />);
 
-    fireEvent.click(screen.getByRole('button', { name: /Track & Clarify \(UC-01E\)/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Track & Clarify/i }));
 
     await waitFor(() => {
       expect(screen.getByText('case_demo_001')).toBeInTheDocument();
@@ -72,7 +72,7 @@ describe('CustomerPortal clarification evidence binding (Finding 8)', () => {
     answerInputs.forEach((input, index) => {
       fireEvent.change(input, { target: { value: `Supplementary answer ${index + 1} for the reviewer.` } });
     });
-    fireEvent.click(screen.getByRole('button', { name: /Submit Supplementary Clarification/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Submit Answers/i }));
 
     await waitFor(() => {
       expect(vi.mocked(submitClarification)).toHaveBeenCalledTimes(1);

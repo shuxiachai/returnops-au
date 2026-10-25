@@ -96,13 +96,16 @@ function stageFile(name: string) {
   fireEvent.click(fileRow(name).getByRole('button', { name: /^Stage File$/i }));
 }
 
-function stagedLabel(mode: 'lodge' | 'clarify', name: string) {
-  return mode === 'lodge' ? `Staged: ${staged(name).evidence_id}` : 'Staged';
+// The badge reads "Staged"; on the lodge form it carries the staged evidence ID (#111 item 6).
+function stagedBadge(mode: 'lodge' | 'clarify', name: string) {
+  const badge = fileRow(name).getByText('Staged', { exact: true });
+  if (mode === 'lodge') expect(badge).toHaveAttribute('data-evidence-id', staged(name).evidence_id);
+  return badge;
 }
 
 function submitButton(mode: 'lodge' | 'clarify') {
   return screen.getByRole('button', {
-    name: mode === 'lodge' ? /Submit Return Request/i : /Submit Supplementary Clarification/i,
+    name: mode === 'lodge' ? /Submit Return Request/i : /Submit Answers/i,
   });
 }
 
@@ -115,7 +118,7 @@ function answerAll(text = 'Same supplementary answer') {
 async function openPortal(mode: 'lodge' | 'clarify') {
   render(<CustomerPortal />);
   if (mode === 'clarify') {
-    fireEvent.click(screen.getByRole('button', { name: /Track & Clarify \(UC-01E\)/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Track & Clarify/i }));
     await screen.findByText(caseAId, { exact: true });
     answerAll();
   } else {
@@ -177,7 +180,7 @@ describe.each(['lodge', 'clarify'] as const)('%s upload selection identity', mod
     expect(screen.getByText('retained.png', { exact: true })).toBeInTheDocument();
     expect(submitButton(mode)).toBeDisabled();
     stageFile('retained.png');
-    await waitFor(() => expect(fileRow('retained.png').getByText(stagedLabel(mode, 'retained.png'), { exact: true })).toBeInTheDocument());
+    await waitFor(() => expect(stagedBadge(mode, 'retained.png')).toBeInTheDocument());
     await submitAndObserve(mode);
     expect(submittedEvidence(mode)).toEqual([staged('retained.png').evidence_id]);
   });
@@ -193,12 +196,12 @@ describe.each(['lodge', 'clarify'] as const)('%s upload selection identity', mod
     stageFile('second.png');
 
     await resolveDeferred(second, staged('second.png'));
-    expect(fileRow('second.png').getByText(stagedLabel(mode, 'second.png'), { exact: true })).toBeInTheDocument();
+    expect(stagedBadge(mode, 'second.png')).toBeInTheDocument();
     expect(submitButton(mode)).toBeDisabled();
     await resolveDeferred(first, staged('first.png'));
 
-    expect(fileRow('first.png').getByText(stagedLabel(mode, 'first.png'), { exact: true })).toBeInTheDocument();
-    expect(fileRow('second.png').getByText(stagedLabel(mode, 'second.png'), { exact: true })).toBeInTheDocument();
+    expect(stagedBadge(mode, 'first.png')).toBeInTheDocument();
+    expect(stagedBadge(mode, 'second.png')).toBeInTheDocument();
     await submitAndObserve(mode);
     expect(submittedEvidence(mode)).toEqual([staged('first.png').evidence_id, staged('second.png').evidence_id]);
   });
@@ -226,7 +229,7 @@ describe.each(['lodge', 'clarify'] as const)('%s upload selection identity', mod
     stageFile('retry.png');
     await waitFor(() => expect(window.alert).toHaveBeenCalledWith('Upload response lost'));
     stageFile('retry.png');
-    await waitFor(() => expect(fileRow('retry.png').getByText(stagedLabel(mode, 'retry.png'), { exact: true })).toBeInTheDocument());
+    await waitFor(() => expect(stagedBadge(mode, 'retry.png')).toBeInTheDocument());
 
     const calls = vi.mocked(stageEvidence).mock.calls;
     expect(calls).toHaveLength(2);
@@ -327,7 +330,7 @@ describe('clarification draft scope and pending callbacks', () => {
 
     expect(screen.getByText('NETWORK_ERROR: Read response lost')).toBeInTheDocument();
     expect(screen.queryByText(caseAId, { exact: true })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Submit Supplementary Clarification/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Submit Answers/i })).not.toBeInTheDocument();
     await lookup(caseAId);
 
     screen.getAllByPlaceholderText('Your answer...').forEach(input => expect(input).toHaveValue('Same supplementary answer'));
@@ -417,7 +420,7 @@ describe('clarification draft scope and pending callbacks', () => {
     const pending = deferred<CustomerCaseView>();
     vi.mocked(getCustomerCase).mockReturnValueOnce(pending.promise);
     render(<CustomerPortal />);
-    fireEvent.click(screen.getByRole('button', { name: /Track & Clarify \(UC-01E\)/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Track & Clarify/i }));
     await waitFor(() => expect(getCustomerCase).toHaveBeenCalledWith(caseAId));
     fireEvent.click(screen.getByRole('button', { name: /case_demo_002 \(Under Investigation\)/i }));
     await screen.findByText(caseBId, { exact: true });
@@ -464,8 +467,9 @@ describe('clarification draft scope and pending callbacks', () => {
     await resolveDeferred(submission, { ...caseView(caseAId, 3), status: 'UNDER_INVESTIGATION', clarification: undefined });
     await resolveDeferred(refresh, caseView(caseAId));
 
-    expect(screen.getByText('UNDER_INVESTIGATION', { exact: true })).toBeInTheDocument();
-    expect(screen.getByText(/Clarification successfully admitted/i)).toBeInTheDocument();
+    expect(screen.getByText('Being reviewed', { exact: true })).toBeInTheDocument();
+    expect(screen.queryByText('UNDER_INVESTIGATION')).not.toBeInTheDocument();
+    expect(screen.getByText(/Your answers were received/i)).toBeInTheDocument();
     expect(screen.queryByPlaceholderText('Your answer...')).not.toBeInTheDocument();
   });
 });

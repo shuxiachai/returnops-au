@@ -44,6 +44,7 @@ import {
   getRiskBadgeClass,
   formatCategory,
   formatActor,
+  describeProposalSource,
 } from '../utils/formatters';
 import { AdvisoryFactsCard } from '../components/AdvisoryFactsCard';
 
@@ -305,12 +306,14 @@ export const FounderConsole: React.FC = () => {
         <div>
           <div className="flex items-center space-x-2">
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Founder Console & Governance</h1>
-            <span className="bg-sky-100 text-sky-800 text-xs px-2.5 py-0.5 rounded-full font-semibold">
-              Store: store_demo
-            </span>
+            {isMockMode() && (
+              <span className="bg-sky-100 text-sky-800 text-xs px-2.5 py-0.5 rounded-full font-semibold">
+                Store: store_demo (mock data)
+              </span>
+            )}
           </div>
           <p className="text-sm text-slate-500 mt-1">
-            Authoritative return inspection, governed execution (UC-04) and operations analytics (OF-006)
+            Review cases, record decisions and follow the operations numbers for your store.
           </p>
         </div>
 
@@ -323,7 +326,7 @@ export const FounderConsole: React.FC = () => {
             }`}
           >
             <ShieldCheck className="w-4 h-4" />
-            <span>Case Queue & Review (UC-03/04)</span>
+            <span>Case Queue & Review</span>
           </button>
           <button
             onClick={() => setActiveSubTab('analytics')}
@@ -334,7 +337,7 @@ export const FounderConsole: React.FC = () => {
             }`}
           >
             <BarChart3 className="w-4 h-4" />
-            <span>Analytics Dashboard (OF-006)</span>
+            <span>Analytics Dashboard</span>
           </button>
         </div>
       </div>
@@ -558,7 +561,7 @@ export const FounderConsole: React.FC = () => {
                 }`}
               >
                 <Activity className="w-4 h-4" />
-                <span>AI Proposal & Risk Review</span>
+                <span>Proposal & Risk Review</span>
               </button>
               <button
                 onClick={() => setDetailTab('order')}
@@ -607,7 +610,7 @@ export const FounderConsole: React.FC = () => {
                         <div className="flex items-center space-x-2">
                           <Activity className="w-5 h-5 text-indigo-600" />
                           <h4 className="font-bold text-slate-900 text-sm">
-                            Autonomous Assessment Proposal (Member A)
+                            Assessment Proposal
                           </h4>
                         </div>
                         <span className="font-mono text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded">
@@ -615,44 +618,53 @@ export const FounderConsole: React.FC = () => {
                         </span>
                       </div>
 
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-white p-3.5 rounded-xl border border-slate-200 text-xs">
-                        <div>
-                          <div className="text-slate-400 font-semibold uppercase">Proposed Outcome</div>
-                          <div className="text-sm font-bold text-slate-900 mt-0.5">
-                            {caseDetail.current_proposal.recommended_action || 'N/A'}
+                      {(() => {
+                        // #111 item 4: say who produced the proposal; the fixed Gate 1 proposal is not a model
+                        // and shows no confidence. #111 item 3: tiles without a value are not shown.
+                        const proposal = caseDetail.current_proposal;
+                        const source = describeProposalSource(proposal.model_run);
+                        const conf = proposal.confidence;
+                        const confidence =
+                          source.isModel && typeof conf === 'number' && Number.isFinite(conf)
+                            ? `${(conf * 100).toFixed(0)}%`
+                            : null;
+                        return (
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-white p-3.5 rounded-xl border border-slate-200 text-xs">
+                            <div>
+                              <div className="text-slate-400 font-semibold uppercase">Proposed Outcome</div>
+                              <div className="text-sm font-bold text-slate-900 mt-0.5">
+                                {proposal.recommended_action || 'N/A'}
+                              </div>
+                            </div>
+                            {proposal.refund_amount_cents !== undefined && proposal.refund_amount_cents !== null && (
+                              <div>
+                                <div className="text-slate-400 font-semibold uppercase">Refund Amount</div>
+                                <div className="text-sm font-bold text-slate-900 mt-0.5">
+                                  {formatCurrency(proposal.refund_amount_cents)}
+                                </div>
+                              </div>
+                            )}
+                            {proposal.return_label_required !== undefined && (
+                              <div>
+                                <div className="text-slate-400 font-semibold uppercase">Return Label Required</div>
+                                <div className="text-sm font-bold text-slate-900 mt-0.5">
+                                  {proposal.return_label_required ? 'Yes (Australia Post)' : 'No (Waived)'}
+                                </div>
+                              </div>
+                            )}
+                            <div>
+                              <div className="text-slate-400 font-semibold uppercase">Source</div>
+                              <div className="text-sm font-bold text-slate-900 mt-0.5">{source.label}</div>
+                            </div>
+                            {confidence && (
+                              <div>
+                                <div className="text-slate-400 font-semibold uppercase">Model Confidence</div>
+                                <div className="text-sm font-bold text-indigo-600 mt-0.5">{confidence}</div>
+                              </div>
+                            )}
                           </div>
-                        </div>
-                        <div>
-                          <div className="text-slate-400 font-semibold uppercase">Refund Amount</div>
-                          <div className="text-sm font-bold text-slate-900 mt-0.5">
-                            {caseDetail.current_proposal.refund_amount_cents !== undefined &&
-                            caseDetail.current_proposal.refund_amount_cents !== null
-                              ? formatCurrency(caseDetail.current_proposal.refund_amount_cents)
-                              : '—'}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-slate-400 font-semibold uppercase">Return Label Required</div>
-                          <div className="text-sm font-bold text-slate-900 mt-0.5">
-                            {caseDetail.current_proposal.return_label_required === undefined
-                              ? '—'
-                              : caseDetail.current_proposal.return_label_required
-                                ? 'Yes (Australia Post)'
-                                : 'No (Waived)'}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-slate-400 font-semibold uppercase">AI Confidence</div>
-                          <div className="text-sm font-bold text-indigo-600 mt-0.5">
-                            {(() => {
-                              const conf = caseDetail.current_proposal.confidence;
-                              return typeof conf === 'number' && Number.isFinite(conf)
-                                ? `${(conf * 100).toFixed(0)}%`
-                                : '—';
-                            })()}
-                          </div>
-                        </div>
-                      </div>
+                        );
+                      })()}
 
                       {caseDetail.current_proposal.rationale && (
                         <div>
@@ -671,14 +683,14 @@ export const FounderConsole: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Risk Review Card (Member C) */}
+                  {/* Risk Review Card */}
                   {caseDetail.current_review && (
                     <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
                           <ShieldCheck className="w-5 h-5 text-purple-600" />
                           <h4 className="font-bold text-slate-900 text-sm">
-                            Independent Risk Review (Member C)
+                            Risk Review
                           </h4>
                         </div>
                         <span
@@ -691,14 +703,14 @@ export const FounderConsole: React.FC = () => {
                       </div>
 
                       <div className="grid grid-cols-2 gap-4 bg-white p-3.5 rounded-xl border border-slate-200 text-xs">
-                        <div>
-                          <div className="text-slate-400 font-semibold uppercase">Risk Score</div>
-                          <div className="text-sm font-bold text-slate-900 mt-0.5">
-                            {caseDetail.current_review.risk_score !== undefined && caseDetail.current_review.risk_score !== null
-                              ? `${(caseDetail.current_review.risk_score * 100).toFixed(1)} / 100`
-                              : 'N/A'}
+                        {caseDetail.current_review.risk_score !== undefined && caseDetail.current_review.risk_score !== null && (
+                          <div>
+                            <div className="text-slate-400 font-semibold uppercase">Risk Score</div>
+                            <div className="text-sm font-bold text-slate-900 mt-0.5">
+                              {`${(caseDetail.current_review.risk_score * 100).toFixed(1)} / 100`}
+                            </div>
                           </div>
-                        </div>
+                        )}
                         <div>
                           <div className="text-slate-400 font-semibold uppercase">Review Date</div>
                           <div className="text-xs text-slate-700 mt-1">
@@ -769,7 +781,7 @@ export const FounderConsole: React.FC = () => {
                       <div className="flex items-center space-x-2">
                         <Package className="w-5 h-5 text-sky-600" />
                         <h4 className="font-bold text-sky-950 text-sm">
-                          Governed Execution Preview (UC-04 / Operations Service)
+                          Execution Preview (Operations Service)
                         </h4>
                       </div>
                       <div className="bg-white p-3.5 rounded-xl border border-sky-200">
@@ -987,7 +999,7 @@ export const FounderConsole: React.FC = () => {
                   }
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Approve Return (UC-04)</span>
+                  <span>Approve Return</span>
                 </button>
 
                 <button

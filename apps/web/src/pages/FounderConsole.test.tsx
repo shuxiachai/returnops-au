@@ -19,7 +19,7 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
     render(<FounderConsole />);
 
     expect(screen.getByText('Founder Console & Governance')).toBeInTheDocument();
-    expect(screen.getByText(/Authoritative return inspection, governed execution/i)).toBeInTheDocument();
+    expect(screen.getByText(/Review cases, record decisions/i)).toBeInTheDocument();
 
     // Table rows should load from mock data
     await waitFor(() => {
@@ -141,11 +141,11 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
     fireEvent.click(inspectButtons[2]);
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Approve Return \(UC-04\)/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Approve Return/i })).toBeInTheDocument();
     });
 
     // Open APPROVE decision confirmation modal
-    const approveBtn = screen.getByRole('button', { name: /Approve Return \(UC-04\)/i });
+    const approveBtn = screen.getByRole('button', { name: /Approve Return/i });
     fireEvent.click(approveBtn);
 
     await waitFor(() => {
@@ -179,7 +179,7 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
   it('switches to Operations Analytics tab (OF-006) and displays throughput and latency metrics', async () => {
     render(<FounderConsole />);
 
-    const analyticsTabBtn = screen.getByRole('button', { name: /Analytics Dashboard \(OF-006\)/i });
+    const analyticsTabBtn = screen.getByRole('button', { name: /Analytics Dashboard/i });
     fireEvent.click(analyticsTabBtn);
 
     await waitFor(() => {
@@ -243,7 +243,7 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
 
     const decisions: Array<[RegExp, string]> = [
-      [/Approve Return \(UC-04\)/i, 'APPROVE'],
+      [/Approve Return/i, 'APPROVE'],
       [/^Request Revision$/i, 'REQUEST_REVISION'],
       [/^Reject$/i, 'REJECT'],
       [/^Manual Takeover$/i, 'MANUAL_HANDLING'],
@@ -283,7 +283,7 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
       target: { value: 'case_demo_003' },
     });
     fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
-    fireEvent.click(await screen.findByRole('button', { name: /Approve Return \(UC-04\)/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /Approve Return/i }));
 
     const confirm = await screen.findByRole('button', { name: /Record decision/i });
     expect(confirm).toBeDisabled();
@@ -317,7 +317,7 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
     expect(
       await screen.findByText(/Escalated Case: Direct approval blocked\. Manual takeover or revision required\./i)
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Approve Return \(UC-04\)/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Approve Return/i })).toBeDisabled();
 
     // Manual handling remains available. Rejection is blocked for an escalated
     // case: the server accepts Reject only for a case awaiting approval.

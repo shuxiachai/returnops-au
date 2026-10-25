@@ -257,7 +257,7 @@ describe('FounderConsole advisory facts card (Issue #95)', () => {
   });
 
   it('sends an APPROVE request with nothing from facts after the card has been shown', async () => {
-    const [caseId, body] = await decideWithCardShown(/Approve Return \(UC-04\)/i, 'APPROVE');
+    const [caseId, body] = await decideWithCardShown(/Approve Return/i, 'APPROVE');
 
     expect(caseId).toBe('case_facts_demo');
     // The expected request: the case version, the decision and reason, and the

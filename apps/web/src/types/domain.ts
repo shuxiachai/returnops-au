@@ -198,6 +198,9 @@ export interface ProposalDetail {
   cost_responsibility_note?: string;
   conditions?: string[];
   alternatives?: string[];
+  // Who produced the proposal (DecisionPacket.model_run); the fixed Gate 1
+  // proposal reports model_id 'fixture-no-live-model'.
+  model_run?: { model_id?: string; prompt_version?: string; provider_id?: string; role?: string };
   // Frontend-only demo extensions: the v1 DecisionPacket carries no refund
   // amount and no label-required flag, so a live response leaves these
   // undefined and those tiles fall back to a placeholder ("—") rather than a

@@ -18,7 +18,7 @@ describe('CustomerPortal (UC-01 & UC-01E)', () => {
     render(<CustomerPortal />);
 
     expect(screen.getByText('Customer Service Portal')).toBeInTheDocument();
-    expect(screen.getByText(/Lodge return requests with natural language/i)).toBeInTheDocument();
+    expect(screen.getByText(/Describe your problem in your own words/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/Tell us what happened with your purchase/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Submit Return Request/i })).toBeInTheDocument();
   });
@@ -49,14 +49,27 @@ describe('CustomerPortal (UC-01 & UC-01E)', () => {
       expect(screen.getByText('Return Request Submitted Successfully!')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('SUBMITTED')).toBeInTheDocument();
+    expect(screen.getByText('Received')).toBeInTheDocument();
+    expect(screen.queryByText('SUBMITTED')).not.toBeInTheDocument();
     expect(screen.getByText(/Lodge Another Return/i)).toBeInTheDocument();
+  });
+
+  it('shows no demo cases or demo case ID in Live API mode (#111 item 3)', async () => {
+    localStorage.setItem('returnops_mock_mode', 'false');
+    render(<CustomerPortal />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Track & Clarify/i }));
+
+    expect(screen.queryByText(/Demo Cases/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /case_demo_00/i })).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Enter your case ID/i)).toHaveValue('');
+    expect(screen.queryByText(/UC-0/)).not.toBeInTheDocument();
   });
 
   it('switches to Track & Clarify tab and loads demo case questions', async () => {
     render(<CustomerPortal />);
 
-    const trackTabBtn = screen.getByRole('button', { name: /Track & Clarify \(UC-01E\)/i });
+    const trackTabBtn = screen.getByRole('button', { name: /Track & Clarify/i });
     fireEvent.click(trackTabBtn);
 
     // Track tab lookup controls should appear
@@ -67,7 +80,8 @@ describe('CustomerPortal (UC-01 & UC-01E)', () => {
       expect(screen.getByText('case_demo_001')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('AWAITING_INFORMATION')).toBeInTheDocument();
+    expect(screen.getByText('We need a bit more information')).toBeInTheDocument();
+    expect(screen.queryByText('AWAITING_INFORMATION')).not.toBeInTheDocument();
     expect(
       screen.getByText(/Please confirm the SKU or barcode number printed on the garment label tag./i)
     ).toBeInTheDocument();
@@ -76,7 +90,7 @@ describe('CustomerPortal (UC-01 & UC-01E)', () => {
   it('submits clarification answers and handles HTTP 202 acceptance feedback', async () => {
     render(<CustomerPortal />);
 
-    const trackTabBtn = screen.getByRole('button', { name: /Track & Clarify \(UC-01E\)/i });
+    const trackTabBtn = screen.getByRole('button', { name: /Track & Clarify/i });
     fireEvent.click(trackTabBtn);
 
     await waitFor(() => {
@@ -94,13 +108,13 @@ describe('CustomerPortal (UC-01 & UC-01E)', () => {
     });
 
     const submitClarifyBtn = screen.getByRole('button', {
-      name: /Submit Supplementary Clarification/i,
+      name: /Submit Answers/i,
     });
     fireEvent.click(submitClarifyBtn);
 
     await waitFor(() => {
       expect(
-        screen.getByText(/Clarification successfully admitted \(HTTP 202\)/i)
+        screen.getByText(/Your answers were received/i)
       ).toBeInTheDocument();
     });
   });
@@ -108,7 +122,7 @@ describe('CustomerPortal (UC-01 & UC-01E)', () => {
   it('displays error alert when looking up non-existent case', async () => {
     render(<CustomerPortal />);
 
-    const trackTabBtn = screen.getByRole('button', { name: /Track & Clarify \(UC-01E\)/i });
+    const trackTabBtn = screen.getByRole('button', { name: /Track & Clarify/i });
     fireEvent.click(trackTabBtn);
 
     // Wait for initial load to settle

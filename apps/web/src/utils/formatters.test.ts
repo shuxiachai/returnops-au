@@ -6,8 +6,12 @@ import {
   getRiskBadgeClass,
   formatCategory,
   formatActor,
+  formatCustomerStatus,
+  formatRequestedOutcome,
+  describeProposalSource,
+  FIXED_PROPOSAL_MODEL_ID,
 } from './formatters';
-import { ActorProvenance, CaseStatus } from '../types/domain';
+import { ActorProvenance, CaseStatus, RequestedOutcome } from '../types/domain';
 
 describe('formatters', () => {
   describe('formatCurrency', () => {
@@ -166,6 +170,47 @@ describe('formatters', () => {
     it('returns em-dash for nullish actor', () => {
       expect(formatActor(null as unknown as string)).toBe('—');
       expect(formatActor(undefined)).toBe('—');
+    });
+  });
+
+  describe('customer wording (#111 items 4 to 6)', () => {
+    it('gives every case status a plain customer phrase and never shows the internal name', () => {
+      const statuses: CaseStatus[] = [
+        'SUBMITTED', 'AWAITING_INFORMATION', 'UNDER_INVESTIGATION', 'POLICY_ASSESSMENT', 'RISK_REVIEW',
+        'AWAITING_APPROVAL', 'APPROVED', 'ACTION_IN_PROGRESS', 'ACTION_FAILED', 'RECONCILING', 'ESCALATED',
+        'NOTIFICATION_PENDING', 'NOTIFICATION_FAILED', 'COMPLETED', 'REJECTED', 'MANUAL_HANDLED',
+      ];
+      for (const status of statuses) {
+        const phrase = formatCustomerStatus(status);
+        expect(phrase).not.toBe(status);
+        expect(phrase).not.toMatch(/_/);
+      }
+      expect(formatCustomerStatus('AWAITING_INFORMATION')).toBe('We need a bit more information');
+      expect(formatCustomerStatus('RISK_REVIEW')).toBe('Being reviewed');
+      expect(formatCustomerStatus('MANUAL_HANDLED')).toBe('The shop is handling this personally');
+      expect(formatCustomerStatus(undefined)).toBe('Unknown');
+    });
+
+    it('names every requested outcome in words, including "Not sure"', () => {
+      const outcomes: RequestedOutcome[] = ['REFUND', 'REPLACEMENT', 'REPAIR', 'RETURN', 'INFORMATION', 'UNSPECIFIED', 'OTHER'];
+      for (const outcome of outcomes) {
+        expect(formatRequestedOutcome(outcome)).not.toBe(outcome);
+      }
+      expect(formatRequestedOutcome('UNSPECIFIED')).toBe('Not sure');
+      expect(formatRequestedOutcome(undefined)).toBe('—');
+    });
+
+    it('labels the fixed proposal as no model and names a real model with its prompt', () => {
+      expect(describeProposalSource({ model_id: FIXED_PROPOSAL_MODEL_ID })).toEqual({
+        label: 'Fixed rule-based proposal (no model)',
+        isModel: false,
+      });
+      expect(describeProposalSource(undefined)).toEqual({ label: 'Not recorded', isModel: false });
+      expect(describeProposalSource({ model_id: 'campus-qwen', prompt_version: 'p-2' })).toEqual({
+        label: 'Model campus-qwen (prompt p-2)',
+        isModel: true,
+      });
+      expect(describeProposalSource({ model_id: 'campus-qwen' })).toEqual({ label: 'Model campus-qwen', isModel: true });
     });
   });
 });

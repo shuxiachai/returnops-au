@@ -31,7 +31,7 @@ describe('CustomerPortal protected evidence download (Finding 5)', () => {
     );
 
     render(<CustomerPortal />);
-    fireEvent.click(screen.getByRole('button', { name: /Track & Clarify \(UC-01E\)/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Track & Clarify/i }));
 
     await waitFor(() => {
       expect(screen.getByText('case_demo_001')).toBeInTheDocument();
@@ -44,7 +44,7 @@ describe('CustomerPortal protected evidence download (Finding 5)', () => {
 
   it('invokes the protected download for an authorised user without a visible error', async () => {
     render(<CustomerPortal />);
-    fireEvent.click(screen.getByRole('button', { name: /Track & Clarify \(UC-01E\)/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Track & Clarify/i }));
 
     await waitFor(() => {
       expect(screen.getByText('case_demo_001')).toBeInTheDocument();

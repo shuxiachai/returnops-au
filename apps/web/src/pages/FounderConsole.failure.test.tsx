@@ -78,6 +78,7 @@ const CONTRACT_SHAPED_VIEW: CaseView = {
     proposal_version: 1,
     recommended_action: 'PROPOSE_REFUND',
     confidence: 0.5,
+    model_run: { model_id: 'model-contract-test', prompt_version: 'contract-v1' },
     rationale: 'Contract-shaped rationale.',
     created_at: '2026-10-01T00:00:00Z',
   },
@@ -163,6 +164,35 @@ describe('FounderConsole failure and live-mode paths', () => {
     vi.clearAllMocks();
   });
 
+  it('labels the fixed rule-based proposal as such and shows no model confidence (#111 item 4)', async () => {
+    vi.mocked(getFounderCase).mockResolvedValue({
+      ...CONTRACT_SHAPED_VIEW,
+      current_proposal: {
+        ...CONTRACT_SHAPED_VIEW.current_proposal!,
+        confidence: 0,
+        model_run: { model_id: 'fixture-no-live-model', prompt_version: 'fixed-synthetic-no-model-v1' },
+      },
+    });
+    render(<FounderConsole />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
+
+    expect(await screen.findByText('Fixed rule-based proposal (no model)')).toBeInTheDocument();
+    expect(screen.getByText('Assessment Proposal')).toBeInTheDocument();
+    expect(screen.queryByText('Model Confidence')).not.toBeInTheDocument();
+    expect(screen.queryByText('0%')).not.toBeInTheDocument();
+    expect(screen.queryByText(/AI Proposal|AI Confidence|Autonomous|Member [AC]/)).not.toBeInTheDocument();
+  });
+
+  it('shows no mock store label in Live API mode (#111 item 3)', async () => {
+    vi.mocked(isMockMode).mockReturnValue(false);
+    render(<FounderConsole />);
+
+    expect(await screen.findByText('case_contract_shape')).toBeInTheDocument();
+    expect(screen.queryByText(/store_demo/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/UC-0|OF-006/)).not.toBeInTheDocument();
+  });
+
   it('renders a contract-shaped order, proposal and review without crashing or showing NaN', async () => {
     render(<FounderConsole />);
 
@@ -177,27 +207,21 @@ describe('FounderConsole failure and live-mode paths', () => {
     expect(screen.getByText('Contract-shaped finding.')).toBeInTheDocument();
 
     // The demo-only extension fields are absent from a contract-shaped response,
-    // so those tiles degrade to a placeholder instead of fabricating a value:
-    // no "Australia Post"/"Waived" claim, an "N/A" risk score, and "—" for the
-    // refund amount and return-label flag (confidence stays a real 50%) — no
-    // summary or citation block at all. Anchor each assertion to its own tile so
-    // an unrelated "—"/"N/A" elsewhere on the page cannot satisfy it.
-    const tile = (label: string) => {
-      const element = screen.getByText(label).parentElement;
-      if (!element) throw new Error(`no tile for ${label}`);
-      return element;
-    };
-
-    expect(tile('Refund Amount')).toHaveTextContent('—');
-    expect(tile('Return Label Required')).toHaveTextContent('—');
-    expect(tile('Risk Score')).toHaveTextContent('N/A');
-    expect(tile('Return Label Required')).not.toHaveTextContent(/Waived|Australia Post/);
+    // so their tiles are not shown at all (#111 item 3) instead of fabricating a
+    // value or showing a placeholder: no refund amount, return-label or risk-score
+    // tile and no "Australia Post"/"Waived" claim. The proposal names its model
+    // and keeps its real 50% confidence; there is no summary or citation block.
+    expect(screen.queryByText('Refund Amount')).not.toBeInTheDocument();
+    expect(screen.queryByText('Return Label Required')).not.toBeInTheDocument();
+    expect(screen.queryByText('Risk Score')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Waived|Australia Post/)).not.toBeInTheDocument();
+    expect(screen.getByText('Model model-contract-test (prompt contract-v1)')).toBeInTheDocument();
     expect(screen.queryByText(/Reviewer Summary/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Statutory & Policy Citations/)).not.toBeInTheDocument();
 
     // The contract-shaped Action Preview renders its real scope, and shows no
     // empty demo-only "Operation Type:" / "Parameters:" rows.
-    expect(screen.getByText(/Governed Execution Preview/)).toBeInTheDocument();
+    expect(screen.getByText(/Execution Preview \(Operations Service\)/)).toBeInTheDocument();
     expect(screen.getByText('prev_contract')).toBeInTheDocument();
     expect(screen.getByText(CONTRACT_FINGERPRINT)).toBeInTheDocument();
     expect(screen.getByText('CREATE_RETURN')).toBeInTheDocument();
@@ -244,7 +268,7 @@ describe('FounderConsole failure and live-mode paths', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
     expect(await screen.findByText(/Live Mode: decisions are sent to the server/i)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /Approve Return \(UC-04\)/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Approve Return/i }));
 
     // Before confirming, the dialog shows the preview identity and the exact scope.
     const dialog = await screen.findByRole('dialog', { name: /Confirm Founder Decision: APPROVE/i });
@@ -301,7 +325,7 @@ describe('FounderConsole failure and live-mode paths', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
 
     expect(await screen.findByText(/This case view has none, so approval is unavailable/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Approve Return \(UC-04\)/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Approve Return/i })).toBeDisabled();
     // Decisions that need only the proposal stay available.
     expect(screen.getByRole('button', { name: /^Reject$/i })).toBeEnabled();
   });
@@ -422,7 +446,7 @@ describe('FounderConsole failure and live-mode paths', () => {
       vi.mocked(getFounderAnalytics).mockResolvedValue(TIER0_SNAPSHOT);
 
       render(<FounderConsole />);
-      fireEvent.click(screen.getByRole('button', { name: /Analytics Dashboard \(OF-006\)/i }));
+      fireEvent.click(screen.getByRole('button', { name: /Analytics Dashboard/i }));
 
       expect(await screen.findByText('Total Case Volume')).toBeInTheDocument();
       expect(getFounderAnalytics).toHaveBeenCalledWith({});
@@ -459,7 +483,7 @@ describe('FounderConsole failure and live-mode paths', () => {
         .mockResolvedValue(TIER0_SNAPSHOT);
 
       render(<FounderConsole />);
-      fireEvent.click(screen.getByRole('button', { name: /Analytics Dashboard \(OF-006\)/i }));
+      fireEvent.click(screen.getByRole('button', { name: /Analytics Dashboard/i }));
       expect(await screen.findByText('Total Case Volume')).toBeInTheDocument();
 
       fireEvent.change(screen.getByLabelText(/Created from/i), { target: { value: '2026-10-01' } });
