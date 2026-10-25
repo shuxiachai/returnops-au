@@ -80,11 +80,44 @@ export function setActiveRole(role: 'CUSTOMER' | 'FOUNDER') {
   localStorage.setItem(ACTIVE_ROLE_KEY, role);
 }
 
+// Session state (#111 item 1). Demo sessions last 15 minutes, so a 401 can arrive
+// on any page; every request reports it here and the header and banner follow.
+export type SessionState = 'ok' | 'rejected';
+let sessionState: SessionState = 'ok';
+const sessionListeners = new Set<(state: SessionState) => void>();
+
+export function getSessionState(): SessionState {
+  return sessionState;
+}
+
+export function subscribeSessionState(listener: (state: SessionState) => void): () => void {
+  sessionListeners.add(listener);
+  return () => {
+    sessionListeners.delete(listener);
+  };
+}
+
+function setSessionState(next: SessionState) {
+  if (next === sessionState) return;
+  sessionState = next;
+  sessionListeners.forEach((listener) => listener(next));
+}
+
+export function clearSessionRejection() {
+  setSessionState('ok');
+}
+
+function trackResponseStatus(status: number) {
+  if (status === 401) setSessionState('rejected');
+  else if (status >= 200 && status < 300) setSessionState('ok');
+}
+
 async function request<T>(
   path: string,
   options: RequestInit = {},
   requireIdempotency = false,
-  idempotencyKey?: string
+  idempotencyKey?: string,
+  trackSession = true
 ): Promise<T> {
   const headers = new Headers(options.headers || {});
   const token = getStoredToken();
@@ -108,6 +141,7 @@ async function request<T>(
     });
 
     const correlationId = response.headers.get('X-Correlation-ID') || undefined;
+    if (trackSession) trackResponseStatus(response.status);
 
     if (!response.ok) {
       let errEnvelope: ErrorEnvelope | null = null;
@@ -161,6 +195,21 @@ export async function getSession(): Promise<SessionPrincipal> {
   return request<SessionPrincipal>('/v1/session');
 }
 
+/**
+ * Checks a pasted token against the live server before it is saved (#111 item 1):
+ * the token is sent only in this request's Authorization header, nothing is
+ * stored, and a refusal does not change the current session state.
+ */
+export async function verifySessionToken(token: string): Promise<SessionPrincipal> {
+  return request<SessionPrincipal>(
+    '/v1/session',
+    { headers: { Authorization: `Bearer ${token}` } },
+    false,
+    undefined,
+    false
+  );
+}
+
 export async function stageEvidence(
   file: File,
   description?: string,
@@ -197,6 +246,7 @@ export async function stageEvidence(
     headers,
     body: formData,
   });
+  trackResponseStatus(res.status);
 
   if (!res.ok) {
     const correlationId = res.headers.get('X-Correlation-ID') || undefined;
@@ -245,6 +295,7 @@ export async function downloadEvidence(evidenceId: string, fallbackFilename = 'e
   const res = await fetch(`${BASE_URL}/v1/evidence/${encodeURIComponent(evidenceId)}/content`, {
     headers,
   });
+  trackResponseStatus(res.status);
 
   if (!res.ok) {
     let errEnv: ErrorEnvelope | null = null;

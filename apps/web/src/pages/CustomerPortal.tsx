@@ -40,6 +40,7 @@ import {
   formatRequestedOutcome,
 } from '../utils/formatters';
 import { generateIdempotencyKey } from '../utils/idempotency';
+import { isFinalStatus, usePolling, useRefreshOnReturn } from '../utils/autoRefresh';
 
 export const CustomerPortal: React.FC = () => {
   const [activeSubTab, setActiveSubTab] = useState<'lodge' | 'track'>('lodge');
@@ -85,6 +86,8 @@ export const CustomerPortal: React.FC = () => {
   const clarificationScope = useRef<string | null>(null);
   const clarificationGeneration = useRef(0);
   const latestCaseLoad = useRef(0);
+  // Number of clarification POSTs not yet settled; quiet refreshes wait for zero.
+  const clarifyInFlight = useRef(0);
 
   // Protected Evidence Download State (Finding 5)
   const [downloadingEvId, setDownloadingEvId] = useState<string | null>(null);
@@ -113,9 +116,10 @@ export const CustomerPortal: React.FC = () => {
   const getClarificationScope = (view: CustomerCaseView) =>
     JSON.stringify([view.case_id, view.case_version, view.clarification?.question_set_id ?? null]);
 
-  const loadCase = async (caseId: string) => {
+  // Returns the case view it loaded, or null if it loaded none.
+  const loadCase = async (caseId: string): Promise<CustomerCaseView | null> => {
     const requestedCaseId = caseId.trim();
-    if (!requestedCaseId) return;
+    if (!requestedCaseId) return null;
     const request = ++latestCaseLoad.current;
     // A case switch invalidates pending callbacks immediately, before GET returns.
     if (activeCaseId.current !== requestedCaseId) {
@@ -129,7 +133,7 @@ export const CustomerPortal: React.FC = () => {
     setClarifyErrorMsg(null);
     try {
       const data = await getCustomerCase(requestedCaseId);
-      if (request !== latestCaseLoad.current) return;
+      if (request !== latestCaseLoad.current) return null;
       const nextScope = getClarificationScope(data);
       if (clarificationScope.current !== nextScope) {
         resetClarificationDraft();
@@ -137,8 +141,9 @@ export const CustomerPortal: React.FC = () => {
       }
       activeCaseId.current = data.case_id;
       setCurrentCase(data);
+      return data;
     } catch (err: unknown) {
-      if (request !== latestCaseLoad.current) return;
+      if (request !== latestCaseLoad.current) return null;
       if (err instanceof ApiError && [401, 403, 404].includes(err.status)) {
         activeCaseId.current = null;
         resetClarificationDraft();
@@ -147,10 +152,58 @@ export const CustomerPortal: React.FC = () => {
       // POST's retry identity. Recovery must confirm the same scope to reuse it.
       setCurrentCase(null);
       setCaseError(err instanceof ApiError ? `${err.code}: ${err.message}` : 'Failed to fetch case details');
+      return null;
     } finally {
       if (request === latestCaseLoad.current) setIsLoadingCase(false);
     }
   };
+
+  // #111 item 2: reads the tracked case again without the loading state and
+  // without clearing messages. A failed read keeps the view on screen (a 401
+  // shows the session banner). The same scope rule as loadCase applies, so an
+  // unchanged question set keeps the customer's draft.
+  const refreshCaseQuietly = async (caseId: string) => {
+    if (clarifyInFlight.current > 0) return;
+    const request = ++latestCaseLoad.current;
+    try {
+      const data = await getCustomerCase(caseId);
+      // An answer submitted meanwhile owns the next view (its receipt and message).
+      if (request !== latestCaseLoad.current || activeCaseId.current !== caseId || clarifyInFlight.current > 0) return;
+      const nextScope = getClarificationScope(data);
+      if (clarificationScope.current !== nextScope) {
+        resetClarificationDraft();
+        clarificationScope.current = nextScope;
+      }
+      setCurrentCase(data);
+    } catch {
+      // Keep the current view; the next tick or a manual Refresh tries again.
+    }
+  };
+
+  // Nothing is read while a lookup or an answer is in flight, so neither can be
+  // overtaken by a quiet read.
+  const canRefreshQuietly =
+    activeSubTab === 'track' &&
+    currentCase !== null &&
+    activeCaseId.current === currentCase.case_id &&
+    !isLoadingCase &&
+    !isSubmittingClarify;
+
+  // Polls every 5 s while the shop is working on the case: not while the shop
+  // waits for the customer's answers, and not once the case is final.
+  const pollingTrackedCase =
+    canRefreshQuietly &&
+    currentCase !== null &&
+    !currentCase.clarification &&
+    currentCase.status !== 'AWAITING_INFORMATION' &&
+    !isFinalStatus(currentCase.status);
+  usePolling(() => {
+    if (currentCase) refreshCaseQuietly(currentCase.case_id);
+  }, pollingTrackedCase);
+
+  useRefreshOnReturn(() => {
+    if (canRefreshQuietly && currentCase) refreshCaseQuietly(currentCase.case_id);
+  });
 
   // ---------------------------------------------------------
   // File Upload Handlers
@@ -358,6 +411,7 @@ export const CustomerPortal: React.FC = () => {
     setIsSubmittingClarify(true);
     setClarifyErrorMsg(null);
     setClarifySuccessMsg(null);
+    clarifyInFlight.current += 1;
 
     try {
       const updated = await submitClarification(currentCase.case_id, wirePayload, keyToUse);
@@ -371,10 +425,34 @@ export const CustomerPortal: React.FC = () => {
       setClarifySuccessMsg('Thank you. Your answers were received and the shop will continue reviewing your case.');
     } catch (err: unknown) {
       if (generation !== clarificationGeneration.current) return;
+      if (err instanceof ApiError && err.code === 'STALE_CASE_VERSION') {
+        // #122 item 2 (docs/09 error table): the case moved on since this page read
+        // it, so it is reloaded. Typed answers are kept when the questions are the
+        // same; nothing is sent again without the customer.
+        const caseId = currentCase.case_id;
+        const typedAnswers = { ...answers };
+        const reloaded = await loadCase(caseId);
+        if (!reloaded || activeCaseId.current !== caseId) return;
+        const sameQuestions = reloaded.clarification?.question_set_id === wirePayload.question_set_id;
+        if (reloaded.clarification && sameQuestions) {
+          setAnswers(typedAnswers);
+          setClarifyErrorMsg(
+            'Your case changed while you were answering, so the page was reloaded. Check the questions and send your answers again.'
+          );
+        } else if (reloaded.clarification) {
+          setClarifyErrorMsg(
+            'Your case changed while you were answering, so the page was reloaded. The shop has new questions for you.'
+          );
+        } else {
+          setCaseError('Your case changed while you were answering, so the page was reloaded. Please check its current status.');
+        }
+        return;
+      }
       setClarifyErrorMsg(
         err instanceof ApiError ? `[${err.code}] ${err.message}` : 'Failed to submit clarification.'
       );
     } finally {
+      clarifyInFlight.current -= 1;
       if (generation === clarificationGeneration.current) setIsSubmittingClarify(false);
     }
   };
@@ -772,6 +850,9 @@ export const CustomerPortal: React.FC = () => {
                     </span>
                   </div>
                   <div className="flex items-center space-x-4 text-xs text-slate-500">
+                    {pollingTrackedCase && (
+                      <span className="text-[11px] text-slate-400">This page updates by itself</span>
+                    )}
                     <button
                       onClick={() => loadCase(currentCase.case_id)}
                       className="px-2 py-1 hover:text-sky-600 rounded-lg hover:bg-slate-100 flex items-center space-x-1"

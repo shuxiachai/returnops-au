@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ShieldCheck,
   BarChart3,
@@ -37,6 +37,7 @@ import {
   FounderDecisionRequest,
 } from '../types/domain';
 import { generateIdempotencyKey } from '../utils/idempotency';
+import { isFinalStatus, usePolling, useRefreshOnReturn } from '../utils/autoRefresh';
 import {
   formatDate,
   formatCurrency,
@@ -89,6 +90,12 @@ export const FounderConsole: React.FC = () => {
   const [auditError, setAuditError] = useState<string | null>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [detailTab, setDetailTab] = useState<'proposal' | 'order' | 'statements' | 'audit'>('proposal');
+  // A case that cannot be opened is reported on the page, not in a browser alert.
+  const [caseOpenError, setCaseOpenError] = useState<string | null>(null);
+  // Only the latest read of the open case may update it (#111 item 2).
+  const selectedCaseRef = useRef<string | null>(null);
+  const detailLoad = useRef(0);
+  const detailPollBusy = useRef(false);
 
   // Decision Modal State (UC-04 / UC-03)
   const [decisionModalOpen, setDecisionModalOpen] = useState(false);
@@ -121,11 +128,11 @@ export const FounderConsole: React.FC = () => {
     }
   }, [activeSubTab]);
 
-  const loadCases = async () => {
+  const loadCases = async (limit = 20) => {
     setIsLoadingCases(true);
     setQueueError(null);
     try {
-      const data = await listFounderCases(undefined, 20);
+      const data = await listFounderCases(undefined, limit);
       setCases(data.items);
       setNextCursor(data.next_cursor || null);
     } catch (err: unknown) {
@@ -193,8 +200,24 @@ export const FounderConsole: React.FC = () => {
     loadAnalytics({});
   };
 
+  const describeApiError = (err: unknown, fallback: string) =>
+    err instanceof ApiError ? `[${err.code}] ${err.message}` : err instanceof Error ? err.message : fallback;
+
+  const applyAuditResult = (auditResult: PromiseSettledResult<AuditEvent[]>) => {
+    if (auditResult.status === 'fulfilled') {
+      setAuditEvents(auditResult.value);
+      setAuditError(null);
+    } else {
+      setAuditEvents([]);
+      setAuditError(describeApiError(auditResult.reason, 'Failed to fetch audit events'));
+    }
+  };
+
   const openCaseDetail = async (caseId: string) => {
+    const load = ++detailLoad.current;
+    selectedCaseRef.current = caseId;
     setSelectedCaseId(caseId);
+    setCaseOpenError(null);
     setIsLoadingDetail(true);
     setDetailTab('proposal');
     setAuditError(null);
@@ -203,30 +226,73 @@ export const FounderConsole: React.FC = () => {
         getFounderCase(caseId),
         listFounderCaseAudit(caseId),
       ]);
+      if (load !== detailLoad.current) return;
 
       if (detailResult.status === 'fulfilled') {
         setCaseDetail(detailResult.value);
       } else {
-        const err = detailResult.reason;
-        alert(err instanceof Error ? err.message : 'Failed to fetch case detail');
+        setCaseOpenError(`Could not open ${caseId}: ${describeApiError(detailResult.reason, 'Failed to fetch case detail')}`);
+        selectedCaseRef.current = null;
         setSelectedCaseId(null);
         return;
       }
-
-      if (auditResult.status === 'fulfilled') {
-        setAuditEvents(auditResult.value);
-        setAuditError(null);
-      } else {
-        const err = auditResult.reason;
-        setAuditEvents([]);
-        setAuditError(
-          err instanceof ApiError ? `[${err.code}] ${err.message}` : 'Failed to fetch audit events'
-        );
-      }
+      applyAuditResult(auditResult);
     } finally {
-      setIsLoadingDetail(false);
+      if (load === detailLoad.current) setIsLoadingDetail(false);
     }
   };
+
+  // Reads the open case again without the loading screen, keeping the current
+  // tab. Returns whether the case view was updated.
+  const reloadCaseDetail = async (caseId: string): Promise<boolean> => {
+    const load = ++detailLoad.current;
+    const [detailResult, auditResult] = await Promise.allSettled([
+      getFounderCase(caseId),
+      listFounderCaseAudit(caseId),
+    ]);
+    if (load !== detailLoad.current || selectedCaseRef.current !== caseId) return false;
+    if (detailResult.status !== 'fulfilled') return false;
+    setCaseDetail(detailResult.value);
+    applyAuditResult(auditResult);
+    return true;
+  };
+
+  const closeCaseDetail = () => {
+    detailLoad.current += 1;
+    selectedCaseRef.current = null;
+    setSelectedCaseId(null);
+  };
+
+  // #111 item 2: the open case is read again every 5 s until it reaches a final
+  // status. Polling pauses while a decision is being confirmed, so the version the
+  // Founder confirms is the one on screen.
+  const refreshOpenCase = () => {
+    if (!selectedCaseId || !caseDetail || isLoadingDetail || decisionModalOpen || isSubmittingDecision) return;
+    if (detailPollBusy.current) return;
+    detailPollBusy.current = true;
+    reloadCaseDetail(selectedCaseId).finally(() => {
+      detailPollBusy.current = false;
+    });
+  };
+
+  const pollingOpenCase =
+    selectedCaseId !== null &&
+    caseDetail !== null &&
+    caseDetail.case_id === selectedCaseId &&
+    !isLoadingDetail &&
+    !decisionModalOpen &&
+    !isSubmittingDecision &&
+    !isFinalStatus(caseDetail.status);
+  usePolling(refreshOpenCase, pollingOpenCase);
+
+  // Coming back to the window reloads the queue (a case lodged meanwhile appears)
+  // and the open case.
+  useRefreshOnReturn(() => {
+    if (activeSubTab === 'queue' && !isLoadingCases && !isLoadingMore) {
+      loadCases(Math.min(100, Math.max(20, cases.length)));
+    }
+    refreshOpenCase();
+  });
 
   const handleOpenDecision = (decisionType: FounderDecisionType) => {
     setPendingDecision(decisionType);
@@ -278,7 +344,21 @@ export const FounderConsole: React.FC = () => {
       await openCaseDetail(caseDetail.case_id);
       loadCases();
     } catch (err: unknown) {
-      setDecisionError(describeDecisionError(err));
+      if (err instanceof ApiError && err.code === 'STALE_CASE_VERSION') {
+        // #122 item 2 (docs/09 error table, docs/08 B2.04): a stale window's refused
+        // decision reloads the current case and its audit behind the dialog.
+        const reloaded = await reloadCaseDetail(caseDetail.case_id);
+        setDecisionError(
+          `${describeDecisionError(err)} ${
+            reloaded
+              ? 'The case changed; the view was reloaded. Check it and decide again.'
+              : 'The case changed, but reloading it failed. Close this dialog and open the case again.'
+          }`
+        );
+        if (reloaded) loadCases(Math.min(100, Math.max(20, cases.length)));
+      } else {
+        setDecisionError(describeDecisionError(err));
+      }
     } finally {
       setIsSubmittingDecision(false);
     }
@@ -405,10 +485,11 @@ export const FounderConsole: React.FC = () => {
               <button
                 onClick={() => loadCases()}
                 disabled={isLoadingCases}
-                className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors"
-                title="Refresh Queue"
+                className="px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors flex items-center space-x-1.5"
+                title="Refresh the queue (it also refreshes when you come back to this window)"
               >
                 <RefreshCw className={`w-4 h-4 ${isLoadingCases ? 'animate-spin' : ''}`} />
+                <span>Refresh</span>
               </button>
             </div>
           </div>
@@ -417,6 +498,26 @@ export const FounderConsole: React.FC = () => {
             <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-800 text-sm flex items-center space-x-2">
               <AlertTriangle className="w-5 h-5 text-rose-600 flex-shrink-0" />
               <span>{queueError}</span>
+            </div>
+          )}
+
+          {caseOpenError && (
+            <div
+              role="alert"
+              className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-800 text-sm flex items-center justify-between gap-3"
+            >
+              <span className="flex items-center space-x-2">
+                <AlertTriangle className="w-5 h-5 text-rose-600 flex-shrink-0" />
+                <span>{caseOpenError}</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setCaseOpenError(null)}
+                aria-label="Dismiss"
+                className="text-rose-500 hover:text-rose-700 p-1 rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
           )}
 
@@ -541,9 +642,13 @@ export const FounderConsole: React.FC = () => {
                   {caseDetail.status}
                 </span>
                 <span className="text-xs text-slate-500 font-mono">v{caseDetail.case_version}</span>
+                {pollingOpenCase && (
+                  <span className="text-[11px] text-slate-400">Updates every 5 seconds</span>
+                )}
               </div>
               <button
-                onClick={() => setSelectedCaseId(null)}
+                onClick={closeCaseDetail}
+                aria-label="Close case"
                 className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
               >
                 <X className="w-5 h-5" />

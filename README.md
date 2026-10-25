@@ -391,7 +391,8 @@ it as a direct cross-origin base URL, and the API registers no CORS middleware
 Fallback** off -> paste the matching token from `sessions.json` (`tokens` ->
 principal ID) into **Bearer Token (JWT)** -> **Save & Apply** (the page
 reloads). Reopening **Auth Tokens** calls `GET /v1/session` and shows
-`Valid: <principal> (<ROLE>)`. The client keeps the token in the browser's
+`Valid: <principal> (<ROLE>)`; **Verify** checks the token in the box before it is
+saved, and the header badge shows the role and principal the server reports. The client keeps the token in the browser's
 `localStorage`; use **Clear token** afterwards. Copy a token without showing it
 **(not verified)**:
 
@@ -471,8 +472,9 @@ evidence; an evidence run needs a fresh database (docs/41, "Re-running").
   test engines. A slow machine can still turn an HTTP step into 503
   `INTERNAL_ERROR` (retryable, keep the key); see "If a step fails" in
   `tools/r02/README.md`.
-- **401 in the frontend after about 15 minutes:** the 899 s sessions have
-  expired. Provision new principal IDs (the registry refuses existing IDs);
+- **401 in the frontend after about 15 minutes:** the page shows a red
+  "Session expired or not valid" banner and the header badge reads **Signed
+  out**: the 899 s sessions have expired. Provision new principal IDs (the registry refuses existing IDs);
   the same `--store` keeps the store's cases readable for a new Founder.
 - **Customer or Founder routes return 503 on the Compose API:** expected; it
   has no authentication file. Use `demo.py serve` or the driver's kept API.
