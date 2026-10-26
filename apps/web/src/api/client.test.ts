@@ -16,6 +16,7 @@ import {
   downloadEvidence,
   ApiError,
 } from './client';
+import { MOCK_FOUNDER_CASE_VIEWS } from './mockData';
 import type { AnalyticsSnapshot, CaseStatus, RiskOutcome } from '../types/domain';
 
 describe('client', () => {
@@ -163,21 +164,76 @@ describe('client', () => {
       expect(receipt.decision).toBe('APPROVE');
       expect(receipt.processing_status).toBe('ACCEPTED');
       expect(receipt.approval_id).toBeDefined();
+
+      // The mock view now carries the decision and the approval of the preview's
+      // exact scope, which the Outcome tab shows (#122 item 4).
+      const view = MOCK_FOUNDER_CASE_VIEWS.case_demo_003;
+      const decisions = view.decisions ?? [];
+      const approvals = view.approvals ?? [];
+      expect(decisions[decisions.length - 1]).toMatchObject({
+        decision_id: receipt.decision_id,
+        decision: 'APPROVE',
+        reason: 'Valid claim under store policy.',
+        principal_id: 'founder_demo',
+        approval_id: receipt.approval_id,
+      });
+      expect(approvals[approvals.length - 1]).toMatchObject({
+        approval_id: receipt.approval_id,
+        decision_id: receipt.decision_id,
+        preview_id: view.action_preview?.preview_id,
+        scope_fingerprint: view.action_preview?.scope_fingerprint,
+      });
     });
 
     it('records founder REJECT decision without approval guard parameters', async () => {
-      const receipt = await recordFounderDecision('case_demo_002', {
-        expected_case_version: 3,
-        decision: 'REJECT',
-        reason: 'Change of mind outside store policy window.',
-      });
+      // case_demo_003 is approved by the test above, so a copy still awaiting approval is used.
+      MOCK_FOUNDER_CASE_VIEWS.case_reject_check = {
+        ...structuredClone(MOCK_FOUNDER_CASE_VIEWS.case_demo_003),
+        case_id: 'case_reject_check',
+        status: 'AWAITING_APPROVAL',
+        decisions: [],
+        approvals: [],
+      };
+      try {
+        const receipt = await recordFounderDecision('case_reject_check', {
+          expected_case_version: MOCK_FOUNDER_CASE_VIEWS.case_reject_check.case_version,
+          decision: 'REJECT',
+          reason: 'Change of mind outside store policy window.',
+          proposal_id: 'prop_demo_003',
+          proposal_version: 1,
+        });
 
-      expect(receipt.case_id).toBe('case_demo_002');
-      expect(receipt.decision).toBe('REJECT');
-      expect(receipt.processing_status).toBe('ACCEPTED');
-      // Only a governed APPROVE may mint an approval record, so a REJECT
-      // receipt must not carry one at all.
-      expect(receipt).not.toHaveProperty('approval_id');
+        expect(receipt.case_id).toBe('case_reject_check');
+        expect(receipt.decision).toBe('REJECT');
+        expect(receipt.processing_status).toBe('ACCEPTED');
+        // Only a governed APPROVE may mint an approval record, so a REJECT
+        // receipt must not carry one at all.
+        expect(receipt).not.toHaveProperty('approval_id');
+        const view = MOCK_FOUNDER_CASE_VIEWS.case_reject_check;
+        expect(view.decisions).toHaveLength(1);
+        expect(view.decisions?.[0]).toMatchObject({ decision: 'REJECT', proposal_id: 'prop_demo_003' });
+        expect(view.decisions?.[0]).not.toHaveProperty('approval_id');
+        expect(view.approvals).toEqual([]);
+      } finally {
+        delete MOCK_FOUNDER_CASE_VIEWS.case_reject_check;
+      }
+    });
+
+    it('refuses a decision the server would refuse in the case state and leaves the case unchanged (#104 item 1)', async () => {
+      // case_demo_002 is in RISK_REVIEW, where the server accepts no Founder decision.
+      const view = MOCK_FOUNDER_CASE_VIEWS.case_demo_002;
+      const before = { status: view.status, case_version: view.case_version, decisions: view.decisions };
+      expect(view.status).toBe('RISK_REVIEW');
+      for (const decision of ['APPROVE', 'REJECT', 'REQUEST_REVISION', 'MANUAL_HANDLING'] as const) {
+        await expect(
+          recordFounderDecision('case_demo_002', {
+            expected_case_version: view.case_version,
+            decision,
+            reason: 'Should be refused in this state.',
+          })
+        ).rejects.toMatchObject({ status: 409, code: 'INVALID_STATE' });
+      }
+      expect({ status: view.status, case_version: view.case_version, decisions: view.decisions }).toEqual(before);
     });
 
     it('serves a mock analytics snapshot that keeps the contract invariants', async () => {
@@ -525,11 +581,13 @@ describe('client', () => {
         processing_failure_id: 'fail_live_01',
       };
 
-      // Flag off: the framework's 404 carries no contract error envelope.
+      // Flag off: the framework's 404 carries no contract error envelope. A wrong
+      // base URL or proxy gives the same reply, so the message names both (#104 item 5).
       vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(404, { detail: 'Not Found' })));
       await expect(recordFounderDecision('case_live_01', body)).rejects.toMatchObject({
         status: 404,
         code: 'DECISION_ROUTE_NOT_SERVED',
+        message: expect.stringMatching(/without --founder-decisions, or VITE_API_BASE_URL or a proxy points at the wrong server\. Nothing was recorded\.$/),
       });
 
       // Refusals from the route itself keep their contract status and code.

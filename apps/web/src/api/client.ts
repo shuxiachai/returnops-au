@@ -19,6 +19,7 @@ import {
   ErrorEnvelope,
 } from '../types/domain';
 import { generateIdempotencyKey } from '../utils/idempotency';
+import { decisionStateRefusal } from './decisionStates';
 import {
   MOCK_CUSTOMER_CASES,
   MOCK_FOUNDER_SUMMARIES,
@@ -560,32 +561,66 @@ export async function recordFounderDecision(
 ): Promise<DecisionReceipt> {
   if (isMockMode()) {
     const c = MOCK_FOUNDER_CASE_VIEWS[caseId];
-    // Same rule as the server: REJECT is accepted only for a case awaiting
-    // approval, so an escalated mock case is refused and left unchanged.
-    if (c && c.status === 'ESCALATED' && req.decision === 'REJECT') {
+    // Same state rules as the server (decisionStates.ts, #104 item 1): a refused
+    // mock decision leaves the case unchanged.
+    if (c && decisionStateRefusal(c.status, req.decision) !== null) {
       throw new ApiError(409, 'The request is not available in the current state.', 'INVALID_STATE');
     }
+    const decidedAt = new Date().toISOString();
+    const decisionId = 'dec_' + Date.now().toString(36);
+    // The v1 DecisionReceipt declares approval_id as optional and only a
+    // governed APPROVE mints an approval record, so the key is absent rather
+    // than present-but-undefined for every other decision.
+    const approvalId = req.decision === 'APPROVE' ? 'appr_' + Date.now().toString(36) : undefined;
     if (c) {
       if (req.decision === 'APPROVE') c.status = 'APPROVED';
       else if (req.decision === 'REJECT') c.status = 'REJECTED';
       else if (req.decision === 'REQUEST_REVISION') c.status = 'POLICY_ASSESSMENT';
       else if (req.decision === 'MANUAL_HANDLING') c.status = 'MANUAL_HANDLED';
       c.case_version += 1;
-      c.updated_at = new Date().toISOString();
+      c.updated_at = decidedAt;
+      // The Outcome tab reads these records, as it does from a live case view.
+      const target = Object.fromEntries(
+        (['proposal_id', 'proposal_version', 'processing_failure_id', 'order_lookup_block_id'] as const)
+          .filter((key) => req[key] !== undefined)
+          .map((key) => [key, req[key]])
+      );
+      c.decisions = [
+        ...(c.decisions ?? []),
+        {
+          decision_id: decisionId,
+          case_id: caseId,
+          ...target,
+          decision: req.decision,
+          principal_id: 'founder_demo',
+          reason: req.reason,
+          decided_at: decidedAt,
+          ...(approvalId ? { approval_id: approvalId } : {}),
+        },
+      ];
+      if (approvalId && c.action_preview) {
+        c.approvals = [
+          ...(c.approvals ?? []),
+          {
+            approval_id: approvalId,
+            decision_id: decisionId,
+            principal_id: 'founder_demo',
+            issued_at: decidedAt,
+            preview_id: c.action_preview.preview_id,
+            scope: c.action_preview.scope,
+            scope_fingerprint: c.action_preview.scope_fingerprint,
+          },
+        ];
+      }
     }
     return {
       case_id: caseId,
       case_version: c ? c.case_version : 1,
-      decision_id: 'dec_' + Date.now().toString(36),
+      decision_id: decisionId,
       decision: req.decision,
-      accepted_at: new Date().toISOString(),
+      accepted_at: decidedAt,
       processing_status: 'ACCEPTED',
-      // The v1 DecisionReceipt declares approval_id as optional and only a
-      // governed APPROVE mints an approval record, so the key is absent rather
-      // than present-but-undefined for every other decision.
-      ...(req.decision === 'APPROVE'
-        ? { approval_id: 'appr_' + Date.now().toString(36) }
-        : {}),
+      ...(approvalId ? { approval_id: approvalId } : {}),
     };
   }
 
@@ -610,7 +645,7 @@ export async function recordFounderDecision(
     if (err instanceof ApiError && err.code === 'HTTP_404') {
       throw new ApiError(
         err.status,
-        'This server does not serve the Founder decision route (POST /v1/founder/cases/{id}/decisions). It is registered only when the API is started with --founder-decisions. Nothing was recorded.',
+        'The server did not serve the Founder decision route (POST /v1/founder/cases/{id}/decisions): either the API was started without --founder-decisions, or VITE_API_BASE_URL or a proxy points at the wrong server. Nothing was recorded.',
         'DECISION_ROUTE_NOT_SERVED',
         err.correlationId
       );

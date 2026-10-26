@@ -1,4 +1,5 @@
 import {
+  ApprovalScope,
   CaseSummary,
   CaseView,
   CustomerCaseView,
@@ -268,6 +269,140 @@ export const MOCK_FOUNDER_SUMMARIES: CaseSummary[] = [
 // Synthetic contract Hash (64 lowercase hex characters) for case_demo_003's preview.
 export const MOCK_DEMO_003_SCOPE_FINGERPRINT =
   '5d41402abc4b2a76b9719d911017c592ae2f6c3b1d8e0f4a7c9b6e2d1f0a3b8c';
+
+// case_demo_005's outcome (#122 item 4) in contract shapes: the APPROVE decision,
+// the exact scope it authorised, both simulated operations and the customer
+// notice. The times follow its audit events (approved 40 h ago, operations 38 h,
+// completed 36 h). The label evidence ID downloads a Mock Mode placeholder file.
+const DEMO_005_APPROVED_AT = new Date(Date.now() - 3600000 * 40).toISOString();
+const DEMO_005_OPERATED_AT = new Date(Date.now() - 3600000 * 38).toISOString();
+const DEMO_005_NOTIFIED_AT = new Date(Date.now() - 3600000 * 36).toISOString();
+// Same form as a server-generated label (glabel_ plus 64 lowercase hex characters).
+const DEMO_005_LABEL_EVIDENCE_ID = 'glabel_ed1ecf5db8b440680f3cc4e64dff8f97f51ea7f936126e1001293203ffe81d18';
+const DEMO_005_SCOPE: ApprovalScope = {
+  case_id: 'case_demo_005',
+  input_version: 1,
+  proposal_id: 'prop_demo_005',
+  proposal_version: 1,
+  review_id: 'rev_demo_005',
+  parcel_id: 'parcel_demo_005',
+  commands: [
+    {
+      command_id: 'cmd_demo_005_return',
+      type: 'CREATE_RETURN',
+      provider_id: 'provider_mock_au',
+      parameters: {
+        order_id: 'ord_5501',
+        line_items: [{ line_item_id: 'item_501', quantity: 1 }],
+        parcel_id: 'parcel_demo_005',
+      },
+    },
+    {
+      command_id: 'cmd_demo_005_label',
+      type: 'GENERATE_LABEL',
+      provider_id: 'provider_mock_au',
+      parameters: {
+        parcel_id: 'parcel_demo_005',
+        return_command_id: 'cmd_demo_005_return',
+        label_format: 'PDF',
+        chargeable: false,
+      },
+    },
+  ],
+  currency: 'AUD',
+  amount_ceiling_minor: 0,
+  expires_at: new Date(Date.now() - 3600000 * 40 + 300000).toISOString(),
+  allowlist_version: 'allowlist-demo-v1',
+  environment: 'SIMULATED',
+};
+
+const DEMO_005_OUTCOME: Pick<CaseView, 'decisions' | 'approvals' | 'operations' | 'notifications'> = {
+  decisions: [
+    {
+      decision_id: 'dec_demo_005',
+      case_id: 'case_demo_005',
+      proposal_id: 'prop_demo_005',
+      proposal_version: 1,
+      decision: 'APPROVE',
+      principal_id: 'founder_demo',
+      reason: 'Approved the simulated return and label for the reported electrical fault.',
+      decided_at: DEMO_005_APPROVED_AT,
+      approval_id: 'appr_demo_005',
+    },
+  ],
+  approvals: [
+    {
+      approval_id: 'appr_demo_005',
+      decision_id: 'dec_demo_005',
+      principal_id: 'founder_demo',
+      issued_at: DEMO_005_APPROVED_AT,
+      preview_id: 'prev_demo_005',
+      scope: DEMO_005_SCOPE,
+      scope_fingerprint: '7fd6399e35b4ecf4e3c8768b2edcf8a56c66e37194ba205a25af0730418ce236',
+    },
+  ],
+  operations: [
+    {
+      operation_id: 'op_demo_005_return',
+      case_id: 'case_demo_005',
+      case_version: 4,
+      command_id: 'cmd_demo_005_return',
+      approval_id: 'appr_demo_005',
+      proposal_id: 'prop_demo_005',
+      proposal_version: 1,
+      input_version: 1,
+      provider_id: 'provider_mock_au',
+      operation_fingerprint: 'd0e480a08bcd31ade37509e87c21a0ce3a59b61ac1d04af03be9045d354e5590',
+      status: 'SUCCEEDED',
+      attempt_count: 1,
+      updated_at: DEMO_005_OPERATED_AT,
+      result: { type: 'CREATE_RETURN', provider_return_id: 'ret_mock_005', parcel_id: 'parcel_demo_005' },
+      idempotency_key: 'op-demo-005-return',
+    },
+    {
+      operation_id: 'op_demo_005_label',
+      case_id: 'case_demo_005',
+      case_version: 4,
+      command_id: 'cmd_demo_005_label',
+      approval_id: 'appr_demo_005',
+      proposal_id: 'prop_demo_005',
+      proposal_version: 1,
+      input_version: 1,
+      provider_id: 'provider_mock_au',
+      operation_fingerprint: 'ea23f18c2072896558f8458a56c728cc26457c1f4dcf373eb1fbb8cc6eeadd93',
+      status: 'SUCCEEDED',
+      attempt_count: 1,
+      updated_at: DEMO_005_OPERATED_AT,
+      result: {
+        type: 'GENERATE_LABEL',
+        provider_label_id: 'lbl_mock_005',
+        parcel_id: 'parcel_demo_005',
+        label_evidence_id: DEMO_005_LABEL_EVIDENCE_ID,
+      },
+      idempotency_key: 'op-demo-005-label',
+    },
+  ],
+  notifications: [
+    {
+      notification_id: 'note_demo_005',
+      case_id: 'case_demo_005',
+      case_version: 5,
+      status: 'SENT',
+      outcome: 'RETURN_CREATED',
+      // The server's CORE_MOCK v2 wording (packages/returnops_domain/notification_profile.py).
+      message:
+        'A simulated return and parcel label have been recorded. The prototype PDF is not valid for postage. This prototype has not arranged a real shipment or made a charge.',
+      next_steps: [
+        `View the simulated label using authorised attachment access at /v1/evidence/${DEMO_005_LABEL_EVIDENCE_ID}/content. This PDF must not be used for postage.`,
+        'Next step: ask the store operator to confirm the contact channel and any further arrangements.',
+        'Drop-off: no physical drop-off is arranged. Never post a parcel using a prototype label.',
+      ],
+      attempt_count: 1,
+      updated_at: DEMO_005_NOTIFIED_AT,
+      sent_at: DEMO_005_NOTIFIED_AT,
+    },
+  ],
+};
 
 export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
   'case_demo_001': {
@@ -585,7 +720,7 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
       recommended_action: 'PROPOSE_REFUND',
       confidence: 0.99,
       refund_amount_cents: 69900,
-      return_label_required: false,
+      return_label_required: true,
       rationale:
         'An electrical fault within 2 hours of delivery may be a major failure under ACL section 54 (conditional guidance). The Founder approved the simulated return and label; this prototype moves no money.',
       created_at: new Date(Date.now() - 3600000 * 44).toISOString(),
@@ -609,6 +744,7 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
       ],
       policy_citations: ['ACL Section 54 (Acceptable Quality)'],
     },
+    ...DEMO_005_OUTCOME,
   },
   ...Object.fromEntries(
     GENERATED_QUEUE_SUMMARIES.map((summary, index) => [summary.case_id, generatedQueueView(summary, index)])

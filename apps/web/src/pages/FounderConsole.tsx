@@ -48,6 +48,9 @@ import {
   describeProposalSource,
 } from '../utils/formatters';
 import { AdvisoryFactsCard } from '../components/AdvisoryFactsCard';
+import { CaseOutcomePanel } from '../components/CaseOutcomePanel';
+
+type DetailTab = 'proposal' | 'order' | 'statements' | 'outcome' | 'audit';
 
 // Contract CaseStatus values in enum order, for the analytics status filter.
 const CASE_STATUSES: CaseStatus[] = [
@@ -89,7 +92,7 @@ export const FounderConsole: React.FC = () => {
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
   const [auditError, setAuditError] = useState<string | null>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
-  const [detailTab, setDetailTab] = useState<'proposal' | 'order' | 'statements' | 'audit'>('proposal');
+  const [detailTab, setDetailTab] = useState<DetailTab>('proposal');
   // A case that cannot be opened is reported on the page, not in a browser alert.
   const [caseOpenError, setCaseOpenError] = useState<string | null>(null);
   // Only the latest read of the open case may update it (#111 item 2).
@@ -213,13 +216,13 @@ export const FounderConsole: React.FC = () => {
     }
   };
 
-  const openCaseDetail = async (caseId: string) => {
+  const openCaseDetail = async (caseId: string, tab: DetailTab = 'proposal') => {
     const load = ++detailLoad.current;
     selectedCaseRef.current = caseId;
     setSelectedCaseId(caseId);
     setCaseOpenError(null);
     setIsLoadingDetail(true);
-    setDetailTab('proposal');
+    setDetailTab(tab);
     setAuditError(null);
     try {
       const [detailResult, auditResult] = await Promise.allSettled([
@@ -344,8 +347,8 @@ export const FounderConsole: React.FC = () => {
       setPendingDecisionKey(null);
       setLastDecisionPayload(null);
       setDecisionModalOpen(false);
-      // Reload detail and queue
-      await openCaseDetail(caseDetail.case_id);
+      // Reload detail and queue; the Founder lands on what the decision produced.
+      await openCaseDetail(caseDetail.case_id, 'outcome');
       loadCases();
     } catch (err: unknown) {
       if (err instanceof ApiError && err.code === 'STALE_CASE_VERSION') {
@@ -693,6 +696,17 @@ export const FounderConsole: React.FC = () => {
               >
                 <FileText className="w-4 h-4" />
                 <span>Customer Statements ({caseDetail.statements.length})</span>
+              </button>
+              <button
+                onClick={() => setDetailTab('outcome')}
+                className={`py-3 border-b-2 transition-all flex items-center space-x-1.5 ${
+                  detailTab === 'outcome'
+                    ? 'border-sky-600 text-sky-600'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Decision & Outcome</span>
               </button>
               <button
                 onClick={() => setDetailTab('audit')}
@@ -1051,6 +1065,9 @@ export const FounderConsole: React.FC = () => {
                   ))}
                 </div>
               )}
+
+              {/* Tab: Decision & Outcome (#122 item 4) */}
+              {detailTab === 'outcome' && <CaseOutcomePanel caseView={caseDetail} />}
 
               {/* Tab: Tamper-Evident Audit Chain (Finding 9) */}
               {detailTab === 'audit' && (
