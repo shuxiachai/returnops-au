@@ -708,6 +708,42 @@ export const FounderConsole: React.FC = () => {
               {/* Tab: Proposal & Risk */}
               {detailTab === 'proposal' && (
                 <div className="space-y-6">
+                  {/* Why an escalated case has no proposal (contract OrderLookupBlock / ProcessingFailure).
+                      The server's message is shown as plain text. */}
+                  {caseDetail.order_lookup_block && (
+                    <div className="p-4 bg-rose-50 rounded-2xl border border-rose-200 text-xs space-y-1.5">
+                      <div className="flex items-center space-x-2 text-rose-900 font-bold text-sm">
+                        <AlertTriangle className="w-4 h-4 text-rose-600" />
+                        <span>
+                          Order lookup blocked:{' '}
+                          {caseDetail.order_lookup_block.status === 'CONFLICT'
+                            ? 'the order reference matches more than one order'
+                            : 'the store may not read this order'}
+                        </span>
+                      </div>
+                      <p className="text-rose-800">{caseDetail.order_lookup_block.message}</p>
+                      {caseDetail.status === 'ESCALATED' && (
+                        <p className="text-rose-700">
+                          No proposal is made for this case. Only the Founder can decide it: manual takeover.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {caseDetail.processing_failure && (
+                    <div className="p-4 bg-rose-50 rounded-2xl border border-rose-200 text-xs space-y-1.5">
+                      <div className="flex items-center space-x-2 text-rose-900 font-bold text-sm">
+                        <AlertTriangle className="w-4 h-4 text-rose-600" />
+                        <span>Processing failed at stage {caseDetail.processing_failure.stage}</span>
+                      </div>
+                      <p className="text-rose-800">{caseDetail.processing_failure.error?.error?.message}</p>
+                      {caseDetail.status === 'ESCALATED' && (
+                        <p className="text-rose-700">
+                          No proposal is made for this case. Only the Founder can decide it: manual takeover.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   {/* Current Proposal Card */}
                   {caseDetail.current_proposal ? (
                     <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-4">
@@ -1188,6 +1224,19 @@ export const FounderConsole: React.FC = () => {
                     <strong className="font-mono text-slate-900">
                       {caseDetail.current_proposal.proposal_id}
                     </strong>
+                  </div>
+                )}
+                {/* Same precedence as selectDecisionTarget: failure, then order-lookup block. */}
+                {!caseDetail.current_proposal && caseDetail.processing_failure && (
+                  <div>
+                    Bound processing failure:{' '}
+                    <strong className="font-mono text-slate-900">{caseDetail.processing_failure.failure_id}</strong>
+                  </div>
+                )}
+                {!caseDetail.current_proposal && !caseDetail.processing_failure && caseDetail.order_lookup_block && (
+                  <div>
+                    Bound order-lookup block:{' '}
+                    <strong className="font-mono text-slate-900">{caseDetail.order_lookup_block.block_id}</strong>
                   </div>
                 )}
               </div>

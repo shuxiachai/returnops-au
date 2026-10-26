@@ -33,10 +33,24 @@ const PREVIEW: ActionPreview = {
     environment: 'SIMULATED',
   },
 };
+// Contract ProcessingFailure and OrderLookupBlock shapes.
 const FAILURE = {
   failure_id: 'failure_target',
-  reason: 'Order lookup failed.',
-  component: 'ORDER_LOOKUP',
+  case_id: 'case_target',
+  input_version: 1,
+  stage: 'ORDER_LOOKUP' as const,
+  error: {
+    error: { code: 'PROVIDER_UNAVAILABLE', message: 'Order lookup failed.', retryable: false, details: [] },
+  },
+  occurred_at: '2026-10-21T00:00:00Z',
+};
+
+const BLOCK = {
+  block_id: 'block_target',
+  case_id: 'case_target',
+  input_version: 1,
+  status: 'CONFLICT' as const,
+  message: 'The authorized order reference is ambiguous.',
   occurred_at: '2026-10-21T00:00:00Z',
 };
 
@@ -85,13 +99,17 @@ describe('selectDecisionTarget', () => {
     });
     expect(
       selectDecisionTarget(
-        { ...escalated, order_lookup_block: { block_id: 'block_target', reason: 'CONFLICT' } },
+        { ...escalated, order_lookup_block: BLOCK },
         'MANUAL_HANDLING'
       )
     ).toStrictEqual({ target: { order_lookup_block_id: 'block_target' } });
 
     expect(selectDecisionTarget({ ...escalated, processing_failure: FAILURE }, 'REJECT')).toHaveProperty('unavailable');
     expect(selectDecisionTarget(escalated, 'MANUAL_HANDLING')).toHaveProperty('unavailable');
+    // After the decision the view may still carry the block, but the case is no longer escalated.
+    expect(
+      selectDecisionTarget({ ...BASE_VIEW, status: 'NOTIFICATION_PENDING', order_lookup_block: BLOCK }, 'MANUAL_HANDLING')
+    ).toHaveProperty('unavailable', expect.stringMatching(/no longer escalated/i));
   });
 });
 

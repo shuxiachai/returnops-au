@@ -188,6 +188,9 @@ describe('formatters', () => {
       expect(formatCustomerStatus('AWAITING_INFORMATION')).toBe('We need a bit more information');
       expect(formatCustomerStatus('RISK_REVIEW')).toBe('Being reviewed');
       expect(formatCustomerStatus('MANUAL_HANDLED')).toBe('The shop is handling this personally');
+      // Rejection and manual handling also pass through NOTIFICATION_PENDING: no outcome is named.
+      expect(formatCustomerStatus('NOTIFICATION_PENDING')).toBe('The shop has decided; a notice is on its way');
+      expect(formatCustomerStatus('NOTIFICATION_PENDING')).not.toMatch(/approved/i);
       expect(formatCustomerStatus(undefined)).toBe('Unknown');
     });
 

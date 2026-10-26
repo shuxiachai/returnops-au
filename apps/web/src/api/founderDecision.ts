@@ -47,19 +47,28 @@ export function selectDecisionTarget(view: CaseView, decision: FounderDecisionTy
     return { target: { proposal_id: proposal.proposal_id, proposal_version: proposal.proposal_version } };
   }
 
-  // Only manual handling may target a failure or a block, and only when there is
-  // no current proposal.
+  // Only manual handling may target a failure or a block, only when there is no
+  // current proposal, and only while the case is ESCALATED (the server's rule in
+  // manual_decision.py); afterwards the view may still show the block or failure.
   if (decision === 'MANUAL_HANDLING') {
-    if (view.processing_failure) {
-      return { target: { processing_failure_id: view.processing_failure.failure_id } };
+    const target: DecisionTarget | null = view.processing_failure
+      ? { processing_failure_id: view.processing_failure.failure_id }
+      : view.order_lookup_block
+        ? { order_lookup_block_id: view.order_lookup_block.block_id }
+        : null;
+    if (!target) {
+      return {
+        unavailable:
+          'Manual handling needs a current proposal, processing failure or order-lookup block. This case view has none.',
+      };
     }
-    if (view.order_lookup_block) {
-      return { target: { order_lookup_block_id: view.order_lookup_block.block_id } };
+    if (view.status !== 'ESCALATED') {
+      return {
+        unavailable:
+          'This case is no longer escalated, so its processing failure or order-lookup block cannot be decided again.',
+      };
     }
-    return {
-      unavailable:
-        'Manual handling needs a current proposal, processing failure or order-lookup block. This case view has none.',
-    };
+    return { target };
   }
 
   return { unavailable: 'This decision needs a current proposal. This case view has none.' };
