@@ -455,10 +455,39 @@ describe('FounderConsole failure and live-mode paths', () => {
 
     it('shows why the case is blocked and sends MANUAL_HANDLING bound to the block only', async () => {
       vi.mocked(isMockMode).mockReturnValue(false);
-      // After the accepted decision the server's view still carries the block, now NOTIFICATION_PENDING.
+      // After the accepted decision the server's view still carries the block, now NOTIFICATION_PENDING,
+      // with the decision record and the queued notice (manual_decision.py; no worker has sent it).
       vi.mocked(getFounderCase)
         .mockResolvedValueOnce(BLOCKED_VIEW)
-        .mockResolvedValue({ ...BLOCKED_VIEW, status: 'NOTIFICATION_PENDING', case_version: 5 });
+        .mockResolvedValue({
+          ...BLOCKED_VIEW,
+          status: 'NOTIFICATION_PENDING',
+          case_version: 5,
+          decisions: [
+            {
+              decision_id: 'dec_manual_live',
+              case_id: 'case_contract_shape',
+              order_lookup_block_id: 'block_conflict',
+              decision: 'MANUAL_HANDLING',
+              principal_id: 'demo_founder',
+              reason: 'The order reference is ambiguous; I will contact the customer.',
+              decided_at: '2026-10-25T00:01:00Z',
+            },
+          ],
+          notifications: [
+            {
+              notification_id: 'note_manual_live',
+              case_id: 'case_contract_shape',
+              case_version: 5,
+              status: 'PENDING',
+              outcome: 'MANUAL_HANDLED',
+              message: 'The store operator recorded a manual-handling outcome.',
+              next_steps: ['Next step: ask the store operator to confirm the contact channel and any further arrangements.'],
+              attempt_count: 0,
+              updated_at: '2026-10-25T00:01:00Z',
+            },
+          ],
+        });
       vi.mocked(recordFounderDecision).mockResolvedValue({
         case_id: 'case_contract_shape',
         case_version: 5,
@@ -498,8 +527,17 @@ describe('FounderConsole failure and live-mode paths', () => {
         order_lookup_block_id: 'block_conflict',
       });
 
-      // The reloaded case is decided: the reason stays, but no second manual takeover is offered.
+      // The reloaded case opens on what the decision produced (#122 item 4): the
+      // manual takeover on the block and the queued notice, not yet sent.
       expect(await screen.findByText('NOTIFICATION_PENDING')).toBeInTheDocument();
+      expect(screen.getByText('Manual takeover')).toBeInTheDocument();
+      expect(screen.getByText(/on order-lookup block block_conflict/)).toBeInTheDocument();
+      expect(screen.getByText('Handled manually')).toBeInTheDocument();
+      expect(screen.getByText('PENDING')).toBeInTheDocument();
+      expect(screen.getByText(/not sent yet/)).toBeInTheDocument();
+
+      // The block reason stays on the proposal tab, but no second manual takeover is offered.
+      fireEvent.click(screen.getByRole('button', { name: /Proposal & Risk Review/i }));
       expect(screen.getByText('The authorized order reference is ambiguous.')).toBeInTheDocument();
       expect(screen.queryByText(/Only the Founder can decide it/)).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: /^Manual Takeover$/i })).toBeDisabled();

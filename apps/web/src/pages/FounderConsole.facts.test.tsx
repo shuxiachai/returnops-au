@@ -1,4 +1,4 @@
-﻿import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { FounderConsole } from './FounderConsole';
 import type { CaseView, ExtractedFacts, FounderDecisionType } from '../types/domain';

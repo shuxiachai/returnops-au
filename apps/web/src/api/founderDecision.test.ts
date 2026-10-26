@@ -109,7 +109,46 @@ describe('selectDecisionTarget', () => {
     // After the decision the view may still carry the block, but the case is no longer escalated.
     expect(
       selectDecisionTarget({ ...BASE_VIEW, status: 'NOTIFICATION_PENDING', order_lookup_block: BLOCK }, 'MANUAL_HANDLING')
+    ).toHaveProperty('unavailable', expect.stringMatching(/only for a case in ESCALATED or AWAITING_APPROVAL; this case is NOTIFICATION_PENDING/));
+    // The narrower rule for a failure or block target still applies while the case awaits approval.
+    expect(
+      selectDecisionTarget({ ...BASE_VIEW, status: 'AWAITING_APPROVAL', order_lookup_block: BLOCK }, 'MANUAL_HANDLING')
     ).toHaveProperty('unavailable', expect.stringMatching(/no longer escalated/i));
+  });
+});
+
+describe('decision state rules (#104 item 1)', () => {
+  // The server's rules: approval admission and reject_sources.py (AWAITING_APPROVAL),
+  // revision_decision.py and manual_decision.py (ESCALATED or AWAITING_APPROVAL).
+  const ACCEPTED: Record<string, string[]> = {
+    APPROVE: ['AWAITING_APPROVAL'],
+    REJECT: ['AWAITING_APPROVAL'],
+    REQUEST_REVISION: ['ESCALATED', 'AWAITING_APPROVAL'],
+    MANUAL_HANDLING: ['ESCALATED', 'AWAITING_APPROVAL'],
+  };
+  const STATUSES = [
+    'SUBMITTED', 'AWAITING_INFORMATION', 'UNDER_INVESTIGATION', 'POLICY_ASSESSMENT', 'RISK_REVIEW',
+    'AWAITING_APPROVAL', 'APPROVED', 'ACTION_IN_PROGRESS', 'ACTION_FAILED', 'RECONCILING', 'ESCALATED',
+    'NOTIFICATION_PENDING', 'NOTIFICATION_FAILED', 'COMPLETED', 'REJECTED', 'MANUAL_HANDLED',
+  ] as const;
+
+  it('offers each decision on the current proposal only in the states the server accepts', () => {
+    for (const decision of ['APPROVE', 'REJECT', 'REQUEST_REVISION', 'MANUAL_HANDLING'] as const) {
+      for (const status of STATUSES) {
+        const result = selectDecisionTarget(
+          { ...BASE_VIEW, status, current_proposal: PROPOSAL, action_preview: PREVIEW },
+          decision
+        );
+        if (ACCEPTED[decision].includes(status)) {
+          expect(result, `${decision} in ${status}`).toHaveProperty('target');
+        } else {
+          expect(result, `${decision} in ${status}`).toHaveProperty(
+            'unavailable',
+            expect.stringContaining(`this case is ${status}`)
+          );
+        }
+      }
+    }
   });
 });
 

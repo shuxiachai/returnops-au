@@ -2,12 +2,19 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { FounderConsole } from './FounderConsole';
 import { setMockMode } from '../api/client';
-import { MOCK_DEMO_003_SCOPE_FINGERPRINT } from '../api/mockData';
+import { MOCK_DEMO_003_SCOPE_FINGERPRINT, MOCK_FOUNDER_CASE_VIEWS } from '../api/mockData';
+
+// A Mock Mode decision changes the shared mock case (status, version, records), and
+// the decision buttons follow the server's state rules (#104 item 1), so every test
+// starts from the case views as loaded.
+const MOCK_VIEWS_AT_START = structuredClone(MOCK_FOUNDER_CASE_VIEWS);
 
 describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
   beforeEach(() => {
     localStorage.clear();
     setMockMode(true);
+    for (const caseId of Object.keys(MOCK_FOUNDER_CASE_VIEWS)) delete MOCK_FOUNDER_CASE_VIEWS[caseId];
+    Object.assign(MOCK_FOUNDER_CASE_VIEWS, structuredClone(MOCK_VIEWS_AT_START));
   });
 
   afterEach(() => {
@@ -174,6 +181,40 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
     await waitFor(() => {
       expect(screen.queryByText(/Confirm Founder Decision: APPROVE/i)).not.toBeInTheDocument();
     });
+
+    // The reopened case lands on what the decision produced (#122 item 4): the
+    // approval of the preview's exact scope, and no operation yet.
+    expect(await screen.findByText('Approved scope')).toBeInTheDocument();
+    expect(screen.getByText('Approved under store 30-day change of mind policy.')).toBeInTheDocument();
+    expect(screen.getByText(MOCK_DEMO_003_SCOPE_FINGERPRINT)).toBeInTheDocument();
+    expect(screen.getByText(/No operation has been recorded yet/)).toBeInTheDocument();
+  });
+
+  it('shows the outcome of the completed case_demo_005: approval, both operations, the label and the notice (#122 item 4)', async () => {
+    render(<FounderConsole />);
+
+    await waitFor(() => {
+      expect(screen.getByText('case_demo_001')).toBeInTheDocument();
+    });
+    fireEvent.change(screen.getByPlaceholderText(/Filter by Case ID or Category/i), {
+      target: { value: 'case_demo_005' },
+    });
+    fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /Decision & Outcome/i }));
+
+    const reason = await screen.findByText(
+      'Approved the simulated return and label for the reported electrical fault.'
+    );
+    expect(within(reason.closest('div.p-4') as HTMLElement).getByText('Approved')).toBeInTheDocument();
+    expect(screen.getByText('Create the simulated return')).toBeInTheDocument();
+    expect(screen.getByText('Generate the return label (PDF)')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Download label \(PDF\)/ })).toBeEnabled();
+    expect(screen.getByText('Return created')).toBeInTheDocument();
+    expect(screen.getByText('SENT')).toBeInTheDocument();
+    // The decision buttons follow the server's states: nothing is decidable on a completed case.
+    for (const name of [/Approve Return/i, /^Request Revision$/i, /^Reject$/i, /^Manual Takeover$/i]) {
+      expect(screen.getByRole('button', { name })).toBeDisabled();
+    }
   });
 
   it('switches to Operations Analytics tab (OF-006) and displays throughput and latency metrics', async () => {

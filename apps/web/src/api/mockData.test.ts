@@ -89,3 +89,48 @@ describe('mock queue and wording (#122 items 1 and 3)', () => {
     }
   });
 });
+
+describe('mock case outcome records (#122 item 4)', () => {
+  // Field names and required keys of each record against contracts/v1/schemas.json.
+  function expectContractKeys(record: object, def: { required: string[]; properties: object }) {
+    const keys = Object.keys(record);
+    for (const key of def.required) expect(keys, key).toContain(key);
+    for (const key of keys) expect(Object.keys(def.properties), key).toContain(key);
+  }
+  const HASH = new RegExp(defs.Hash.pattern);
+  const ID = new RegExp(defs.Id.pattern);
+
+  it('gives case_demo_005 contract-shaped decision, approval, operation and notification records', () => {
+    const view = MOCK_FOUNDER_CASE_VIEWS.case_demo_005;
+    expect(view.status).toBe('COMPLETED');
+    const [decision] = view.decisions ?? [];
+    const [approval] = view.approvals ?? [];
+    const operations = view.operations ?? [];
+    const [notice] = view.notifications ?? [];
+
+    expectContractKeys(decision, defs.FounderDecisionRecord);
+    expect(decision.approval_id).toBe(approval.approval_id);
+    expectContractKeys(approval, defs.ApprovalRecord);
+    expect(approval.decision_id).toBe(decision.decision_id);
+    expect(approval.scope_fingerprint).toMatch(HASH);
+    expect(approval.scope.amount_ceiling_minor).toBe(0);
+
+    expect(operations.map((operation) => operation.result?.type)).toEqual(['CREATE_RETURN', 'GENERATE_LABEL']);
+    for (const operation of operations) {
+      expectContractKeys(operation, defs.OperationAttempt);
+      expect(defs.OperationAttempt.properties.status.enum).toContain(operation.status);
+      expect(operation.operation_fingerprint).toMatch(HASH);
+      expect(operation.operation_id).toMatch(ID);
+      expect(operation.approval_id).toBe(approval.approval_id);
+      // Each operation executes one command of the approved scope.
+      expect(approval.scope.commands.map((command) => command.command_id)).toContain(operation.command_id);
+    }
+    const label = operations[1].result;
+    expect(label?.type === 'GENERATE_LABEL' && label.label_evidence_id).toMatch(/^glabel_[0-9a-f]{64}$/);
+
+    expectContractKeys(notice, defs.NotificationRecord);
+    expect(defs.NotificationRecord.properties.status.enum).toContain(notice.status);
+    expect(defs.NotificationRecord.properties.outcome.enum).toContain(notice.outcome);
+    expect(notice.case_version).toBe(view.case_version);
+  });
+});

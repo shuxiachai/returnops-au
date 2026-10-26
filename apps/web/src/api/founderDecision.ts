@@ -1,5 +1,6 @@
 import { CaseView, FounderDecisionRequest, FounderDecisionType } from '../types/domain';
 import { ApiError } from './client';
+import { decisionStateRefusal } from './decisionStates';
 
 // The target fields of a FounderDecisionRequest. The contract allows exactly one
 // target: the current proposal, a processing failure, or an order-lookup block.
@@ -22,6 +23,10 @@ export type DecisionTargetResult = { target: DecisionTarget } | { unavailable: s
  */
 export function selectDecisionTarget(view: CaseView, decision: FounderDecisionType): DecisionTargetResult {
   const proposal = view.current_proposal;
+
+  // The same state rules as the server, so no button offers a decision it would refuse.
+  const refusal = decisionStateRefusal(view.status, decision);
+  if (refusal) return { unavailable: refusal };
 
   if (decision === 'APPROVE') {
     // The server shows action_preview only while the preview for the current

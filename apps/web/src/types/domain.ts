@@ -312,6 +312,76 @@ export interface ActionPreview {
   details?: Record<string, unknown>;
 }
 
+// Contract FounderDecisionRecord: exactly one target (proposal, processing
+// failure or order-lookup block); approval_id only for an APPROVE.
+export interface FounderDecisionRecord {
+  decision_id: string;
+  case_id: string;
+  proposal_id?: string;
+  proposal_version?: number;
+  processing_failure_id?: string;
+  order_lookup_block_id?: string;
+  decision: FounderDecisionType;
+  principal_id: string;
+  reason: string;
+  decided_at: string;
+  approval_id?: string;
+}
+
+// Contract ApprovalRecord: the exact scope one APPROVE authorised.
+export interface ApprovalRecord {
+  approval_id: string;
+  decision_id: string;
+  principal_id: string;
+  issued_at: string;
+  preview_id: string;
+  scope: ApprovalScope;
+  scope_fingerprint: string;
+}
+
+// Contract OperationResult: present once the provider confirmed the operation.
+export type OperationResult =
+  | { type: 'CREATE_RETURN'; provider_return_id: string; parcel_id: string }
+  | { type: 'GENERATE_LABEL'; provider_label_id: string; parcel_id: string; label_evidence_id: string };
+
+export type OperationStatus = 'PENDING' | 'EXECUTING' | 'SUCCEEDED' | 'FAILED' | 'UNKNOWN' | 'RECONCILING' | 'BLOCKED';
+
+// Contract OperationAttempt: one approved command and its provider outcome.
+export interface OperationAttempt {
+  operation_id: string;
+  case_id: string;
+  case_version: number;
+  command_id: string;
+  approval_id: string;
+  proposal_id: string;
+  proposal_version: number;
+  input_version: number;
+  provider_id: string;
+  operation_fingerprint: string;
+  status: OperationStatus;
+  attempt_count: number;
+  updated_at: string;
+  provider_operation_id?: string;
+  result?: OperationResult;
+  error?: ErrorEnvelope;
+  idempotency_key: string;
+}
+
+// Contract NotificationRecord: the message the customer is (or was to be) sent.
+export interface NotificationRecord {
+  notification_id: string;
+  case_id: string;
+  case_version: number;
+  status: 'PENDING' | 'SENT' | 'FAILED';
+  outcome: 'RETURN_CREATED' | 'REJECTED' | 'MANUAL_HANDLED';
+  message: string;
+  next_steps: string[];
+  attempt_count: number;
+  updated_at: string;
+  sent_at?: string;
+  error?: ErrorEnvelope;
+}
+
 export interface CaseView {
   case_id: string;
   case_version: number;
@@ -336,27 +406,11 @@ export interface CaseView {
   };
   current_review?: RiskReviewDetail;
   action_preview?: ActionPreview;
-  decisions?: Array<{
-    decision_id: string;
-    decision: FounderDecisionType;
-    reason: string;
-    decided_at: string;
-  }>;
-  approvals?: Array<{
-    approval_id: string;
-    scope_fingerprint: string;
-    approved_at: string;
-  }>;
-  operations?: Array<{
-    operation_id: string;
-    status: string;
-    action: string;
-  }>;
-  notifications?: Array<{
-    notification_id: string;
-    status: string;
-    recipient: string;
-  }>;
+  // What happened after the Founder decided (#122 item 4); contract shapes below.
+  decisions?: FounderDecisionRecord[];
+  approvals?: ApprovalRecord[];
+  operations?: OperationAttempt[];
+  notifications?: NotificationRecord[];
   cited_passages?: string[];
   // Contract OrderLookupBlock: the order lookup stopped on a conflict or a denied read.
   order_lookup_block?: {
