@@ -168,7 +168,7 @@ Gloss: one complete governed run, from customer case to label and notification, 
 Actions ([README step 5](../README.md#deploy-from-zero---22-october-2026-sydney); [tools/r02 README](../tools/r02/README.md#demo-mode-live-demo-only)):
 
 1. Terminal 1: Ctrl+C stops `demo.py serve` (its workers must not run during the driver, and port 8000 must be free). Any in-memory model facts are discarded.
-2. Terminal 2: provision a dedicated new store without `--order-investigation` and `--fixed-proposal`: `demo.py provision --private-dir <abs>/tmp/demo-cups --store demo_cups_store --customer-one demo_cups_customer_one --customer-two demo_cups_customer_two --founder demo_cups_founder`.
+2. Terminal 2: provision a dedicated new store without `--order-investigation`, `--fixed-proposal` and `--founder-manual`: `demo.py provision --private-dir <abs>/tmp/demo-cups --store demo_cups_store --customer-one demo_cups_customer_one --customer-two demo_cups_customer_two --founder demo_cups_founder`.
 3. Set `DATABASE_URL` in the shell from `.env` (README step 5 commands; nothing printed), then start within about 8 minutes: `python -B tools/r02/driver.py --output <abs>/tmp/r02-demo-run --identities <abs>/tmp/demo-cups --api-port 8000 --keep-api --allow-existing-data` (`--allow-existing-data` because S2 created cases).
 4. While it runs (about two minutes in CI: 16:24:37Z to 16:26:29Z for run 39634415393), narrate the steps below.
 5. Expected: `R.02 demo mode: driver result PASSED (see run-receipt.json).`, the case ID and `http://127.0.0.1:8000`, then it waits **(not verified in demo mode)**.

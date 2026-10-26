@@ -295,6 +295,10 @@ export const FounderConsole: React.FC = () => {
   });
 
   const handleOpenDecision = (decisionType: FounderDecisionType) => {
+    // The confirmation binds the case view on screen now. A background read still
+    // in flight is discarded, so it cannot replace that view behind the dialog
+    // (C's review of #130); a changed case then comes back as a 409 and reloads.
+    detailLoad.current += 1;
     setPendingDecision(decisionType);
     setDecisionReason('');
     setDecisionError(null);
@@ -836,7 +840,7 @@ export const FounderConsole: React.FC = () => {
                         </div>
                         <span
                           className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getRiskBadgeClass(
-                            caseDetail.current_review.outcome || 'PASS'
+                            caseDetail.current_review.outcome
                           )}`}
                         >
                           {caseDetail.current_review.outcome || '—'}

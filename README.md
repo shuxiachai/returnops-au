@@ -425,8 +425,9 @@ Mock Mode remains available for a database-free walkthrough.
 The driver approves and executes one synthetic cups case end to end and, in
 demo mode, keeps its API on port 8000 for the frontend. First stop the step 3
 API with Ctrl+C: its workers must not run while the driver runs, and port 8000
-must be free. Provision a dedicated store without `--order-investigation` and
-`--fixed-proposal`, then start the driver within about 8 minutes. Set
+must be free. Provision a dedicated store without `--order-investigation`,
+`--fixed-proposal` and `--founder-manual`, then start the driver within about 8
+minutes. Set
 `DATABASE_URL` directly in the shell for the driver: started through
 `local.py run`, a Ctrl+C would kill the driver before it stops its API child.
 The URL below is assembled from `.env` without being printed **(not verified)**.
