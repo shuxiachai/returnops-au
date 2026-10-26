@@ -6,10 +6,12 @@ import io
 import json
 import os
 from pathlib import Path
+import signal
 import stat
 import subprocess
 import sys
 import tempfile
+import time
 from types import SimpleNamespace
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
@@ -364,6 +366,107 @@ class HumanTimingCliTests(unittest.TestCase):
         self.assertFalse(self.destination.exists())
         self.assertNotIn("PRIVATE_SECRET", err)
         self.assertEqual(out, "")
+
+    def test_interrupted_write_flush_and_close_remove_unconfirmed_report(self):
+        real_fdopen = os.fdopen
+
+        class InterruptedWriter:
+            def __init__(self, stream, phase):
+                self.stream, self.phase = stream, phase
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                self.stream.__exit__(*args)
+                if self.phase == "close":
+                    raise KeyboardInterrupt
+
+            def fileno(self):
+                return self.stream.fileno()
+
+            def write(self, raw):
+                if self.phase == "write":
+                    self.stream.write(raw[:len(raw) // 2])
+                    self.stream.flush()
+                    raise KeyboardInterrupt
+                return self.stream.write(raw)
+
+            def flush(self):
+                self.stream.flush()
+                if self.phase == "flush":
+                    raise KeyboardInterrupt
+
+        self.write_input()
+        for phase in ("write", "flush", "close"):
+            def open_stream(fd, mode):
+                stream = real_fdopen(fd, mode)
+                return InterruptedWriter(stream, phase) if mode == "wb" else stream
+            with self.subTest(phase=phase), patch.object(human_timing.os, "fdopen", side_effect=open_stream):
+                code, out, err = self.invoke()
+            self.assertEqual((code, out, err), (130, "", "HUMAN_TIMING_INTERRUPTED\n"))
+            self.assertFalse(self.destination.exists())
+
+    def test_fsync_interrupt_removes_report_and_system_exit_is_preserved(self):
+        self.write_input()
+        with patch.object(human_timing.os, "fsync", side_effect=KeyboardInterrupt):
+            self.assertEqual(self.invoke(), (130, "", "HUMAN_TIMING_INTERRUPTED\n"))
+        self.assertFalse(self.destination.exists())
+        out, err = io.StringIO(), io.StringIO()
+        with patch.object(human_timing.os, "fsync", side_effect=SystemExit(7)), \
+                redirect_stdout(out), redirect_stderr(err), self.assertRaises(SystemExit) as raised:
+            main(["--input", str(self.source), "--output", str(self.destination)])
+        self.assertEqual(raised.exception.code, 7)
+        self.assertEqual((out.getvalue(), err.getvalue()), ("", ""))
+        self.assertFalse(self.destination.exists())
+
+    def test_interruption_preserves_concurrent_destination_replacement(self):
+        self.write_input()
+        moved = self.root / "owned-report-moved.json"
+
+        def replace_then_interrupt(_fd):
+            self.destination.rename(moved)
+            self.destination.write_bytes(b"CONCURRENT_FILE_KEEP")
+            raise KeyboardInterrupt
+
+        with patch.object(human_timing.os, "fsync", side_effect=replace_then_interrupt):
+            self.assertEqual(self.invoke(), (130, "", "HUMAN_TIMING_INTERRUPTED\n"))
+        self.assertEqual(self.destination.read_bytes(), b"CONCURRENT_FILE_KEEP")
+        self.assertTrue(moved.is_file())  # Ownership does not authorize deleting another path.
+
+    @unittest.skipUnless(os.name == "posix", "Requires POSIX signals")
+    def test_real_sigint_during_export_cleans_owned_report_and_exits_130(self):
+        self.write_input()
+        ready = self.root / "fsync-ready"
+        program = """
+import signal, sys
+from pathlib import Path
+from experiments.evaluation_candidate import human_timing
+signal.signal(signal.SIGINT, signal.default_int_handler)
+def wait_for_interrupt(_fd):
+    Path(sys.argv[3]).write_text('ready', encoding='ascii')
+    signal.pause()
+    raise RuntimeError('unexpected signal return')
+human_timing.os.fsync = wait_for_interrupt
+raise SystemExit(human_timing.main(['--input', sys.argv[1], '--output', sys.argv[2]]))
+"""
+        child = subprocess.Popen([sys.executable, "-B", "-c", program, str(self.source),
+                                  str(self.destination), str(ready)],
+                                 cwd=Path(__file__).resolve().parents[2],
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        try:
+            deadline = time.monotonic() + 5
+            while not ready.exists() and child.poll() is None and time.monotonic() < deadline:
+                time.sleep(.01)
+            self.assertTrue(ready.exists(), "Owned child did not reach report fsync")
+            child.send_signal(signal.SIGINT)
+            out, err = child.communicate(timeout=5)
+            self.assertEqual((child.returncode, out, err), (130, "", "HUMAN_TIMING_INTERRUPTED\n"))
+            self.assertFalse(self.destination.exists())
+        finally:
+            if child.poll() is None:
+                child.kill()
+            child.communicate(timeout=5)
 
     def test_module_cli_runs_with_explicit_paths(self):
         self.write_input()
