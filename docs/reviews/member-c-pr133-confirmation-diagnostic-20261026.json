@@ -1,0 +1,53 @@
+{
+  "source": "a7a534b2f862822cc09b94af3c5400568a02fb72",
+  "baseline": "982bbb7aed3f21f4421f09cc7e1d287bf45cb96d",
+  "source_sha256": [
+    "22e50cb7f785ea4146998472389e86ef263dcc9b14770ddb222570d75bdad1d2",
+    "01711e6b42a3631440fc18b567e99acc2d360a7fd692e77409d7422c8f8d3ef9",
+    "08e05bb689036406b948670ee5949085e73ab073db2973e1b4530e2f16588cf8"
+  ],
+  "kind": "hash-pinned extracted-function diagnostic with synthetic ports",
+  "not_executed": [
+    "React rendering or effects",
+    "Vitest",
+    "browser",
+    "HTTP",
+    "PostgreSQL",
+    "live model"
+  ],
+  "original_C_WBS_acceptance_claimed": false,
+  "rows": [
+    {
+      "id": "candidate_drops_late_case_response",
+      "result": "PASS"
+    },
+    {
+      "id": "candidate_drops_response_waiting_for_audit",
+      "result": "PASS"
+    },
+    {
+      "id": "candidate_invalidates_two_older_reads",
+      "result": "PASS"
+    },
+    {
+      "id": "candidate_keeps_normal_read_working",
+      "result": "PASS"
+    },
+    {
+      "id": "candidate_still_rejects_switched_case_response",
+      "result": "PASS"
+    },
+    {
+      "id": "explicit_new_read_remains_possible_after_open",
+      "result": "PASS"
+    },
+    {
+      "id": "baseline_control_reproduces_context_replacement",
+      "result": "PASS"
+    },
+    {
+      "id": "missing_outcome_uses_neutral_formatter_without_PASS_fallback",
+      "result": "PASS"
+    }
+  ]
+}

@@ -8,6 +8,74 @@ Offline preparation for **C2.01–C2.05**, `FR-008`, `NFR-001/002/009`,
 ProposalReview state model`. C owns this component; A reviews and integrates.
 This is not a live LLM, Gate 2, feature acceptance or semantic-quality result.
 
+## Confirmation-context fix reviewed — 26 October 2026 (Sydney)
+
+A's [PR #130 reply](https://github.com/shuxiachai/returnops-au/pull/130#issuecomment-6407242551)
+confirms C's in-flight read finding and supplies
+[PR #133](https://github.com/shuxiachai/returnops-au/pull/133), source
+`a7a534b2f862822cc09b94af3c5400568a02fb72`, for recheck. C's source review and
+[eight-row isolated diagnostic](../../docs/reviews/member-c-pr133-confirmation-diagnostic-20261026.json)
+verify the narrow correction: opening confirmation invalidates earlier reads,
+so their late responses cannot replace the displayed case or proposal. An old-source
+control reproduces the replacement; normal new reads still work. A missing risk
+outcome now reaches the neutral badge formatter without a PASS fallback. The
+server-refused 409 path remains an explicit reload with a changed-view warning.
+
+The [reproducible diagnostic](../../docs/reviews/member-c-pr133-confirmation-diagnostic-20261026.mjs)
+uses Node 24.19.0 built-ins and exact SHA-256-pinned function excerpts with synthetic
+ports. It does **not** run React rendering/effects, Vitest, a browser, HTTP,
+PostgreSQL or a model. Obtain the two FounderConsole files from PR133's source
+and base `982bbb7aed3f21f4421f09cc7e1d287bf45cb96d`, plus source133's formatter;
+pass those three file paths in the order shown in the script header. Altered bytes
+are refused. A's deferred-Promise component regression and CI remain separate
+sources of evidence; this is not a claim that C ran the component suite locally.
+
+A also addressed C's [PR #132 note](https://github.com/shuxiachai/returnops-au/pull/132#issuecomment-6407242783):
+all four driver-store instructions in PR133 now name the three flags to omit.
+PR132 itself was adopted as `982bbb7a` after CI 40250725418 finished 13/13.
+PR133 is a reviewed candidate, not yet verified as adopted; required CI and the
+lead's disposition remain necessary. This C branch incorporates adopted main
+`982bbb7a` by ordinary merge, without importing the pending PR133 runtime changes.
+
+The second-interrupt child-cleanup source is unchanged and remains A's open
+follow-up. Exact-byte corpus admission, E.01 freeze, real Risk/C3/B4 and blind
+records, personal S6/contribution confirmation, team rehearsal and final-package
+checks also remain open. This adds bounded shared-review evidence, not a newly
+accepted item among C's original 20 WBS rows. AI-assisted technical verification;
+earlier dated records, including the pre-fix finding below, remain history.
+
+## PR #129 adopted — 25 October 2026 (Sydney)
+
+A adopted [PR #129](https://github.com/shuxiachai/returnops-au/pull/129) source
+`790e044386a507271c44e9093df54474ef098c43` as
+`94ff0be9d0847c115021e534c2be811a593aa710` after
+[CI 40172621681](https://github.com/shuxiachai/returnops-au/actions/runs/40172621681)
+completed **13/13 successfully**. A's [review and adoption reply](https://github.com/shuxiachai/returnops-au/pull/129#issuecomment-6396252939)
+accepts the practice card and bounded diagnostic evidence; it does not close
+personal S6, R02-C-02 or feature/whole-package acceptance. A reviewed the POSIX
+diagnostic statically on Windows and explicitly did not run it there.
+
+A confirmed the second-interrupt cleanup finding and owns the runtime follow-up:
+finish kill/reap despite interruption, expose stop failure in the receipt, and
+add a regression. C will recheck the exact published fix. At current main
+`66907f4001c6fbf71b08268b1c6a9c12b7ccba6d`, the reviewed driver/child bytes are
+unchanged; the earlier reproduction remains an open finding, not a fixed result.
+The practice-card Windows path below now uses literal single backslashes, as
+requested in the same reply and shown in docs/45.
+
+The related [C review of PR #130](https://github.com/shuxiachai/returnops-au/pull/130#pullrequestreview-5642237156)
+flags an in-flight background read changing the Founder confirmation context.
+Although #130 was adopted as `66907f4` after its 13/13 CI, the reviewed frontend
+bytes are unchanged and no owner disposition/fix has been verified. This is a
+static review finding, not an executed browser reproduction or a demonstrated
+backend authorization bypass. C has not changed A/B's implementation.
+
+E.01 review/freeze, exact-byte corpus admission, real Risk/C3/integration and
+blind evaluation records, personal explanation/contribution confirmation, team
+rehearsal and final-source package checks remain open. Technical adoption does
+not add a newly accepted item to the original 20 C-owned Stage 2 WBS rows.
+AI-assisted C status reconciliation; earlier dated evidence is retained below.
+
 ## S6 practice card — 25 October 2026 follow-up (Sydney)
 
 A adopted [PR #127](https://github.com/shuxiachai/returnops-au/pull/127) source
@@ -30,7 +98,7 @@ counted as accepted by this shared review evidence.
 
 Run the existing Windows-safe commands in S6 from the repository root, using
 the locked environment. On macOS/Linux, use that environment's `python` in
-place of `.\\.venv\\Scripts\\python.exe`. No secure file-admission or evidence
+place of `.\.venv\Scripts\python.exe`. No secure file-admission or evidence
 CLI needs to run on the Windows demonstration machine.
 
 | Action | Point to / say | Planned budget, not measured |
