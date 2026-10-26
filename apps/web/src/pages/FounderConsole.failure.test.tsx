@@ -417,6 +417,22 @@ describe('FounderConsole failure and live-mode paths', () => {
     alertSpy.mockRestore();
   });
 
+  it('shows a review without an outcome in neutral colours, not as a pass (C review of #130)', async () => {
+    vi.mocked(getFounderCase).mockResolvedValue({
+      ...CONTRACT_SHAPED_VIEW,
+      current_review: { ...CONTRACT_SHAPED_VIEW.current_review!, outcome: undefined },
+    } as unknown as CaseView);
+
+    render(<FounderConsole />);
+    fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
+
+    const header = (await screen.findByRole('heading', { name: 'Risk Review' })).parentElement?.parentElement;
+    if (!header) throw new Error('no Risk Review header');
+    const badge = within(header).getByText('—');
+    expect(badge.className).toMatch(/bg-gray-100/);
+    expect(badge.className).not.toMatch(/emerald/);
+  });
+
   describe('escalated case without a proposal (S3 live manual handling)', () => {
     // A SYN-CONFLICT case after order investigation: contract OrderLookupBlock, no proposal.
     const BLOCKED_VIEW: CaseView = {
@@ -580,6 +596,62 @@ describe('FounderConsole failure and live-mode paths', () => {
         vi.advanceTimersByTime(30000);
       });
       expect(getFounderCase).toHaveBeenCalledTimes(3);
+    });
+
+    it('discards a background read still in flight when the confirmation opens (C review of #130)', async () => {
+      vi.mocked(isMockMode).mockReturnValue(false);
+      const newer: CaseView = {
+        ...CONTRACT_SHAPED_VIEW,
+        case_version: 2,
+        current_proposal: { ...CONTRACT_SHAPED_VIEW.current_proposal!, proposal_id: 'prop_newer', proposal_version: 2 },
+      };
+      let answerRead!: (view: CaseView) => void;
+      vi.mocked(getFounderCase)
+        .mockResolvedValueOnce(CONTRACT_SHAPED_VIEW)
+        .mockImplementationOnce(() => new Promise<CaseView>((resolve) => { answerRead = resolve; }));
+      vi.mocked(recordFounderDecision).mockResolvedValue({
+        case_id: 'case_contract_shape',
+        case_version: 2,
+        decision_id: 'dec_on_screen_version',
+        decision: 'REJECT',
+        accepted_at: '2026-10-26T00:00:00Z',
+        processing_status: 'ACCEPTED',
+      });
+
+      render(<FounderConsole />);
+      fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
+      expect(await screen.findByText('Updates every 5 seconds')).toBeInTheDocument();
+
+      // A 5 s refresh starts and is still waiting for the server ...
+      act(() => {
+        vi.advanceTimersByTime(5000);
+      });
+      await waitFor(() => expect(getFounderCase).toHaveBeenCalledTimes(2));
+
+      // ... while the Founder opens the confirmation for the version on screen.
+      fireEvent.click(screen.getByRole('button', { name: /^Reject$/i }));
+      const dialog = await screen.findByRole('dialog', { name: /Confirm Founder Decision: REJECT/i });
+      fireEvent.change(within(dialog).getByPlaceholderText(/Record justification for statutory audit/i), {
+        target: { value: 'Reviewed the version on screen.' },
+      });
+
+      // The late answer, a newer version with a new proposal, arrives behind the dialog and is dropped.
+      await act(async () => {
+        answerRead(newer);
+      });
+      expect(within(dialog).getByText(/\(v1\)/)).toBeInTheDocument();
+      expect(within(dialog).getByText('prop_contract')).toBeInTheDocument();
+      expect(screen.queryByText('prop_newer')).not.toBeInTheDocument();
+
+      fireEvent.click(within(dialog).getByRole('button', { name: /Record decision/i }));
+      await waitFor(() => expect(recordFounderDecision).toHaveBeenCalledTimes(1));
+      expect(vi.mocked(recordFounderDecision).mock.calls[0][1]).toStrictEqual({
+        expected_case_version: 1,
+        decision: 'REJECT',
+        reason: 'Reviewed the version on screen.',
+        proposal_id: 'prop_contract',
+        proposal_version: 1,
+      });
     });
 
     it('reloads the queue when the window regains focus, so a case lodged meanwhile appears', async () => {

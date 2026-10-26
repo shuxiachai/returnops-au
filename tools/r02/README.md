@@ -223,7 +223,7 @@ running on the port.
 # 1. Stop every other ReturnOps API that uses this database with workers (for
 #    example "demo.py serve"): its intake/investigation workers would claim the
 #    driver's case. This also frees 127.0.0.1:8000.
-# 2. A dedicated store, provisioned WITHOUT --order-investigation and --fixed-proposal:
+# 2. A dedicated store, provisioned WITHOUT --order-investigation, --fixed-proposal and --founder-manual:
 python -m returnops_api.demo provision --private-dir <new absolute private dir> --store demo_cups_store --customer-one demo_cups_customer_one --customer-two demo_cups_customer_two --founder demo_cups_founder
 # 3. Within about 8 minutes (the sessions last 899 s):
 python -B tools/r02/driver.py --output <new directory> --identities <that private dir> --api-port 8000 --keep-api [--allow-existing-data]
