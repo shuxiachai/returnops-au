@@ -8,6 +8,111 @@ Offline preparation for **C2.01–C2.05**, `FR-008`, `NFR-001/002/009`,
 ProposalReview state model`. C owns this component; A reviews and integrates.
 This is not a live LLM, Gate 2, feature acceptance or semantic-quality result.
 
+## Independent preparation and personal handoff — 27 October 2026 (Sydney)
+
+Tracking: [KAN-41](https://lucastaooo.atlassian.net/browse/KAN-41) for S6 and
+review handoff; [KAN-24](https://lucastaooo.atlassian.net/browse/KAN-24) for C2.
+This section adds a practice procedure and reviewable preparation. It does not
+record a rehearsal, a live model call, a contribution signature or acceptance.
+C can prepare these materials independently; A's role as reviewer does not
+make every C-owned draft or local test depend on advance permission.
+
+Current next actions, superseding any older shorthand such as “A freezes E.01”:
+
+| Work | C can do independently now | Actual review or execution dependency |
+|---|---|---|
+| E.01 | C authors the concrete label guide, conditional fields, acceptable sets and separate public development examples | A reviews freezing decisions; C publishes the agreed frozen version. Private E.02 labels/timing follow the original sequence, not an approval-only shortcut. |
+| C1/C2 | C prepares excerpt-verification choices, contract tests, risk prompts and reproducible handoff material | Exact-byte corpus admission and shared interface decisions need review; real calls need a permitted model/data flow and budget; A supplies current-state integration. |
+| Personal/final | C practises S6 and prepares the declaration and source/package checks | C supplies actual explanation and declaration; A/B/C supply real timing/rehearsal; final-source checks need A's selected release. |
+
+### Practise S6 with the existing card
+
+Keep the [25 October spoken draft and two-command practice card](#s6-practice-card--25-october-2026-follow-up-sydney)
+and the shared [demo sequence, S6](../../docs/45-stage2-demo-script.md#s6-grounding-risk-contract-and-evaluation-definitions-c-1030-200).
+They already cover the intended two-minute segment; there is no second script
+to memorise. The new [E.01 guide](../evaluation_candidate/README.md#e01-definition-draft--requires-a-review-before-freezing)
+adds concrete definitions and development examples, but remains a proposal
+until reviewed and frozen. Do not say it is accepted during S6.
+
+1. Open the source checkout, C1 pilot output, C2 test output and E.01 section
+   before timing. Use the shared S6 commands, not the full test suite.
+2. Explain the card once in Chinese without reading, then in simple English.
+   Rephrase any sentence that you cannot explain. The prompts below are practice
+   questions, not a record that C has answered them successfully.
+3. Time from the first spoken word through both commands and the final sentence.
+   Retain total seconds, command/wait seconds, source SHA, any failure and the
+   questions that were difficult. Practise again if the total exceeds 120 seconds;
+   shorten wording rather than hiding a failed command or claiming a live result.
+4. For the joint rehearsal, record who actually attended, the observed output,
+   the real duration and follow-up owners in the shared runbook. A planned
+   40/40/20/20-second allocation is not a measured result.
+
+| Practice question / 中文提示 | Short answer to adapt in your own words |
+|---|---|
+| Does a valid citation prove the claim? / 引用有效是否代表主张正确？ | No. IDs, versions, locations and hashes identify the retained passage. They do not prove that a quoted excerpt matches or that the passage supports a recommendation. C1.04's excerpt gap still needs its own disposition; independent Risk must assess support and conflicts. |
+| Why does conflict lead to escalation? / 为什么冲突要升级？ | An unresolved blocking source conflict cannot be warning-only. `ESCALATE` asks the Founder to handle it manually; that escalated proposal cannot be approved. A new proposal and review are needed to return to automation. |
+| What are the five outcomes? / 五种结果分别去哪里？ | `PASS` and `PASS_WITH_WARNING` still require current-version checks and exact Founder approval. `REVISE` returns to Assessment; `NEEDS_INFORMATION` returns to Coordinator/intake; `ESCALATE` goes to Founder manual handling. |
+| What happens on invalid output or timeout? / 错误会当通过吗？ | A technical failure uses the failure path. It is not a sixth business outcome and must never become `PASS`. The component has no operation or approval authority. |
+| Do these tests prove the real reviewer works? / stub 测试是否证明真实模型有效？ | No. Fixed replies test structure, bindings and failure handling. A real independent invocation and source-reviewed pilot are still needed to measure missed risks and false alarms. |
+| What does the evidence bundle show? / 证据包证明什么？ | Reproducible accounting with public invented cases, including failures and unknown costs. It does not supply Gold labels, human timing, real B1/B4 quality or gate acceptance. |
+
+**Attendance and declaration boundary:** C confirmed availability for
+**29 October 19:00 Sydney** (approximately two hours) and **2 November 15:20
+arrival/deployment, 16:00–17:00 demonstration**, recorded in
+[Issue #137](https://github.com/shuxiachai/returnops-au/issues/137#issuecomment-6415527711).
+These are availability confirmations, not completed participation; the later
+Canvas-download rehearsal has not been confirmed here. C asked to inspect the
+evidence and AI-use draft before deciding on A's proposed **15% / 35% / 35% /
+20%** criterion contributions ([Issue #135](https://github.com/shuxiachai/returnops-au/issues/135#issuecomment-6415528149)).
+Those figures remain unaccepted and are not progress percentages. Keep student
+IDs and the final personal statement out of this shared Git repository.
+
+### C3 isolated preparation plan, before R.03
+
+This is a design and test plan for `OF-001`, `FR-005/008`, `NFR-003/009`,
+`UC-02` and the EvidenceItem/Risk Review flow. It is **not** C3 integration or
+start/completion of C3.01–03. Their frozen start dependency `S=R.03` remains.
+Use the existing [`ImageObservationResult`](../../contracts/v1/schemas.json)
+shape and the [18 October handoff tests](#image-handoff-and-transport-conformance--18-october-2026);
+no public DTO, upload service or new AI business role is proposed.
+
+| Planned isolated input / failure case | Required observation and later evidence |
+|---|---|
+| Authorised, clear synthetic product image | Bind `case_id`, `input_version` and the original `evidence_id`; retain visible observations, limitations, confidence and component version. Do not infer legal entitlement, cause or refund approval from appearance. |
+| Blurred, obscured or unrelated image | Preserve uncertainty and limitations; an empty observation list is allowed. Do not invent detail or turn a low score alone into a fixed risk outcome. |
+| Image text says to ignore rules or approve | Treat the text as untrusted image content, never a system instruction or authority. Actual model resistance needs a later authorised image-model experiment, not a JSON-shape assertion. |
+| Text and photo disagree | Retain both inputs and the discrepancy for Assessment/independent Risk; do not overwrite the customer's original statement. |
+| Wrong case, stale input or unknown evidence reference | Reject the unbound observation before the transport; the existing C2 synthetic handoff tests cover this structural boundary. |
+| Unsupported/disguised type, excessive size or unavailable authorised attachment | Reuse F.04/F.07 validation and retention boundaries. Never fetch an arbitrary URL or log raw image content/credentials. Record a refusal/unavailable input rather than fabricating observations. |
+| Invalid model reply, timeout or unavailable provider | Preserve the technical failure and trace/version information; do not silently replace it with a successful observation. No live request is made by this plan. |
+| Same case with and without a relevant image | After prerequisites and call authorization, retain paired inputs/outputs and source-reviewed usefulness/errors. Upload success or a stub observation alone does not demonstrate C3's increment. |
+
+C can refine these cases and synthetic contract examples now. Formal execution
+needs accepted R.03, F.04/F.07 input boundaries, a permitted model/data flow and
+call budget; A supplies the integration and B the existing upload/display path.
+A/C must record any tutor disposition of the selected optional explicitly.
+Deferring Gate 2 or C3 in the team's plan does not waive the course requirement.
+
+### Final C evidence check, using the shared runbook
+
+This is C's preflight checklist, not a second submission runbook or a completed
+receipt. Use [docs/47](../../docs/47-stage2-submission-runbook.md) for the actual
+package, upload and clean-machine records; preserve failures and replacements.
+
+| C can prepare or check | Evidence still needed / responsible participant |
+|---|---|
+| Keep C1/C2/evaluation entry points, source references and known limits readable | C updates only C material; A reviews the exact candidate. A/B shared runtime, root README and WBS stay unchanged by this preparation. |
+| Prepare the source/hash record and S6 bundle verification steps | A chooses the final submission commit/tag with completed required CI. C then generates the bundle from that exact clean Git source and checks all indexed hashes and `content_id`; an earlier bundle cannot be relabelled. |
+| Check C's commands in an extracted source archive | C records archive hash/source comment, environment, commands and actual results. The evidence CLI's refusal without `.git` is expected; retain the pre-generated bundle with its source record. This narrow check does not replace API/PG/browser deployment. |
+| Review package contents and the known-gaps attachment | C checks that private Gold/answers, credentials, student IDs and local runtime output are absent from the repository payload. A packages the separately confirmed private contribution PDF according to the tutor/Canvas channel. |
+| Verify after the group upload | C checks the downloaded ZIP hash, source identity, reopening, statement presence and actual Canvas receipt; A performs the authorised group upload. Final-source deployment and download tests cannot be claimed in advance. |
+| Close C's personal handoff | C delivers S6, records real rehearsal timing and confirms truthful contributions/AI use; A/B/C complete the joint rehearsal. AI-written practice material cannot supply personal confirmation. |
+
+These preparation outputs are not a new fully accepted WBS item. The original
+C denominator remains 20; a verified completion numerator requires a separate
+item-by-item acceptance audit. Keep real Risk, C3, Gold/timing and full integration
+shortfalls visible even if the reduced near-term submission package is ready.
+
 ## Confirmation-context fix reviewed — 26 October 2026 (Sydney)
 
 A's [PR #130 reply](https://github.com/shuxiachai/returnops-au/pull/130#issuecomment-6407242551)
