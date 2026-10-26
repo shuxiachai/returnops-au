@@ -417,6 +417,103 @@ describe('FounderConsole failure and live-mode paths', () => {
     alertSpy.mockRestore();
   });
 
+  describe('escalated case without a proposal (S3 live manual handling)', () => {
+    // A SYN-CONFLICT case after order investigation: contract OrderLookupBlock, no proposal.
+    const BLOCKED_VIEW: CaseView = {
+      ...CONTRACT_SHAPED_VIEW,
+      case_version: 4,
+      status: 'ESCALATED',
+      current_proposal: undefined,
+      current_review: undefined,
+      action_preview: undefined,
+      order_snapshot: undefined,
+      order_lookup_block: {
+        block_id: 'block_conflict',
+        case_id: 'case_contract_shape',
+        input_version: 1,
+        status: 'CONFLICT',
+        message: 'The authorized order reference is ambiguous.',
+        occurred_at: '2026-10-25T00:00:00Z',
+      },
+    };
+
+    it('shows why the case is blocked and sends MANUAL_HANDLING bound to the block only', async () => {
+      vi.mocked(isMockMode).mockReturnValue(false);
+      // After the accepted decision the server's view still carries the block, now NOTIFICATION_PENDING.
+      vi.mocked(getFounderCase)
+        .mockResolvedValueOnce(BLOCKED_VIEW)
+        .mockResolvedValue({ ...BLOCKED_VIEW, status: 'NOTIFICATION_PENDING', case_version: 5 });
+      vi.mocked(recordFounderDecision).mockResolvedValue({
+        case_id: 'case_contract_shape',
+        case_version: 5,
+        decision_id: 'dec_manual_live',
+        decision: 'MANUAL_HANDLING',
+        accepted_at: '2026-10-25T00:01:00Z',
+        processing_status: 'ACCEPTED',
+      });
+
+      render(<FounderConsole />);
+      fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
+
+      expect(
+        await screen.findByText(/Order lookup blocked: the order reference matches more than one order/)
+      ).toBeInTheDocument();
+      expect(screen.getByText('The authorized order reference is ambiguous.')).toBeInTheDocument();
+      expect(screen.getByText('No active proposal generated for this case yet.')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Approve Return/i })).toBeDisabled();
+      expect(screen.getByRole('button', { name: /^Reject$/i })).toBeDisabled();
+      expect(screen.getByRole('button', { name: /^Request Revision$/i })).toBeDisabled();
+
+      fireEvent.click(screen.getByRole('button', { name: /^Manual Takeover$/i }));
+      const dialog = await screen.findByRole('dialog', { name: /Confirm Founder Decision: MANUAL_HANDLING/i });
+      expect(within(dialog).getByText('block_conflict')).toBeInTheDocument();
+      fireEvent.change(within(dialog).getByPlaceholderText(/Record justification for statutory audit/i), {
+        target: { value: 'The order reference is ambiguous; I will contact the customer.' },
+      });
+      fireEvent.click(within(dialog).getByRole('button', { name: /Record decision/i }));
+
+      await waitFor(() => expect(recordFounderDecision).toHaveBeenCalledTimes(1));
+      const [caseId, body] = vi.mocked(recordFounderDecision).mock.calls[0];
+      expect(caseId).toBe('case_contract_shape');
+      expect(body).toStrictEqual({
+        expected_case_version: 4,
+        decision: 'MANUAL_HANDLING',
+        reason: 'The order reference is ambiguous; I will contact the customer.',
+        order_lookup_block_id: 'block_conflict',
+      });
+
+      // The reloaded case is decided: the reason stays, but no second manual takeover is offered.
+      expect(await screen.findByText('NOTIFICATION_PENDING')).toBeInTheDocument();
+      expect(screen.getByText('The authorized order reference is ambiguous.')).toBeInTheDocument();
+      expect(screen.queryByText(/Only the Founder can decide it/)).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^Manual Takeover$/i })).toBeDisabled();
+    });
+
+    it('shows the stage and message of a processing failure', async () => {
+      vi.mocked(getFounderCase).mockResolvedValue({
+        ...BLOCKED_VIEW,
+        order_lookup_block: undefined,
+        processing_failure: {
+          failure_id: 'failure_lookup',
+          case_id: 'case_contract_shape',
+          input_version: 1,
+          stage: 'ORDER_LOOKUP',
+          error: {
+            error: { code: 'PROVIDER_UNAVAILABLE', message: 'The order service did not answer.', retryable: false },
+          },
+          occurred_at: '2026-10-25T00:00:00Z',
+        },
+      });
+
+      render(<FounderConsole />);
+      fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
+
+      expect(await screen.findByText('Processing failed at stage ORDER_LOOKUP')).toBeInTheDocument();
+      expect(screen.getByText('The order service did not answer.')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^Manual Takeover$/i })).toBeEnabled();
+    });
+  });
+
   describe('auto-refresh (#111 item 2)', () => {
     const setVisibility = (state: DocumentVisibilityState) => {
       Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => state });

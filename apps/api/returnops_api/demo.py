@@ -19,7 +19,26 @@ def _require_private_output_runtime():
     if os.name == "nt" and sys.version_info < (3,12,4):
         raise ValueError("Private demo issuance on Windows requires Python3.12.4 or later.")
 
-def provision(directory,*,store,customer_one,customer_two,founder,order_investigation=False,fixed_proposal=False):
+def grant_founder_manual(engine,store):
+    """Opt-in synthetic demo grant: the founder-manual-v1 OUTCOME authority, the same row as
+    tests/lifecycle/manual_helpers.provision_outcome. It lets the store's Founder record
+    MANUAL_HANDLING on an escalated case without a proposal (an order-lookup block or a
+    processing failure); every other decision still needs grants this demo never inserts.
+    An existing enabled row is kept; a disabled one is never re-enabled here."""
+    from sqlalchemy import select
+    from returnops_domain import lifecycle_tables as life
+    from returnops_domain.customer_uow import CustomerUnitOfWork
+    from returnops_domain.manual_denial import COMPONENT
+    with CustomerUnitOfWork(engine,write=True) as uow:
+        current=uow.execute(select(life.authorities).where(life.authorities.c.store_id==store,
+            life.authorities.c.component_id==COMPONENT,life.authorities.c.purpose=='OUTCOME')).mappings().one_or_none()
+        if current is not None and not current['enabled']:
+            raise ValueError('The manual-handling authority of this store is disabled; the demo does not re-enable it.')
+        if current is None:
+            uow.execute(life.authorities.insert().values(store_id=store,component_id=COMPONENT,purpose='OUTCOME',revision=1,enabled=True))
+        uow.commit()
+
+def provision(directory,*,store,customer_one,customer_two,founder,order_investigation=False,fixed_proposal=False,founder_manual=False):
     """Caller explicitly chooses IDs/roles/store; generated credentials stay private."""
     _require_private_output_runtime()
     directory=Path(directory)
@@ -50,6 +69,7 @@ def provision(directory,*,store,customer_one,customer_two,founder,order_investig
         if fixed_proposal:
             from returnops_domain.proposal_policy import FixedProposalPolicy
             FixedProposalPolicy(engine).grant(store,synthetic_demo=True,enabled=True)
+        if founder_manual: grant_founder_manual(engine,store)
     finally: engine.dispose()
 
 def main(argv=None):
@@ -58,13 +78,14 @@ def main(argv=None):
     for name in ['store','customer-one','customer-two','founder']: issue.add_argument('--'+name,required=True)
     issue.add_argument('--order-investigation',action='store_true',help='Explicitly enable synthetic investigation and grant this store read access.')
     issue.add_argument('--fixed-proposal',action='store_true',help='Explicitly grant this synthetic store the fixed no-model PROPOSAL component only.')
+    issue.add_argument('--founder-manual',action='store_true',help='Explicitly grant this synthetic store the founder-manual-v1 OUTCOME authority only: MANUAL_HANDLING of an escalated case without a proposal. Never use it for the R.02 driver store.')
     serve=commands.add_parser('serve');serve.add_argument('--auth-file',required=True);serve.add_argument('--port',type=int,default=8000)
     serve.add_argument('--fixed-proposal',action='store_true',help='Enable the synthetic fixed-proposal worker; this does not grant store authority.')
     serve.add_argument('--founder-decisions',action='store_true',help='Register the Founder decision POST (A2.07); authority still comes only from the server-side registry and grants.')
     serve.add_argument('--model-showcase',action='store_true',help='Enable the advisory A1.06 Coordinator showcase (docs/44); model settings and the key come only from RETURNOPS_MODEL_* environment variables.')
     args=parser.parse_args(argv)
     if args.command=='provision':
-        provision(args.private_dir,store=args.store,customer_one=args.customer_one,customer_two=args.customer_two,founder=args.founder,order_investigation=args.order_investigation,fixed_proposal=args.fixed_proposal)
+        provision(args.private_dir,store=args.store,customer_one=args.customer_one,customer_two=args.customer_two,founder=args.founder,order_investigation=args.order_investigation,fixed_proposal=args.fixed_proposal,founder_manual=args.founder_manual)
         print('Private synthetic demo registration completed. Credentials are in the explicit private directory; do not share them.')
     else:
         if not Path(args.auth_file).is_absolute() or not 1024<=args.port<=65535: parser.error('Use an absolute private auth file and an unprivileged port.')

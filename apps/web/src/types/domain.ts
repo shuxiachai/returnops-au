@@ -325,10 +325,13 @@ export interface CaseView {
   order_snapshot?: OrderSnapshot;
   clarification?: ClarificationSet;
   current_proposal?: ProposalDetail;
+  // Contract ProcessingFailure: why an escalated case has no proposal.
   processing_failure?: {
     failure_id: string;
-    reason: string;
-    component: string;
+    case_id: string;
+    input_version: number;
+    stage: 'COORDINATOR' | 'ORDER_LOOKUP' | 'RETRIEVAL' | 'ASSESSMENT' | 'RISK_REVIEW';
+    error: ErrorEnvelope;
     occurred_at: string;
   };
   current_review?: RiskReviewDetail;
@@ -355,9 +358,14 @@ export interface CaseView {
     recipient: string;
   }>;
   cited_passages?: string[];
+  // Contract OrderLookupBlock: the order lookup stopped on a conflict or a denied read.
   order_lookup_block?: {
     block_id: string;
-    reason: string;
+    case_id: string;
+    input_version: number;
+    status: 'CONFLICT' | 'AUTHORITY_DENIED';
+    message: string;
+    occurred_at: string;
   };
   collection_windows?: Record<string, CollectionWindow>;
 }
