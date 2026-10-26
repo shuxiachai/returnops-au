@@ -8,6 +8,42 @@ Offline preparation for **C2.01–C2.05**, `FR-008`, `NFR-001/002/009`,
 ProposalReview state model`. C owns this component; A reviews and integrates.
 This is not a live LLM, Gate 2, feature acceptance or semantic-quality result.
 
+## Confirmation-context fix reviewed — 26 October 2026 (Sydney)
+
+A's [PR #130 reply](https://github.com/shuxiachai/returnops-au/pull/130#issuecomment-6407242551)
+confirms C's in-flight read finding and supplies
+[PR #133](https://github.com/shuxiachai/returnops-au/pull/133), source
+`a7a534b2f862822cc09b94af3c5400568a02fb72`, for recheck. C's source review and
+[eight-row isolated diagnostic](../../docs/reviews/member-c-pr133-confirmation-diagnostic-20261026.json)
+verify the narrow correction: opening confirmation invalidates earlier reads,
+so their late responses cannot replace the displayed case or proposal. An old-source
+control reproduces the replacement; normal new reads still work. A missing risk
+outcome now reaches the neutral badge formatter without a PASS fallback. The
+server-refused 409 path remains an explicit reload with a changed-view warning.
+
+The [reproducible diagnostic](../../docs/reviews/member-c-pr133-confirmation-diagnostic-20261026.mjs)
+uses Node 24.19.0 built-ins and exact SHA-256-pinned function excerpts with synthetic
+ports. It does **not** run React rendering/effects, Vitest, a browser, HTTP,
+PostgreSQL or a model. Obtain the two FounderConsole files from PR133's source
+and base `982bbb7aed3f21f4421f09cc7e1d287bf45cb96d`, plus source133's formatter;
+pass those three file paths in the order shown in the script header. Altered bytes
+are refused. A's deferred-Promise component regression and CI remain separate
+sources of evidence; this is not a claim that C ran the component suite locally.
+
+A also addressed C's [PR #132 note](https://github.com/shuxiachai/returnops-au/pull/132#issuecomment-6407242783):
+all four driver-store instructions in PR133 now name the three flags to omit.
+PR132 itself was adopted as `982bbb7a` after CI 40250725418 finished 13/13.
+PR133 is a reviewed candidate, not yet verified as adopted; required CI and the
+lead's disposition remain necessary. This C branch incorporates adopted main
+`982bbb7a` by ordinary merge, without importing the pending PR133 runtime changes.
+
+The second-interrupt child-cleanup source is unchanged and remains A's open
+follow-up. Exact-byte corpus admission, E.01 freeze, real Risk/C3/B4 and blind
+records, personal S6/contribution confirmation, team rehearsal and final-package
+checks also remain open. This adds bounded shared-review evidence, not a newly
+accepted item among C's original 20 WBS rows. AI-assisted technical verification;
+earlier dated records, including the pre-fix finding below, remain history.
+
 ## PR #129 adopted — 25 October 2026 (Sydney)
 
 A adopted [PR #129](https://github.com/shuxiachai/returnops-au/pull/129) source
