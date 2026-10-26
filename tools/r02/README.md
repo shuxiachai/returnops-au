@@ -133,10 +133,18 @@ not re-run with new keys.
   contains `Bearer`, a token, the key, the database URL or its password, or if
   it cannot be screened; the output, private and home directories are replaced
   by `<output>`, `<private>` and `<home>`.
-* Cleanup stages (closing the database engine, screening the log, removing the
-  private directory, writing the receipt) run independently; a stage that fails
-  is listed by code in the receipt's `cleanup_failures` and the later stages
-  still run. If the receipt itself cannot be written, the run is reported as
+* Cleanup stages (stopping the API child, closing the database engine,
+  screening the log, removing the private directory, writing the receipt) run
+  independently; a stage that fails is listed by code in the receipt's
+  `cleanup_failures` and the later stages still run. The API child is stopped
+  with terminate, a wait of up to 10 s, then kill and a wait of up to 5 s. A
+  further Ctrl+C while it stops skips to the kill but cannot cut the kill and
+  wait short, and the run is still recorded as `INTERRUPTED` (C's R02-C-02
+  second-interrupt finding, fixed on 26 October 2026). If the child has still
+  not exited, the receipt lists `API_CHILD_STOP_FAILED` and stderr gives its
+  pid so it can be ended by hand. When demo mode has already written the
+  receipt before its hold, the code appears only on stderr and in the result
+  line. If the receipt itself cannot be written, the run is reported as
   `FAILED (the run receipt could not be written)` with exit code 1, whatever
   the chain's result was, and demo mode does not keep the API running. If every
   form of the receipt would contain private material, no file is written, the
@@ -231,7 +239,9 @@ python -B tools/r02/driver.py --output <new directory> --identities <that privat
 
 The driver prints its result, the case ID and `http://127.0.0.1:8000`, then
 waits. Ctrl+C stops the API child and removes the driver's own temporary
-directory (the API log). The identities directory is never modified or
+directory (the API log). Pressing Ctrl+C again while it stops does not leave
+the child running; if it cannot be stopped at all, stderr names its pid and
+the result line ends with `API_CHILD_STOP_FAILED`. The identities directory is never modified or
 removed; delete it yourself after the demo. The output directory must not be,
 contain or lie inside the identities directory.
 

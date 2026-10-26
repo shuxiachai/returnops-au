@@ -9,6 +9,10 @@ clean-environment rules, the registry comparison, argument parsing, the fixed
 API port, hold() with a fake process, the keep-API order (receipt, hold, stop)
 and receipt redaction in demo mode. Demo mode supports the live demo; it is not
 CI evidence. docs/08 R.02; FR-009, FR-011; NFR-002/NFR-003/NFR-007.
+
+Since 26 October 2026 it also covers stopping the API child after a second
+Ctrl+C (C's R02-C-02 finding from #129) with real children that only sleep: no
+network, no database, no repository code in the child.
 """
 import base64
 from contextlib import contextmanager
@@ -16,8 +20,11 @@ import inspect
 import json
 import os
 from pathlib import Path
+import signal
 import socket
+import subprocess
 import sys
+import threading
 import time
 from types import SimpleNamespace
 
@@ -385,12 +392,14 @@ def _fake_run(monkeypatch, tmp_path, events, outcome):
 
     @contextmanager
     def api_process(auth_file, log, **options):
+        on_stop = options.pop('on_stop')  # the driver always asks to hear whether the child stopped
         events.append(('start', options))
         process = SimpleNamespace(poll=lambda: None)
         try:
             yield api_child.ApiChild('http://127.0.0.1:8765', 4242, dict(api_child.COMPOSITION), ('PATH',), process)
         finally:
             events.append('stop')
+            on_stop(True, 4242)
 
     def customer_create(self):
         self.step_number, self.case = 3, 'case_r02_demo'
@@ -491,12 +500,14 @@ def _logging_api(monkeypatch, tmp_path, events, output, raw):
         assert Path(log).parent == tmp_path / 'private', 'raw child output must go to the private directory'
         assert not (output / driver.API_LOG).exists()
         Path(log).write_bytes(raw)
+        on_stop = options.pop('on_stop')
         events.append(('start', options))
         try:
             yield api_child.ApiChild('http://127.0.0.1:8765', 4242, dict(api_child.COMPOSITION), ('PATH',),
                                      SimpleNamespace(poll=lambda: None))
         finally:
             events.append('stop')
+            on_stop(True, 4242)
     monkeypatch.setattr(driver.api_child, 'api_process', api_process)
 
 
@@ -574,6 +585,199 @@ def test_interrupted_run_never_leaves_the_raw_log_in_the_output(tmp_path, monkey
     assert receipt['stop'] == dict(code='INTERRUPTED', step=3)
     published = (output / driver.API_LOG).read_bytes()
     assert str(tmp_path / 'private').encode('utf-8') not in published and not (tmp_path / 'private').exists()
+
+
+# ---------------------------------------------------------------- R02-C-02: a second Ctrl+C while the child stops
+
+REAL_API_PROCESS = api_child.api_process
+
+
+def _sleeping_child():
+    """A real child that only sleeps: no network, no database, no repository code."""
+    return subprocess.Popen([sys.executable, '-I', '-S', '-B', '-c', 'import time; time.sleep(60)'],
+                            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def _reap(process):
+    """Test hygiene: whatever the code under test did, no child outlives the test."""
+    if process.poll() is None:
+        process.kill()
+    process.wait(timeout=10)
+
+
+class _StubbornChild:
+    """A real child whose polite stop is ignored (like a child that ignores SIGTERM) and whose
+    first `interrupts` waits are cut short by Ctrl+C, as in C's #129 reproducer."""
+
+    def __init__(self, process, interrupts):
+        self.process, self.pid, self.interrupts, self.calls = process, process.pid, interrupts, []
+
+    def poll(self):
+        return self.process.poll()
+
+    def terminate(self):
+        self.calls.append('terminate')
+
+    def kill(self):
+        self.calls.append('kill')
+        self.process.kill()
+
+    def wait(self, timeout=None):
+        self.calls.append('wait')
+        if self.interrupts:
+            self.interrupts -= 1
+            raise KeyboardInterrupt
+        return self.process.wait(timeout=timeout)
+
+
+class _Unkillable:
+    """A child that never exits: every wait times out."""
+    pid = 4343
+
+    def __init__(self):
+        self.calls = []
+
+    def poll(self):
+        return None
+
+    def terminate(self):
+        self.calls.append('terminate')
+
+    def kill(self):
+        self.calls.append('kill')
+
+    def wait(self, timeout=None):
+        self.calls.append('wait')
+        raise subprocess.TimeoutExpired('api-child', timeout)
+
+
+class _ReadyProbe:
+    def __init__(self, **options):
+        pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *failure):
+        return False
+
+    def get(self, url):
+        return SimpleNamespace(status_code=200)
+
+
+def _real_api_process_with(monkeypatch, process):
+    """The real api_child.api_process and _stop; only Popen returns `process` and readiness answers 200."""
+    monkeypatch.setattr(driver.api_child, 'api_process', REAL_API_PROCESS)
+    monkeypatch.setattr(api_child.subprocess, 'Popen', lambda args, **options: process)
+    monkeypatch.setattr(api_child.httpx, 'Client', _ReadyProbe)
+
+
+@pytest.mark.parametrize('interrupts', [1, 2])
+def test_ctrl_c_while_stopping_still_kills_and_reaps_the_child_then_reraises(interrupts):
+    child, reports = _sleeping_child(), []
+    try:
+        stubborn = _StubbornChild(child, interrupts)
+        with pytest.raises(KeyboardInterrupt):
+            api_child._stop(stubborn, report=lambda stopped, pid: reports.append((stopped, pid)))
+        assert child.poll() is not None, 'the child must not outlive an interrupted stop'
+        assert reports == [(True, child.pid)]
+        assert stubborn.calls[:2] == ['terminate', 'wait'] and 'kill' in stubborn.calls
+    finally:
+        _reap(child)
+
+
+def test_a_child_that_cannot_be_reaped_is_reported_not_raised():
+    reports, process = [], _Unkillable()
+    assert api_child._stop(process, report=lambda stopped, pid: reports.append((stopped, pid))) is False
+    assert reports == [(False, 4343)] and process.calls == ['terminate', 'wait', 'kill', 'wait']
+
+
+def test_repeated_ctrl_c_cannot_hold_the_forced_stop_open_past_its_limit():
+    class Interrupted(_Unkillable):
+        def wait(self, timeout=None):
+            self.calls.append(('wait', timeout))
+            raise KeyboardInterrupt
+
+    ticks, process = iter(range(100)), Interrupted()
+    try:
+        stopped = api_child._kill_and_reap(process, seconds=3, clock=lambda: next(ticks))
+    except KeyboardInterrupt:  # a plain failure, not an interrupted test session
+        pytest.fail('Ctrl+C during the forced stop must not escape it')
+    assert stopped is False and process.calls == ['kill', ('wait', 2), 'kill', ('wait', 0)]
+
+
+@pytest.mark.skipif(os.name == 'nt', reason='POSIX signals; on Windows terminate() cannot be ignored')
+def test_real_sigint_while_stopping_a_sigterm_ignoring_child_still_kills_it():
+    """C's #129 reproducer kept as a regression: a real SIGINT arrives during the polite wait."""
+    code = ('import signal, time\nsignal.signal(signal.SIGTERM, signal.SIG_IGN)\n'
+            'print("READY", flush=True)\ntime.sleep(60)\n')
+    child = subprocess.Popen([sys.executable, '-I', '-S', '-B', '-c', code],
+                             stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    timer, reports = threading.Timer(.25, lambda: os.kill(os.getpid(), signal.SIGINT)), []
+    try:
+        assert child.stdout.readline() == b'READY\n'
+        started = time.monotonic()
+        timer.start()
+        with pytest.raises(KeyboardInterrupt):
+            api_child._stop(child, report=lambda stopped, pid: reports.append(stopped))
+        assert child.returncode == -signal.SIGKILL and reports == [True] and time.monotonic() - started < 9
+    finally:
+        timer.cancel()
+        timer.join(timeout=2)
+        _reap(child)
+        child.stdout.close()
+
+
+def test_second_ctrl_c_while_the_driver_stops_the_child_still_reaps_it(tmp_path, monkeypatch, capsys):
+    """C's #129 scenario through the driver and the real api_process: Ctrl+C in the chain, then again
+    while the child stops. The run stays INTERRUPTED and the child is gone."""
+    output, events = tmp_path / 'out', []
+    output.mkdir()
+    _fake_run(monkeypatch, tmp_path, events, 'PASSED')
+
+    def customer_create(self):
+        self.step_number = 3
+        raise KeyboardInterrupt()
+    monkeypatch.setattr(driver.Run, 'customer_create', customer_create)
+    child = _sleeping_child()
+    try:
+        stubborn = _StubbornChild(child, interrupts=1)
+        _real_api_process_with(monkeypatch, stubborn)
+        run = driver.Run(output)
+        assert run.execute() == 'FAILED'
+        assert child.poll() is not None and 'kill' in stubborn.calls and run.child_left is None
+        receipt = json.loads((output / driver.RECEIPT).read_text(encoding='ascii'))
+        assert receipt['stop'] == dict(code='INTERRUPTED', step=3) and 'cleanup_failures' not in receipt
+        assert receipt['private_directory_removed'] is True and not (tmp_path / 'private').exists()
+        assert 'did not stop' not in capsys.readouterr().err
+    finally:
+        _reap(child)
+
+
+@pytest.mark.parametrize('keep_api', [False, True])
+def test_a_child_that_does_not_stop_is_recorded_as_unfinished_cleanup(tmp_path, monkeypatch, capsys, keep_api):
+    argv = ['--output', str(tmp_path / 'out')]
+    if keep_api:
+        directory, _ = _provision(tmp_path, monkeypatch)
+        argv += ['--identities', str(directory), '--api-port', str(api_child.reserve_port()), '--keep-api']
+        monkeypatch.setattr(driver.api_child, 'hold', lambda api, **options: 'INTERRUPTED')
+    events = []
+    _fake_run(monkeypatch, tmp_path, events, 'PASSED')
+    process = _Unkillable()
+    _real_api_process_with(monkeypatch, process)
+    assert driver.main(argv) == 0  # the exit code still follows the chain's result, as for other cleanup
+    printed = capsys.readouterr()
+    assert printed.out.strip().splitlines()[-1] == (
+        'R.02 driver result: PASSED (see run-receipt.json); cleanup did not finish: API_CHILD_STOP_FAILED.')
+    assert 'API child process (pid 4343) did not stop' in printed.err and 'End it by hand.' in printed.err
+    assert process.calls == ['terminate', 'wait', 'kill', 'wait']
+    receipt = json.loads((tmp_path / 'out' / driver.RECEIPT).read_text(encoding='ascii'))
+    assert receipt['result'] == 'PASSED'
+    if keep_api:  # the receipt was written before the child was stopped; stderr carries the failure
+        assert 'cleanup_failures' not in receipt
+        assert 'cleanup stages failed after the receipt: API_CHILD_STOP_FAILED.' in printed.err
+    else:
+        assert receipt['cleanup_failures'] == ['API_CHILD_STOP_FAILED']
 
 
 # ---------------------------------------------------------------- R02-C-03: an unwritable receipt is never success

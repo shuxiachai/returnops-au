@@ -312,6 +312,7 @@ class Run:
         self.store, self.people, self.receipt_written = STORE, dict(PEOPLE), False
         self.receipt_withheld = False  # every receipt form contained private material; no file exists
         self.cleanup_failures, self.private_left = [], False  # cleanup that did not finish, for the CLI line
+        self.child_left = None  # pid of an API child that could not be stopped (R02-C-02)
         # Credentials withhold a log and refuse a receipt; local directories are
         # replaced in a kept log and refused in a receipt.
         self.tokens, self.secrets, self.locations, self.step_number = {}, [], [], 0
@@ -862,7 +863,7 @@ class Run:
             self.provision()
             self.step_number = 2
             log = self.private / API_LOG  # raw child output stays private until finish() screens it
-            with api_child.api_process(self.auth_file, log, **self.port_option()) as api:
+            with api_child.api_process(self.auth_file, log, on_stop=self.child_stopped, **self.port_option()) as api:
                 self.record(2, 'api_child', 'READY', loopback=api.url.startswith('http://127.0.0.1:'),
                             composition=api.composition, environment_names=list(api.environment_names))
                 try:
@@ -896,6 +897,10 @@ class Run:
 
     def port_option(self):
         return {} if self.api_port is None else dict(port=self.api_port)
+
+    def child_stopped(self, stopped, pid):
+        """api_process reports whether its child was killed and reaped, also after a second Ctrl+C."""
+        self.child_left = None if stopped else pid
 
     def conclude(self, error):
         """Record a failure: Refused, Stop, ApiChildError or an unexpected exception."""
@@ -937,6 +942,10 @@ class Run:
 
         if not self.receipt_written:
             self.data['finished_at'] = _text(_now())
+        if self.child_left is not None:  # the API child stops before finish(); a pid is not a secret
+            failures.append('API_CHILD_STOP_FAILED')
+            print('R.02: the API child process (pid ' + str(self.child_left) + ') did not stop; it may still hold '
+                  'its port and database connections. End it by hand.', file=sys.stderr)
         if self.engine is not None:
             stage('ENGINE_DISPOSE_FAILED', self.engine.dispose)
         if self.keep_api_log:
