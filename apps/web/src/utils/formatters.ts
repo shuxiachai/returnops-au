@@ -122,8 +122,10 @@ export function formatCustomerStatus(status?: CaseStatus): string {
     case 'APPROVED':
     case 'ACTION_IN_PROGRESS':
     case 'RECONCILING':
-    case 'NOTIFICATION_PENDING':
       return 'Approved, being processed';
+    // Rejection and manual handling pass through this status too, so it names no outcome.
+    case 'NOTIFICATION_PENDING':
+      return 'The shop has decided; a notice is on its way';
     case 'COMPLETED':
       return 'Completed';
     case 'REJECTED':

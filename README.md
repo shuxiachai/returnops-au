@@ -356,15 +356,25 @@ store `synthetic_au_store` and customers `synthetic_customer_a` /
 `synthetic_customer_b` (references `SYN-1001` to `SYN-1003`), so these IDs make
 order lookups match. **(not verified)**
 
+`--founder-manual` (added 25 October 2026) grants this store one authority,
+`founder-manual-v1` OUTCOME, so that the Founder can record MANUAL_HANDLING on an
+escalated case that has no proposal. The builtin reference `SYN-CONFLICT` is
+held twice by `synthetic_customer_a`: a case lodged with it escalates with an
+order-lookup block (CONFLICT), and **Manual Takeover** on it is accepted. The
+case then waits in `NOTIFICATION_PENDING`, because `serve` runs no notification
+worker. No other decision authority is granted: REJECT and APPROVE stay with the
+step 5 driver. Never pass the flag for the step 5 store; the driver refuses a
+store that already holds lifecycle authorities (`STORE_AUTHORITIES_EXIST`).
+
 ```powershell
 New-Item -ItemType Directory -Force tmp | Out-Null
-.\.venv\Scripts\python.exe -B tools/environment/local.py run python -m returnops_api.demo provision --private-dir "$PWD\tmp\demo-shop" --store synthetic_au_store --customer-one synthetic_customer_a --customer-two synthetic_customer_b --founder synthetic_founder --order-investigation --fixed-proposal
+.\.venv\Scripts\python.exe -B tools/environment/local.py run python -m returnops_api.demo provision --private-dir "$PWD\tmp\demo-shop" --store synthetic_au_store --customer-one synthetic_customer_a --customer-two synthetic_customer_b --founder synthetic_founder --order-investigation --fixed-proposal --founder-manual
 .\.venv\Scripts\python.exe -B tools/environment/local.py run python -m returnops_api.demo serve --auth-file "$PWD\tmp\demo-shop\auth.json" --port 8000 --fixed-proposal --founder-decisions
 ```
 
 ```bash
 mkdir -p tmp
-.venv/bin/python -B tools/environment/local.py run python -m returnops_api.demo provision --private-dir "$PWD/tmp/demo-shop" --store synthetic_au_store --customer-one synthetic_customer_a --customer-two synthetic_customer_b --founder synthetic_founder --order-investigation --fixed-proposal
+.venv/bin/python -B tools/environment/local.py run python -m returnops_api.demo provision --private-dir "$PWD/tmp/demo-shop" --store synthetic_au_store --customer-one synthetic_customer_a --customer-two synthetic_customer_b --founder synthetic_founder --order-investigation --fixed-proposal --founder-manual
 .venv/bin/python -B tools/environment/local.py run python -m returnops_api.demo serve --auth-file "$PWD/tmp/demo-shop/auth.json" --port 8000 --fixed-proposal --founder-decisions
 ```
 

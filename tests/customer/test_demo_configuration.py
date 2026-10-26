@@ -33,6 +33,17 @@ def test_cli_keeps_the_generic_sentence_for_unexpected_errors(monkeypatch, capsy
     assert printed.strip() == demo.GENERIC_FAILURE and 'secret' not in printed
 
 
+@pytest.mark.parametrize('flag,expected', [([], False), (['--founder-manual'], True)])
+def test_provision_passes_the_explicit_founder_manual_flag(monkeypatch, tmp_path, capsys, flag, expected):
+    # docs/45 S3: the manual-handling authority is granted only when asked for.
+    seen = {}
+    monkeypatch.setattr(demo, 'provision', lambda directory, **options: seen.update(options))
+    demo.main(_provision_argv(tmp_path / 'fresh') + flag)
+    assert seen['founder_manual'] is expected
+    assert seen['order_investigation'] is False and seen['fixed_proposal'] is False
+    assert 'Private synthetic demo registration completed.' in capsys.readouterr().out
+
+
 def test_cli_returns_zero_when_main_succeeds(monkeypatch, capsys):
     monkeypatch.setattr(demo, 'main', lambda argv=None: None)
     assert demo.cli(['provision']) == 0 and capsys.readouterr().out == ''
