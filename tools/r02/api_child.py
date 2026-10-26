@@ -17,6 +17,12 @@ Demo mode only (driver --api-port/--keep-api): api_process(port=N) binds the
 fixed loopback port N instead of port 0 and refuses a port that is already in
 use; hold() keeps the child running until Ctrl+C or until it exits by itself.
 The default (port=None, no hold) is unchanged.
+
+Stopping (26 October 2026, C's R02-C-02 second-interrupt finding): a further
+Ctrl+C while the child is being stopped no longer leaves it running; _stop()
+still kills and reaps it, then raises the interruption again. If the child
+cannot be reaped within the time limit, on_stop reports it so the driver can
+record API_CHILD_STOP_FAILED.
 """
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -105,14 +111,53 @@ def child_environment(source, auth_file, port):
     return env
 
 
-def _stop(process):
-    if process.poll() is None:
-        process.terminate()
+def _kill_and_reap(process, seconds=5.0, clock=time.monotonic):
+    """Kill the child if it still runs and wait for it, at most `seconds` in all.
+
+    Ctrl+C during this wait does not cut it short (C's R02-C-02 second-interrupt
+    finding). True when the child has exited and been reaped.
+    """
+    deadline = clock() + seconds
+    while True:
         try:
-            process.wait(timeout=10)
+            if process.poll() is not None:
+                return True
+            try:
+                process.kill()
+            except OSError:  # refused, for example while the child is already exiting; the wait decides
+                pass
+            process.wait(timeout=max(0.0, deadline - clock()))
+            return True
         except subprocess.TimeoutExpired:
-            process.kill()
-            process.wait(timeout=5)
+            return process.poll() is not None
+        except KeyboardInterrupt:
+            if clock() >= deadline:
+                return process.poll() is not None
+
+
+def _stop(process, report=None):
+    """Terminate, wait up to 10 s, then kill and reap. A Ctrl+C during the polite wait
+    skips straight to the kill; it is raised again only after the kill and reap have
+    finished or run out of time, so the caller still records INTERRUPTED.
+    report(stopped, pid) gets the outcome."""
+    interrupted = None
+    try:
+        if process.poll() is None:
+            process.terminate()
+            try:
+                process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                pass
+    except KeyboardInterrupt as error:
+        interrupted = error
+    except OSError:  # terminate refused; the forced kill below still runs
+        pass
+    stopped = _kill_and_reap(process)
+    if report is not None:
+        report(stopped, process.pid)
+    if interrupted is not None:
+        raise interrupted
+    return stopped
 
 
 def reserve_port(port=None):
@@ -149,7 +194,8 @@ def hold(api, *, interval=1.0, sleep=time.sleep):
 
 
 @contextmanager
-def api_process(auth_file, log_path, *, ready_seconds=30.0, port=None):
+def api_process(auth_file, log_path, *, ready_seconds=30.0, port=None, on_stop=None):
+    """on_stop(stopped, pid) is called once the child has been stopped, or could not be."""
     port = reserve_port(port)
     env = child_environment(os.environ, auth_file, port)
     url = 'http://127.0.0.1:' + str(port)
@@ -172,4 +218,4 @@ def api_process(auth_file, log_path, *, ready_seconds=30.0, port=None):
                 raise ApiChildError('API_CHILD_NOT_READY')
             yield ApiChild(url, process.pid, dict(COMPOSITION), tuple(sorted(env)), process)
         finally:
-            _stop(process)
+            _stop(process, report=on_stop)
