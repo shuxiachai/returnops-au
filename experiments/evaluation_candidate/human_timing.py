@@ -286,8 +286,9 @@ def _write_output(path, report):
             destination.write(raw)
             destination.flush()
             os.fsync(destination.fileno())
-    except (OSError, ValueError):
-        # Remove only our own incomplete file, never a concurrent replacement.
+    except BaseException:
+        # Finalize on catchable interruption too, then preserve its semantics.
+        # Remove only our own unconfirmed file, never a concurrent replacement.
         try:
             current = os.lstat(path)
             if (current.st_dev, current.st_ino) == (owned.st_dev, owned.st_ino):
@@ -313,6 +314,9 @@ def main(argv=None):
         report = summarize_human_timing(manifest)
         report["imported_file_sha256"] = digest
         _write_output(args.output, report)
+    except KeyboardInterrupt:
+        print("HUMAN_TIMING_INTERRUPTED", file=sys.stderr)
+        return 130
     except HumanTimingPlatformError:
         print("HUMAN_TIMING_PLATFORM_UNSUPPORTED", file=sys.stderr)
         return 2
