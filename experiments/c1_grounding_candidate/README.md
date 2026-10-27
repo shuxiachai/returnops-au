@@ -1,5 +1,9 @@
 # C1 — versioned retrieval and citation verification candidate
 
+Latest preparation: [27 October excerpt-check proposal](#c104-excerpt-check-handoff-proposal--27-october-2026)
+specifies a review record and negative cases without changing the frozen wire
+contract. It remains a proposal; corpus admission and C1.04 acceptance are open.
+
 ## Current status (submission) — 24 October 2026
 
 Owner C (`lulucas-tao`), reviewer A; [KAN-23](https://lucastaooo.atlassian.net/browse/KAN-23),
@@ -116,3 +120,66 @@ identify the exact-byte review and integration steps still needed from A.
 
 AI-assisted C documentation and local verification; not C's personal explanation,
 A's non-author acceptance or a Jira Done claim.
+
+## C1.04 excerpt-check handoff proposal — 27 October 2026
+
+**C-owned design preparation for A's review, not an adopted port or completed
+C1.04.** FR-006/NFR-001 and AH-08 → UC-02 → MC-SEQ require both resolvable
+references and an explicit disposition of quoted content. The frozen
+`Citation` has identity/version/hash/location, but no quotation or claim text;
+`CitationCheck.result` has five metadata outcomes only. Adding a fabricated
+quotation to a packet's rationale does not change its metadata result. Do not
+rename `VALID`, overload it as semantic approval, or add unreviewed wire fields.
+
+### Proposed compatible review record
+
+Keep `verify_citations` and all F.01 request/response shapes unchanged. For an
+offline review, C can record the following **annotation columns**, separately
+from the runtime packet. These are not a new public API or trusted authority:
+
+| Annotation | Binding and interpretation |
+|---|---|
+| Source identity | Exact reviewed source commit, corpus manifest hash, passage ID, document ID/version/location and exact UTF-8 content hash. A hash establishes integrity, not human admission. |
+| Packet identity | Case/input/proposal ID and version plus hash of the exact retained packet bytes; identify the JSON text field and zero-based, end-exclusive Unicode code-point range in that field (not UTF-16 code units or grapheme clusters). The selected text must equal the recorded asserted quotation. |
+| Quotation kind | Explicit direct quotation, paraphrase or no quotation. Do not silently treat a paraphrase as a failed literal quotation, or an absent quote as a successful match. |
+| Source span | For a direct quotation, a nonempty zero-based, end-exclusive Unicode code-point range within the complete pinned `PolicyPassage.content`; exact equality, without case folding, punctuation repair or whitespace normalization. Record UTF-8 hashes separately from code-point offsets. |
+| Literal disposition | Match, mismatch, unavailable source, invalid binding, or not applicable (no direct quotation). These are proposed annotation labels, **not additions to `CitationCheck.result`**. |
+| Semantic disposition | Separate C2/source-review judgment: supports, contradicts, insufficient context or unresolved. Preserve the full source context, reasons, reviewer and version; literal equality alone gives no semantic credit. |
+
+An omitted sentence, an ellipsis joining disjoint spans, or a paraphrase requires
+explicit review; it cannot be presented as a single contiguous exact quote.
+If normalization is desired later, version its algorithm and retain the original
+bytes and span. Missing bindings/source text remain unavailable, never `VALID`.
+The record must not be copied into a trusted approval or used to bypass Domain.
+
+### Development checks required before implementation acceptance
+
+These are proposed checks using invented public passages/packets, not results
+already obtained by a quotation checker. The current metadata tests remain the
+only implemented C1 verification evidence.
+
+| Case | Metadata check | Additional quotation/support judgment needed |
+|---|---|---|
+| Correct identity and exact quoted span | `VALID` | Literal match; C2 still checks context and applicability. |
+| Same citation, one invented word in quoted rationale | May remain `VALID` | Literal mismatch; do not credit citation correctness. |
+| Exact short quote omits a condition in the next sentence | `VALID` | Literal match can coexist with unsupported/misleading claim; C2 reviews the complete passage. |
+| Correct text bound to a different proposal/input version | Metadata alone cannot bind the asserted text | Invalid packet binding; retain both versions rather than checking the convenient one. |
+| Paraphrase expressing a claim | May remain `VALID` | Literal check not applicable; independently assess claim support. |
+| Missing pinned content, invalid range or empty quotation | Metadata result does not supply missing text | Unavailable/invalid annotation; no automatic semantic success. |
+| Altered source version/hash/location | Existing mismatch outcome | Resolve provenance first; a matching substring cannot override rejection. |
+
+### Decision requested from A
+
+C can prepare and review these annotations without changing the shared
+contract. To integrate a deterministic excerpt checker, A/C must agree where
+Assessment supplies the exact asserted text and its packet binding, whether an
+internal adapter consumes this separate record, and how the result reaches C2.
+Any new public field/outcome needs F.01 change review first. That decision is
+separate from reviewing/admitting the ACCC capture's exact bytes and configuring
+its trusted runtime pin. The proposed record does not admit that corpus.
+
+The concrete evaluation definitions and separate public development examples
+are maintained in [C's E.01 guide](../evaluation_candidate/README.md#e01-definition-draft--requires-a-review-before-freezing).
+After the mapping decision, C can implement the selected pure check and its
+negative tests locally; runtime adoption, semantic correctness and final
+C1.04/C1.05 acceptance still need their original evidence and reviewer.

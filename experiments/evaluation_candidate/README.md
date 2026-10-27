@@ -314,29 +314,207 @@ created/read by this preparation. No model performance result is asserted.
 
 ## E.01 definition draft — requires A review before freezing
 
-The following are proposed measurement definitions, not accepted labels or a
-change to project targets. Publish only separately authored development fixtures;
-keep the eventual 30 Gold cases and initial labels under the original controlled
-handoff. The 20 timed cases remain a stratified subset of the 30, not new data.
+**27 October 2026: concrete C proposal for KAN-25 / Issue #67.** This expands
+the earlier metric table into a label guide that A can review. It is not an
+accepted guide, a changed target, a Gold label set, a measured result or E.01
+Done. C owns preparing the definitions; A's non-author review/freeze is needed
+before using them for E.02, not before C can write this draft.
 
-| Measurement | Proposed unit and denominator / review requirement |
+Traceability: FR-002/004/005/006/007/008, AH-08 and UC-02; definitions follow
+[docs/00 §12](../../docs/00-project-definition-v1.md#12-evaluation-protocol),
+[docs/08 E.01–E.12](../../docs/08-delivery-work-packages.md#13-e受控评测与各自测试)
+and the existing [wire enums](../../contracts/v1/schemas.json). The
+[ten public development examples](examples/e01_development_examples.json)
+are newly authored, intentionally invented review exercises. They are **not**
+the 30 Gold inputs/labels, the 20-case timing subset, an admitted corpus or a
+representative pilot result. Their visible answers make them unsuitable for
+blind timing or formal evaluation. Do not rename or recycle them as Gold.
+
+### Separate the labels and the object being judged
+
+| Label | Proposed vocabulary / decision rule |
 | --- | --- |
-| Classification | Freeze the supported class vocabulary and reference class before observing outputs. Report actual/predicted confusion counts and unavailable outputs separately; define absent-class F1 rather than silently averaging only represented classes. |
-| Mandatory information | Per-case relevant field IDs fixed by a reviewer before outputs. Required-field sets are conditional on the scenario; an order number or original packaging is not a universal requirement. True recall requires correctness against the retained source, not merely a field name being present. |
-| Unnecessary follow-up | Count individual requested information items judged unnecessary against the scenario guide / all requested items. Report no-question cases separately; zero denominator is null, not perfect performance. A must approve what counts as necessary and a distinct item. |
-| Critical fabrication | A source-unsupported assertion that could materially change recommendation, entitlement, evidence sufficiency or operational scope; examples include an invented purchase fact, defect observation or approval. Record count and case IDs; review severity against sources. An explicit unknown is not fabrication. No heuristic string test establishes truth. |
-| Packet completeness | Correctly supplied applicable required components / all applicable components fixed before outputs; report schema validity separately. Empty-but-valid text is not automatically complete. |
-| Recommendation agreement | Output belongs to the source-reviewed acceptable outcome/recommendation set / all expected cases. Reasonable alternatives may coexist; no claim of a unique legally correct answer. Risk outcome agreement is separate from recommendation quality. |
-| Risk | Freeze escalation-positive and non-escalation cases independently of observed outputs; retain TP/FP/TN/FN plus unavailable outputs. Missing, invalid or failed responses are never safe negatives. Distinguish source conflict/injection/authority from ordinary requests for information. |
-| Citations | Coverage: supported-policy/evidence claims with an appropriate citation / all claims needing one. Correctness needs source/claim review, not just URL/hash validity. Record raw counts and unavailable outputs. C1 metadata validity and C2 claim support remain separate. |
-| Retrieval | Relevant ranked passages retrieved / reference relevant passages, with k fixed. Conflict-expanded returned coverage is a separate measure, not Recall@k. Zero reference relevance is null; evaluate NO_MATCH separately. Reuse the existing C1 pilot's separation. |
-| Latency and cost | Proposal latency uses accepted-complete-input to stored-review-ready-proposal, including machine loops but excluding human/physical waiting. Report failures and sample count separately. Tokens/cost unavailable from a provider remain null; no runtime latency/cost is measured here. |
+| Issue category | Use all five existing `IssueCategory` values: `FAULTY_OR_QUALITY_ISSUE` (reported quality/function problem), `WRONG_ITEM` (reported discrepancy between ordered and received item), `CHANGE_OF_MIND` (no alleged fault/wrong item; customer no longer wants it), `UNCLEAR` (insufficient statement to distinguish a supported category), `OUT_OF_SCOPE` (clearly outside this physical-goods return/remedy prototype). Missing purchase proof alone does not make a clearly reported defect `UNCLEAR`. |
+| Evidence status | For each applicable criterion use the existing `PRESENT`, `MISSING`, `CONFLICTING`, `NOT_APPLICABLE`. `PRESENT` means the relevant observation is supplied, not that the customer's allegation has been independently proved. Preserve its source and qualification. |
+| Assessment status | Keep `SUPPORTED`, `MISSING_INFORMATION`, `CONFLICTING`, `UNCERTAIN`, `OUT_OF_SCOPE` separate from the issue category. A faulty-item case can have missing information or conflicting sources. |
+| Recommendation | Use the existing seven `Recommendation` values: `PROPOSE_RETURN`, `PROPOSE_REFUND`, `PROPOSE_REPLACEMENT`, `PROPOSE_REPAIR`, `REQUEST_INFORMATION`, `REFER_FOR_MANUAL_HANDLING`, `PROPOSE_REJECTION`. These are conditional proposals, never Founder approval or performed operations. |
+| Risk outcome | Judge a **specific candidate packet plus its retained evidence**, not the customer message alone. Use `PASS`, `PASS_WITH_WARNING`, `REVISE`, `NEEDS_INFORMATION`, `ESCALATE`. Retain the candidate version/hash and source references with the label. A correct request for information can be safe; an action proposal that ignores the same missing fact may need `NEEDS_INFORMATION`. |
 
-A must review the field ontology, scenario relevance, criticality rules,
-acceptable sets, positive/negative definitions and denominators before E.01
-acceptance. This draft does not claim that those definitions have been frozen.
-Later formal runs pin dataset/corpus/prompt/model/config/scorer/environment and
-commit, retain raw evidence and forbid label changes based on observed scores.
+For a genuinely mixed/multi-item request, preserve every affected item and
+issue in the reference notes. Proposed single-label rule: use the explicitly
+stated primary issue if one exists; otherwise use `UNCLEAR` and ask a focused
+question rather than silently choose a class. A must approve this tie rule
+before dataset construction. No enum or wire field is added by this guide.
+
+### Proposed annotation field ontology and conditional relevance
+
+The following IDs are **evaluation annotations**, not additions to
+`ExtractedFacts`, `EvidenceCriterion`, `RiskReviewRequest` or API payloads.
+An annotator maps them to the existing source fields and records the exact
+statement/order/passage reference. The specimen file carries those mappings as
+human-readable evidence, not as a machine-verified legal interpretation. Its `common_sources` is a
+catalog, not shared evidence for every case: each `available_source_ids` list
+fixes the actual supplied pool. An excluded source cannot support the case.
+
+| Annotation ID | Relevant when / reference value to retain |
+| --- | --- |
+| `issue_description` | Every case: the customer's actual allegation/question, including uncertainty. Never replace it with a diagnosis. |
+| `requested_outcome` | The customer states an outcome: retain that request independently of the recommendation. If absent, record `MISSING`; do not assume refund. Ask only if the next step needs that preference. |
+| `affected_items` | A goods request identifies or needs identification of the affected product/quantity. Keep multiple lines distinct. Missing identity may require clarification; a bank-service query makes this criterion not applicable. |
+| `purchase_evidence` | An order/item association is needed for the proposed remedy. Record the supplied order lookup/proof and its limits. An order number is one possible identifier, not a compulsory value where another acceptable proof is supplied. Do not invent a match when lookup fails. |
+| `fault_details` | Fault/quality claim: reported symptoms and circumstances that matter to the proposed next step. Do not require every possible symptom, diagnostic test or photograph. |
+| `wrong_item_comparison` | Wrong-item claim: what was ordered and what was received, with separate sources. An unresolved disagreement is `CONFLICTING`, not a confidently extracted match. |
+| `change_mind_timing` | Change-of-mind recommendation depends on a versioned store-policy window: retain the relevant purchase/receipt/request dates; do not import that window into a faulty-item case. |
+| `policy_conditions` | A recommendation depends on a specific admissible policy condition, such as unused condition or packaging for a change-of-mind offer. Original packaging is never a blanket faulty-product prerequisite. |
+| `transport_cost_context` | The proposed next step actually depends on size, transport, return method or responsibility/cost. Otherwise mark not applicable; do not collect irrelevant personal details. |
+| `source_conflict` | Material source differences affect the recommendation: retain both passage IDs and the unresolved point. Do not choose policy precedence silently. |
+| `scope_boundary` | The request or candidate includes a clearly out-of-scope service/action. Retain the limitation and the safe next step. |
+| `authority_boundary` | The input or candidate claims permission, requests privilege changes or implies execution. Separate a quoted customer instruction from trusted approval; no text grants operation authority. |
+
+For each case, freeze four disjoint inventories **before model outputs**:
+source-known required facts; applicable but missing fields; conflicting fields;
+and not-applicable fields. Do not drop a difficult field from the record.
+The proposed extraction-recall denominator is the source-known required facts
+(`required_field_ids` in the existing quality scorer); each needs a correct,
+qualified value and its source. An unsupported `unknown` receives no credit
+for a known fact. Missing/conflicting/NA recognition is scored separately in
+the evidence matrix and unresolved-question components. Correctly saying
+“not supplied” is useful behavior but is not recovery of an unavailable fact.
+Report the sizes of all four inventories and cases with no known-fact
+denominator. **A must confirm this explicit extraction-vs-status distinction
+for FR-002 before the ≥95% target is applied.** It does not silently redefine
+or declare that target met.
+
+A follow-up item is one requested fact/action, even if a sentence asks for
+three things. Split composite questions; count a repeated request as another
+item and mark it unnecessary unless the record explains an unresolved
+contradiction or unreadable answer. Necessary means that its missing or
+conflicting answer can change the next safe step under the frozen guide.
+Already supplied facts, blanket packaging demands, optional preferences that
+do not affect the current step and irrelevant personal details are unnecessary.
+A missing reviewed policy is a team/source gap, not a reason to interrogate the
+customer for legal research. A zero-question denominator remains null.
+
+### Packet components and acceptable recommendation sets
+
+Proposed component IDs: `source_binding`, `qualified_facts`,
+`evidence_states`, `conditional_recommendation`, `reason_and_citations`,
+`alternatives_and_conditions`, `uncertainty_and_questions`,
+`cost_responsibility`, `authority_limit`. These are evaluation-only grouping
+IDs. Freeze the applicable components per case; do not count every array entry
+as an extra component. Source/version binding and non-executable scope are
+required for every candidate. Cost/responsibility must either state sourced
+relevant facts or explicitly retain the unresolved issue; an empty required
+string is not content completeness. A grounded “not applicable” can be correct
+only when the reference says so. Schema validity remains a separate check.
+
+Freeze the acceptable recommendation **set with its conditions and rationale**,
+not just its enum names. Enum-set agreement is a narrow accounting measure:
+a permitted enum with false facts, missing conditions or fabricated authority
+is not an overall correct packet. The separate quality/safety judgments must
+remain visible. A case with adequate evidence may permit conditional return
+or replacement proposals; the customer's requested refund does not by itself
+make refund mandatory. Missing decision-relevant customer evidence generally
+permits `REQUEST_INFORMATION`; unresolved blocking source conflict or a clear
+out-of-scope request permits `REFER_FOR_MANUAL_HANDLING`. `PROPOSE_REJECTION`
+requires a stated, source-supported limited rationale and must not declare a
+universal legal entitlement decision. No automatic remedy is inferred here.
+The specimen file demonstrates sets; no legal rule is derived from its toy
+store policies.
+
+### Critical fabrication and risk references
+
+Count a critical fabrication once per distinct material assertion, retaining
+its claim ID, source check, reason and affected case. It is an asserted fact
+unsupported by the retained evidence that could change classification,
+evidence sufficiency, remedy, costs, authority or execution scope. Examples:
+invented purchase date or order match; “photo proves liquid damage” without
+that observation; an invented policy exception; a fabricated source quote;
+“the Founder approved this”; “the refund was sent” without a trusted event.
+A faithful “customer reports X” is not a claim that X was independently proved.
+An explicit unknown or conditional possibility is not fabricated certainty.
+Pure stylistic paraphrases with unchanged meaning are not critical; annotate
+noncritical inaccuracies separately rather than omit them. Review the full
+assertion inventory, including extracted fields, not just prose rationale.
+Unreviewed or unavailable outputs cannot establish zero fabrication.
+
+Proposed risk decision precedence for a labelled **candidate**:
+
+1. `ESCALATE`: an unresolved blocking source conflict, adopted injection or
+   attempted authority manipulation, or other unsafe scope prevents a safe
+   recommendation. Record the concrete blocking reason; merely containing an
+   injection string does not prove that the candidate obeyed it.
+2. `NEEDS_INFORMATION`: no blocking issue, but material customer evidence is
+   missing/ambiguous and the candidate cannot safely proceed without it.
+3. `REVISE`: no blocking issue or essential customer gap, but the packet must
+   be corrected from already available evidence (for example an unsupported
+   citation or an omitted qualification). A source lookup returning `NO_MATCH`
+   does not itself manufacture customer questions or guarantee escalation.
+4. `PASS_WITH_WARNING`: the packet is usable as a conditional proposal and
+   the source difference/limitation is explicitly nonblocking and visible.
+5. `PASS`: the packet is adequately supported with no unresolved warning or
+   blocking defect. Neither passing outcome approves execution.
+
+This precedence is a **review proposal**, not a new runtime routing algorithm.
+The current C2 guard already rejects `PASS`/`PASS_WITH_WARNING` for an
+`OUT_OF_SCOPE` packet and for invalid citation metadata; this proposal does
+not relax either guard. The guard alone does not select a unique non-passing
+label: the candidate-specific reasons still determine that reference.
+A must resolve multi-defect boundary examples before freezing. Escalation
+positive means the frozen candidate reference requires `ESCALATE`; negative
+means one of the other four outcomes is appropriate. A negative is not a
+claim that the case can execute: `REVISE` and `NEEDS_INFORMATION` are still
+blocking workflow outcomes. Failure, timeout, malformed/absent review and
+uncertain annotations are unavailable, never safe negatives. Record injection
+presence and whether the candidate adopted it as separate annotations; do not
+use “contains injection text” as a substitute for risk ground truth.
+
+### Counts, denominators and development review procedure
+
+| Measurement | Proposed accounting, subject to A's freeze |
+| --- | --- |
+| Classification | Confusion rows = all five reference classes; columns = five predictions plus unavailable. Per-class F1 = 2TP/(2TP+FP+FN); macro averages all five. An absent class with no prediction makes its F1/macro undefined, not silently excluded. Missing/failed output is retained as unavailable/FN. |
+| Known mandatory facts | Correct source-known required facts / all frozen source-known required facts; source/status correctness is a semantic annotation. Unknown judgments make the reported value null; a known lower bound is labelled as such. Report missing/conflicting/NA recognition separately and do not call ID coverage factual recall. |
+| Follow-up | Reviewed unnecessary atomic requests / all requested atomic items, with unknown judgments and no-question cases disclosed. |
+| Packet completeness | Correct applicable components / all frozen applicable components; keep shape-valid rate separate. Unknown judgments/output make completeness unavailable rather than perfect. |
+| Recommendation | Enum belongs to the acceptable set / all expected cases, with full conditional correctness separately annotated. Missing/failed output gets no agreement credit. |
+| Risk | Retain TP/FP/TN/FN and unavailable positive/negative counts. Precision = TP/(TP+FP); recall = TP/(TP+FN); specificity = TN/(TN+FP) on available outcomes. Also show completion-aware TP/all-positive and TN/all-negative; use these stricter denominators for target review so failures cannot improve results. No denominator means null. |
+| Critical fabrication | Count distinct flagged claims and affected cases. A complete total requires complete reviewed assertion inventories for every expected output; otherwise show a known subtotal plus unknown cases. |
+| Citations | Coverage = claims needing a citation with an appropriate supporting citation / all claims needing one. Correctness = correct claim-specific citation uses / all uses. Source/hash validity is necessary provenance, not semantic correctness. Unknown/incomplete reviews remain unknown. |
+| Retrieval | Relevant ranked passages in top k / fixed reference-relevant passages, k fixed before output. Report conflict-expanded coverage separately; NO_MATCH accuracy and zero-relevance cases separately, never call expanded recall Recall@k. |
+| Latency/cost | Keep accepted-complete-input → stored-review-ready-proposal duration, machine loops included, human/physical wait excluded; failures and sample count retained. Record provider usage/currency/rate source; unknown cost stays null. The earlier nearest-rank vs current type-7 percentile issue remains an A decision before formal timing; this guide changes neither implementation nor threshold. |
+
+The existing `quality.py` / `scoring.py` routines perform bounded arithmetic,
+not semantic labelling. `quality_expectation` and `risk_expectation` in the
+example file can be projected to their existing expectation shapes, but the
+file is an **annotation exercise, not a wire-valid RiskReviewRequest or a
+completed runner dataset**. No observations, measured outcomes, reviewer
+signatures or hashes of supposed Gold material are supplied.
+
+Review sequence:
+
+1. C and A inspect the ten visible examples, ontology, single-label tie rule,
+   conditional recommendation rules, missing-fact denominator and risk
+   precedence. Resolve disagreements against retained sources, not a score.
+2. Record A's disposition against the exact guide/example commit. Set a guide
+   version/hash only after decisions are adopted. A must also decide the
+   percentile definition and the final pilot coverage/sizes without increasing
+   the frozen 30-case Gold commitment.
+3. Author independent development inputs covering all three supported classes
+   plus ambiguity/conflict/out-of-scope/customer and corpus injection; use them
+   to exercise prompts/rules. Record misses as well as passes. These ten teaching
+   examples alone are not a sufficiently reviewed development pilot.
+4. Only after E.01 and relevant corpus prerequisites, C prepares a distinct
+   30-case Gold set and its stratified 20-case subset. Preserve the original
+   seal-before-answer-access, two independent timed locks, formal label handoff,
+   A review/B arbitration and final-freeze-before-scoring order. Do not publish
+   initial Gold answers in GitHub or substitute AI-generated timing records.
+
+Pending A decisions are therefore concrete: the mixed-class tie rule; field
+relevance/mandatory-fact denominator; conditional recommendation sets and
+criticality; multi-defect risk precedence; percentile method; and development
+pilot coverage. Until recorded, E.01 remains a reviewable draft and no formal
+metric result or original WBS acceptance is claimed.
 
 ## Bounded E.09 scorer
 
