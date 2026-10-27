@@ -80,7 +80,7 @@ describe('selectDecisionTarget', () => {
     const result = selectDecisionTarget(view, 'APPROVE', AFTER_EXPIRY);
 
     expect(result).not.toHaveProperty('target');
-    expect(result).toHaveProperty('unavailable', expect.stringMatching(/preview expired at 2026-10-21T00:05:00Z/i));
+    expect(result).toHaveProperty('unavailable', expect.stringMatching(/reads the approval preview as expired at 2026-10-21T00:05:00Z/i));
   });
 
   it('keeps the other decisions available when the approval preview has expired', () => {

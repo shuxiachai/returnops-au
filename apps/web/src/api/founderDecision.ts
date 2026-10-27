@@ -40,7 +40,9 @@ export function selectDecisionTarget(
     if (Number.isFinite(expiresAt) && expiresAt <= now) {
       return {
         unavailable:
-          `The approval preview expired at ${view.action_preview.scope.expires_at}. The server will not accept it; wait for the case to be read again and check the new preview.`,
+          // The timestamp is the server's; the comparison uses this browser's clock, so
+          // the wording reports the local reading rather than claiming a server refusal.
+          `This browser reads the approval preview as expired at ${view.action_preview.scope.expires_at}. Close this dialog to reload the case and check the current preview; the server decides whether it accepts the approval.`,
       };
     }
   }
