@@ -368,7 +368,10 @@ const MOCK_PENDING_INTAKE = new Set<string>();
 function runMockIntake(c: CustomerCaseView): void {
   if (!MOCK_PENDING_INTAKE.delete(c.case_id)) return;
   const reference = c.statements.find((statement) => statement.kind === 'ORIGINAL')?.order_reference;
-  if (hasUsableOrderReference(reference)) {
+  // intake_processor.py:57: purchase context is needed only when the case has neither a
+  // usable reference nor any bound material.
+  const hasMaterial = c.evidence.length > 0;
+  if (hasMaterial || hasUsableOrderReference(reference)) {
     c.status = 'UNDER_INVESTIGATION';
     return;
   }
@@ -393,11 +396,12 @@ function runMockIntake(c: CustomerCaseView): void {
   };
 }
 
-// The server's only test on a reference (investigation_admission.py:53): non-empty,
-// trimmed, at most 120 characters. It is not restricted to the synthetic SYN-#### form.
+// The server's only test on a reference (investigation_admission.py:53): it must be
+// non-empty once trimmed, and the RAW value must be at most 120 characters. It is not
+// restricted to the synthetic SYN-#### form.
 function hasUsableOrderReference(reference?: string): boolean {
-  const trimmed = (reference ?? '').trim();
-  return trimmed.length > 0 && trimmed.length <= 120;
+  const raw = reference ?? '';
+  return raw.trim().length > 0 && raw.length <= 120;
 }
 
 export async function createCase(req: CreateCaseRequest, idempotencyKey?: string): Promise<CustomerCaseView> {
@@ -426,10 +430,14 @@ export async function createCase(req: CreateCaseRequest, idempotencyKey?: string
         filename: `uploaded_evidence_${idx + 1}.png`,
         media_type: 'image/png',
         size_bytes: 245000,
+        // The contract requires case_id on a BOUND attachment.
+        case_id: newCaseId,
         status: 'BOUND' as const,
         created_at: new Date().toISOString(),
         content_path: `/v1/evidence/${id}/content`,
       })),
+      // The server always sends collection windows with a case view.
+      collection_windows: {},
     };
     // The receipt is always SUBMITTED version 1 -- the server asserts exactly that
     // (customer_service.py:258, raising INTERNAL_ERROR otherwise). The intake worker
@@ -459,7 +467,8 @@ export async function getCustomerCase(caseId: string): Promise<CustomerCaseView>
       throw new ApiError(404, `Case ${caseId} not found in mock store`, 'NOT_FOUND');
     }
     runMockIntake(c);
-    return c;
+    // A copy, so the receipt object the page already holds does not change under it.
+    return { ...c };
   }
   return request<CustomerCaseView>(`/v1/cases/${encodeURIComponent(caseId)}`);
 }

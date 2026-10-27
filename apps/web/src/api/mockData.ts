@@ -965,7 +965,7 @@ export const MOCK_AUDIT_EVENTS: Record<string, AuditEvent[]> = {
     {
       event_id: 'evt_005_3',
       sequence: 3,
-      event_type: 'FOUNDER_APPROVED',
+      event_type: 'FOUNDER_DECISION_ACCEPTED',
       actor: { kind: 'HUMAN', role: 'FOUNDER', principal_id: 'founder_demo' },
       occurred_at: new Date(Date.now() - 3600000 * 40).toISOString(),
       previous_event_hash: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',

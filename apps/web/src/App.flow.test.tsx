@@ -53,7 +53,6 @@ describe('Mock Mode journey across both pages (KAN-20; B2.05, E.11)', () => {
     expect(await screen.findByText('Return Request Submitted Successfully!')).toBeInTheDocument();
     // The case ID is the one thing the customer is told to keep.
     const lodgedCaseId = screen.getByText(/^case_demo_\d{3}$/).textContent as string;
-    expect(lodgedCaseId).toMatch(/^case_demo_\d{3}$/);
 
     // 2. Track & Clarify (UC-01E): the store's question set, then the answers.
     fireEvent.click(screen.getByRole('button', { name: /Track This Case & View Status/i }));
@@ -83,6 +82,8 @@ describe('Mock Mode journey across both pages (KAN-20; B2.05, E.11)', () => {
     // 3. The Founder console (UC-03/UC-05): the queue, then one case opened.
     fireEvent.click(screen.getByRole('button', { name: 'Founder Console' }));
     await waitFor(() => expect(screen.getByText('case_demo_003')).toBeInTheDocument());
+    // The case lodged in the Customer Portal reaches the Founder's queue.
+    expect(screen.getByText(lodgedCaseId)).toBeInTheDocument();
     fireEvent.change(screen.getByPlaceholderText(/Filter by Case ID or Category/i), {
       target: { value: 'case_demo_003' },
     });

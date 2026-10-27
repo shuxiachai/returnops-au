@@ -115,6 +115,11 @@ export const FounderConsole: React.FC = () => {
   const [decisionReason, setDecisionReason] = useState('');
   const [isSubmittingDecision, setIsSubmittingDecision] = useState(false);
   const [decisionError, setDecisionError] = useState<string | null>(null);
+  // This browser's reading of the preview's expiry. Only APPROVE depends on a
+  // preview: reject, revision and manual takeover are still valid on the same
+  // case, so this must never disable them (review round 2, finding 1).
+  const previewExpiresAt = caseDetail?.action_preview?.scope?.expires_at;
+  const previewExpired = Boolean(previewExpiresAt) && Date.parse(previewExpiresAt as string) <= Date.now();
   // Idempotency state for the decision POST, as in the customer intake form
   const [pendingDecisionKey, setPendingDecisionKey] = useState<string | null>(null);
   const [lastDecisionPayload, setLastDecisionPayload] = useState<string | null>(null);
@@ -1519,6 +1524,14 @@ export const FounderConsole: React.FC = () => {
                 />
               </div>
 
+              {pendingDecision === 'APPROVE' && previewExpired && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs">
+                  This browser reads the approval preview as expired at {previewExpiresAt}. Close this dialog to
+                  reload the case and check the current preview. Manual takeover, reject and request revision do not
+                  depend on a preview and remain available.
+                </div>
+              )}
+
               <div className="flex justify-end space-x-2 pt-2">
                 <button
                   type="button"
@@ -1538,11 +1551,7 @@ export const FounderConsole: React.FC = () => {
                   disabled={
                     isSubmittingDecision ||
                     decisionReason.trim().length === 0 ||
-                    // #122 item 12: a preview that has expired is refused by the server,
-                    // so the dialog does not offer the decision either.
-                    (caseDetail?.action_preview?.scope?.expires_at
-                      ? Date.parse(caseDetail.action_preview.scope.expires_at) <= Date.now()
-                      : false)
+                    (pendingDecision === 'APPROVE' && previewExpired)
                   }
                   className="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold transition-colors shadow-sm disabled:opacity-50"
                 >
