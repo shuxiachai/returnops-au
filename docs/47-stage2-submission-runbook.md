@@ -21,12 +21,13 @@ Companion documents: [demo script](45-stage2-demo-script.md), [Gate 2 roadmap](4
 | Date (Sydney) | Item | Who |
 |---|---|---|
 | 24 Oct | Pass 0: early rehearsal from a zip of `main` on A's machine (section 5) | A |
-| 26 Oct | Canvas item opens; ask the tutor at the Monday practical how the contribution statement is to be handed in (the item accepts zip files only) and record the answer in section 4; demo script final; each speaker's own wording | A; A, B, C |
+| 26 Oct | Canvas item opens; ask the tutor at the Monday practical how the contribution statement is to be handed in (the item accepts zip files only) and record the answer in section 4; demo script final; each speaker's own wording. Recorded on 26 October (the tutor's answer as reported by A): the statement is handed in through Canvas directly, inside the submission zip (section 3, step 4); Week 13 slot chosen by A: Monday 2 November 2026, 16:00-17:00 Sydney | A; A, B, C |
 | 27-28 Oct | Contribution statement draft sent to the three; A3 tutor disposition requested and recorded; first full rehearsal on A's machine; B's Issue #111 items 1-6 merged or recorded as not merged (B's Issues #88, #91 and #95 were closed and C's PRs #17 and #61 merged by 23 October) | A; B; C |
-| 29 Oct | Clean-machine rehearsal (section 5, pass 1) | A runs, B checks UI steps, C records |
+| 29 Oct, 19:00 | Clean-machine rehearsal (section 5, pass 1), about 2 hours; time set by A on 26 October (Issue #137) | A runs, B checks UI steps, C records |
 | 30-31 Oct | Fixes; contribution statement final; tag and package (section 3) | A; all three sign off the statement |
 | 1 Nov, before noon | Canvas upload and download-and-reopen check (section 4) | A |
-| 1 Nov to Week 13 | Rehearsal from the downloaded Canvas package (section 5, pass 2); demo | A, B, C |
+| 1 Nov, 14:00 | Rehearsal from the downloaded Canvas package (section 5, pass 2); the demonstration is the next day, so this pass cannot slip beyond the morning of 2 November | A, B, C |
+| 2 Nov, 16:00-17:00 | Week 13 demonstration (slot chosen by A on 26 October) | A, B, C |
 
 ## 3. Packaging (R.05.a)
 
@@ -35,7 +36,7 @@ Preconditions: every pull request intended for submission is merged into main an
 1. Choose the commit: the main commit whose CI run is green. Record its full SHA and the run URL.
 2. Tag it (name is a proposal): `git tag -a stage2-submission-v1 <sha> -m "Stage 2 source submission"`, then `git push origin stage2-submission-v1`. The tag message carries no AI tool attribution (repository rule).
 3. Zip the tag: `git archive --format=zip --prefix=returnops-au/ -o returnops-au-stage2-submission-v1.zip stage2-submission-v1`. `git archive` packs only files tracked at the tag, so git-ignored local material (`.env`, `.venv/`, `node_modules/`, `tmp/`, `dist/`, `__pycache__/`, `data/private/`) is left out. For a zip given a commit or a tag, git stores the commit ID as the archive comment; check it with `unzip -z` or Python's `zipfile` (verified for a commit in pass 0, section 5).
-4. Add the contribution statement: unless the tutor named another channel (section 2, 26 Oct), append `CONTRIBUTION-STATEMENT-Group10.pdf` at the root of the zip, next to `returnops-au/`, with Python's `zipfile` in append mode (`zipfile.ZipFile(path, 'a').write(pdf, 'CONTRIBUTION-STATEMENT-Group10.pdf')`); the repository tree inside `returnops-au/` stays untouched. Then hash: PowerShell `Get-FileHash -Algorithm SHA256 returnops-au-stage2-submission-v1.zip`; bash `sha256sum returnops-au-stage2-submission-v1.zip`. Record the value and the size in bytes.
+4. Add the contribution statement: the tutor confirmed on 26 October that it is handed in through Canvas directly (section 2), so append `CONTRIBUTION-STATEMENT-Group10.pdf` at the root of the zip, next to `returnops-au/`, with Python's `zipfile` in append mode (`zipfile.ZipFile(path, 'a').write(pdf, 'CONTRIBUTION-STATEMENT-Group10.pdf')`); the repository tree inside `returnops-au/` stays untouched. Then hash: PowerShell `Get-FileHash -Algorithm SHA256 returnops-au-stage2-submission-v1.zip`; bash `sha256sum returnops-au-stage2-submission-v1.zip`. Record the value and the size in bytes.
 5. Content check: list the archive (`unzip -l`, or `tar -tf` on Windows) and confirm that none of these is present:
    - `.env` (only `.env.example` may appear), `auth.json`, `sessions.json`, `*.pem`, `*.key`, any file holding a value for `RETURNOPS_MODEL_API_KEY` or a database password;
    - private directories (`tmp/`, `tmp/demo-shop`, `tmp/demo-cups`, driver output directories), `node_modules/`, `.venv/`, `dist/`, `__pycache__/`;
@@ -45,7 +46,7 @@ Preconditions: every pull request intended for submission is merged into main an
 ## 4. Canvas upload and download-and-reopen check
 
 1. Open "Stage 2 Code Submission" from the course's Assignments list (open from 26 October); confirm that it still shows due 1 November 23:59 Sydney and zip files only; record any change.
-2. Upload `returnops-au-stage2-submission-v1.zip` (with the statement PDF inside at the zip root, section 3 step 4). A separate PDF cannot be uploaded to a zip-only item; if the tutor named another channel for the statement, use it and record it here. One member uploads for the group; the submission is shared by all three.
+2. Upload `returnops-au-stage2-submission-v1.zip` (with the statement PDF inside at the zip root, section 3 step 4). A separate PDF cannot be uploaded to a zip-only item, and the tutor named no other channel (26 October). One member uploads for the group; the submission is shared by all three.
 3. Record the Canvas receipt: submission time shown by Canvas, attempt number, file names and sizes; keep a screenshot outside the repository.
 4. Download the submitted zip from Canvas into a new empty directory. Compute its SHA-256: it must equal the value from section 3 step 4. Check the archive comment (commit ID) and that `returnops-au/README.md` opens with the project overview, whose Status section carries the packaging date.
 5. Open the statement PDF from the downloaded zip; check group number (10), names, student IDs and that each criterion row totals 100%.

@@ -2,6 +2,8 @@
 
 Owner: A Jingbo Chai (organiser). Speakers: A Jingbo Chai, B Chengsi Li, C Yuwei Tao. Work package R.05, sub-check R.05.b "final-week demo", in the unchanged [work packages](08-delivery-work-packages.md) (Owner A, Reviewer C). This is a script and checklist for a demo that has not taken place. No rehearsal, no live model call and no Canvas download had been carried out when it was written (22 October 2026, Sydney); every expected output below comes from the repository files named next to it and is marked **(not verified)** where no run is recorded. It records no acceptance by any member, no Gate result and no Jira status.
 
+Slot: Monday 2 November 2026, 16:00-17:00 Sydney (Week 13; chosen by A on 26 October 2026). The upload is due the day before, so the rehearsal from the Canvas download (pass 2) runs between the afternoon of 1 November and the morning of 2 November ([submission runbook](47-stage2-submission-runbook.md), section 2).
+
 Companion documents: [Gate 2 roadmap](46-gate2-roadmap.md), [submission runbook](47-stage2-submission-runbook.md), [submission checklist](28-stage2-submission-checklist.md).
 
 ## 1. Audience and purpose

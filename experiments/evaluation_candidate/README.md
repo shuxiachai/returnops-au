@@ -11,6 +11,37 @@ The [fixed evaluation protocol](../../docs/00-project-definition-v1.md),
 [allocation](../../docs/07-frozen-work-allocation.md) and
 [E.01/E.09 dependencies](../../docs/08-delivery-work-packages.md) remain authoritative.
 
+## Timing-export interruption correction — 26 October 2026
+
+The local timing CLI now removes its own unconfirmed report when a catchable
+exception interrupts the existing write/flush/fsync/close window. Previously,
+Ctrl+C during that window could leave a report despite unsuccessful export.
+`KeyboardInterrupt` now produces only `HUMAN_TIMING_INTERRUPTED` on stderr and
+exit 130, without a success message. Other termination exceptions retain their
+original semantics; the regression preserves `SystemExit(7)`.
+
+The cleanup checks the created file's device/inode before unlinking: an existing
+destination is never overwritten, and a replacement at that path is preserved.
+Exclusive creation, private permissions and the unsupported-platform refusal
+remain unchanged. This is not an atomic-export or arbitrary-interruption
+guarantee: SIGKILL, power loss, interruption before the cleanup window or during
+cleanup, and hostile concurrent path changes still need separate handling.
+Do not accept an interrupted export as evidence; investigate any residual file
+and rerun to a new path. Never overwrite an existing timing record.
+
+Local regression coverage uses public synthetic records only: partial write,
+flush, fsync and close interruption; preserved termination status; concurrent
+replacement preservation; and an owned subprocess receiving a real POSIX SIGINT
+at an injected fsync barrier. The 35 human-timing tests / 36 subtests pass on
+macOS. The signal test does not exercise disk-full, power-loss or an actual
+student timing session. Commands are unchanged; no timing formula, percentile
+convention, label guide, blind-order rule, A/B code or public wire contract changed.
+
+E.01 review/freeze, exact corpus admission, the sealed initial 30 labels and
+20-case subset, real independent A/B timed records and their later review remain
+outstanding. This reliability correction is preparation for those steps, not
+their completion or a formal E.09/E.08 acceptance.
+
 ## Current submission status — 24 October 2026
 
 This dated update follows [Issue #123](https://github.com/shuxiachai/returnops-au/issues/123).
