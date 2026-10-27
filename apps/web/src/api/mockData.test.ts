@@ -79,7 +79,7 @@ describe('mock queue and wording (#122 items 1 and 3)', () => {
     }
     const events = Object.values(MOCK_AUDIT_EVENTS).flat();
     // Only the Founder approves, and no agent closes a case.
-    for (const event of events.filter((e) => e.event_type === 'FOUNDER_APPROVED')) {
+    for (const event of events.filter((e) => e.event_type === 'FOUNDER_DECISION_ACCEPTED' || e.event_type === 'FOUNDER_APPROVAL_ISSUED')) {
       expect(event.actor).toMatchObject({ kind: 'HUMAN', role: 'FOUNDER' });
     }
     const completed = events.filter((e) => e.event_type === 'CASE_COMPLETED');

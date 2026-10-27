@@ -60,6 +60,17 @@ export const MOCK_CUSTOMER_CASES: Record<string, CustomerCaseView> = {
     collection_windows: {
       statements: {
         kind: 'STATEMENT',
+        snapshot_id: 'snap_demo_001',
+        snapshot_case_version: 2,
+        total_records: 1,
+        preview_count: 1,
+        unavailable_count: 0,
+        truncated: false,
+      },
+      evidence: {
+        kind: 'EVIDENCE',
+        snapshot_id: 'snap_demo_001',
+        snapshot_case_version: 2,
         total_records: 1,
         preview_count: 1,
         unavailable_count: 0,

@@ -121,6 +121,29 @@ describe('client', () => {
       }
     });
 
+    it('treats bound evidence as material, so no reference question is asked', async () => {
+      const receipt = await createCase({
+        original_message: 'Photo attached, no order number.',
+        requested_outcome: 'REFUND',
+        evidence_ids: ['ev_material_1'],
+      });
+      const read = await getCustomerCase(receipt.case_id);
+
+      expect(read.status).toBe('UNDER_INVESTIGATION');
+      expect(read.clarification).toBeUndefined();
+    });
+
+    it('hands out copies, so the receipt a customer is reading cannot change under it', async () => {
+      const receipt = await createCase({ original_message: 'Two cups arrived chipped.' });
+      expect(receipt.status).toBe('SUBMITTED');
+
+      const firstRead = await getCustomerCase(receipt.case_id);
+
+      expect(firstRead.status).toBe('AWAITING_INFORMATION');
+      expect(receipt.status).toBe('SUBMITTED');
+      expect(firstRead).not.toBe(receipt);
+    });
+
     it('fetches existing customer case by ID in mock mode', async () => {
       const caseView = await getCustomerCase('case_demo_001');
       expect(caseView.case_id).toBe('case_demo_001');

@@ -95,7 +95,7 @@ cd returnops-au/apps/web
 npm test
 ```
 
-### Test Coverage Summary (179 Automated Tests Passing Across 19 Test Files):
+### Test Coverage Summary (182 Automated Tests Passing Across 19 Test Files):
 
 > These entries describe what the assertions actually check. The counts measure
 > passing assertions, not behavioural coverage; the explicit limits of this suite
