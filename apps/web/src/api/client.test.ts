@@ -340,14 +340,14 @@ describe('client', () => {
         'fetch',
         vi.fn(async () =>
           jsonResponse(409, {
-            error: { code: 'IDEMPOTENCY_KEY_REUSED', message: 'Key reused with a different payload' },
+            error: { code: 'IDEMPOTENCY_CONFLICT', message: 'Key reused with a different payload' },
           })
         )
       );
 
       await expect(
         createCase({ original_message: 'changed payload' }, 'case_idem_lostresponse_01')
-      ).rejects.toMatchObject({ status: 409, code: 'IDEMPOTENCY_KEY_REUSED' });
+      ).rejects.toMatchObject({ status: 409, code: 'IDEMPOTENCY_CONFLICT' });
     });
 
     it('downloads protected evidence with the bearer header and never in the URL', async () => {
@@ -415,7 +415,7 @@ describe('client', () => {
         'fetch',
         vi.fn(async () =>
           jsonResponse(409, {
-            error: { code: 'VERSION_CONFLICT', message: 'expected_case_version is stale' },
+            error: { code: 'STALE_CASE_VERSION', message: 'expected_case_version is stale' },
           })
         )
       );
@@ -427,7 +427,7 @@ describe('client', () => {
           answers: [{ question_id: 'q_01', text: 'Box arrived crushed.' }],
           evidence_ids: [],
         })
-      ).rejects.toMatchObject({ status: 409, code: 'VERSION_CONFLICT' });
+      ).rejects.toMatchObject({ status: 409, code: 'STALE_CASE_VERSION' });
     });
 
     it('sends the caller-supplied idempotency key on evidence uploads as well as intake (Finding 1)', async () => {
@@ -639,10 +639,10 @@ describe('client', () => {
 
   describe('ApiError', () => {
     it('correctly constructs ApiError with status, message, code and correlationId', () => {
-      const err = new ApiError(409, 'Version conflict', 'VERSION_CONFLICT', 'corr_123');
+      const err = new ApiError(409, 'Version conflict', 'STALE_CASE_VERSION', 'corr_123');
       expect(err.status).toBe(409);
       expect(err.message).toBe('Version conflict');
-      expect(err.code).toBe('VERSION_CONFLICT');
+      expect(err.code).toBe('STALE_CASE_VERSION');
       expect(err.correlationId).toBe('corr_123');
       expect(err.name).toBe('ApiError');
     });
