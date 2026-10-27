@@ -355,9 +355,47 @@ function fixtureHash(input: string): string {
   return word.repeat(8).slice(0, 64);
 }
 
-// A usable order reference is what the server accepts (the synthetic SYN-#### form).
+// Case ids in the order they were first paged, so an index cursor stays stable.
+let MOCK_QUEUE_ORDER: string[] = [];
+
+// Mock Mode's stand-in for the intake worker: the first read after a lodgement decides
+// whether the purchase context is missing and, if so, attaches the question set the
+// server's investigation_admission.issue_questions would issue.
+const MOCK_PENDING_INTAKE = new Set<string>();
+
+function runMockIntake(c: CustomerCaseView): void {
+  if (!MOCK_PENDING_INTAKE.delete(c.case_id)) return;
+  const reference = c.statements.find((statement) => statement.kind === 'ORIGINAL')?.order_reference;
+  if (hasUsableOrderReference(reference)) {
+    c.status = 'UNDER_INVESTIGATION';
+    return;
+  }
+  c.status = 'AWAITING_INFORMATION';
+  c.case_version += 1;
+  c.updated_at = new Date().toISOString();
+  c.clarification = {
+    question_set_id: 'qset_' + Date.now().toString(36),
+    input_version: c.input_version,
+    questions: [
+      {
+        question_id: 'q_auto_ref',
+        text: 'Provide an order reference (at most 120 characters), or use the alternative purchase-context question.',
+        reason: 'No order is verified. Either an order reference or alternative purchase material can continue the investigation.',
+      },
+      {
+        question_id: 'q_auto_alt',
+        text: 'Alternatively, describe the purchase or attach supporting evidence; you do not also need an order reference.',
+        reason: 'Alternative material will be retained for further verification; it does not itself verify an order.',
+      },
+    ],
+  };
+}
+
+// The server's only test on a reference (investigation_admission.py:53): non-empty,
+// trimmed, at most 120 characters. It is not restricted to the synthetic SYN-#### form.
 function hasUsableOrderReference(reference?: string): boolean {
-  return Boolean(reference && /^SYN-\d{4}$/i.test(reference.trim()));
+  const trimmed = (reference ?? '').trim();
+  return trimmed.length > 0 && trimmed.length <= 120;
 }
 
 export async function createCase(req: CreateCaseRequest, idempotencyKey?: string): Promise<CustomerCaseView> {
@@ -367,7 +405,7 @@ export async function createCase(req: CreateCaseRequest, idempotencyKey?: string
       case_id: newCaseId,
       case_version: 1,
       input_version: 1,
-      status: 'AWAITING_INFORMATION',
+      status: 'SUBMITTED',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       statements: [
@@ -391,33 +429,12 @@ export async function createCase(req: CreateCaseRequest, idempotencyKey?: string
         content_path: `/v1/evidence/${id}/content`,
       })),
     };
-    // Mock Mode mirrors the server's rule (investigation_admission.issue_questions):
-    // without a usable order reference the case waits for information and asks for
-    // one, plus the alternative purchase-context question. With a reference it goes
-    // straight to the investigation. The old fixed packaging question was invented
-    // and contradicted what the live server asks.
-    if (hasUsableOrderReference(req.order_reference)) {
-      newCase.status = 'UNDER_INVESTIGATION';
-    } else {
-      newCase.status = 'AWAITING_INFORMATION';
-      newCase.clarification = {
-        question_set_id: 'qset_' + Date.now().toString(36),
-        input_version: 1,
-        questions: [
-          {
-            question_id: 'q_auto_ref',
-            text: 'Provide an order reference (at most 120 characters), or use the alternative purchase-context question.',
-            reason: 'No order is verified. Either an order reference or alternative purchase material can continue the investigation.',
-          },
-          {
-            question_id: 'q_auto_alt',
-            text: 'Alternatively, describe the purchase or attach supporting evidence; you do not also need an order reference.',
-            reason: 'Alternative material will be retained for further verification; it does not itself verify an order.',
-          },
-        ],
-      };
-    }
+    // The receipt is always SUBMITTED version 1 -- the server asserts exactly that
+    // (customer_service.py:258, raising INTERNAL_ERROR otherwise). The intake worker
+    // adds the question set afterwards, so the first read after creation attaches it.
+    newCase.status = 'SUBMITTED';
     MOCK_CUSTOMER_CASES[newCaseId] = newCase;
+    MOCK_PENDING_INTAKE.add(newCaseId);
     return newCase;
   }
 
@@ -439,6 +456,7 @@ export async function getCustomerCase(caseId: string): Promise<CustomerCaseView>
     if (!c) {
       throw new ApiError(404, `Case ${caseId} not found in mock store`, 'NOT_FOUND');
     }
+    runMockIntake(c);
     return c;
   }
   return request<CustomerCaseView>(`/v1/cases/${encodeURIComponent(caseId)}`);
@@ -540,7 +558,12 @@ export async function listFounderCases(cursor?: string, limit = 20): Promise<Cas
         updated_at: c.updated_at,
         issue_category: 'UNCLEAR' as const,
       }));
-    const all = [...lodged, ...MOCK_FOUNDER_SUMMARIES];
+    // An index cursor is only stable against a fixed list, and this list gains a row
+    // whenever a case is lodged. The order is frozen for the duration of one
+    // pagination, so page 2 cannot repeat or skip a row (#122 review, finding 8).
+    if (!cursor) MOCK_QUEUE_ORDER = [...lodged, ...MOCK_FOUNDER_SUMMARIES].map((summary) => summary.case_id);
+    const byId = new Map([...lodged, ...MOCK_FOUNDER_SUMMARIES].map((summary) => [summary.case_id, summary]));
+    const all = MOCK_QUEUE_ORDER.map((caseId) => byId.get(caseId)).filter((summary): summary is CaseSummary => Boolean(summary));
     const startIdx = cursor ? parseInt(cursor, 10) || 0 : 0;
     const items = all.slice(startIdx, startIdx + limit);
     const next_cursor = startIdx + limit < all.length ? String(startIdx + limit) : undefined;
@@ -701,14 +724,9 @@ export async function recordFounderDecision(
     const previousHash = previous.length > 0
       ? previous[previous.length - 1].event_hash ?? ZERO_HASH
       : ZERO_HASH;
-    const eventType =
-      req.decision === 'APPROVE'
-        ? 'FOUNDER_APPROVED'
-        : req.decision === 'REJECT'
-          ? 'FOUNDER_REJECTED'
-          : req.decision === 'REQUEST_REVISION'
-            ? 'FOUNDER_REVISION_REQUESTED'
-            : 'MANUAL_HANDLED';
+    // Every accepted decision writes FOUNDER_DECISION_ACCEPTED on the server
+    // (approve_decision.py:112 and the reject, revision and manual paths alike).
+    const eventType = 'FOUNDER_DECISION_ACCEPTED';
     const body = JSON.stringify({ caseId, decision: req.decision, reason: req.reason, decidedAt, previousHash });
     MOCK_AUDIT_EVENTS[caseId] = [
       ...previous,

@@ -64,25 +64,35 @@ describe('client', () => {
       const receipt = await createCase({
         original_message: 'The coffee maker was defective upon arrival.',
         requested_outcome: 'REPLACEMENT',
-        order_reference: 'ORD-AU-9999',
+        // No reference: this is the case that must be asked for one.
         evidence_ids: [],
       });
 
       expect(receipt.case_id).toBeDefined();
-      // Mock Mode mirrors the server: without a usable order reference the case
-      // waits for information and asks for one, plus the alternative question.
-      expect(receipt.status).toBe('AWAITING_INFORMATION');
-      expect(receipt.clarification?.questions.map((q) => q.question_id)).toEqual(['q_auto_ref', 'q_auto_alt']);
+      // The server's receipt is SUBMITTED version 1 and nothing else
+      // (customer_service.py:258); the intake worker adds the questions afterwards.
+      expect(receipt.status).toBe('SUBMITTED');
+      expect(receipt.case_version).toBe(1);
+      expect(receipt.clarification).toBeUndefined();
       expect(receipt.statements[0].raw_text).toBe('The coffee maker was defective upon arrival.');
+
+      // The first read runs the intake: no usable reference asks for one plus the
+      // alternative question, and any non-empty reference up to 120 characters
+      // (the server's own test) goes straight to the investigation.
+      const firstRead = await getCustomerCase(receipt.case_id);
+      expect(firstRead.status).toBe('AWAITING_INFORMATION');
+      expect(firstRead.clarification?.questions.map((q) => q.question_id)).toEqual(['q_auto_ref', 'q_auto_alt']);
 
       const withReference = await createCase({
         original_message: 'The coffee maker was defective upon arrival.',
         requested_outcome: 'REPLACEMENT',
-        order_reference: 'SYN-1001',
+        order_reference: 'A12345',
         evidence_ids: [],
       });
-      expect(withReference.status).toBe('UNDER_INVESTIGATION');
-      expect(withReference.clarification).toBeUndefined();
+      expect(withReference.status).toBe('SUBMITTED');
+      const referenceRead = await getCustomerCase(withReference.case_id);
+      expect(referenceRead.status).toBe('UNDER_INVESTIGATION');
+      expect(referenceRead.clarification).toBeUndefined();
     });
 
     it('writes an audit event for a mock decision, as the server does', async () => {
@@ -102,7 +112,7 @@ describe('client', () => {
 
       expect(after).toHaveLength(before.length + 1);
       const added = after[after.length - 1];
-      expect(added.event_type).toBe('FOUNDER_REJECTED');
+      expect(added.event_type).toBe('FOUNDER_DECISION_ACCEPTED');
       expect(added.previous_event_hash).toBe(before[before.length - 1]?.event_hash ?? '0'.repeat(64));
       expect(added.event_hash).toMatch(/^[0-9a-f]{64}$/);
       } finally {
