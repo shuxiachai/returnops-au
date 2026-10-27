@@ -49,6 +49,7 @@ describe('CustomerPortal (UC-01 & UC-01E)', () => {
       expect(screen.getByText('Return Request Submitted Successfully!')).toBeInTheDocument();
     });
 
+    // The receipt is SUBMITTED: the intake runs on the next read, not here.
     expect(screen.getByText('Received')).toBeInTheDocument();
     expect(screen.queryByText('SUBMITTED')).not.toBeInTheDocument();
     expect(screen.getByText(/Lodge Another Return/i)).toBeInTheDocument();

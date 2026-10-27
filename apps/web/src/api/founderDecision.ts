@@ -21,12 +21,31 @@ export type DecisionTargetResult = { target: DecisionTarget } | { unavailable: s
  * identifier is copied from that view and none is invented: when a required
  * value is missing, the decision is unavailable and the message says why.
  */
-export function selectDecisionTarget(view: CaseView, decision: FounderDecisionType): DecisionTargetResult {
+export function selectDecisionTarget(
+  view: CaseView,
+  decision: FounderDecisionType,
+  now: number = Date.now()
+): DecisionTargetResult {
   const proposal = view.current_proposal;
 
   // The same state rules as the server, so no button offers a decision it would refuse.
   const refusal = decisionStateRefusal(view.status, decision);
   if (refusal) return { unavailable: refusal };
+
+  // #122 item 12: an approval whose preview has expired is refused by the server,
+  // so the button must not stay enabled. The case view is re-read every 5 s, which
+  // is what puts a fresh preview in front of the Founder.
+  if (decision === 'APPROVE' && view.action_preview?.scope?.expires_at) {
+    const expiresAt = Date.parse(view.action_preview.scope.expires_at);
+    if (Number.isFinite(expiresAt) && expiresAt <= now) {
+      return {
+        unavailable:
+          // The timestamp is the server's; the comparison uses this browser's clock, so
+          // the wording reports the local reading rather than claiming a server refusal.
+          `This browser reads the approval preview as expired at ${view.action_preview.scope.expires_at}. Close this dialog to reload the case and check the current preview; the server decides whether it accepts the approval.`,
+      };
+    }
+  }
 
   if (decision === 'APPROVE') {
     // The server shows action_preview only while the preview for the current

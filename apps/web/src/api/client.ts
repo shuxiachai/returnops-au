@@ -35,14 +35,26 @@ export class ApiError extends Error {
   public code?: string;
   public correlationId?: string;
   public details?: unknown;
+  // The contract's ErrorEnvelope.retryable (#122 item 7). It was never read, so the
+  // customer was told to retry requests the server had already marked permanent.
+  // Undefined means the reply carried no envelope (a lost response or a proxy 500).
+  public retryable?: boolean;
 
-  constructor(status: number, message: string, code?: string, correlationId?: string, details?: unknown) {
+  constructor(
+    status: number,
+    message: string,
+    code?: string,
+    correlationId?: string,
+    details?: unknown,
+    retryable?: boolean
+  ) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.code = code;
     this.correlationId = correlationId;
     this.details = details;
+    this.retryable = retryable;
   }
 }
 
@@ -161,7 +173,14 @@ async function request<T>(
         }
       }
       const code = errEnvelope?.error?.code || `HTTP_${response.status}`;
-      throw new ApiError(response.status, msg, code, correlationId, errEnvelope?.error?.details);
+      throw new ApiError(
+        response.status,
+        msg,
+        code,
+        correlationId,
+        errEnvelope?.error?.details,
+        errEnvelope?.error?.retryable
+      );
     }
 
     if (response.status === 204) {
@@ -261,7 +280,9 @@ export async function stageEvidence(
       res.status,
       errEnv?.error?.message || 'Failed to upload evidence',
       errEnv?.error?.code,
-      correlationId
+      correlationId,
+      undefined,
+      errEnv?.error?.retryable
     );
   }
 
@@ -321,9 +342,72 @@ export async function downloadEvidence(evidenceId: string, fallbackFilename = 'e
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+// Fixture hashes for Mock Mode: a 64-hex value derived from the event body. It is
+// not a SHA-256 digest and nothing in the UI claims it is (the audit panel says the
+// view does not recompute or verify the chain).
+const ZERO_HASH = '0'.repeat(64);
+
+function fixtureHash(input: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  const word = (hash >>> 0).toString(16).padStart(8, '0');
+  return word.repeat(8).slice(0, 64);
+}
+
+// Case ids in the order they were first paged, so an index cursor stays stable.
+let MOCK_QUEUE_ORDER: string[] = [];
+
+// Mock Mode's stand-in for the intake worker: the first read after a lodgement decides
+// whether the purchase context is missing and, if so, attaches the question set the
+// server's investigation_admission.issue_questions would issue.
+const MOCK_PENDING_INTAKE = new Set<string>();
+// The lodgement's order reference, kept beside the case as the server keeps it.
+const MOCK_LODGED_REFERENCES = new Map<string, string | undefined>();
+
+function runMockIntake(c: CustomerCaseView): void {
+  if (!MOCK_PENDING_INTAKE.delete(c.case_id)) return;
+  const reference = MOCK_LODGED_REFERENCES.get(c.case_id);
+  // intake_processor.py:57: purchase context is needed only when the case has neither a
+  // usable reference nor any bound material.
+  const hasMaterial = c.evidence.length > 0;
+  if (hasMaterial || hasAnyReference(reference)) {
+    c.status = 'UNDER_INVESTIGATION';
+    return;
+  }
+  c.status = 'AWAITING_INFORMATION';
+  c.case_version += 1;
+  c.updated_at = new Date().toISOString();
+  c.clarification = {
+    question_set_id: 'qset_' + Date.now().toString(36),
+    input_version: c.input_version,
+    questions: [
+      {
+        question_id: 'q_auto_ref',
+        text: 'Provide an order reference (at most 120 characters), or use the alternative purchase-context question.',
+        reason: 'No order is verified. Either an order reference or alternative purchase material can continue the investigation.',
+      },
+      {
+        question_id: 'q_auto_alt',
+        text: 'Alternatively, describe the purchase or attach supporting evidence; you do not also need an order reference.',
+        reason: 'Alternative material will be retained for further verification; it does not itself verify an order.',
+      },
+    ],
+  };
+}
+
+// The intake worker's own test (intake_processor.py:92) is emptiness only; the 120
+// character cap belongs to answer admission (investigation_admission.py:53).
+function hasAnyReference(reference?: string): boolean {
+  return (reference ?? '').trim().length > 0;
+}
+
 export async function createCase(req: CreateCaseRequest, idempotencyKey?: string): Promise<CustomerCaseView> {
   if (isMockMode()) {
     const newCaseId = 'case_demo_' + Math.floor(100 + Math.random() * 900);
+    const snapshotId = 'snap_' + Date.now().toString(36);
     const newCase: CustomerCaseView = {
       case_id: newCaseId,
       case_version: 1,
@@ -331,15 +415,15 @@ export async function createCase(req: CreateCaseRequest, idempotencyKey?: string
       status: 'SUBMITTED',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      // The contract's CustomerStatement carries no order_reference and no evidence_ids;
+      // the reference is kept in MOCK_LODGED_REFERENCES, as the server keeps it.
       statements: [
         {
           statement_id: 'stmt_' + Date.now().toString(36),
           kind: 'ORIGINAL',
           raw_text: req.original_message,
           submitted_at: new Date().toISOString(),
-          order_reference: req.order_reference,
           requested_outcome: req.requested_outcome,
-          evidence_ids: req.evidence_ids,
         },
       ],
       evidence: (req.evidence_ids || []).map((id, idx) => ({
@@ -347,24 +431,47 @@ export async function createCase(req: CreateCaseRequest, idempotencyKey?: string
         filename: `uploaded_evidence_${idx + 1}.png`,
         media_type: 'image/png',
         size_bytes: 245000,
+        // The contract requires both of these on a BOUND attachment.
+        sha256: 'a'.repeat(64),
+        case_id: newCaseId,
         status: 'BOUND' as const,
         created_at: new Date().toISOString(),
         content_path: `/v1/evidence/${id}/content`,
       })),
-      clarification: {
-        question_set_id: 'qset_' + Date.now().toString(36),
-        input_version: 1,
-        questions: [
-          {
-            question_id: 'q_auto_1',
-            text: 'Could you confirm the condition of the shipping packaging upon arrival?',
-            reason: 'Intake assessment checking logistics transit integrity.',
-          },
-        ],
+      // The server always sends both windows with a case view, and the contract allows
+      // no others. One snapshot id for the pair, as history.py mints one per snapshot.
+      collection_windows: {
+        statements: {
+          kind: 'STATEMENT' as const,
+          snapshot_id: snapshotId,
+          snapshot_case_version: 1,
+          total_records: 1,
+          preview_count: 1,
+          unavailable_count: 0,
+          truncated: false,
+          start_cursor: 'cur_' + snapshotId,
+        },
+        evidence: {
+          kind: 'EVIDENCE' as const,
+          snapshot_id: snapshotId,
+          snapshot_case_version: 1,
+          total_records: (req.evidence_ids || []).length,
+          preview_count: (req.evidence_ids || []).length,
+          unavailable_count: 0,
+          truncated: false,
+          start_cursor: 'cur_' + snapshotId,
+        },
       },
     };
+    // The receipt is always SUBMITTED version 1 -- the server asserts exactly that
+    // (customer_service.py:258, raising INTERNAL_ERROR otherwise). The intake worker
+    // adds the question set afterwards, so the first read after creation attaches it.
+    newCase.status = 'SUBMITTED';
     MOCK_CUSTOMER_CASES[newCaseId] = newCase;
-    return newCase;
+    MOCK_PENDING_INTAKE.add(newCaseId);
+    MOCK_LODGED_REFERENCES.set(newCaseId, req.order_reference);
+    // A copy: the store object is mutated by the intake on the next read.
+    return { ...newCase };
   }
 
   return request<CustomerCaseView>(
@@ -385,7 +492,9 @@ export async function getCustomerCase(caseId: string): Promise<CustomerCaseView>
     if (!c) {
       throw new ApiError(404, `Case ${caseId} not found in mock store`, 'NOT_FOUND');
     }
-    return c;
+    runMockIntake(c);
+    // A copy, so the receipt object the page already holds does not change under it.
+    return { ...c };
   }
   return request<CustomerCaseView>(`/v1/cases/${encodeURIComponent(caseId)}`);
 }
@@ -472,7 +581,26 @@ export async function submitClarification(
 
 export async function listFounderCases(cursor?: string, limit = 20): Promise<CaseList> {
   if (isMockMode()) {
-    const all = MOCK_FOUNDER_SUMMARIES;
+    // A case lodged in the Customer Portal is in the mock store but not in the fixed
+    // fixture summaries, so the Founder could never see what the customer had just
+    // lodged. Derive a summary for anything the fixtures do not cover.
+    const lodged: CaseSummary[] = Object.values(MOCK_CUSTOMER_CASES)
+      .filter((c) => !MOCK_FOUNDER_SUMMARIES.some((summary) => summary.case_id === c.case_id))
+      .map((c) => ({
+        case_id: c.case_id,
+        case_version: c.case_version,
+        input_version: c.input_version,
+        status: c.status,
+        created_at: c.created_at,
+        updated_at: c.updated_at,
+        issue_category: 'UNCLEAR' as const,
+      }));
+    // An index cursor is only stable against a fixed list, and this list gains a row
+    // whenever a case is lodged. The order is frozen for the duration of one
+    // pagination, so page 2 cannot repeat or skip a row (#122 review, finding 8).
+    if (!cursor) MOCK_QUEUE_ORDER = [...lodged, ...MOCK_FOUNDER_SUMMARIES].map((summary) => summary.case_id);
+    const byId = new Map([...lodged, ...MOCK_FOUNDER_SUMMARIES].map((summary) => [summary.case_id, summary]));
+    const all = MOCK_QUEUE_ORDER.map((caseId) => byId.get(caseId)).filter((summary): summary is CaseSummary => Boolean(summary));
     const startIdx = cursor ? parseInt(cursor, 10) || 0 : 0;
     const items = all.slice(startIdx, startIdx + limit);
     const next_cursor = startIdx + limit < all.length ? String(startIdx + limit) : undefined;
@@ -522,8 +650,20 @@ export async function listFounderCaseAudit(
   cursor?: string,
   limit = 50
 ): Promise<AuditEvent[]> {
+  const page = await listFounderCaseAuditPage(caseId, cursor, limit);
+  return page.items;
+}
+
+// One page of the audit chain (#122 item 13). The console used to call the
+// single-page read and drop `next_cursor`, so a case with more than 50 events
+// showed only its first page as if that were the whole chain.
+export async function listFounderCaseAuditPage(
+  caseId: string,
+  cursor?: string,
+  limit = 50
+): Promise<{ items: AuditEvent[]; next_cursor?: string }> {
   if (isMockMode()) {
-    return MOCK_AUDIT_EVENTS[caseId] || [];
+    return { items: MOCK_AUDIT_EVENTS[caseId] || [], next_cursor: undefined };
   }
   const params = new URLSearchParams();
   if (cursor) params.set('cursor', cursor);
@@ -531,8 +671,8 @@ export async function listFounderCaseAudit(
   const res = await request<AuditPage | AuditEvent[]>(
     `/v1/founder/cases/${encodeURIComponent(caseId)}/audit?${params.toString()}`
   );
-  if (Array.isArray(res)) return res;
-  return res.items || [];
+  if (Array.isArray(res)) return { items: res, next_cursor: undefined };
+  return { items: res.items || [], next_cursor: res.next_cursor || undefined };
 }
 
 export async function listFounderCaseHistory(
@@ -613,6 +753,49 @@ export async function recordFounderDecision(
         ];
       }
     }
+    // The server writes an audit event for every accepted decision; the mock store
+    // did not, so the chain after a decision looked untouched. The hashes are
+    // fixture values derived from the event body, not a real SHA-256 digest — the
+    // audit panel states that this view does not recompute or verify the chain.
+    const previous = (MOCK_AUDIT_EVENTS[caseId] ?? []);
+    const previousHash = previous.length > 0
+      ? previous[previous.length - 1].event_hash ?? ZERO_HASH
+      : ZERO_HASH;
+    // Every accepted decision writes FOUNDER_DECISION_ACCEPTED on the server
+    // (approve_decision.py:112 and the reject, revision and manual paths alike).
+    const eventType = 'FOUNDER_DECISION_ACCEPTED';
+    const body = JSON.stringify({ caseId, decision: req.decision, reason: req.reason, decidedAt, previousHash });
+    const decisionHash = fixtureHash(body);
+    const appended: AuditEvent[] = [
+      {
+        event_id: 'evt_' + Date.now().toString(36),
+        case_id: caseId,
+        sequence: previous.length + 1,
+        event_type: eventType,
+        actor: { kind: 'HUMAN', role: 'FOUNDER', principal_id: 'founder_demo' },
+        occurred_at: decidedAt,
+        previous_event_hash: previousHash,
+        event_hash: decisionHash,
+        payload: { decision: req.decision, reason: req.reason },
+      },
+    ];
+    // An APPROVE writes the decision and the approval that follows it
+    // (approve_decision.py writes FOUNDER_DECISION_ACCEPTED, then FOUNDER_APPROVAL_ISSUED);
+    // the other decisions write only the decision event.
+    if (req.decision === 'APPROVE') {
+      appended.push({
+        event_id: 'evt_' + Date.now().toString(36) + '_appr',
+        case_id: caseId,
+        sequence: previous.length + 2,
+        event_type: 'FOUNDER_APPROVAL_ISSUED',
+        actor: { kind: 'HUMAN', role: 'FOUNDER', principal_id: 'founder_demo' },
+        occurred_at: decidedAt,
+        previous_event_hash: decisionHash,
+        event_hash: fixtureHash(body + ':approval'),
+        payload: { decision: req.decision },
+      });
+    }
+    MOCK_AUDIT_EVENTS[caseId] = [...previous, ...appended];
     return {
       case_id: caseId,
       case_version: c ? c.case_version : 1,

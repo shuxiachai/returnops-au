@@ -18,9 +18,10 @@ import {
 import {
   listFounderCases,
   getFounderCase,
-  listFounderCaseAudit,
+  listFounderCaseAuditPage,
   recordFounderDecision,
   getFounderAnalytics,
+  downloadEvidence,
   isMockMode,
   ApiError,
 } from '../api/client';
@@ -49,6 +50,9 @@ import {
 } from '../utils/formatters';
 import { AdvisoryFactsCard } from '../components/AdvisoryFactsCard';
 import { CaseOutcomePanel } from '../components/CaseOutcomePanel';
+
+const AUDIT_PAGE_LIMIT = 50;
+const AUDIT_MAX_PAGES = 20;
 
 type DetailTab = 'proposal' | 'order' | 'statements' | 'outcome' | 'audit';
 
@@ -91,6 +95,8 @@ export const FounderConsole: React.FC = () => {
   const [caseDetail, setCaseDetail] = useState<CaseView | null>(null);
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
   const [auditError, setAuditError] = useState<string | null>(null);
+  // The chain is longer than this view reads; the events shown are still real.
+  const [auditOverflow, setAuditOverflow] = useState(false);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [detailTab, setDetailTab] = useState<DetailTab>('proposal');
   // A case that cannot be opened is reported on the page, not in a browser alert.
@@ -99,6 +105,9 @@ export const FounderConsole: React.FC = () => {
   const selectedCaseRef = useRef<string | null>(null);
   const detailLoad = useRef(0);
   const detailPollBusy = useRef(false);
+  // Customer evidence download (#122 item 5): the list is useless without it.
+  const [downloadingEvidence, setDownloadingEvidence] = useState<string | null>(null);
+  const [evidenceDownloadError, setEvidenceDownloadError] = useState<string | null>(null);
 
   // Decision Modal State (UC-04 / UC-03)
   const [decisionModalOpen, setDecisionModalOpen] = useState(false);
@@ -106,6 +115,11 @@ export const FounderConsole: React.FC = () => {
   const [decisionReason, setDecisionReason] = useState('');
   const [isSubmittingDecision, setIsSubmittingDecision] = useState(false);
   const [decisionError, setDecisionError] = useState<string | null>(null);
+  // This browser's reading of the preview's expiry. Only APPROVE depends on a
+  // preview: reject, revision and manual takeover are still valid on the same
+  // case, so this must never disable them (review round 2, finding 1).
+  const previewExpiresAt = caseDetail?.action_preview?.scope?.expires_at;
+  const previewExpired = Boolean(previewExpiresAt) && Date.parse(previewExpiresAt as string) <= Date.now();
   // Idempotency state for the decision POST, as in the customer intake form
   const [pendingDecisionKey, setPendingDecisionKey] = useState<string | null>(null);
   const [lastDecisionPayload, setLastDecisionPayload] = useState<string | null>(null);
@@ -206,12 +220,40 @@ export const FounderConsole: React.FC = () => {
   const describeApiError = (err: unknown, fallback: string) =>
     err instanceof ApiError ? `[${err.code}] ${err.message}` : err instanceof Error ? err.message : fallback;
 
-  const applyAuditResult = (auditResult: PromiseSettledResult<AuditEvent[]>) => {
+  // #122 item 13: read every page of the chain, with a bound, so a long case is
+  // not silently truncated to its first page. Overflow is shown as an error rather
+  // than passed off as the whole chain.
+  const loadWholeAuditChain = async (
+    caseId: string
+  ): Promise<{ events: AuditEvent[]; overflow: boolean }> => {
+    const events: AuditEvent[] = [];
+    let cursor: string | undefined;
+    for (let page = 0; page < AUDIT_MAX_PAGES; page += 1) {
+      const result = await listFounderCaseAuditPage(caseId, cursor, AUDIT_PAGE_LIMIT);
+      events.push(...(result.items ?? []));
+      const next = result.next_cursor;
+      // A repeated cursor or a page that adds nothing ends the read instead of
+      // spending the whole bound on the same page.
+      if (!next || next === cursor || (result.items ?? []).length === 0) {
+        return { events, overflow: false };
+      }
+      cursor = next;
+    }
+    // Longer than this view reads: say so, and keep the events already shown rather
+    // than replacing them with an error.
+    return { events, overflow: true };
+  };
+
+  const applyAuditResult = (
+    auditResult: PromiseSettledResult<{ events: AuditEvent[]; overflow: boolean }>
+  ) => {
     if (auditResult.status === 'fulfilled') {
-      setAuditEvents(auditResult.value);
+      setAuditEvents(auditResult.value.events);
+      setAuditOverflow(auditResult.value.overflow);
       setAuditError(null);
     } else {
       setAuditEvents([]);
+      setAuditOverflow(false);
       setAuditError(describeApiError(auditResult.reason, 'Failed to fetch audit events'));
     }
   };
@@ -224,10 +266,13 @@ export const FounderConsole: React.FC = () => {
     setIsLoadingDetail(true);
     setDetailTab(tab);
     setAuditError(null);
+    setAuditEvents([]);
+    setAuditOverflow(false);
+    setEvidenceDownloadError(null);
     try {
       const [detailResult, auditResult] = await Promise.allSettled([
         getFounderCase(caseId),
-        listFounderCaseAudit(caseId),
+        loadWholeAuditChain(caseId),
       ]);
       if (load !== detailLoad.current) return;
 
@@ -245,13 +290,29 @@ export const FounderConsole: React.FC = () => {
     }
   };
 
+  // Customer evidence download (#122 item 5). A refused download is shown on the
+  // page with the server's code, as everywhere else in this console.
+  const handleDownloadEvidence = async (evidenceId: string, filename: string) => {
+    setDownloadingEvidence(evidenceId);
+    setEvidenceDownloadError(null);
+    try {
+      await downloadEvidence(evidenceId, filename);
+    } catch (err: unknown) {
+      const text =
+        err instanceof ApiError ? `[${err.code}] ${err.message}` : 'The evidence file could not be downloaded.';
+      setEvidenceDownloadError(`${filename}: ${text}`);
+    } finally {
+      setDownloadingEvidence(null);
+    }
+  };
+
   // Reads the open case again without the loading screen, keeping the current
   // tab. Returns whether the case view was updated.
   const reloadCaseDetail = async (caseId: string): Promise<boolean> => {
     const load = ++detailLoad.current;
     const [detailResult, auditResult] = await Promise.allSettled([
       getFounderCase(caseId),
-      listFounderCaseAudit(caseId),
+      loadWholeAuditChain(caseId),
     ]);
     if (load !== detailLoad.current || selectedCaseRef.current !== caseId) return false;
     if (detailResult.status !== 'fulfilled') return false;
@@ -835,6 +896,87 @@ export const FounderConsole: React.FC = () => {
                           </p>
                         </div>
                       )}
+
+                      {/* #122 item 5: what the proposal conditions its advice on, and
+                          what it could not settle. Server text, rendered as plain text. */}
+                      {caseDetail.current_proposal.conditions &&
+                        caseDetail.current_proposal.conditions.length > 0 && (
+                          <div>
+                            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                              Conditions ({caseDetail.current_proposal.conditions.length})
+                            </div>
+                            <ul className="text-xs bg-white p-3 rounded-xl border border-slate-200 text-slate-800 space-y-1 list-disc list-inside leading-relaxed">
+                              {caseDetail.current_proposal.conditions.map((condition, i) => (
+                                <li key={i}>{condition}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                      {caseDetail.current_proposal.unresolved_questions &&
+                        caseDetail.current_proposal.unresolved_questions.length > 0 && (
+                          <div>
+                            <div className="text-xs font-semibold text-amber-700 uppercase tracking-wider mb-1">
+                              Unresolved questions ({caseDetail.current_proposal.unresolved_questions.length})
+                            </div>
+                            <ul className="text-xs bg-amber-50 p-3 rounded-xl border border-amber-200 text-amber-900 space-y-1 list-disc list-inside leading-relaxed">
+                              {caseDetail.current_proposal.unresolved_questions.map((question, i) => (
+                                <li key={i}>{question}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                      {/* #122 item 5: the contract's own citations, resolved against the
+                          passages the case view carries. Before this, the console showed
+                          only the mock-only `policy_citations` chips, so a live case
+                          view displayed no citations at all. */}
+                      {(() => {
+                        const citations = caseDetail.current_proposal?.citations ?? [];
+                        if (citations.length === 0) return null;
+                        const byPassage = new Map((caseDetail.cited_passages ?? []).map((p) => [p.passage_id, p]));
+                        return (
+                          <div>
+                            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                              Citations ({citations.length})
+                            </div>
+                            <div className="space-y-1.5">
+                              {citations.map((citation) => {
+                                const passage = byPassage.get(citation.passage_id);
+                                return (
+                                  <div
+                                    key={citation.citation_id}
+                                    className="p-2.5 bg-white rounded-xl border border-slate-200 text-xs space-y-1"
+                                  >
+                                    <div className="flex items-start justify-between gap-2">
+                                      <span className="font-semibold text-slate-800">
+                                        {passage ? passage.title : citation.document_id}
+                                      </span>
+                                      <span className="font-mono text-[10px] text-slate-500 shrink-0">
+                                        {citation.location}
+                                      </span>
+                                    </div>
+                                    {passage && (
+                                      <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">
+                                        {passage.content}
+                                      </p>
+                                    )}
+                                    <p className="text-[10px] text-slate-500">
+                                      {[citation.source_version ? `version ${citation.source_version}` : null,
+                                        `corpus ${citation.corpus_version}`,
+                                        passage?.is_synthetic ? 'synthetic corpus' : null,
+                                        passage ? null : 'passage not included in this case view',
+                                      ]
+                                        .filter(Boolean)
+                                        .join(' · ')}
+                                    </p>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   ) : (
                     <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 text-center text-xs text-slate-400">
@@ -914,10 +1056,40 @@ export const FounderConsole: React.FC = () => {
                         </div>
                       )}
 
+                      {caseDetail.current_review.revision_requests &&
+                        caseDetail.current_review.revision_requests.length > 0 && (
+                          <div className="space-y-1">
+                            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                              Revision requests ({caseDetail.current_review.revision_requests.length})
+                            </div>
+                            <ul className="text-xs bg-white p-3 rounded-xl border border-slate-200 text-slate-800 space-y-1 list-disc list-inside leading-relaxed">
+                              {caseDetail.current_review.revision_requests.map((request, i) => (
+                                <li key={i}>{request}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                      {caseDetail.current_review.questions && caseDetail.current_review.questions.length > 0 && (
+                        <div className="space-y-1">
+                          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                            Reviewer questions ({caseDetail.current_review.questions.length})
+                          </div>
+                          <ul className="text-xs bg-white p-3 rounded-xl border border-slate-200 text-slate-800 space-y-1 list-disc list-inside leading-relaxed">
+                            {caseDetail.current_review.questions.map((question) => (
+                              <li key={question.question_id}>{question.text}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
                       {caseDetail.current_review.policy_citations && (
                         <div>
                           <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                            Statutory & Policy Citations
+                            Statutory & Policy Citations{' '}
+                            <span className="font-normal normal-case text-slate-400">
+                              (mock fixture strings — the server sends `citations`, shown on the proposal card)
+                            </span>
                           </div>
                           <div className="flex flex-wrap gap-1.5">
                             {caseDetail.current_review.policy_citations.map((cite, i) => (
@@ -1051,18 +1223,70 @@ export const FounderConsole: React.FC = () => {
 
               {/* Tab: Statements */}
               {detailTab === 'statements' && (
-                <div className="space-y-3">
-                  {caseDetail.statements.map((stmt, idx) => (
-                    <div key={stmt.statement_id} className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-2">
-                      <div className="flex items-center justify-between text-slate-500">
-                        <span className="font-semibold text-slate-700">
-                          #{idx + 1} {stmt.kind === 'ORIGINAL' ? 'Original Lodgement' : 'Clarification Statement'}
-                        </span>
-                        <span>{formatDate(stmt.submitted_at)}</span>
+                <div className="space-y-6">
+                  <div className="space-y-3">
+                    {caseDetail.statements.map((stmt, idx) => (
+                      <div key={stmt.statement_id} className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-2">
+                        <div className="flex items-center justify-between text-slate-500">
+                          <span className="font-semibold text-slate-700">
+                            #{idx + 1} {stmt.kind === 'ORIGINAL' ? 'Original Lodgement' : 'Clarification Statement'}
+                          </span>
+                          <span>{formatDate(stmt.submitted_at)}</span>
+                        </div>
+                        <p className="text-sm text-slate-800 whitespace-pre-wrap">{stmt.raw_text}</p>
                       </div>
-                      <p className="text-sm text-slate-800 whitespace-pre-wrap">{stmt.raw_text}</p>
+                    ))}
+                  </div>
+
+                  {/* #122 item 5: the Founder could not see the customer's evidence at
+                      all. The list is contract-shaped and every file is downloadable. */}
+                  <div className="space-y-2">
+                    <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Customer evidence ({caseDetail.evidence?.length ?? 0})
                     </div>
-                  ))}
+                    {evidenceDownloadError && (
+                      <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs">
+                        {evidenceDownloadError}
+                      </div>
+                    )}
+                    {caseDetail.evidence && caseDetail.evidence.length > 0 ? (
+                      caseDetail.evidence.map((item) => (
+                        <div
+                          key={item.evidence_id}
+                          className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs flex items-center justify-between gap-3"
+                        >
+                          <div className="min-w-0">
+                            <div className="font-semibold text-slate-800 truncate">{item.filename}</div>
+                            <div className="text-[11px] text-slate-500">
+                              {[
+                                item.media_type,
+                                `${Math.max(0, Math.round(item.size_bytes / 1024))} KB`,
+                                item.status ?? null,
+                                item.description ?? null,
+                              ]
+                                .filter(Boolean)
+                                .join(' · ')}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadEvidence(item.evidence_id, item.filename)}
+                            disabled={downloadingEvidence === item.evidence_id}
+                            // Several rows share the visible word "Download"; the
+                            // accessible name says which file each one fetches.
+                            aria-label={`Download ${item.filename}`}
+                            className="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-700 font-medium hover:bg-slate-100 disabled:opacity-60 shrink-0"
+                          >
+                            {downloadingEvidence === item.evidence_id ? 'Downloading…' : 'Download'}
+                          </button>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-500 text-xs">
+                        No customer evidence is attached to this case.
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -1083,12 +1307,18 @@ export const FounderConsole: React.FC = () => {
                     <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 text-xs flex items-center space-x-2">
                       <FileText className="w-4 h-4 text-slate-500 flex-shrink-0" />
                       <span>
-                        Recorded Audit Events: each event shows its recorded SHA-256 hash and, where present, its previous-hash link. This view does not recompute or verify the chain.
+                        Recorded Audit Events: each event shows its recorded hash and, where present, its previous-hash link. This view does not recompute or verify the chain. In Mock Mode those hashes are fixture values rather than SHA-256 digests.
                       </span>
                     </div>
                   ) : (
                     <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-500 text-xs text-center">
                       No audit events recorded for this case.
+                    </div>
+                  )}
+
+                  {auditOverflow && (
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs">
+                      Only the first {AUDIT_MAX_PAGES * AUDIT_PAGE_LIMIT} recorded events were read. The events shown are real; the chain continues past them.
                     </div>
                   )}
 
@@ -1221,7 +1451,14 @@ export const FounderConsole: React.FC = () => {
               </h4>
               <button
                 onClick={() => setDecisionModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1"
+                disabled={isSubmittingDecision}
+                aria-label="Close decision confirmation"
+                title={
+                  isSubmittingDecision
+                    ? 'The decision is being sent. Closing now would hide whether the server accepted it.'
+                    : 'Close'
+                }
+                className="text-slate-400 hover:text-slate-600 p-1 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1282,21 +1519,40 @@ export const FounderConsole: React.FC = () => {
                   value={decisionReason}
                   onChange={(e) => setDecisionReason(e.target.value)}
                   placeholder="Record justification for statutory audit and customer notification..."
+                  disabled={isSubmittingDecision}
                   className="w-full text-xs p-3 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:bg-white resize-none"
                 />
               </div>
+
+              {pendingDecision === 'APPROVE' && previewExpired && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs">
+                  This browser reads the approval preview as expired at {previewExpiresAt}. Close this dialog to
+                  reload the case and check the current preview. Manual takeover, reject and request revision do not
+                  depend on a preview and remain available.
+                </div>
+              )}
 
               <div className="flex justify-end space-x-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setDecisionModalOpen(false)}
-                  className="px-4 py-2 text-xs font-medium text-slate-600 hover:text-slate-800"
+                  disabled={isSubmittingDecision}
+                  title={
+                    isSubmittingDecision
+                      ? 'The decision is being sent. Closing now would hide whether the server accepted it.'
+                      : undefined
+                  }
+                  className="px-4 py-2 text-xs font-medium text-slate-600 hover:text-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmittingDecision || decisionReason.trim().length === 0}
+                  disabled={
+                    isSubmittingDecision ||
+                    decisionReason.trim().length === 0 ||
+                    (pendingDecision === 'APPROVE' && previewExpired)
+                  }
                   className="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold transition-colors shadow-sm disabled:opacity-50"
                 >
                   {isSubmittingDecision ? 'Submitting...' : 'Record decision'}

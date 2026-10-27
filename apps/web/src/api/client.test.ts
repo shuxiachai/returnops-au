@@ -16,7 +16,7 @@ import {
   downloadEvidence,
   ApiError,
 } from './client';
-import { MOCK_FOUNDER_CASE_VIEWS } from './mockData';
+import { MOCK_AUDIT_EVENTS, MOCK_CUSTOMER_CASES, MOCK_FOUNDER_CASE_VIEWS } from './mockData';
 import type { AnalyticsSnapshot, CaseStatus, RiskOutcome } from '../types/domain';
 
 describe('client', () => {
@@ -64,13 +64,84 @@ describe('client', () => {
       const receipt = await createCase({
         original_message: 'The coffee maker was defective upon arrival.',
         requested_outcome: 'REPLACEMENT',
-        order_reference: 'ORD-AU-9999',
+        // No reference: this is the case that must be asked for one.
         evidence_ids: [],
       });
 
       expect(receipt.case_id).toBeDefined();
+      // The server's receipt is SUBMITTED version 1 and nothing else
+      // (customer_service.py:258); the intake worker adds the questions afterwards.
       expect(receipt.status).toBe('SUBMITTED');
+      expect(receipt.case_version).toBe(1);
+      expect(receipt.clarification).toBeUndefined();
       expect(receipt.statements[0].raw_text).toBe('The coffee maker was defective upon arrival.');
+
+      // The first read runs the intake: no usable reference asks for one plus the
+      // alternative question, and any non-empty reference up to 120 characters
+      // (the server's own test) goes straight to the investigation.
+      const firstRead = await getCustomerCase(receipt.case_id);
+      expect(firstRead.status).toBe('AWAITING_INFORMATION');
+      expect(firstRead.clarification?.questions.map((q) => q.question_id)).toEqual(['q_auto_ref', 'q_auto_alt']);
+
+      const withReference = await createCase({
+        original_message: 'The coffee maker was defective upon arrival.',
+        requested_outcome: 'REPLACEMENT',
+        order_reference: 'A12345',
+        evidence_ids: [],
+      });
+      expect(withReference.status).toBe('SUBMITTED');
+      const referenceRead = await getCustomerCase(withReference.case_id);
+      expect(referenceRead.status).toBe('UNDER_INVESTIGATION');
+      expect(referenceRead.clarification).toBeUndefined();
+    });
+
+    it('writes an audit event for a mock decision, as the server does', async () => {
+      // The mock store is shared, so this test restores the case and its chain.
+      const viewBefore = structuredClone(MOCK_FOUNDER_CASE_VIEWS['case_demo_003']);
+      const auditBefore = structuredClone(MOCK_AUDIT_EVENTS['case_demo_003']);
+      try {
+      const before = await listFounderCaseAudit('case_demo_003');
+      await recordFounderDecision('case_demo_003', {
+        expected_case_version: 4,
+        decision: 'REJECT',
+        reason: 'Mock audit event coverage.',
+        proposal_id: 'prop_demo_003',
+        proposal_version: 1,
+      });
+      const after = await listFounderCaseAudit('case_demo_003');
+
+      expect(after).toHaveLength(before.length + 1);
+      const added = after[after.length - 1];
+      expect(added.event_type).toBe('FOUNDER_DECISION_ACCEPTED');
+      expect(added.previous_event_hash).toBe(before[before.length - 1]?.event_hash ?? '0'.repeat(64));
+      expect(added.event_hash).toMatch(/^[0-9a-f]{64}$/);
+      } finally {
+        MOCK_FOUNDER_CASE_VIEWS['case_demo_003'] = viewBefore;
+        MOCK_AUDIT_EVENTS['case_demo_003'] = auditBefore;
+      }
+    });
+
+    it('treats bound evidence as material, so no reference question is asked', async () => {
+      const receipt = await createCase({
+        original_message: 'Photo attached, no order number.',
+        requested_outcome: 'REFUND',
+        evidence_ids: ['ev_material_1'],
+      });
+      const read = await getCustomerCase(receipt.case_id);
+
+      expect(read.status).toBe('UNDER_INVESTIGATION');
+      expect(read.clarification).toBeUndefined();
+    });
+
+    it('hands out copies, so the receipt a customer is reading cannot change under it', async () => {
+      const receipt = await createCase({ original_message: 'Two cups arrived chipped.' });
+      expect(receipt.status).toBe('SUBMITTED');
+
+      const firstRead = await getCustomerCase(receipt.case_id);
+
+      expect(firstRead.status).toBe('AWAITING_INFORMATION');
+      expect(receipt.status).toBe('SUBMITTED');
+      expect(firstRead).not.toBe(receipt);
     });
 
     it('fetches existing customer case by ID in mock mode', async () => {
@@ -281,6 +352,11 @@ describe('client', () => {
     beforeEach(() => {
       localStorage.clear();
       setMockMode(true);
+      // A case lodged by an earlier test is a founder queue row now, so it is
+      // removed here to keep the page-size boundary deterministic.
+      for (const caseId of Object.keys(MOCK_CUSTOMER_CASES)) {
+        if (!/^case_demo_0\d\d$/.test(caseId)) delete MOCK_CUSTOMER_CASES[caseId];
+      }
     });
 
     it('exposes next_cursor and makes the 21st case reachable on the next page', async () => {
@@ -634,6 +710,49 @@ describe('client', () => {
           code: 'RECEIPT_MISMATCH',
         });
       }
+    });
+  });
+
+  describe('retryable (#122 item 7)', () => {
+    beforeEach(() => {
+      localStorage.clear();
+      setMockMode(false); // these cases are about the live wire, not the fixture store
+    });
+    afterEach(() => {
+      localStorage.clear();
+      setMockMode(true);
+    });
+
+    const reply = (status: number, body: unknown) =>
+      new Response(JSON.stringify(body), {
+        status,
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+    it('carries the envelope flag so a permanent refusal is not presented as retryable', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () =>
+          reply(409, {
+            error: { code: 'IDEMPOTENCY_CONFLICT', message: 'Key already used.', retryable: false },
+          })
+        )
+      );
+
+      await expect(createCase({ original_message: 'x' }, 'case_key_1')).rejects.toMatchObject({
+        status: 409,
+        code: 'IDEMPOTENCY_CONFLICT',
+        retryable: false,
+      });
+    });
+
+    it('leaves the flag undefined when the reply carries no envelope', async () => {
+      vi.stubGlobal('fetch', vi.fn(async () => reply(500, { detail: 'Not Found' })));
+
+      const error = await createCase({ original_message: 'x' }, 'case_key_2').catch((err) => err);
+
+      expect(error).toBeInstanceOf(ApiError);
+      expect(error.retryable).toBeUndefined();
     });
   });
 

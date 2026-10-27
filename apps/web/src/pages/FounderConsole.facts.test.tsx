@@ -12,7 +12,7 @@ vi.mock('../api/client', async (importOriginal) => {
     isMockMode: vi.fn(() => false),
     listFounderCases: vi.fn(),
     getFounderCase: vi.fn(),
-    listFounderCaseAudit: vi.fn(),
+    listFounderCaseAuditPage: vi.fn(),
     recordFounderDecision: vi.fn(),
     getFounderAnalytics: vi.fn(),
   };
@@ -22,7 +22,7 @@ import {
   isMockMode,
   listFounderCases,
   getFounderCase,
-  listFounderCaseAudit,
+  listFounderCaseAuditPage,
   recordFounderDecision,
 } from '../api/client';
 
@@ -85,7 +85,7 @@ const VIEW_WITHOUT_FACTS: CaseView = {
       ],
       amount_ceiling_minor: 0,
       currency: 'AUD',
-      expires_at: '2026-10-20T00:05:00Z',
+      expires_at: new Date(Date.now() + 300000).toISOString(),
       allowlist_version: 'allowlist-facts-demo',
       environment: 'SIMULATED',
     },
@@ -147,7 +147,7 @@ describe('FounderConsole advisory facts card (Issue #95)', () => {
     localStorage.clear();
     vi.mocked(isMockMode).mockReturnValue(false);
     vi.mocked(listFounderCases).mockResolvedValue({ items: [SUMMARY_ROW], next_cursor: undefined });
-    vi.mocked(listFounderCaseAudit).mockResolvedValue([]);
+    vi.mocked(listFounderCaseAuditPage).mockResolvedValue({ items: [], next_cursor: undefined });
   });
 
   afterEach(() => {
