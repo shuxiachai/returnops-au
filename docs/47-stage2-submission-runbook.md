@@ -58,6 +58,8 @@ R.05.a record (to fill): deadline source and wording; tag; commit SHA; CI run UR
 
 Derived from the README chapter [Deploy from zero](../README.md#deploy-from-zero---22-october-2026-sydney), with `git clone` replaced by the package. Pass 1 (29 October) uses the zip produced in section 3 on a machine without this repository's ignored files; pass 2 (after 1 November) uses the zip downloaded from Canvas, as [docs/28](28-stage2-submission-checklist.md) requires. Record the package hash, environment, commands, migration, synthetic setup and outcome for each pass.
 
+Since 27 October 2026 the Windows script `tools/demo/demo.ps1` ([README, Demo machine script](../README.md#demo-machine-script-windows)) runs steps 4 to 7 (`prepare`), 9 to 11 (`start`), 17 (`s5`) and the Compose and directory part of step 20 (`stop -RemoveData`); `check` prints the versions for step 1. Passes 1 and 2 use it and record any step where it stops; the commands in the table stay the fallback, and step 8 stays manual.
+
 | # | Step | Expected output | Who | Date | Result |
 |---|---|---|---|---|---|
 | 1 | Record machine, OS, CPython (3.12; 3.12.4 or later on Windows), Docker and Compose, Node and npm versions | Versions within README section 0 | A | 29 Oct / pass 2 | |

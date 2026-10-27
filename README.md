@@ -15,6 +15,7 @@ ReturnOps AU is the Group 10 project for ELEC5620 Model-Based Software Engineeri
 
 | Step | Where |
 |---|---|
+| Windows demo machine: steps 1 to 5 with one script, the steps below as fallback | [`tools/demo/demo.ps1`](tools/demo/demo.ps1); [Demo machine script](#demo-machine-script-windows) |
 | Prerequisites, Python environment, `.env`, Docker Compose database | [Deploy from zero](#deploy-from-zero---22-october-2026-sydney), steps 0 to 2 |
 | Demo identities, API with workers, web frontend and token login | the same chapter, steps 3 and 4 |
 | One governed case from lodging to label and notification | the same chapter, step 5, and the [R.02 driver](tools/r02/README.md) |
@@ -59,7 +60,7 @@ The list attached to the submission is in [docs/47](docs/47-stage2-submission-ru
 | `alembic` | Database migrations |
 | `contracts/v1` | Frozen OpenAPI and JSON Schema contract |
 | `tests` | Contract, customer, Founder and lifecycle suites |
-| `tools` | Check runner, model checks, R.02 driver and model showcase CLI |
+| `tools` | Check runner, model checks, R.02 driver, model showcase CLI and the Windows demo-machine script |
 | `experiments` | C1, C2 and evaluation candidates (offline) |
 | `docs`, `stage1` | Design documents, models and Stage 1 deliverables |
 
@@ -457,6 +458,70 @@ tokens. Refusal codes, the store rules and the limitations are in
 [tools/r02/README.md](tools/r02/README.md#demo-mode-live-demo-only) and
 [docs/41](docs/41-r02-end-to-end-evidence.md). A demo-mode receipt is not CI
 evidence; an evidence run needs a fresh database (docs/41, "Re-running").
+
+### Demo machine script (Windows)
+
+Added 27 October 2026. [`tools/demo/demo.ps1`](tools/demo/demo.ps1) runs the
+commands of steps 1 to 5 above in order on the Windows demo machine, checks
+each result and stops at the first failure with its reason. The manual steps
+above stay the fallback. Run it from the package root;
+`-ExecutionPolicy Bypass` applies to this one process only and is needed
+because Windows blocks unsigned scripts from a downloaded zip:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\demo\demo.ps1 check
+```
+
+| Action | When ([docs/45](docs/45-stage2-demo-script.md)) | What it does |
+|---|---|---|
+| `check` | Any time | Reports Python (3.12.4 or a later 3.12), Docker and Compose, Node and npm, the four ports and leftover data. Changes nothing. |
+| `prepare` | T-40 minutes | Step 1 (`.venv`, locked install, `pip check`, `local.py init`, `API_PORT=8001`), step 2 (Compose up with `--wait`, then `/health/live` and `/health/ready` on `API_PORT`) and `npm ci`. Safe to run again: finished installs are skipped. |
+| `start` | T-5 minutes | Step 3: provisions `tmp\demo-shop` once and opens the demo API in its own window on 8000. Step 4: opens the web frontend in its own window on 5173 and checks that its proxy reaches the API. Prints when the 899 s sessions expire. `-ModelShowcase` adds `--model-showcase`. |
+| `s5` | S5 | Step 5: sends Ctrl+C to the demo API window, provisions `tmp\demo-cups` once, starts the R.02 driver in its own window and reports the receipt's result and case ID. |
+| `stop` | After S5, or between rehearsals | Sends Ctrl+C to the driver and demo API windows, closes the three windows and runs `docker compose stop` (the data is kept). `stop -RemoveData` runs `docker compose down -v` instead and deletes `tmp\demo-shop` and `tmp\demo-cups`. |
+
+- **Secrets.** The script never reads, prints or stores a model API key or a
+  session token, and prints no `.env` value except the two ports. For the
+  driver it sets `DATABASE_URL` from `.env` as step 5 does, only in its own
+  process and the driver window. Signing in stays manual (step 4); `start` and
+  `s5` print the clipboard commands of step 4. For the model showcase, set the
+  `RETURNOPS_MODEL_*` variables in the same PowerShell window before
+  `start -ModelShowcase` (docs/45, section 2.3, item 2); they pass to the demo
+  API window unread.
+- **Compose project.** Each package folder gets its own project name,
+  `returnops-demo-` and 8 hex characters of the SHA-256 of the folder path, so
+  its database volume is never shared with another checkout (the step 2
+  pitfall). `check` refuses a leftover volume of the same folder without its
+  `.env`.
+- **Stopping.** The three windows are PowerShell consoles that the script
+  opened. To stop the demo API or the driver, the script sends Ctrl+C to that
+  console, the same as typing it there, so both shut down as in steps 3 and 5
+  (the driver stops its API child and removes its private directory). Only
+  then is the window closed.
+- **Identities.** The database refuses to register a principal twice, so
+  `start` and `s5` reuse `tmp\demo-shop` and `tmp\demo-cups` once they exist.
+  Fresh 899 s sessions need a fresh database: `stop -RemoveData`, `prepare`,
+  `start`.
+- **Tested** on 27 October 2026 on the demonstration machine (Windows 11,
+  Windows PowerShell 5.1, Python 3.12.9 through the py launcher, Docker 29.6.2
+  with Compose 5.3.1, Node 24.14.0, npm 11.9.0). The package was a zip of
+  `main` `5d67231c` plus this script, unpacked to a path with non-ASCII
+  characters, with the script marked as downloaded. These ran:
+  - `check`, `prepare` (38 s the first time with warm pip and Docker caches,
+    17 s again) and `start` (5 s);
+  - a customer case lodged through the Vite proxy;
+  - `s5` (driver `PASSED`, about 100 s; the Founder read the case as
+    `COMPLETED` through the proxy);
+  - `stop` (the driver removed its private directory after Ctrl+C) and
+    `stop -RemoveData`.
+
+  The refusals were also checked: Compose stopped, a foreign program on port
+  8000, `start` or `s5` while the driver runs, and a demo API that exits at
+  once (`-ModelShowcase` without the variables). Not tested:
+  - a first run without pip, npm and Docker caches;
+  - another Windows machine, PowerShell 7, or a machine without the py
+    launcher;
+  - `-ModelShowcase` with a key.
 
 ### Troubleshooting
 

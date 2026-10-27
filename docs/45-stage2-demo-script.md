@@ -42,7 +42,7 @@ Lecture 8 asks for representative agent results, failure cases and operating cos
 
 ### 2.2 Deployment from the Canvas package (T-40 to T-10 minutes, or as the tutors direct)
 
-Follow the [README "Deploy from zero"](../README.md#deploy-from-zero---22-october-2026-sydney) chapter, replacing `git clone` with the Canvas download:
+Follow the [README "Deploy from zero"](../README.md#deploy-from-zero---22-october-2026-sydney) chapter, replacing `git clone` with the Canvas download. On the Windows demo machine, after item 1, `tools\demo\demo.ps1 prepare` runs items 2, 3, 4 and 6 with checks ([README, Demo machine script](../README.md#demo-machine-script-windows)); the items below stay the manual fallback.
 
 1. Download the package from the Canvas submission, compute its SHA-256 and compare it with the value recorded in the [runbook](47-stage2-submission-runbook.md) (section 4). Unzip.
 2. `python -m venv .venv`; `pip install --require-hashes -r requirements-dev.lock`; `pip install --no-deps --no-build-isolation -e .`; `pip check` (README step 1).
@@ -53,7 +53,7 @@ Follow the [README "Deploy from zero"](../README.md#deploy-from-zero---22-octobe
 
 ### 2.3 Demo identities, API and frontend (T-5 minutes)
 
-The sessions written by `demo.py provision` last 899 s. The segments that use them (S2 to S4) end at about 7:00, so provision no earlier than about five minutes before the start.
+The sessions written by `demo.py provision` last 899 s. The segments that use them (S2 to S4) end at about 7:00, so provision no earlier than about five minutes before the start. `tools\demo\demo.ps1 start` runs items 1, 3 and 4 and prints when the sessions expire (with `-ModelShowcase` after item 2 in the same window); item 5 stays manual.
 
 1. Provision the demo shop with investigation and the fixed proposal (README step 3):
    `local.py run python -m returnops_api.demo provision --private-dir <abs>/tmp/demo-shop --store synthetic_au_store --customer-one synthetic_customer_a --customer-two synthetic_customer_b --founder synthetic_founder --order-investigation --fixed-proposal --founder-manual`.
@@ -169,6 +169,8 @@ Gloss: one complete governed run, from customer case to label and notification, 
 
 Actions ([README step 5](../README.md#deploy-from-zero---22-october-2026-sydney); [tools/r02 README](../tools/r02/README.md#demo-mode-live-demo-only)):
 
+With the script, `tools\demo\demo.ps1 s5` runs items 1 to 3 and reports the receipt's result and case ID; then continue at item 4.
+
 1. Terminal 1: Ctrl+C stops `demo.py serve` (its workers must not run during the driver, and port 8000 must be free). Any in-memory model facts are discarded.
 2. Terminal 2: provision a dedicated new store without `--order-investigation`, `--fixed-proposal` and `--founder-manual`: `demo.py provision --private-dir <abs>/tmp/demo-cups --store demo_cups_store --customer-one demo_cups_customer_one --customer-two demo_cups_customer_two --founder demo_cups_founder`.
 3. Set `DATABASE_URL` in the shell from `.env` (README step 5 commands; nothing printed), then start within about 8 minutes: `python -B tools/r02/driver.py --output <abs>/tmp/r02-demo-run --identities <abs>/tmp/demo-cups --api-port 8000 --keep-api --allow-existing-data` (`--allow-existing-data` because S2 created cases).
@@ -252,6 +254,7 @@ Say: "Gate 2 connects the three model roles, Coordinator, Assessment and an inde
 
 - Ctrl+C in the driver's terminal stops the kept API. Delete `tmp/demo-shop` and `tmp/demo-cups` (signing keys and tokens) and use **Clear token** in both browser profiles (README step 5).
 - `docker compose down -v` in the package directory removes the Compose containers and the database volume, so the next fresh deployment on this machine starts clean (runbook section 5, step 20).
+- With the script, `tools\demo\demo.ps1 stop -RemoveData` does both points above except **Clear token**, which stays manual.
 - Unset the `RETURNOPS_MODEL_*` variables and close the serving shell.
 - Record in the runbook's R.05.b section: date, machine, package hash, which segments ran live, which fallbacks were used and any failure, without editing the outcome afterwards.
 

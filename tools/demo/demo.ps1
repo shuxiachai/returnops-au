@@ -1,0 +1,604 @@
+<#
+.SYNOPSIS
+ReturnOps AU demo machine: README "Deploy from zero" steps 1 to 5 in order, with checks.
+
+.DESCRIPTION
+For the Windows demo machine only (Windows PowerShell 5.1 or later). It runs
+the README commands of steps 1 to 5 in order and stops at the first failure
+with the reason. The manual README steps stay the fallback.
+
+It never reads, prints or stores a model API key or a session token, and it
+prints no .env value except the two port numbers. Signing in to the web
+frontend stays manual (README step 4). For the model showcase, set the
+RETURNOPS_MODEL_* variables in this PowerShell window first (docs/45, 2.3
+step 2) and pass -ModelShowcase to start; the variables pass to the demo API
+window unread.
+
+Actions (from the package root):
+  check    Report the prerequisites, ports and old data. Changes nothing.
+  prepare  T-40 minutes. Step 1 (venv, locked install, .env with API_PORT=8001),
+           step 2 (Compose database, migration, health checks) and npm ci.
+           Safe to run again.
+  start    T-5 minutes. Step 3 (provision tmp\demo-shop once, demo API window
+           on port 8000) and step 4 (web window on port 5173). Sessions last
+           899 s from provisioning.
+  s5       Step 5. Ctrl+C to the demo API window, provision tmp\demo-cups once,
+           and a driver window that keeps its API on port 8000.
+  stop     Ctrl+C to the driver and demo API windows, close all three windows,
+           docker compose stop (the data is kept).
+           -RemoveData also removes this folder's Compose containers and
+           database volume and deletes tmp\demo-shop and tmp\demo-cups.
+
+Usage:
+  powershell -NoProfile -ExecutionPolicy Bypass -File tools\demo\demo.ps1 prepare
+
+Each package folder gets its own Compose project name, so its database
+volume is never shared with another checkout.
+
+R.05.b demonstration; deployment model PD-02 (docs/15); NFR-009 (no secret
+is displayed). AI-assisted implementation; author shuxiachai.
+#>
+param(
+    [Parameter(Mandatory = $true, Position = 0)]
+    [ValidateSet('check', 'prepare', 'start', 's5', 'stop')]
+    [string]$Action,
+    [switch]$ModelShowcase,
+    [switch]$RemoveData
+)
+
+Set-StrictMode -Version 2
+$ErrorActionPreference = 'Stop'
+
+$Root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..')).Path
+Set-Location -LiteralPath $Root
+$Py = Join-Path $Root '.venv\Scripts\python.exe'
+$EnvFile = Join-Path $Root '.env'
+$Tmp = Join-Path $Root 'tmp'
+$Shop = Join-Path $Tmp 'demo-shop'
+$Cups = Join-Path $Tmp 'demo-cups'
+$StateDir = Join-Path $Tmp 'demo-script'
+$Web = Join-Path $Root 'apps\web'
+$SessionSeconds = 899
+$VersionCode = 'import sys;print(*sys.version_info[:3],sep=chr(46))'
+
+$hasher = [System.Security.Cryptography.SHA256]::Create()
+$digest = $hasher.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($Root.ToLowerInvariant()))
+$Project = 'returnops-demo-' + (-join ($digest[0..3] | ForEach-Object { $_.ToString('x2') }))
+$Volume = $Project + '_postgres-data'
+
+$script:Problems = 0
+
+# -- output ---------------------------------------------------------------------
+
+function Show-Step([string]$Text) { Write-Host ''; Write-Host "== $Text" -ForegroundColor Cyan }
+function Show-Ok([string]$Text) { Write-Host "  OK    $Text" -ForegroundColor Green }
+function Show-Info([string]$Text) { Write-Host "        $Text" }
+function Show-Warn([string]$Text) { Write-Host "  WARN  $Text" -ForegroundColor Yellow }
+function Show-Problem([string]$Text) { Write-Host "  STOP  $Text" -ForegroundColor Red; $script:Problems++ }
+function Stop-Script([string]$Text) { Write-Host "  STOP  $Text" -ForegroundColor Red; exit 1 }
+
+# -- helpers --------------------------------------------------------------------
+
+function Invoke-Checked([string]$What, [scriptblock]$Command) {
+    & $Command
+    if ($LASTEXITCODE -ne 0) { Stop-Script "$What failed (exit code $LASTEXITCODE). See the output above." }
+}
+
+# Runs a native command whose failure is an answer, not an error; stderr is dropped.
+function Invoke-Quiet([scriptblock]$Command) {
+    $ErrorActionPreference = 'Continue'
+    $output = & $Command 2>$null
+    return [pscustomobject]@{ Code = $LASTEXITCODE; Output = (@($output) -join "`n").Trim() }
+}
+
+function Read-DotEnv {
+    $values = @{}
+    if (Test-Path -LiteralPath $EnvFile) {
+        foreach ($line in [System.IO.File]::ReadAllLines($EnvFile)) {
+            if ($line -match '^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=(.*)$') { $values[$Matches[1]] = $Matches[2].Trim() }
+        }
+    }
+    return $values
+}
+
+function Get-FileDigest([string[]]$Paths) {
+    $text = ($Paths | ForEach-Object { (Get-FileHash -Algorithm SHA256 -LiteralPath $_).Hash }) -join ' '
+    return $text
+}
+
+function Test-Listening([int]$Port) {
+    try { return [bool](Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction Stop) } catch { return $false }
+}
+
+function Wait-PortFree([int]$Port, [int]$Seconds) {
+    $deadline = (Get-Date).AddSeconds($Seconds)
+    while ((Get-Date) -lt $deadline) {
+        if (-not (Test-Listening $Port)) { return $true }
+        Start-Sleep -Milliseconds 500
+    }
+    return (-not (Test-Listening $Port))
+}
+
+# Direct HTTP without the system proxy; returns $null when nothing answers.
+function Get-Http([string]$Url) {
+    try {
+        $request = [System.Net.HttpWebRequest]::Create($Url)
+        $request.Proxy = $null
+        $request.Timeout = 5000
+        $response = $request.GetResponse()
+        try {
+            $reader = New-Object System.IO.StreamReader($response.GetResponseStream())
+            return [pscustomobject]@{ Status = [int]$response.StatusCode; Body = $reader.ReadToEnd() }
+        } finally { $response.Close() }
+    } catch [System.Net.WebException] {
+        $failed = $_.Exception.Response
+        if ($failed) { $code = [int]$failed.StatusCode; $failed.Close(); return [pscustomobject]@{ Status = $code; Body = '' } }
+        return $null
+    }
+}
+
+function Wait-Http([string]$Url, [string]$Expect, [int]$Seconds) {
+    $deadline = (Get-Date).AddSeconds($Seconds)
+    while ((Get-Date) -lt $deadline) {
+        $answer = Get-Http $Url
+        if ($answer -and $answer.Status -eq 200 -and $answer.Body.Contains($Expect)) { return $true }
+        Start-Sleep -Seconds 1
+    }
+    return $false
+}
+
+function Get-ComposeContainers([switch]$Running) {
+    $arguments = @('ps', '-aq', '--filter', "label=com.docker.compose.project=$Project")
+    if ($Running) { $arguments += @('--filter', 'status=running') }
+    $answer = Invoke-Quiet { docker @arguments }
+    if ($answer.Code -ne 0 -or -not $answer.Output) { return @() }
+    return @($answer.Output -split "`n" | Where-Object { $_ })
+}
+
+function Test-VolumeExists {
+    $answer = Invoke-Quiet { docker volume inspect --format '{{.Name}}' $Volume }
+    return ($answer.Code -eq 0 -and $answer.Output -eq $Volume)
+}
+
+function Format-Time([datetime]$Value) { return $Value.ToString('HH:mm:ss') }
+
+function Save-Time([string]$Name) {
+    New-Item -ItemType Directory -Force -Path $StateDir | Out-Null
+    [System.IO.File]::WriteAllText((Join-Path $StateDir "$Name.time"), (Get-Date).ToString('o'))
+}
+
+function Get-SavedTime([string]$Name) {
+    $path = Join-Path $StateDir "$Name.time"
+    if (-not (Test-Path -LiteralPath $path)) { return $null }
+    return [datetime]::Parse([System.IO.File]::ReadAllText($path), $null, [System.Globalization.DateTimeStyles]::RoundtripKind)
+}
+
+# -- the three windows ----------------------------------------------------------
+# Each window is a PowerShell console started by this script. Its record holds
+# the process ID and start time, so a reused process ID is never acted on.
+
+function Format-Literal([string]$Text) { return "'" + $Text.Replace("'", "''") + "'" }
+
+function Start-Window([string]$Name, [string]$Title, [string]$Body) {
+    # Parenthesised: the comma binds tighter than +.
+    $lines = @(
+        ('$Host.UI.RawUI.WindowTitle = ' + (Format-Literal $Title)),
+        ('Set-Location -LiteralPath ' + (Format-Literal $Root)),
+        $Body
+    )
+    $encoded = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes(($lines -join "`n")))
+    $process = Start-Process -FilePath 'powershell.exe' -PassThru -ArgumentList @(
+        '-NoProfile', '-NoExit', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', $encoded)
+    New-Item -ItemType Directory -Force -Path $StateDir | Out-Null
+    $record = "$($process.Id) $($process.StartTime.ToFileTimeUtc())"
+    [System.IO.File]::WriteAllText((Join-Path $StateDir "$Name.window"), $record)
+    return $process
+}
+
+function Get-Window([string]$Name) {
+    $path = Join-Path $StateDir "$Name.window"
+    if (-not (Test-Path -LiteralPath $path)) { return $null }
+    $id, $started = [System.IO.File]::ReadAllText($path).Split(' ')
+    $process = Get-Process -Id ([int]$id) -ErrorAction SilentlyContinue
+    if ($process -and $process.StartTime.ToFileTimeUtc() -eq [long]$started) { return $process }
+    Remove-Item -LiteralPath $path -Force
+    return $null
+}
+
+function Get-WindowCommands([System.Diagnostics.Process]$Window) {
+    return @(Get-CimInstance Win32_Process -Filter "ParentProcessId=$($Window.Id)" |
+        Where-Object { $_.Name -ne 'conhost.exe' })
+}
+
+# Ctrl+C reaches every process of the window's console, as if typed there. The
+# helper is a separate process, because attaching to a console detaches it from
+# this one.
+function Send-CtrlC([System.Diagnostics.Process]$Window) {
+    $code = 'import ctypes,sys,time;k=ctypes.windll.kernel32;k.FreeConsole();' +
+        'ok=k.AttachConsole(int(sys.argv[1])) and k.SetConsoleCtrlHandler(None,1) and k.GenerateConsoleCtrlEvent(0,0);' +
+        'time.sleep(1);sys.exit(0 if ok else 1)'
+    $answer = Invoke-Quiet { & $Py -I -c $code $Window.Id }
+    return ($answer.Code -eq 0)
+}
+
+function Close-Window([string]$Name, [string]$Label, [switch]$CtrlC, [int]$Seconds = 60) {
+    $window = Get-Window $Name
+    if (-not $window) { return }
+    if ($CtrlC -and @(Get-WindowCommands $window).Count -gt 0) {
+        if (Send-CtrlC $window) {
+            Show-Info "Ctrl+C sent to the $Label window; waiting up to $Seconds s for it to finish."
+            $deadline = (Get-Date).AddSeconds($Seconds)
+            while ((Get-Date) -lt $deadline -and @(Get-WindowCommands $window).Count -gt 0) { Start-Sleep -Milliseconds 500 }
+            if (@(Get-WindowCommands $window).Count -gt 0) { Show-Warn "The $Label did not finish after Ctrl+C; it is ended now." }
+        } else {
+            Show-Warn "Ctrl+C could not be sent to the $Label window; it is ended now."
+        }
+    }
+    Invoke-Quiet { taskkill.exe /PID $window.Id /T /F } | Out-Null
+    Remove-Item -LiteralPath (Join-Path $StateDir "$Name.window") -Force -ErrorAction SilentlyContinue
+    Show-Ok "$Label window closed."
+}
+
+# Waits for a window's service to answer; 'ended' when its command has already exited.
+function Wait-WindowReady([System.Diagnostics.Process]$Window, [string]$Url, [string]$Expect, [int]$Seconds) {
+    $begun = Get-Date
+    $seen = $false
+    while (((Get-Date) - $begun).TotalSeconds -lt $Seconds) {
+        $answer = Get-Http $Url
+        if ($answer -and $answer.Status -eq 200 -and $answer.Body.Contains($Expect)) { return 'ready' }
+        if (@(Get-WindowCommands $Window).Count -gt 0) { $seen = $true }
+        elseif ($seen -or ((Get-Date) - $begun).TotalSeconds -gt 15) { return 'ended' }
+        Start-Sleep -Seconds 1
+    }
+    return 'timeout'
+}
+
+# -- checks ---------------------------------------------------------------------
+
+function Test-PythonVersion([string]$Version) {
+    if ($Version -notmatch '^3\.12\.(\d+)$') { return $false }
+    return ([int]$Matches[1] -ge 4)
+}
+
+function Find-BasePython {
+    $launcher = Get-Command py.exe -ErrorAction SilentlyContinue
+    if ($launcher) {
+        $answer = Invoke-Quiet { & $launcher.Source -3.12 -c $VersionCode }
+        if ($answer.Code -eq 0) { return [pscustomobject]@{ Exe = $launcher.Source; Prefix = @('-3.12'); Version = $answer.Output } }
+    }
+    $python = Get-Command python.exe -ErrorAction SilentlyContinue
+    if ($python) {
+        $answer = Invoke-Quiet { & $python.Source -c $VersionCode }
+        if ($answer.Code -eq 0) { return [pscustomobject]@{ Exe = $python.Source; Prefix = @(); Version = $answer.Output } }
+    }
+    return $null
+}
+
+function Test-NodeVersion([string]$Version) {
+    if ($Version -notmatch '^v(\d+)\.(\d+)\.(\d+)$') { return $false }
+    $major, $minor, $patch = [int]$Matches[1], [int]$Matches[2], [int]$Matches[3]
+    if ($major -ge 26) { return $true }
+    if ($major -eq 24) { return ($minor -ge 15) }
+    if ($major -eq 22) { return ($minor -gt 22 -or ($minor -eq 22 -and $patch -ge 2)) }
+    return $false
+}
+
+function Test-Prerequisites {
+    Show-Step "Prerequisites (README step 0); package root $Root"
+    foreach ($file in @('compose.yaml', 'requirements-dev.lock', 'tools\environment\local.py', 'apps\web\package-lock.json')) {
+        if (-not (Test-Path -LiteralPath (Join-Path $Root $file))) { Show-Problem "$file is missing; run this script from an unpacked ReturnOps package." }
+    }
+
+    if (Test-Path -LiteralPath $Py) {
+        $answer = Invoke-Quiet { & $Py -c $VersionCode }
+        if (Test-PythonVersion $answer.Output) { Show-Ok "Python $($answer.Output) in .venv" }
+        else { Show-Problem "The .venv Python is '$($answer.Output)'; CPython 3.12.4 or a later 3.12 is required. Delete .venv and run prepare with a suitable Python." }
+    } else {
+        $base = Find-BasePython
+        if ($base -and (Test-PythonVersion $base.Version)) { Show-Ok "Python $($base.Version) ($($base.Exe)) will create .venv" }
+        elseif ($base) { Show-Problem "Python $($base.Version) found; CPython 3.12.4 or a later 3.12 is required (py -3.12 or python)." }
+        else { Show-Problem 'No Python found; install CPython 3.12.4 or a later 3.12.' }
+    }
+
+    $engine = Invoke-Quiet { docker version --format '{{.Server.Version}}' }
+    if ($engine.Code -eq 0 -and $engine.Output) { Show-Ok "Docker engine $($engine.Output)" }
+    else { Show-Problem 'Docker does not answer; start Docker Desktop and wait until it reports running.' }
+    $compose = Invoke-Quiet { docker compose version --short }
+    if ($compose.Code -eq 0 -and $compose.Output -match '^v?(\d+)\.' -and [int]$Matches[1] -ge 2) { Show-Ok "Docker Compose $($compose.Output)" }
+    else { Show-Problem 'Docker Compose v2 or later (docker compose) is not available.' }
+
+    $node = Invoke-Quiet { node --version }
+    if ($node.Code -ne 0) { Show-Problem 'Node.js is not installed (needs ^22.22.2, ^24.15.0 or >=26.0.0).' }
+    elseif (Test-NodeVersion $node.Output) { Show-Ok "Node.js $($node.Output)" }
+    else { Show-Warn "Node.js $($node.Output) is outside ^22.22.2 || ^24.15.0 || >=26.0.0 (apps/web/package.json); npm warns. Upgrade before the demonstration." }
+    $npm = Invoke-Quiet { npm.cmd --version }
+    if ($npm.Code -ne 0) { Show-Problem 'npm is not available.' }
+    elseif ($npm.Output -match '^(\d+)\.' -and [int]$Matches[1] -ge 10) { Show-Ok "npm $($npm.Output)" }
+    else { Show-Warn "npm $($npm.Output); npm 10 or later is expected." }
+
+    $values = Read-DotEnv
+    $dbPort = 5433; $apiPort = 8001
+    if ($values.ContainsKey('DB_PORT')) { $dbPort = [int]$values['DB_PORT'] }
+    if ($values.ContainsKey('API_PORT')) { $apiPort = [int]$values['API_PORT'] }
+    if (Test-Path -LiteralPath $EnvFile) {
+        Show-Ok ".env exists (DB_PORT $dbPort, API_PORT $apiPort)"
+        if ($apiPort -eq 8000) { Show-Warn 'API_PORT is 8000 in .env; prepare changes it to 8001 (README step 1).'; $apiPort = 8001 }
+    } else {
+        Show-Info '.env does not exist yet; prepare creates it (DB_PORT 5433, API_PORT 8001).'
+    }
+
+    Show-Info "Compose project for this folder: $Project"
+    if (@(Get-ComposeContainers -Running).Count -gt 0) {
+        Show-Ok "This folder's Compose services are running (ports $dbPort and $apiPort are theirs)."
+    } else {
+        foreach ($port in @($dbPort, $apiPort)) {
+            if (Test-Listening $port) { Show-Problem "Port $port is in use by another program. Stop it, or change DB_PORT / API_PORT in .env (README troubleshooting)." }
+            else { Show-Ok "Port $port is free" }
+        }
+    }
+    foreach ($entry in @(@(8000, 'demo API', @('serve', 'driver')), @(5173, 'web frontend', @('web')))) {
+        $port, $label, $names = $entry
+        $ours = @($names | Where-Object { Get-Window $_ }).Count -gt 0
+        if ($ours) { Show-Ok "Port $port is used by this script's $label window" }
+        elseif (Test-Listening $port) { Show-Problem "Port $port ($label) is in use by another program; the frontend proxy needs 8000 and Vite 5173. Stop that program first." }
+        else { Show-Ok "Port $port is free" }
+    }
+
+    if (Test-VolumeExists) {
+        if (Test-Path -LiteralPath $EnvFile) { Show-Ok "Database volume $Volume exists (this folder's data)" }
+        else { Show-Problem "Volume $Volume exists but .env does not, so its password is unknown. Run: tools\demo\demo.ps1 stop -RemoveData" }
+    }
+}
+
+function Assert-Prerequisites {
+    Test-Prerequisites
+    if ($script:Problems -gt 0) { Write-Host ''; Stop-Script "$($script:Problems) prerequisite problem(s) above; nothing was changed." }
+}
+
+function Assert-Prepared {
+    if (-not (Test-Path -LiteralPath $Py) -or -not (Test-Path -LiteralPath $EnvFile) -or
+        -not (Test-Path -LiteralPath (Join-Path $Web 'node_modules'))) {
+        Stop-Script 'Not prepared yet. Run: tools\demo\demo.ps1 prepare'
+    }
+    $values = Read-DotEnv
+    $apiPort = [int]$values['API_PORT']
+    if (-not (Wait-Http "http://127.0.0.1:$apiPort/health/ready" '"ready"' 5)) {
+        Stop-Script "The Compose database or API on port $apiPort is not ready. Run: tools\demo\demo.ps1 prepare"
+    }
+}
+
+# -- actions --------------------------------------------------------------------
+
+function Invoke-Prepare {
+    Assert-Prerequisites
+
+    Show-Step 'Step 1: Python environment and .env'
+    if (-not (Test-Path -LiteralPath $Py)) {
+        $base = Find-BasePython
+        $prefix = $base.Prefix
+        Invoke-Checked 'Creating .venv' { & $base.Exe @prefix -m venv (Join-Path $Root '.venv') }
+        Show-Ok '.venv created'
+    }
+    $marker = Join-Path $Root '.venv\returnops-demo-install.txt'
+    $wanted = Get-FileDigest @((Join-Path $Root 'requirements-dev.lock'), (Join-Path $Root 'pyproject.toml'))
+    if ((Test-Path -LiteralPath $marker) -and ([System.IO.File]::ReadAllText($marker) -eq $wanted)) {
+        Show-Ok 'Locked dependencies already installed'
+    } else {
+        Invoke-Checked 'pip install --require-hashes' { & $Py -m pip install --require-hashes -r requirements-dev.lock }
+        Invoke-Checked 'pip install -e .' { & $Py -m pip install --no-deps --no-build-isolation -e . }
+        [System.IO.File]::WriteAllText($marker, $wanted)
+        Show-Ok 'Locked dependencies installed'
+    }
+    Invoke-Checked 'pip check' { & $Py -m pip check }
+    if (-not (Test-Path -LiteralPath $EnvFile)) {
+        Invoke-Checked 'local.py init' { & $Py -B tools/environment/local.py init }
+    }
+    $text = [System.IO.File]::ReadAllText($EnvFile)
+    if ($text -match '(?m)^API_PORT=8000\r?$') {
+        [System.IO.File]::WriteAllText($EnvFile, ($text -replace '(?m)^API_PORT=8000(\r?)$', 'API_PORT=8001$1'))
+        Show-Ok 'API_PORT changed from 8000 to 8001 in .env (README step 1)'
+    }
+    $values = Read-DotEnv
+    Show-Ok ".env ready (DB_PORT $($values['DB_PORT']), API_PORT $($values['API_PORT'])); no secret displayed"
+
+    Show-Step "Step 2: database, migration and health-only API (Compose project $Project)"
+    Invoke-Checked 'docker compose config' { docker compose -p $Project config --quiet }
+    Invoke-Checked 'docker compose up' { docker compose -p $Project up --build -d --wait --wait-timeout 180 }
+    Invoke-Checked 'docker compose ps' { docker compose -p $Project ps -a --format 'table {{.Service}}\t{{.State}}\t{{.Status}}' }
+    $apiPort = $values['API_PORT']
+    foreach ($check in @(@('live', '"alive"'), @('ready', '"ready"'))) {
+        $name, $expect = $check
+        if (Wait-Http "http://127.0.0.1:$apiPort/health/$name" $expect 30) { Show-Ok "/health/$name on port $apiPort answers $expect" }
+        else { Stop-Script "/health/$name on port $apiPort did not answer $expect; see docker compose -p $Project logs" }
+    }
+
+    Show-Step 'Step 4 (install only): web frontend dependencies'
+    $webMarker = Join-Path $Web 'node_modules\.returnops-demo-install.txt'
+    $webWanted = Get-FileDigest @((Join-Path $Web 'package-lock.json'))
+    if ((Test-Path -LiteralPath $webMarker) -and ([System.IO.File]::ReadAllText($webMarker) -eq $webWanted)) {
+        Show-Ok 'npm ci already done for this package-lock.json'
+    } else {
+        Push-Location -LiteralPath $Web
+        try { Invoke-Checked 'npm ci' { npm.cmd ci --no-audit --no-fund } } finally { Pop-Location }
+        [System.IO.File]::WriteAllText($webMarker, $webWanted)
+        Show-Ok 'npm ci done'
+    }
+
+    Show-Step 'Prepared'
+    Show-Info 'About five minutes before the demonstration (sessions last 899 s), run:'
+    Show-Info '  powershell -NoProfile -ExecutionPolicy Bypass -File tools\demo\demo.ps1 start'
+}
+
+function Invoke-Start {
+    Assert-Prepared
+    if (Get-Window 'driver') { Stop-Script 'The S5 driver window holds port 8000. Run stop first, then start.' }
+
+    Show-Step 'Step 3: demo identities and demo API (port 8000)'
+    if (Get-Window 'serve') {
+        Show-Ok 'The demo API window is already running'
+    } else {
+        if (Test-Listening 8000) { Stop-Script 'Port 8000 is in use by a program this script did not start; stop it first.' }
+        if (Test-Path -LiteralPath (Join-Path $Shop 'auth.json')) {
+            Show-Warn 'tmp\demo-shop exists, so its identities are reused (the database refuses to register them twice).'
+        } elseif (Test-Path -LiteralPath $Shop) {
+            Stop-Script 'tmp\demo-shop exists without auth.json (an interrupted provision). Run stop -RemoveData, then prepare and start.'
+        } else {
+            New-Item -ItemType Directory -Force -Path $Tmp | Out-Null
+            Invoke-Checked 'demo.py provision (demo-shop)' {
+                & $Py -B tools/environment/local.py run python -m returnops_api.demo provision --private-dir $Shop `
+                    --store synthetic_au_store --customer-one synthetic_customer_a --customer-two synthetic_customer_b `
+                    --founder synthetic_founder --order-investigation --fixed-proposal --founder-manual
+            }
+            Save-Time 'demo-shop'
+        }
+        $serve = '& ' + (Format-Literal $Py) + ' -B tools/environment/local.py run python -m returnops_api.demo serve --auth-file ' +
+            (Format-Literal (Join-Path $Shop 'auth.json')) + ' --port 8000 --fixed-proposal --founder-decisions'
+        if ($ModelShowcase) { $serve += ' --model-showcase'; Show-Info 'With --model-showcase; the RETURNOPS_MODEL_* variables pass on unread.' }
+        $window = Start-Window 'serve' 'ReturnOps demo API (port 8000) - Ctrl+C stops it' $serve
+        $state = Wait-WindowReady $window 'http://127.0.0.1:8000/health/ready' '"ready"' 60
+        if ($state -eq 'ended') {
+            $hint = ''
+            if ($ModelShowcase) { $hint = ' With -ModelShowcase, check that the RETURNOPS_MODEL_* variables are set in this window.' }
+            Stop-Script "The demo API stopped right after starting; its window shows the reason.$hint"
+        }
+        if ($state -ne 'ready') { Stop-Script 'The demo API did not become ready within 60 s; read its window.' }
+        Show-Ok 'Demo API ready on http://127.0.0.1:8000 (its window shows warnings and errors)'
+    }
+
+    Show-Step 'Step 4: web frontend (port 5173)'
+    if (Get-Window 'web') {
+        Show-Ok 'The web window is already running'
+    } else {
+        if (Test-Listening 5173) { Stop-Script 'Port 5173 is in use by a program this script did not start; stop it first.' }
+        $webBody = 'Set-Location -LiteralPath ' + (Format-Literal $Web) + "`n& npm.cmd run dev"
+        $window = Start-Window 'web' 'ReturnOps web (port 5173)' $webBody
+        if ((Wait-WindowReady $window 'http://localhost:5173/' '<' 60) -ne 'ready') { Stop-Script 'The web frontend did not start; read its window.' }
+    }
+    if (Wait-Http 'http://localhost:5173/health/ready' '"ready"' 15) { Show-Ok 'http://localhost:5173 answers, and its proxy reaches the demo API' }
+    else { Stop-Script 'http://localhost:5173 does not reach the demo API through its proxy.' }
+
+    $since = Get-SavedTime 'demo-shop'
+    Show-Step 'Sign in (manual, README step 4)'
+    Show-Info 'Open http://localhost:5173 in two browser profiles: Auth Tokens -> role -> Mock Data Fallback off -> paste -> Save & Apply.'
+    Show-Info 'Copy a token to the clipboard without showing it (customer, then Founder):'
+    Show-Info '  (Get-Content -Raw tmp\demo-shop\sessions.json | ConvertFrom-Json).tokens.synthetic_customer_a | Set-Clipboard'
+    Show-Info '  (Get-Content -Raw tmp\demo-shop\sessions.json | ConvertFrom-Json).tokens.synthetic_founder | Set-Clipboard'
+    if ($since) {
+        $until = $since.AddSeconds($SessionSeconds)
+        if ($until -gt (Get-Date)) { Show-Info "The sessions were provisioned at $(Format-Time $since) and expire at $(Format-Time $until)." }
+        else { Show-Warn "The sessions expired at $(Format-Time $until). New ones need a fresh database: stop -RemoveData, prepare, start." }
+    }
+    Show-Info 'S5 later: tools\demo\demo.ps1 s5    After the demonstration: tools\demo\demo.ps1 stop -RemoveData'
+}
+
+function Invoke-S5 {
+    Assert-Prepared
+    if (Get-Window 'driver') { Stop-Script 'The S5 driver window is already running. Run stop first for another run.' }
+
+    Show-Step 'Step 5: stop the step 3 demo API'
+    if (Get-Window 'serve') { Close-Window 'serve' 'demo API' -CtrlC -Seconds 30 }
+    if (-not (Wait-PortFree 8000 15)) { Stop-Script 'Port 8000 is still in use by a program this script did not start; stop it first.' }
+    Show-Ok 'Port 8000 is free'
+
+    Show-Step 'Step 5: S5 identities and the R.02 driver (demo mode)'
+    if (Test-Path -LiteralPath (Join-Path $Cups 'auth.json')) {
+        Show-Warn 'tmp\demo-cups exists, so its identities are reused; the driver refuses if the cups store already has a case.'
+    } elseif (Test-Path -LiteralPath $Cups) {
+        Stop-Script 'tmp\demo-cups exists without auth.json (an interrupted provision). Run stop -RemoveData, then prepare and start.'
+    } else {
+        Invoke-Checked 'demo.py provision (demo-cups)' {
+            & $Py -B tools/environment/local.py run python -m returnops_api.demo provision --private-dir $Cups `
+                --store demo_cups_store --customer-one demo_cups_customer_one --customer-two demo_cups_customer_two `
+                --founder demo_cups_founder
+        }
+        Save-Time 'demo-cups'
+    }
+    $output = Join-Path $Tmp ('r02-demo-run-' + (Get-Date).ToString('yyyyMMdd-HHmmss'))
+    $driver = '& ' + (Format-Literal $Py) + ' -B tools/r02/driver.py --output ' + (Format-Literal $output) +
+        ' --identities ' + (Format-Literal $Cups) + ' --api-port 8000 --keep-api --allow-existing-data'
+    # README step 5: DATABASE_URL is set directly for the driver, never through local.py run.
+    # It exists only in this process and the driver window, and is not printed.
+    $values = Read-DotEnv
+    $env:DATABASE_URL = 'postgresql+psycopg://' + $values['POSTGRES_USER'] + ':' + $values['POSTGRES_PASSWORD'] +
+        '@127.0.0.1:' + $values['DB_PORT'] + '/' + $values['POSTGRES_DB']
+    try { $window = Start-Window 'driver' 'ReturnOps S5 driver (keeps the API on port 8000) - Ctrl+C stops it' $driver }
+    finally { Remove-Item Env:DATABASE_URL -ErrorAction SilentlyContinue }
+
+    Show-Info "Driver started; waiting up to 10 minutes for its receipt in tmp\$(Split-Path -Leaf $output)."
+    $receipt = Join-Path $output 'run-receipt.json'
+    $begun = Get-Date
+    $deadline = $begun.AddMinutes(10)
+    $data = $null
+    $seen = $false
+    while ((Get-Date) -lt $deadline -and -not $data) {
+        if (Test-Path -LiteralPath $receipt) {
+            try { $data = [System.IO.File]::ReadAllText($receipt) | ConvertFrom-Json } catch { $data = $null }
+        }
+        if (-not $data) {
+            # The window needs a moment before its driver process appears.
+            if (@(Get-WindowCommands $window).Count -gt 0) { $seen = $true }
+            elseif ($seen -or ((Get-Date) - $begun).TotalSeconds -gt 30) { break }
+            Start-Sleep -Seconds 2
+        }
+    }
+    if (-not $data) { Stop-Script 'The driver stopped or wrote no receipt; read the driver window.' }
+    if ($data.result -ne 'PASSED') {
+        $stop = ''
+        if ($data.PSObject.Properties['stop'] -and $data.stop) { $stop = " ($($data.stop.code))" }
+        Stop-Script "Driver result $($data.result)$stop; read the driver window and tools/r02/README.md."
+    }
+    Show-Ok "Driver result PASSED; case $($data.case_id)"
+    if (Wait-Http 'http://127.0.0.1:8000/health/ready' '"ready"' 30) { Show-Ok 'The driver keeps its API on port 8000' }
+    else { Show-Warn 'Port 8000 does not answer ready; read the driver window.' }
+
+    Show-Step 'Show the case (manual, README step 5)'
+    Show-Info 'Sign in as Founder with the demo_cups_founder token, then Founder Console -> Case Queue & Review -> Inspect.'
+    Show-Info '  (Get-Content -Raw tmp\demo-cups\sessions.json | ConvertFrom-Json).tokens.demo_cups_founder | Set-Clipboard'
+}
+
+function Invoke-Stop {
+    Show-Step 'Stopping the windows this script started'
+    Close-Window 'driver' 'S5 driver' -CtrlC -Seconds 60
+    Close-Window 'serve' 'demo API' -CtrlC -Seconds 30
+    Close-Window 'web' 'web frontend'
+    foreach ($port in @(8000, 5173)) {
+        if (Test-Listening $port) { Show-Warn "Port $port is still in use (a program this script did not start)." }
+    }
+
+    Show-Step "Compose project $Project"
+    $containers = @(Get-ComposeContainers)
+    if ($RemoveData) {
+        if (Test-Path -LiteralPath $EnvFile) {
+            Invoke-Checked 'docker compose down -v' { docker compose -p $Project down -v --remove-orphans }
+        } else {
+            if ($containers.Count -gt 0) { Invoke-Checked 'docker rm' { docker rm -f @containers } }
+            if (Test-VolumeExists) { Invoke-Checked 'docker volume rm' { docker volume rm $Volume } }
+        }
+        Show-Ok 'Containers and the database volume removed'
+        foreach ($dir in @($Shop, $Cups, $StateDir)) {
+            if (Test-Path -LiteralPath $dir) { Remove-Item -LiteralPath $dir -Recurse -Force; Show-Ok "Deleted tmp\$(Split-Path -Leaf $dir)" }
+        }
+        Show-Info 'Kept: .env, .venv, apps\web\node_modules and the driver receipts in tmp\r02-demo-run-*.'
+        Show-Info 'In both browser profiles, use Clear token in Auth Tokens.'
+    } elseif ($containers.Count -gt 0) {
+        Invoke-Checked 'docker compose stop' { docker compose -p $Project stop }
+        Show-Ok 'Compose services stopped; the database is kept (prepare starts them again).'
+        Show-Info 'After the demonstration: tools\demo\demo.ps1 stop -RemoveData'
+    } else {
+        Show-Ok 'No Compose containers for this folder'
+    }
+}
+
+switch ($Action) {
+    'check' {
+        Test-Prerequisites
+        Write-Host ''
+        if ($script:Problems -gt 0) { Write-Host "$($script:Problems) problem(s) found." -ForegroundColor Red; exit 1 }
+        Write-Host 'No problem found.' -ForegroundColor Green
+    }
+    'prepare' { Invoke-Prepare }
+    'start' { Invoke-Start }
+    's5' { Invoke-S5 }
+    'stop' { Invoke-Stop }
+}
+exit 0
