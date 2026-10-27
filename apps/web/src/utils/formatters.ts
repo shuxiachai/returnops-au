@@ -89,6 +89,16 @@ export function formatCategory(cat?: IssueCategory): string {
   }
 }
 
+// A contract CaseStatus in words for the Founder's filters
+// ('AWAITING_APPROVAL' -> 'Awaiting Approval').
+export function formatStatusLabel(status: CaseStatus): string {
+  return status
+    .toLowerCase()
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
 export function formatActor(actor?: string | ActorProvenance): string {
   if (!actor) return '—';
   if (typeof actor === 'string') return actor;

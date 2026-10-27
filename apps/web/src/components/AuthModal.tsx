@@ -19,6 +19,8 @@ interface AuthModalProps {
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const [tokenInput, setTokenInput] = useState('');
+  // The token field is masked unless the operator asks to see it (#111 item 12).
+  const [showToken, setShowToken] = useState(false);
   const [activeRole, setLocalRole] = useState<'CUSTOMER' | 'FOUNDER'>(getActiveRole());
   const [currentSession, setCurrentSession] = useState<SessionPrincipal | null>(null);
   const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
@@ -33,6 +35,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       const stored = getStoredToken();
       const storedMock = isMockMode();
       setTokenInput(stored);
+      setShowToken(false);
       setLocalRole(getActiveRole());
       setMock(storedMock);
       verifyToken(stored, storedMock);
@@ -175,7 +178,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           {/* JWT Input */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <label
+                htmlFor="auth-token-input"
+                className="text-xs font-semibold uppercase tracking-wider text-slate-500"
+              >
                 Bearer Token (JWT)
               </label>
               {tokenInput && (
@@ -188,16 +194,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 </button>
               )}
             </div>
-            <textarea
-              rows={3}
-              value={tokenInput}
-              onChange={(e) => {
-                setTokenInput(e.target.value);
-                resetVerification();
-              }}
-              placeholder="Paste JWT issued by returnops_api.demo provision (from sessions.json) or leave blank for mock mode..."
-              className="w-full text-xs font-mono p-3 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-500 focus:bg-white transition-all resize-none"
-            />
+            {/* Masked by default: the demonstration is shown on a projector, and a
+                bearer token is a credential while its session lasts (#111 item 12). */}
+            <div className="flex items-stretch gap-2">
+              <input
+                id="auth-token-input"
+                type={showToken ? 'text' : 'password'}
+                value={tokenInput}
+                onChange={(e) => {
+                  setTokenInput(e.target.value);
+                  resetVerification();
+                }}
+                placeholder="Paste JWT issued by returnops_api.demo provision (from sessions.json) or leave blank for mock mode..."
+                autoComplete="off"
+                spellCheck={false}
+                className="w-full text-xs font-mono p-3 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-500 focus:bg-white transition-all"
+              />
+              <button
+                type="button"
+                onClick={() => setShowToken((shown) => !shown)}
+                aria-pressed={showToken}
+                aria-label={showToken ? 'Hide token' : 'Show token'}
+                className="px-3 text-xs font-medium text-slate-600 border border-slate-300 rounded-xl hover:bg-slate-100 shrink-0"
+              >
+                {showToken ? 'Hide' : 'Show'}
+              </button>
+            </div>
             <p className="text-[11px] text-slate-400 mt-1">
               Note: Tokens generated via <code>python -m returnops_api.demo provision</code> are stored in your private <code>sessions.json</code>.
             </p>

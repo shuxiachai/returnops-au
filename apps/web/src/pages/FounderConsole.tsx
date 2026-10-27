@@ -46,6 +46,7 @@ import {
   getRiskBadgeClass,
   formatCategory,
   formatActor,
+  formatStatusLabel,
   describeProposalSource,
 } from '../utils/formatters';
 import { AdvisoryFactsCard } from '../components/AdvisoryFactsCard';
@@ -56,7 +57,7 @@ const AUDIT_MAX_PAGES = 20;
 
 type DetailTab = 'proposal' | 'order' | 'statements' | 'outcome' | 'audit';
 
-// Contract CaseStatus values in enum order, for the analytics status filter.
+// Contract CaseStatus values in enum order, for the queue and analytics status filters.
 const CASE_STATUSES: CaseStatus[] = [
   'SUBMITTED',
   'AWAITING_INFORMATION',
@@ -538,16 +539,17 @@ export const FounderConsole: React.FC = () => {
               <select
                 value={statusFilter}
                 onChange={(e) => handleStatusFilterChange(e.target.value)}
+                aria-label="Filter the queue by status"
                 className="text-xs font-semibold px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-700 focus:ring-2 focus:ring-sky-500"
               >
                 <option value="ALL">All Statuses</option>
-                <option value="AWAITING_APPROVAL">Awaiting Approval</option>
-                <option value="RISK_REVIEW">Risk Review</option>
-                <option value="AWAITING_INFORMATION">Awaiting Information</option>
-                <option value="UNDER_INVESTIGATION">Under Investigation</option>
-                <option value="ESCALATED">Escalated</option>
-                <option value="APPROVED">Approved</option>
-                <option value="COMPLETED">Completed</option>
+                {/* All sixteen contract statuses, so a case in any state can be found
+                    (#111 item 9); the old list offered seven. */}
+                {CASE_STATUSES.map((status) => (
+                  <option key={status} value={status}>
+                    {formatStatusLabel(status)}
+                  </option>
+                ))}
               </select>
 
               <button
@@ -1685,7 +1687,8 @@ export const FounderConsole: React.FC = () => {
 
                 <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                   <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    p95 Latency SLA
+                    {/* A measured percentile only: no service level is promised. */}
+                    p95 Latency
                   </div>
                   <div className="text-3xl font-extrabold text-purple-600 mt-2">
                     {analytics.proposal_latency.p95_ms !== undefined

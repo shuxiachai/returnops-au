@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { act, render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { FounderConsole } from './FounderConsole';
-import type { AnalyticsSnapshot, CaseView } from '../types/domain';
+import type { AnalyticsSnapshot, AuditEvent, CaseView } from '../types/domain';
 import { formatDate } from '../utils/formatters';
 
 // Keep the real ApiError, but take deterministic control of the API surface so
@@ -810,8 +810,8 @@ describe('FounderConsole failure and live-mode paths', () => {
 
       expect(holder('p50 Median Latency')).toHaveTextContent('—');
       expect(holder('p50 Median Latency')).toHaveTextContent('Not measured (no samples)');
-      expect(holder('p95 Latency SLA')).toHaveTextContent('—');
-      expect(holder('p95 Latency SLA')).toHaveTextContent('Not measured (no samples)');
+      expect(holder('p95 Latency')).toHaveTextContent('—');
+      expect(holder('p95 Latency')).toHaveTextContent('Not measured (no samples)');
 
       expect(holder('Measured:')).toHaveTextContent('Measured: 0');
       expect(holder('Failed:')).toHaveTextContent('Failed: 1');
@@ -872,5 +872,109 @@ describe('FounderConsole failure and live-mode paths', () => {
       await waitFor(() => expect(getFounderAnalytics).toHaveBeenCalledTimes(3));
       expect(vi.mocked(getFounderAnalytics).mock.calls[2][0]).toStrictEqual({});
     });
+  });
+});
+
+describe('FounderConsole audit paging and the in-flight decision dialog', () => {
+  const auditEvent = (n: number): AuditEvent => ({
+    event_id: `evt_${n}`,
+    case_id: 'case_contract_shape',
+    sequence: n,
+    event_type: `TEST_EVENT_${String(n).padStart(4, '0')}`,
+    actor: 'system',
+    occurred_at: '2026-10-01T00:00:00Z',
+  });
+
+  const openAudit = async () => {
+    render(<FounderConsole />);
+    fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /Tamper-Evident Audit Chain/i }));
+  };
+
+  beforeEach(() => {
+    localStorage.clear();
+    vi.mocked(isMockMode).mockReturnValue(true);
+    vi.mocked(listFounderCases).mockResolvedValue({ items: [CONTRACT_SUMMARY], next_cursor: undefined });
+    vi.mocked(getFounderCase).mockResolvedValue(CONTRACT_SHAPED_VIEW);
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+    vi.clearAllMocks();
+  });
+
+  it('follows next_cursor across pages and shows the whole chain (#122 item 13)', async () => {
+    vi.mocked(listFounderCaseAuditPage).mockImplementation(async (_caseId, cursor) => {
+      if (!cursor) return { items: [auditEvent(1), auditEvent(2)], next_cursor: 'c1' };
+      if (cursor === 'c1') return { items: [auditEvent(3)], next_cursor: 'c2' };
+      return { items: [auditEvent(4)], next_cursor: undefined };
+    });
+    await openAudit();
+
+    expect(await screen.findByText(/TEST_EVENT_0004/)).toBeInTheDocument();
+    for (const n of [1, 2, 3]) expect(screen.getByText(new RegExp(`TEST_EVENT_000${n}`))).toBeInTheDocument();
+    expect(listFounderCaseAuditPage).toHaveBeenNthCalledWith(1, 'case_contract_shape', undefined, 50);
+    expect(listFounderCaseAuditPage).toHaveBeenNthCalledWith(2, 'case_contract_shape', 'c1', 50);
+    expect(listFounderCaseAuditPage).toHaveBeenNthCalledWith(3, 'case_contract_shape', 'c2', 50);
+    expect(screen.queryByText(/Only the first/)).not.toBeInTheDocument();
+  });
+
+  it('stops when the server repeats a cursor instead of reading the same page again', async () => {
+    let calls = 0;
+    vi.mocked(listFounderCaseAuditPage).mockImplementation(async () => {
+      calls += 1;
+      return { items: [auditEvent(calls)], next_cursor: 'same' };
+    });
+    await openAudit();
+
+    expect(await screen.findByText(/TEST_EVENT_0002/)).toBeInTheDocument();
+    expect(listFounderCaseAuditPage).toHaveBeenCalledTimes(2);
+    expect(screen.queryByText(/Only the first/)).not.toBeInTheDocument();
+  });
+
+  it('keeps the events it read and says so when the chain is longer than the bound', async () => {
+    let calls = 0;
+    vi.mocked(listFounderCaseAuditPage).mockImplementation(async () => {
+      calls += 1;
+      return { items: [auditEvent(calls)], next_cursor: `c${calls}` };
+    });
+    await openAudit();
+
+    expect(
+      await screen.findByText(/Only the first 1000 recorded events were read\. The events shown are real/)
+    ).toBeInTheDocument();
+    expect(screen.getByText(/TEST_EVENT_0001/)).toBeInTheDocument();
+    expect(screen.getByText(/TEST_EVENT_0020/)).toBeInTheDocument();
+    expect(listFounderCaseAuditPage).toHaveBeenCalledTimes(20);
+  });
+
+  it('freezes X, Cancel and the rationale while a decision is in flight (#122 item 12)', async () => {
+    vi.mocked(isMockMode).mockReturnValue(false);
+    vi.mocked(listFounderCaseAuditPage).mockResolvedValue({ items: [], next_cursor: undefined });
+    let settle!: (error: Error) => void;
+    vi.mocked(recordFounderDecision).mockReturnValue(
+      new Promise((_resolve, reject) => {
+        settle = reject;
+      })
+    );
+
+    render(<FounderConsole />);
+    fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /^Reject$/i }));
+    const reason = await screen.findByPlaceholderText(/Record justification for statutory audit/i);
+    fireEvent.change(reason, { target: { value: 'Outside the policy window.' } });
+    fireEvent.click(screen.getByRole('button', { name: /Record decision/i }));
+
+    await waitFor(() => expect(screen.getByRole('button', { name: /Submitting/i })).toBeDisabled());
+    expect(screen.getByRole('button', { name: 'Close decision confirmation' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /^Cancel$/i })).toBeDisabled();
+    expect(reason).toBeDisabled();
+
+    await act(async () => {
+      settle(new ApiError(409, 'The request is not available in the current state.', 'INVALID_STATE'));
+    });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Close decision confirmation' })).toBeEnabled());
+    expect(screen.getByRole('button', { name: /^Cancel$/i })).toBeEnabled();
+    expect(reason).toBeEnabled();
   });
 });
