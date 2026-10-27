@@ -321,6 +321,26 @@ export async function downloadEvidence(evidenceId: string, fallbackFilename = 'e
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+// Fixture hashes for Mock Mode: a 64-hex value derived from the event body. It is
+// not a SHA-256 digest and nothing in the UI claims it is (the audit panel says the
+// view does not recompute or verify the chain).
+const ZERO_HASH = '0'.repeat(64);
+
+function fixtureHash(input: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  const word = (hash >>> 0).toString(16).padStart(8, '0');
+  return word.repeat(8).slice(0, 64);
+}
+
+// A usable order reference is what the server accepts (the synthetic SYN-#### form).
+function hasUsableOrderReference(reference?: string): boolean {
+  return Boolean(reference && /^SYN-\d{4}$/i.test(reference.trim()));
+}
+
 export async function createCase(req: CreateCaseRequest, idempotencyKey?: string): Promise<CustomerCaseView> {
   if (isMockMode()) {
     const newCaseId = 'case_demo_' + Math.floor(100 + Math.random() * 900);
@@ -328,7 +348,7 @@ export async function createCase(req: CreateCaseRequest, idempotencyKey?: string
       case_id: newCaseId,
       case_version: 1,
       input_version: 1,
-      status: 'SUBMITTED',
+      status: 'AWAITING_INFORMATION',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       statements: [
@@ -351,18 +371,33 @@ export async function createCase(req: CreateCaseRequest, idempotencyKey?: string
         created_at: new Date().toISOString(),
         content_path: `/v1/evidence/${id}/content`,
       })),
-      clarification: {
+    };
+    // Mock Mode mirrors the server's rule (investigation_admission.issue_questions):
+    // without a usable order reference the case waits for information and asks for
+    // one, plus the alternative purchase-context question. With a reference it goes
+    // straight to the investigation. The old fixed packaging question was invented
+    // and contradicted what the live server asks.
+    if (hasUsableOrderReference(req.order_reference)) {
+      newCase.status = 'UNDER_INVESTIGATION';
+    } else {
+      newCase.status = 'AWAITING_INFORMATION';
+      newCase.clarification = {
         question_set_id: 'qset_' + Date.now().toString(36),
         input_version: 1,
         questions: [
           {
-            question_id: 'q_auto_1',
-            text: 'Could you confirm the condition of the shipping packaging upon arrival?',
-            reason: 'Intake assessment checking logistics transit integrity.',
+            question_id: 'q_auto_ref',
+            text: 'Provide an order reference (at most 120 characters), or use the alternative purchase-context question.',
+            reason: 'No order is verified. Either an order reference or alternative purchase material can continue the investigation.',
+          },
+          {
+            question_id: 'q_auto_alt',
+            text: 'Alternatively, describe the purchase or attach supporting evidence; you do not also need an order reference.',
+            reason: 'Alternative material will be retained for further verification; it does not itself verify an order.',
           },
         ],
-      },
-    };
+      };
+    }
     MOCK_CUSTOMER_CASES[newCaseId] = newCase;
     return newCase;
   }
@@ -472,7 +507,21 @@ export async function submitClarification(
 
 export async function listFounderCases(cursor?: string, limit = 20): Promise<CaseList> {
   if (isMockMode()) {
-    const all = MOCK_FOUNDER_SUMMARIES;
+    // A case lodged in the Customer Portal is in the mock store but not in the fixed
+    // fixture summaries, so the Founder could never see what the customer had just
+    // lodged. Derive a summary for anything the fixtures do not cover.
+    const lodged: CaseSummary[] = Object.values(MOCK_CUSTOMER_CASES)
+      .filter((c) => !MOCK_FOUNDER_SUMMARIES.some((summary) => summary.case_id === c.case_id))
+      .map((c) => ({
+        case_id: c.case_id,
+        case_version: c.case_version,
+        input_version: c.input_version,
+        status: c.status,
+        created_at: c.created_at,
+        updated_at: c.updated_at,
+        issue_category: 'UNCLEAR' as const,
+      }));
+    const all = [...lodged, ...MOCK_FOUNDER_SUMMARIES];
     const startIdx = cursor ? parseInt(cursor, 10) || 0 : 0;
     const items = all.slice(startIdx, startIdx + limit);
     const next_cursor = startIdx + limit < all.length ? String(startIdx + limit) : undefined;
@@ -625,6 +674,37 @@ export async function recordFounderDecision(
         ];
       }
     }
+    // The server writes an audit event for every accepted decision; the mock store
+    // did not, so the chain after a decision looked untouched. The hashes are
+    // fixture values derived from the event body, not a real SHA-256 digest — the
+    // audit panel states that this view does not recompute or verify the chain.
+    const previous = (MOCK_AUDIT_EVENTS[caseId] ?? []);
+    const previousHash = previous.length > 0
+      ? previous[previous.length - 1].event_hash ?? ZERO_HASH
+      : ZERO_HASH;
+    const eventType =
+      req.decision === 'APPROVE'
+        ? 'FOUNDER_APPROVED'
+        : req.decision === 'REJECT'
+          ? 'FOUNDER_REJECTED'
+          : req.decision === 'REQUEST_REVISION'
+            ? 'FOUNDER_REVISION_REQUESTED'
+            : 'MANUAL_HANDLED';
+    const body = JSON.stringify({ caseId, decision: req.decision, reason: req.reason, decidedAt, previousHash });
+    MOCK_AUDIT_EVENTS[caseId] = [
+      ...previous,
+      {
+        event_id: 'evt_' + Date.now().toString(36),
+        case_id: caseId,
+        sequence: previous.length + 1,
+        event_type: eventType,
+        actor: { kind: 'HUMAN', role: 'FOUNDER', principal_id: 'founder_demo' },
+        occurred_at: decidedAt,
+        previous_event_hash: previousHash,
+        event_hash: fixtureHash(body),
+        payload: { decision: req.decision, reason: req.reason },
+      },
+    ];
     return {
       case_id: caseId,
       case_version: c ? c.case_version : 1,

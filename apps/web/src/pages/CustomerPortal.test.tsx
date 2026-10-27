@@ -49,7 +49,8 @@ describe('CustomerPortal (UC-01 & UC-01E)', () => {
       expect(screen.getByText('Return Request Submitted Successfully!')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Received')).toBeInTheDocument();
+    // No usable order reference, so the case waits for information (server rule).
+    expect(screen.getByText('We need a bit more information')).toBeInTheDocument();
     expect(screen.queryByText('SUBMITTED')).not.toBeInTheDocument();
     expect(screen.getByText(/Lodge Another Return/i)).toBeInTheDocument();
   });
