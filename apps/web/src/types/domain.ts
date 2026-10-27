@@ -145,7 +145,7 @@ export interface CollectionWindow {
   preview_count: number;
   unavailable_count: number;
   truncated: boolean;
-  start_cursor?: string;
+  start_cursor: string;
 }
 
 export interface CustomerCaseView {

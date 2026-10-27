@@ -407,6 +407,7 @@ function hasAnyReference(reference?: string): boolean {
 export async function createCase(req: CreateCaseRequest, idempotencyKey?: string): Promise<CustomerCaseView> {
   if (isMockMode()) {
     const newCaseId = 'case_demo_' + Math.floor(100 + Math.random() * 900);
+    const snapshotId = 'snap_' + Date.now().toString(36);
     const newCase: CustomerCaseView = {
       case_id: newCaseId,
       case_version: 1,
@@ -438,27 +439,27 @@ export async function createCase(req: CreateCaseRequest, idempotencyKey?: string
         content_path: `/v1/evidence/${id}/content`,
       })),
       // The server always sends both windows with a case view, and the contract allows
-      // no others.
+      // no others. One snapshot id for the pair, as history.py mints one per snapshot.
       collection_windows: {
         statements: {
           kind: 'STATEMENT' as const,
-          snapshot_id: 'snap_' + Date.now().toString(36),
+          snapshot_id: snapshotId,
           snapshot_case_version: 1,
           total_records: 1,
           preview_count: 1,
           unavailable_count: 0,
           truncated: false,
-          start_cursor: '',
+          start_cursor: 'cur_' + snapshotId,
         },
         evidence: {
           kind: 'EVIDENCE' as const,
-          snapshot_id: 'snap_' + Date.now().toString(36),
+          snapshot_id: snapshotId,
           snapshot_case_version: 1,
           total_records: (req.evidence_ids || []).length,
           preview_count: (req.evidence_ids || []).length,
           unavailable_count: 0,
           truncated: false,
-          start_cursor: '',
+          start_cursor: 'cur_' + snapshotId,
         },
       },
     };
