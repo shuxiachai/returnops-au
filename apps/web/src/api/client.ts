@@ -35,14 +35,26 @@ export class ApiError extends Error {
   public code?: string;
   public correlationId?: string;
   public details?: unknown;
+  // The contract's ErrorEnvelope.retryable (#122 item 7). It was never read, so the
+  // customer was told to retry requests the server had already marked permanent.
+  // Undefined means the reply carried no envelope (a lost response or a proxy 500).
+  public retryable?: boolean;
 
-  constructor(status: number, message: string, code?: string, correlationId?: string, details?: unknown) {
+  constructor(
+    status: number,
+    message: string,
+    code?: string,
+    correlationId?: string,
+    details?: unknown,
+    retryable?: boolean
+  ) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.code = code;
     this.correlationId = correlationId;
     this.details = details;
+    this.retryable = retryable;
   }
 }
 
@@ -161,7 +173,14 @@ async function request<T>(
         }
       }
       const code = errEnvelope?.error?.code || `HTTP_${response.status}`;
-      throw new ApiError(response.status, msg, code, correlationId, errEnvelope?.error?.details);
+      throw new ApiError(
+        response.status,
+        msg,
+        code,
+        correlationId,
+        errEnvelope?.error?.details,
+        errEnvelope?.error?.retryable
+      );
     }
 
     if (response.status === 204) {

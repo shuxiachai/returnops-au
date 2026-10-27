@@ -680,6 +680,49 @@ describe('client', () => {
     });
   });
 
+  describe('retryable (#122 item 7)', () => {
+    beforeEach(() => {
+      localStorage.clear();
+      setMockMode(false); // these cases are about the live wire, not the fixture store
+    });
+    afterEach(() => {
+      localStorage.clear();
+      setMockMode(true);
+    });
+
+    const reply = (status: number, body: unknown) =>
+      new Response(JSON.stringify(body), {
+        status,
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+    it('carries the envelope flag so a permanent refusal is not presented as retryable', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () =>
+          reply(409, {
+            error: { code: 'IDEMPOTENCY_CONFLICT', message: 'Key already used.', retryable: false },
+          })
+        )
+      );
+
+      await expect(createCase({ original_message: 'x' }, 'case_key_1')).rejects.toMatchObject({
+        status: 409,
+        code: 'IDEMPOTENCY_CONFLICT',
+        retryable: false,
+      });
+    });
+
+    it('leaves the flag undefined when the reply carries no envelope', async () => {
+      vi.stubGlobal('fetch', vi.fn(async () => reply(500, { detail: 'Not Found' })));
+
+      const error = await createCase({ original_message: 'x' }, 'case_key_2').catch((err) => err);
+
+      expect(error).toBeInstanceOf(ApiError);
+      expect(error.retryable).toBeUndefined();
+    });
+  });
+
   describe('ApiError', () => {
     it('correctly constructs ApiError with status, message, code and correlationId', () => {
       const err = new ApiError(409, 'Version conflict', 'STALE_CASE_VERSION', 'corr_123');
