@@ -389,7 +389,7 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
     expect(screen.getByText(/This view does not recompute or verify the chain\./i)).toBeInTheDocument();
     // The whole closure of the demo case must be present, not just a summary row.
     expect(screen.getByText(/#5 CASE_COMPLETED/i)).toBeInTheDocument();
-    expect(screen.getByText(/#3 FOUNDER_APPROVED/i)).toBeInTheDocument();
+    expect(screen.getByText(/#3 FOUNDER_DECISION_ACCEPTED/i)).toBeInTheDocument();
     // The approval covered a simulated return and label only; no money moved (#122 item 3).
     expect(screen.getByText(/#4 SIMULATED_RETURN_AND_LABEL_CREATED/i)).toBeInTheDocument();
     expect(screen.queryByText(/REFUND_DISPATCHED/i)).not.toBeInTheDocument();
