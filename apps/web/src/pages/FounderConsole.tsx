@@ -95,6 +95,8 @@ export const FounderConsole: React.FC = () => {
   const [caseDetail, setCaseDetail] = useState<CaseView | null>(null);
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
   const [auditError, setAuditError] = useState<string | null>(null);
+  // The chain is longer than this view reads; the events shown are still real.
+  const [auditOverflow, setAuditOverflow] = useState(false);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [detailTab, setDetailTab] = useState<DetailTab>('proposal');
   // A case that cannot be opened is reported on the page, not in a browser alert.
@@ -216,28 +218,37 @@ export const FounderConsole: React.FC = () => {
   // #122 item 13: read every page of the chain, with a bound, so a long case is
   // not silently truncated to its first page. Overflow is shown as an error rather
   // than passed off as the whole chain.
-  const loadWholeAuditChain = async (caseId: string): Promise<AuditEvent[]> => {
+  const loadWholeAuditChain = async (
+    caseId: string
+  ): Promise<{ events: AuditEvent[]; overflow: boolean }> => {
     const events: AuditEvent[] = [];
     let cursor: string | undefined;
     for (let page = 0; page < AUDIT_MAX_PAGES; page += 1) {
       const result = await listFounderCaseAuditPage(caseId, cursor, AUDIT_PAGE_LIMIT);
       events.push(...(result.items ?? []));
-      if (!result.next_cursor) return events;
-      cursor = result.next_cursor;
+      const next = result.next_cursor;
+      // A repeated cursor or a page that adds nothing ends the read instead of
+      // spending the whole bound on the same page.
+      if (!next || next === cursor || (result.items ?? []).length === 0) {
+        return { events, overflow: false };
+      }
+      cursor = next;
     }
-    throw new ApiError(
-      0,
-      `The audit chain has more events than this view reads (${AUDIT_MAX_PAGES} pages of ${AUDIT_PAGE_LIMIT}).`,
-      'AUDIT_PAGE_LIMIT_REACHED'
-    );
+    // Longer than this view reads: say so, and keep the events already shown rather
+    // than replacing them with an error.
+    return { events, overflow: true };
   };
 
-  const applyAuditResult = (auditResult: PromiseSettledResult<AuditEvent[]>) => {
+  const applyAuditResult = (
+    auditResult: PromiseSettledResult<{ events: AuditEvent[]; overflow: boolean }>
+  ) => {
     if (auditResult.status === 'fulfilled') {
-      setAuditEvents(auditResult.value);
+      setAuditEvents(auditResult.value.events);
+      setAuditOverflow(auditResult.value.overflow);
       setAuditError(null);
     } else {
       setAuditEvents([]);
+      setAuditOverflow(false);
       setAuditError(describeApiError(auditResult.reason, 'Failed to fetch audit events'));
     }
   };
@@ -250,6 +261,9 @@ export const FounderConsole: React.FC = () => {
     setIsLoadingDetail(true);
     setDetailTab(tab);
     setAuditError(null);
+    setAuditEvents([]);
+    setAuditOverflow(false);
+    setEvidenceDownloadError(null);
     try {
       const [detailResult, auditResult] = await Promise.allSettled([
         getFounderCase(caseId),
@@ -1285,12 +1299,18 @@ export const FounderConsole: React.FC = () => {
                     <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 text-xs flex items-center space-x-2">
                       <FileText className="w-4 h-4 text-slate-500 flex-shrink-0" />
                       <span>
-                        Recorded Audit Events: each event shows its recorded SHA-256 hash and, where present, its previous-hash link. This view does not recompute or verify the chain.
+                        Recorded Audit Events: each event shows its recorded hash and, where present, its previous-hash link. This view does not recompute or verify the chain. In Mock Mode those hashes are fixture values rather than SHA-256 digests.
                       </span>
                     </div>
                   ) : (
                     <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-500 text-xs text-center">
                       No audit events recorded for this case.
+                    </div>
+                  )}
+
+                  {auditOverflow && (
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs">
+                      Only the first {AUDIT_MAX_PAGES * AUDIT_PAGE_LIMIT} recorded events were read. The events shown are real; the chain continues past them.
                     </div>
                   )}
 
@@ -1512,7 +1532,15 @@ export const FounderConsole: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmittingDecision || decisionReason.trim().length === 0}
+                  disabled={
+                    isSubmittingDecision ||
+                    decisionReason.trim().length === 0 ||
+                    // #122 item 12: a preview that has expired is refused by the server,
+                    // so the dialog does not offer the decision either.
+                    (caseDetail?.action_preview?.scope?.expires_at
+                      ? Date.parse(caseDetail.action_preview.scope.expires_at) <= Date.now()
+                      : false)
+                  }
                   className="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold transition-colors shadow-sm disabled:opacity-50"
                 >
                   {isSubmittingDecision ? 'Submitting...' : 'Record decision'}

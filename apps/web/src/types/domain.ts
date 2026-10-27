@@ -205,7 +205,8 @@ export interface Citation {
 export interface PolicyPassage {
   passage_id: string;
   document_id: string;
-  source_type: string;
+  // Contract enum: a passage is either store policy or reviewed consumer guidance.
+  source_type: 'STORE_POLICY' | 'REVIEWED_CONSUMER_GUIDANCE';
   title: string;
   source_uri: string;
   accessed_on: string;

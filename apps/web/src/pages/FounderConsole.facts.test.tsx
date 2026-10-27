@@ -12,7 +12,7 @@ vi.mock('../api/client', async (importOriginal) => {
     isMockMode: vi.fn(() => false),
     listFounderCases: vi.fn(),
     getFounderCase: vi.fn(),
-    listFounderCaseAudit: vi.fn(),
+    listFounderCaseAuditPage: vi.fn(),
     recordFounderDecision: vi.fn(),
     getFounderAnalytics: vi.fn(),
   };
@@ -22,7 +22,7 @@ import {
   isMockMode,
   listFounderCases,
   getFounderCase,
-  listFounderCaseAudit,
+  listFounderCaseAuditPage,
   recordFounderDecision,
 } from '../api/client';
 
@@ -147,7 +147,7 @@ describe('FounderConsole advisory facts card (Issue #95)', () => {
     localStorage.clear();
     vi.mocked(isMockMode).mockReturnValue(false);
     vi.mocked(listFounderCases).mockResolvedValue({ items: [SUMMARY_ROW], next_cursor: undefined });
-    vi.mocked(listFounderCaseAudit).mockResolvedValue([]);
+    vi.mocked(listFounderCaseAuditPage).mockResolvedValue({ items: [], next_cursor: undefined });
   });
 
   afterEach(() => {

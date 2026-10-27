@@ -82,7 +82,7 @@ function forgetLodgementKey(): void {
 // refused on its content.
 function describeSubmitError(err: unknown, fallback: string): string {
   if (!(err instanceof ApiError)) return fallback;
-  const base = `[${err.code}] ${err.message}`;
+  const base = err.code ? `[${err.code}] ${err.message}` : err.message;
   if (err.retryable === false) {
     return `${base} This request cannot succeed as it stands; change it before sending again.`;
   }
@@ -290,7 +290,7 @@ export const CustomerPortal: React.FC = () => {
         try {
           return await stageEvidence(item.file, item.description || undefined, item.idempotencyKey);
         } catch (err: unknown) {
-          if (tries > 1 && err instanceof ApiError && err.status === 503) {
+          if (tries > 1 && err instanceof ApiError && (err.retryable === true || err.status === 503)) {
             await new Promise((resolve) => setTimeout(resolve, 400));
             return stageWithRetry(tries - 1);
           }
@@ -493,6 +493,7 @@ export const CustomerPortal: React.FC = () => {
       // Read the case again and show that; the receipt stays as the fallback when
       // the read fails, because it is still better than showing nothing.
       let updated = receipt;
+      const read = ++latestCaseLoad.current;
       try {
         updated = await getCustomerCase(currentCase.case_id);
       } catch {
@@ -500,6 +501,8 @@ export const CustomerPortal: React.FC = () => {
       }
       if (generation !== clarificationGeneration.current) return;
       if (activeCaseId.current !== currentCase.case_id) return;
+      // A later lookup wins; this read must not overwrite it.
+      if (read !== latestCaseLoad.current) return;
       setIsLoadingCase(false);
       resetClarificationDraft();
       clarificationScope.current = getClarificationScope(updated);

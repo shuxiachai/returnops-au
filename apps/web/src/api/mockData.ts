@@ -424,9 +424,9 @@ const DEMO_003_CITED_PASSAGES: PolicyPassage[] = [
   {
     passage_id: 'passage_demo_store_21',
     document_id: 'doc_demo_store_policy',
-    source_type: 'MERCHANT_POLICY',
+    source_type: 'STORE_POLICY',
     title: 'Store policy §2.1 — 30-day change of mind',
-    source_uri: 'synthetic://demo-store/policy#2.1',
+    source_uri: 'urn:returnops:demo-store/policy#2.1',
     accessed_on: '2026-10-20',
     source_version: '2026.1',
     corpus_version: 'demo-corpus-v1',
