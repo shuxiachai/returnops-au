@@ -112,6 +112,31 @@ const VIEW: CaseView = {
   },
 };
 
+
+// An approval preview that expired while the dialog was open. The server never sends
+// one on a fresh read (lifecycle_projection.py:62), so this is the held-open dialog.
+const EXPIRED_VIEW: CaseView = {
+  ...VIEW,
+  action_preview: {
+    preview_id: 'prev_expired',
+    scope_fingerprint: HASH,
+    scope: {
+      case_id: 'case_contract_05',
+      input_version: 1,
+      proposal_id: 'prop_contract_1',
+      proposal_version: 1,
+      review_id: 'rev_contract_1',
+      parcel_id: 'parcel_1',
+      commands: [],
+      currency: 'AUD',
+      amount_ceiling_minor: 0,
+      expires_at: '2026-10-01T00:00:00Z',
+      allowlist_version: 'allowlist-v1',
+      environment: 'SIMULATED',
+    },
+  },
+};
+
 async function openCase() {
   render(<FounderConsole />);
   await waitFor(() => expect(screen.getByText('case_contract_05')).toBeInTheDocument());
@@ -181,5 +206,36 @@ describe('what the Founder sees before deciding (#122 item 5)', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Download parcel_photo\.jpg/i }));
 
     expect(await screen.findByText(/\[FORBIDDEN\] not your evidence/)).toBeInTheDocument();
+  });
+});
+
+describe('a preview that expired while the dialog is open (review round 2, finding 1)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.mocked(listFounderCases).mockResolvedValue({ items: [SUMMARY], next_cursor: undefined });
+    vi.mocked(getFounderCase).mockResolvedValue(EXPIRED_VIEW);
+    vi.mocked(listFounderCaseAuditPage).mockResolvedValue({ items: [], next_cursor: undefined });
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+    vi.clearAllMocks();
+  });
+
+  it('refuses APPROVE while the decisions that need no preview still work', async () => {
+    await openCase();
+
+    // An expired preview never opens the APPROVE dialog (selectDecisionTarget refuses it).
+    fireEvent.click(screen.getByRole('button', { name: /Approve Return/i }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+    // Reject does not depend on a preview, so the same case still allows it.
+    fireEvent.click(screen.getByRole('button', { name: /^Reject$/i }));
+    const rejectDialog = await screen.findByRole('dialog');
+    fireEvent.change(screen.getByPlaceholderText(/Record justification for statutory audit/i), {
+      target: { value: 'Rejected after looking at the case.' },
+    });
+    expect(rejectDialog).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Record decision/i })).toBeEnabled();
   });
 });

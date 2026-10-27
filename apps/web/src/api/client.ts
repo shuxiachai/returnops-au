@@ -364,14 +364,16 @@ let MOCK_QUEUE_ORDER: string[] = [];
 // whether the purchase context is missing and, if so, attaches the question set the
 // server's investigation_admission.issue_questions would issue.
 const MOCK_PENDING_INTAKE = new Set<string>();
+// The lodgement's order reference, kept beside the case as the server keeps it.
+const MOCK_LODGED_REFERENCES = new Map<string, string | undefined>();
 
 function runMockIntake(c: CustomerCaseView): void {
   if (!MOCK_PENDING_INTAKE.delete(c.case_id)) return;
-  const reference = c.statements.find((statement) => statement.kind === 'ORIGINAL')?.order_reference;
+  const reference = MOCK_LODGED_REFERENCES.get(c.case_id);
   // intake_processor.py:57: purchase context is needed only when the case has neither a
   // usable reference nor any bound material.
   const hasMaterial = c.evidence.length > 0;
-  if (hasMaterial || hasUsableOrderReference(reference)) {
+  if (hasMaterial || hasAnyReference(reference)) {
     c.status = 'UNDER_INVESTIGATION';
     return;
   }
@@ -396,12 +398,10 @@ function runMockIntake(c: CustomerCaseView): void {
   };
 }
 
-// The server's only test on a reference (investigation_admission.py:53): it must be
-// non-empty once trimmed, and the RAW value must be at most 120 characters. It is not
-// restricted to the synthetic SYN-#### form.
-function hasUsableOrderReference(reference?: string): boolean {
-  const raw = reference ?? '';
-  return raw.trim().length > 0 && raw.length <= 120;
+// The intake worker's own test (intake_processor.py:92) is emptiness only; the 120
+// character cap belongs to answer admission (investigation_admission.py:53).
+function hasAnyReference(reference?: string): boolean {
+  return (reference ?? '').trim().length > 0;
 }
 
 export async function createCase(req: CreateCaseRequest, idempotencyKey?: string): Promise<CustomerCaseView> {
@@ -414,15 +414,15 @@ export async function createCase(req: CreateCaseRequest, idempotencyKey?: string
       status: 'SUBMITTED',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      // The contract's CustomerStatement carries no order_reference and no evidence_ids;
+      // the reference is kept in MOCK_LODGED_REFERENCES, as the server keeps it.
       statements: [
         {
           statement_id: 'stmt_' + Date.now().toString(36),
           kind: 'ORIGINAL',
           raw_text: req.original_message,
           submitted_at: new Date().toISOString(),
-          order_reference: req.order_reference,
           requested_outcome: req.requested_outcome,
-          evidence_ids: req.evidence_ids,
         },
       ],
       evidence: (req.evidence_ids || []).map((id, idx) => ({
@@ -430,14 +430,37 @@ export async function createCase(req: CreateCaseRequest, idempotencyKey?: string
         filename: `uploaded_evidence_${idx + 1}.png`,
         media_type: 'image/png',
         size_bytes: 245000,
-        // The contract requires case_id on a BOUND attachment.
+        // The contract requires both of these on a BOUND attachment.
+        sha256: 'a'.repeat(64),
         case_id: newCaseId,
         status: 'BOUND' as const,
         created_at: new Date().toISOString(),
         content_path: `/v1/evidence/${id}/content`,
       })),
-      // The server always sends collection windows with a case view.
-      collection_windows: {},
+      // The server always sends both windows with a case view, and the contract allows
+      // no others.
+      collection_windows: {
+        statements: {
+          kind: 'STATEMENT' as const,
+          snapshot_id: 'snap_' + Date.now().toString(36),
+          snapshot_case_version: 1,
+          total_records: 1,
+          preview_count: 1,
+          unavailable_count: 0,
+          truncated: false,
+          start_cursor: '',
+        },
+        evidence: {
+          kind: 'EVIDENCE' as const,
+          snapshot_id: 'snap_' + Date.now().toString(36),
+          snapshot_case_version: 1,
+          total_records: (req.evidence_ids || []).length,
+          preview_count: (req.evidence_ids || []).length,
+          unavailable_count: 0,
+          truncated: false,
+          start_cursor: '',
+        },
+      },
     };
     // The receipt is always SUBMITTED version 1 -- the server asserts exactly that
     // (customer_service.py:258, raising INTERNAL_ERROR otherwise). The intake worker
@@ -445,7 +468,9 @@ export async function createCase(req: CreateCaseRequest, idempotencyKey?: string
     newCase.status = 'SUBMITTED';
     MOCK_CUSTOMER_CASES[newCaseId] = newCase;
     MOCK_PENDING_INTAKE.add(newCaseId);
-    return newCase;
+    MOCK_LODGED_REFERENCES.set(newCaseId, req.order_reference);
+    // A copy: the store object is mutated by the intake on the next read.
+    return { ...newCase };
   }
 
   return request<CustomerCaseView>(
@@ -739,8 +764,8 @@ export async function recordFounderDecision(
     // (approve_decision.py:112 and the reject, revision and manual paths alike).
     const eventType = 'FOUNDER_DECISION_ACCEPTED';
     const body = JSON.stringify({ caseId, decision: req.decision, reason: req.reason, decidedAt, previousHash });
-    MOCK_AUDIT_EVENTS[caseId] = [
-      ...previous,
+    const decisionHash = fixtureHash(body);
+    const appended: AuditEvent[] = [
       {
         event_id: 'evt_' + Date.now().toString(36),
         case_id: caseId,
@@ -749,10 +774,27 @@ export async function recordFounderDecision(
         actor: { kind: 'HUMAN', role: 'FOUNDER', principal_id: 'founder_demo' },
         occurred_at: decidedAt,
         previous_event_hash: previousHash,
-        event_hash: fixtureHash(body),
+        event_hash: decisionHash,
         payload: { decision: req.decision, reason: req.reason },
       },
     ];
+    // An APPROVE writes the decision and the approval that follows it
+    // (approve_decision.py writes FOUNDER_DECISION_ACCEPTED, then FOUNDER_APPROVAL_ISSUED);
+    // the other decisions write only the decision event.
+    if (req.decision === 'APPROVE') {
+      appended.push({
+        event_id: 'evt_' + Date.now().toString(36) + '_appr',
+        case_id: caseId,
+        sequence: previous.length + 2,
+        event_type: 'FOUNDER_APPROVAL_ISSUED',
+        actor: { kind: 'HUMAN', role: 'FOUNDER', principal_id: 'founder_demo' },
+        occurred_at: decidedAt,
+        previous_event_hash: decisionHash,
+        event_hash: fixtureHash(body + ':approval'),
+        payload: { decision: req.decision },
+      });
+    }
+    MOCK_AUDIT_EVENTS[caseId] = [...previous, ...appended];
     return {
       case_id: caseId,
       case_version: c ? c.case_version : 1,

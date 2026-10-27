@@ -138,6 +138,9 @@ export interface ClarificationAnswer {
 
 export interface CollectionWindow {
   kind: string;
+  // Contract fields the type used to omit.
+  snapshot_id: string;
+  snapshot_case_version: number;
   total_records: number;
   preview_count: number;
   unavailable_count: number;
