@@ -186,6 +186,35 @@ export interface CaseList {
   next_cursor?: string;
 }
 
+// Contract Citation / PolicyPassage (#122 item 5): what a proposal cites, and the
+// retrieved passage each citation points at. The console previously rendered only
+// the mock-only `policy_citations` chips, so a live case view showed no citations.
+export interface Citation {
+  citation_id: string;
+  passage_id: string;
+  document_id: string;
+  source_version?: string | null;
+  corpus_version: string;
+  content_sha256: string;
+  location: string;
+}
+
+export interface PolicyPassage {
+  passage_id: string;
+  document_id: string;
+  source_type: string;
+  title: string;
+  source_uri: string;
+  accessed_on: string;
+  source_version?: string | null;
+  corpus_version: string;
+  location: string;
+  content: string;
+  content_sha256: string;
+  retrieved_at: string;
+  is_synthetic: boolean;
+}
+
 export interface ProposalDetail {
   proposal_id: string;
   proposal_version: number;
@@ -198,6 +227,11 @@ export interface ProposalDetail {
   cost_responsibility_note?: string;
   conditions?: string[];
   alternatives?: string[];
+  // Contract DecisionPacket fields the console did not surface (#122 item 5):
+  // what the proposal conditions its advice on, what it could not settle, and
+  // the passages it cites.
+  unresolved_questions?: string[];
+  citations?: Citation[];
   // Who produced the proposal (DecisionPacket.model_run); the fixed Gate 1
   // proposal reports model_id 'fixture-no-live-model'.
   model_run?: { model_id?: string; prompt_version?: string; provider_id?: string; role?: string };
@@ -411,7 +445,7 @@ export interface CaseView {
   approvals?: ApprovalRecord[];
   operations?: OperationAttempt[];
   notifications?: NotificationRecord[];
-  cited_passages?: string[];
+  cited_passages?: PolicyPassage[];
   // Contract OrderLookupBlock: the order lookup stopped on a conflict or a denied read.
   order_lookup_block?: {
     block_id: string;

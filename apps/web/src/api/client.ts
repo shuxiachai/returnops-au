@@ -522,8 +522,20 @@ export async function listFounderCaseAudit(
   cursor?: string,
   limit = 50
 ): Promise<AuditEvent[]> {
+  const page = await listFounderCaseAuditPage(caseId, cursor, limit);
+  return page.items;
+}
+
+// One page of the audit chain (#122 item 13). The console used to call the
+// single-page read and drop `next_cursor`, so a case with more than 50 events
+// showed only its first page as if that were the whole chain.
+export async function listFounderCaseAuditPage(
+  caseId: string,
+  cursor?: string,
+  limit = 50
+): Promise<{ items: AuditEvent[]; next_cursor?: string }> {
   if (isMockMode()) {
-    return MOCK_AUDIT_EVENTS[caseId] || [];
+    return { items: MOCK_AUDIT_EVENTS[caseId] || [], next_cursor: undefined };
   }
   const params = new URLSearchParams();
   if (cursor) params.set('cursor', cursor);
@@ -531,8 +543,8 @@ export async function listFounderCaseAudit(
   const res = await request<AuditPage | AuditEvent[]>(
     `/v1/founder/cases/${encodeURIComponent(caseId)}/audit?${params.toString()}`
   );
-  if (Array.isArray(res)) return res;
-  return res.items || [];
+  if (Array.isArray(res)) return { items: res, next_cursor: undefined };
+  return { items: res.items || [], next_cursor: res.next_cursor || undefined };
 }
 
 export async function listFounderCaseHistory(

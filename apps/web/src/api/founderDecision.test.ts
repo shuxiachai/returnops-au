@@ -54,17 +54,40 @@ const BLOCK = {
   occurred_at: '2026-10-21T00:00:00Z',
 };
 
+// The fixture preview expires at 2026-10-21T00:05:00Z. Tests that expect an
+// available APPROVE pass a clock inside that window (#122 item 12); the expiry
+// check itself is exercised on its own below.
+const BEFORE_EXPIRY = Date.parse('2026-10-21T00:04:00Z');
+const AFTER_EXPIRY = Date.parse('2026-10-21T00:06:00Z');
+
 describe('selectDecisionTarget', () => {
   it('binds APPROVE to the current proposal and the server preview exactly as returned', () => {
     const view: CaseView = { ...BASE_VIEW, current_proposal: PROPOSAL, action_preview: PREVIEW };
 
-    expect(selectDecisionTarget(view, 'APPROVE')).toStrictEqual({
+    expect(selectDecisionTarget(view, 'APPROVE', BEFORE_EXPIRY)).toStrictEqual({
       target: {
         proposal_id: 'prop_target',
         proposal_version: 2,
         preview_id: 'preview_target',
         scope_fingerprint: 'a'.repeat(64),
       },
+    });
+  });
+
+  it('refuses an APPROVE whose approval preview has expired (#122 item 12)', () => {
+    const view: CaseView = { ...BASE_VIEW, current_proposal: PROPOSAL, action_preview: PREVIEW };
+
+    const result = selectDecisionTarget(view, 'APPROVE', AFTER_EXPIRY);
+
+    expect(result).not.toHaveProperty('target');
+    expect(result).toHaveProperty('unavailable', expect.stringMatching(/preview expired at 2026-10-21T00:05:00Z/i));
+  });
+
+  it('keeps the other decisions available when the approval preview has expired', () => {
+    const view: CaseView = { ...BASE_VIEW, status: 'AWAITING_APPROVAL', current_proposal: PROPOSAL, action_preview: PREVIEW };
+
+    expect(selectDecisionTarget(view, 'REJECT', AFTER_EXPIRY)).toStrictEqual({
+      target: { proposal_id: 'prop_target', proposal_version: 2 },
     });
   });
 
@@ -137,7 +160,8 @@ describe('decision state rules (#104 item 1)', () => {
       for (const status of STATUSES) {
         const result = selectDecisionTarget(
           { ...BASE_VIEW, status, current_proposal: PROPOSAL, action_preview: PREVIEW },
-          decision
+          decision,
+          BEFORE_EXPIRY
         );
         if (ACCEPTED[decision].includes(status)) {
           expect(result, `${decision} in ${status}`).toHaveProperty('target');

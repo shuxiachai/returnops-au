@@ -42,6 +42,41 @@ import {
 import { generateIdempotencyKey } from '../utils/idempotency';
 import { isFinalStatus, usePolling, useRefreshOnReturn } from '../utils/autoRefresh';
 
+// #122 item 7: the lodgement idempotency key and the payload it was minted for are
+// kept for the tab's session. A reload or a tab switch after an uncertain failure
+// then re-sends the same request instead of creating a second case. The key is
+// scoped to the tab on purpose: a second tab is a different intent.
+const LODGEMENT_KEY_STORAGE = 'returnops_lodgement_idempotency';
+
+function readStoredLodgementKey(): { key: string; payload: string } | null {
+  try {
+    const raw = sessionStorage.getItem(LODGEMENT_KEY_STORAGE);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { key?: unknown; payload?: unknown };
+    if (typeof parsed.key !== 'string' || typeof parsed.payload !== 'string') return null;
+    return { key: parsed.key, payload: parsed.payload };
+  } catch {
+    // Storage disabled, quota exceeded or a corrupt value: behave as if absent.
+    return null;
+  }
+}
+
+function rememberLodgementKey(key: string, payload: string): void {
+  try {
+    sessionStorage.setItem(LODGEMENT_KEY_STORAGE, JSON.stringify({ key, payload }));
+  } catch {
+    // The key still works for this page; only the reload guarantee is lost.
+  }
+}
+
+function forgetLodgementKey(): void {
+  try {
+    sessionStorage.removeItem(LODGEMENT_KEY_STORAGE);
+  } catch {
+    // Nothing to clean up.
+  }
+}
+
 export const CustomerPortal: React.FC = () => {
   const [activeSubTab, setActiveSubTab] = useState<'lodge' | 'track'>('lodge');
 
@@ -233,7 +268,21 @@ export const CustomerPortal: React.FC = () => {
     ));
 
     try {
-      const staged = await stageEvidence(item.file, item.description || undefined, item.idempotencyKey);
+      // #122 item 11: the server serves at most two uploads at once and answers the
+      // rest with a retryable 503. Retry the same file under the same key instead of
+      // making the customer press the button again.
+      const stageWithRetry = async (tries: number): Promise<StagedEvidence> => {
+        try {
+          return await stageEvidence(item.file, item.description || undefined, item.idempotencyKey);
+        } catch (err: unknown) {
+          if (tries > 1 && err instanceof ApiError && err.status === 503) {
+            await new Promise((resolve) => setTimeout(resolve, 400));
+            return stageWithRetry(tries - 1);
+          }
+          throw err;
+        }
+      };
+      const staged = await stageWithRetry(3);
       if (!activeLodgementUploads.current.delete(fileKey)) return;
       setSelectedFiles((files) => files.map((file) =>
         file.idempotencyKey === fileKey ? { ...file, staged, uploading: false } : file
@@ -286,13 +335,18 @@ export const CustomerPortal: React.FC = () => {
     };
     const payloadStr = JSON.stringify(payloadObj);
 
-    // Reuse idempotency key on lost response/retry if payload is identical (Finding 1)
-    let keyToUse = pendingLodgementKey;
-    if (!keyToUse || payloadStr !== lastSubmittedLodgementPayload) {
+    // #122 item 7: the key is also kept in sessionStorage, so a reload or a tab
+    // switch inside the same session cannot mint a second key for the same intent
+    // and create a duplicate case after an uncertain failure.
+    const storedLodgement = readStoredLodgementKey();
+    let keyToUse = pendingLodgementKey ?? storedLodgement?.key;
+    const lastPayload = lastSubmittedLodgementPayload ?? storedLodgement?.payload ?? null;
+    if (!keyToUse || payloadStr !== lastPayload) {
       keyToUse = generateIdempotencyKey('case_idem');
       setPendingLodgementKey(keyToUse);
       setLastSubmittedLodgementPayload(payloadStr);
     }
+    rememberLodgementKey(keyToUse, payloadStr);
 
     setIsSubmitting(true);
     setSubmitError(null);
@@ -306,6 +360,8 @@ export const CustomerPortal: React.FC = () => {
       setSelectedFiles([]);
       setPendingLodgementKey(null);
       setLastSubmittedLodgementPayload(null);
+      // The intent is accepted, so the next lodgement is a new one.
+      forgetLodgementKey();
     } catch (err: unknown) {
       setSubmitError(err instanceof ApiError ? `[${err.code}] ${err.message}` : 'Failed to lodge return case.');
     } finally {
@@ -414,10 +470,21 @@ export const CustomerPortal: React.FC = () => {
     clarifyInFlight.current += 1;
 
     try {
-      const updated = await submitClarification(currentCase.case_id, wirePayload, keyToUse);
+      const receipt = await submitClarification(currentCase.case_id, wirePayload, keyToUse);
       if (generation !== clarificationGeneration.current) return;
       // A read begun before this accepted submission must not restore an old view.
       latestCaseLoad.current += 1;
+      // #122 item 10: the POST receipt is not the current case (docs/09 line 186).
+      // Read the case again and show that; the receipt stays as the fallback when
+      // the read fails, because it is still better than showing nothing.
+      let updated = receipt;
+      try {
+        updated = await getCustomerCase(currentCase.case_id);
+      } catch {
+        updated = receipt;
+      }
+      if (generation !== clarificationGeneration.current) return;
+      if (activeCaseId.current !== currentCase.case_id) return;
       setIsLoadingCase(false);
       resetClarificationDraft();
       clarificationScope.current = getClarificationScope(updated);

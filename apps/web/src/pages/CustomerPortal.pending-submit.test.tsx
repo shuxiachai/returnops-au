@@ -207,6 +207,14 @@ describe('clarification while submitClarification is pending', () => {
     attemptChangesWhilePending([answerField()], 'barcode.png');
     expectFrozenSubmittedDraft();
 
+    // #122 item 10: once the answers are accepted the page reads the case again,
+    // so what it shows is the server's current view and not the POST receipt.
+    vi.mocked(getCustomerCase).mockResolvedValue({
+      ...caseView(3),
+      status: 'UNDER_INVESTIGATION',
+      clarification: undefined,
+    });
+
     await act(async () => {
       pending.resolve({ ...caseView(3), status: 'UNDER_INVESTIGATION', clarification: undefined });
       await pending.promise;

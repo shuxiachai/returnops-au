@@ -5,6 +5,7 @@ import {
   CustomerCaseView,
   AnalyticsSnapshot,
   AuditEvent,
+  PolicyPassage,
 } from '../types/domain';
 
 export const MOCK_CUSTOMER_CASES: Record<string, CustomerCaseView> = {
@@ -115,7 +116,20 @@ export const MOCK_CUSTOMER_CASES: Record<string, CustomerCaseView> = {
         requested_outcome: 'REFUND',
       },
     ],
-    evidence: [],
+    evidence: [
+      {
+        evidence_id: 'ev_demo_03',
+        filename: 'sealed_bedsheet_packaging.jpg',
+        media_type: 'image/jpeg',
+        size_bytes: 184320,
+        sha256: '9d2fb1a4c7e305d8b6a2f0913c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f',
+        status: 'BOUND',
+        created_at: new Date(Date.now() - 3600000 * 11).toISOString(),
+        content_path: '/v1/evidence/ev_demo_03/content',
+        case_id: 'case_demo_003',
+        description: 'Photograph of the sealed packaging, attached by the customer.',
+      },
+    ],
   },
   'case_demo_004': {
     case_id: 'case_demo_004',
@@ -404,6 +418,27 @@ const DEMO_005_OUTCOME: Pick<CaseView, 'decisions' | 'approvals' | 'operations' 
   ],
 };
 
+// Contract PolicyPassage for case_demo_003's proposal citation (#122 item 5). The
+// customer case view does not carry cited passages; the Founder case view does.
+const DEMO_003_CITED_PASSAGES: PolicyPassage[] = [
+  {
+    passage_id: 'passage_demo_store_21',
+    document_id: 'doc_demo_store_policy',
+    source_type: 'MERCHANT_POLICY',
+    title: 'Store policy §2.1 — 30-day change of mind',
+    source_uri: 'synthetic://demo-store/policy#2.1',
+    accessed_on: '2026-10-20',
+    source_version: '2026.1',
+    corpus_version: 'demo-corpus-v1',
+    location: 'Store Policy §2.1',
+    content:
+      'A customer may return an unused item within 30 days of delivery for a refund, provided it is in its original packaging. Return shipping is paid by the store for change-of-mind returns.',
+    content_sha256: 'c1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f80',
+    retrieved_at: '2026-10-20T00:00:00Z',
+    is_synthetic: true,
+  },
+];
+
 export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
   'case_demo_001': {
     case_id: 'case_demo_001',
@@ -522,7 +557,8 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
     created_at: new Date(Date.now() - 3600000 * 12).toISOString(),
     updated_at: new Date(Date.now() - 3600000 * 3).toISOString(),
     statements: MOCK_CUSTOMER_CASES['case_demo_003'].statements,
-    evidence: [],
+    evidence: MOCK_CUSTOMER_CASES['case_demo_003'].evidence,
+    cited_passages: DEMO_003_CITED_PASSAGES,
     order_snapshot: {
       snapshot_id: 'snap_demo_003',
       order_id: 'ord_7731',
@@ -550,6 +586,26 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
       return_label_required: true,
       rationale:
         '30-day change of mind policy applies. Return shipping label required for return to Melbourne distribution hub.',
+      // Contract DecisionPacket fields (#122 item 5): what the advice is
+      // conditional on, what it could not settle, and the passages it cites.
+      conditions: [
+        'The item is unopened and in its original packaging, as the customer states.',
+        'The return goes to the Melbourne distribution hub with the label this approval authorises.',
+      ],
+      unresolved_questions: [
+        'No photograph of the sealed packaging was attached, so "unopened" is the customer word only.',
+      ],
+      citations: [
+        {
+          citation_id: 'cite_demo_003_1',
+          passage_id: 'passage_demo_store_21',
+          document_id: 'doc_demo_store_policy',
+          source_version: '2026.1',
+          corpus_version: 'demo-corpus-v1',
+          content_sha256: 'c1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f80',
+          location: 'Store Policy §2.1',
+        },
+      ],
       created_at: new Date(Date.now() - 3600000 * 4).toISOString(),
     },
     current_review: {
