@@ -58,9 +58,12 @@ describe('Mock Mode journey across both pages (KAN-20; B2.05, E.11)', () => {
     // 2. Track & Clarify (UC-01E): the store's question set, then the answers.
     fireEvent.click(screen.getByRole('button', { name: /Track This Case & View Status/i }));
     expect(
-      await screen.findByText(/Could you confirm the condition of the shipping packaging upon arrival\?/i)
+      await screen.findByText(/Provide an order reference \(at most 120 characters\)/i)
     ).toBeInTheDocument();
-    fireEvent.change(screen.getByPlaceholderText('Your answer...'), { target: { value: ANSWER } });
+    // The server asks two things: the order reference, or the alternative.
+    const answerFields = screen.getAllByPlaceholderText('Your answer...');
+    expect(answerFields).toHaveLength(2);
+    answerFields.forEach((field) => fireEvent.change(field, { target: { value: ANSWER } }));
     fireEvent.click(screen.getByRole('button', { name: /Submit Answers/i }));
 
     expect(

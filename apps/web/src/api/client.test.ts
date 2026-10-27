@@ -16,7 +16,7 @@ import {
   downloadEvidence,
   ApiError,
 } from './client';
-import { MOCK_FOUNDER_CASE_VIEWS } from './mockData';
+import { MOCK_AUDIT_EVENTS, MOCK_CUSTOMER_CASES, MOCK_FOUNDER_CASE_VIEWS } from './mockData';
 import type { AnalyticsSnapshot, CaseStatus, RiskOutcome } from '../types/domain';
 
 describe('client', () => {
@@ -69,8 +69,46 @@ describe('client', () => {
       });
 
       expect(receipt.case_id).toBeDefined();
-      expect(receipt.status).toBe('SUBMITTED');
+      // Mock Mode mirrors the server: without a usable order reference the case
+      // waits for information and asks for one, plus the alternative question.
+      expect(receipt.status).toBe('AWAITING_INFORMATION');
+      expect(receipt.clarification?.questions.map((q) => q.question_id)).toEqual(['q_auto_ref', 'q_auto_alt']);
       expect(receipt.statements[0].raw_text).toBe('The coffee maker was defective upon arrival.');
+
+      const withReference = await createCase({
+        original_message: 'The coffee maker was defective upon arrival.',
+        requested_outcome: 'REPLACEMENT',
+        order_reference: 'SYN-1001',
+        evidence_ids: [],
+      });
+      expect(withReference.status).toBe('UNDER_INVESTIGATION');
+      expect(withReference.clarification).toBeUndefined();
+    });
+
+    it('writes an audit event for a mock decision, as the server does', async () => {
+      // The mock store is shared, so this test restores the case and its chain.
+      const viewBefore = structuredClone(MOCK_FOUNDER_CASE_VIEWS['case_demo_003']);
+      const auditBefore = structuredClone(MOCK_AUDIT_EVENTS['case_demo_003']);
+      try {
+      const before = await listFounderCaseAudit('case_demo_003');
+      await recordFounderDecision('case_demo_003', {
+        expected_case_version: 4,
+        decision: 'REJECT',
+        reason: 'Mock audit event coverage.',
+        proposal_id: 'prop_demo_003',
+        proposal_version: 1,
+      });
+      const after = await listFounderCaseAudit('case_demo_003');
+
+      expect(after).toHaveLength(before.length + 1);
+      const added = after[after.length - 1];
+      expect(added.event_type).toBe('FOUNDER_REJECTED');
+      expect(added.previous_event_hash).toBe(before[before.length - 1]?.event_hash ?? '0'.repeat(64));
+      expect(added.event_hash).toMatch(/^[0-9a-f]{64}$/);
+      } finally {
+        MOCK_FOUNDER_CASE_VIEWS['case_demo_003'] = viewBefore;
+        MOCK_AUDIT_EVENTS['case_demo_003'] = auditBefore;
+      }
     });
 
     it('fetches existing customer case by ID in mock mode', async () => {
@@ -281,6 +319,11 @@ describe('client', () => {
     beforeEach(() => {
       localStorage.clear();
       setMockMode(true);
+      // A case lodged by an earlier test is a founder queue row now, so it is
+      // removed here to keep the page-size boundary deterministic.
+      for (const caseId of Object.keys(MOCK_CUSTOMER_CASES)) {
+        if (!/^case_demo_0\d\d$/.test(caseId)) delete MOCK_CUSTOMER_CASES[caseId];
+      }
     });
 
     it('exposes next_cursor and makes the 21st case reachable on the next page', async () => {
