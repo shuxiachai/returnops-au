@@ -85,7 +85,7 @@ const VIEW_WITHOUT_FACTS: CaseView = {
       ],
       amount_ceiling_minor: 0,
       currency: 'AUD',
-      expires_at: '2026-10-20T00:05:00Z',
+      expires_at: new Date(Date.now() + 300000).toISOString(),
       allowlist_version: 'allowlist-facts-demo',
       environment: 'SIMULATED',
     },

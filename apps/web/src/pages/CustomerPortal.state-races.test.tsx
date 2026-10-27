@@ -462,6 +462,11 @@ describe('clarification draft scope and pending callbacks', () => {
     fireEvent.click(submitButton('clarify'));
     await waitFor(() => expect(submitClarification).toHaveBeenCalledTimes(1));
     vi.mocked(getCustomerCase).mockReturnValueOnce(refresh.promise);
+    // #122 item 10: the page reads the case again once the answers are accepted, and
+    // that read is the newest truth, so it must win over the older in-flight refresh.
+    vi.mocked(getCustomerCase).mockReturnValueOnce(
+      Promise.resolve({ ...caseView(caseAId, 3), status: 'UNDER_INVESTIGATION', clarification: undefined })
+    );
     fireEvent.click(screen.getByRole('button', { name: /^Lookup$/ }));
     await waitFor(() => expect(getCustomerCase).toHaveBeenCalledTimes(2));
     await resolveDeferred(submission, { ...caseView(caseAId, 3), status: 'UNDER_INVESTIGATION', clarification: undefined });

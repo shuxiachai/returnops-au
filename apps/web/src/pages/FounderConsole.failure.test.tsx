@@ -14,7 +14,7 @@ vi.mock('../api/client', async (importOriginal) => {
     isMockMode: vi.fn(() => true),
     listFounderCases: vi.fn(),
     getFounderCase: vi.fn(),
-    listFounderCaseAudit: vi.fn(),
+    listFounderCaseAuditPage: vi.fn(),
     recordFounderDecision: vi.fn(),
     getFounderAnalytics: vi.fn(),
   };
@@ -25,7 +25,7 @@ import {
   isMockMode,
   listFounderCases,
   getFounderCase,
-  listFounderCaseAudit,
+  listFounderCaseAuditPage,
   recordFounderDecision,
   getFounderAnalytics,
 } from '../api/client';
@@ -132,7 +132,7 @@ const CONTRACT_SHAPED_VIEW: CaseView = {
       ],
       currency: 'AUD',
       amount_ceiling_minor: 0,
-      expires_at: '2026-10-01T00:05:00Z',
+      expires_at: new Date(Date.now() + 300000).toISOString(),
       allowlist_version: 'allowlist-contract-v1',
       environment: 'SIMULATED',
     },
@@ -156,7 +156,7 @@ describe('FounderConsole failure and live-mode paths', () => {
     vi.mocked(isMockMode).mockReturnValue(true);
     vi.mocked(listFounderCases).mockResolvedValue({ items: [CONTRACT_SUMMARY], next_cursor: undefined });
     vi.mocked(getFounderCase).mockResolvedValue(CONTRACT_SHAPED_VIEW);
-    vi.mocked(listFounderCaseAudit).mockResolvedValue([]);
+    vi.mocked(listFounderCaseAuditPage).mockResolvedValue({ items: [], next_cursor: undefined });
   });
 
   afterEach(() => {
@@ -240,7 +240,7 @@ describe('FounderConsole failure and live-mode paths', () => {
   });
 
   it('shows an audit failure and never renders the recorded-events banner', async () => {
-    vi.mocked(listFounderCaseAudit).mockRejectedValue(
+    vi.mocked(listFounderCaseAuditPage).mockRejectedValue(
       new ApiError(503, 'audit store unavailable', 'AUDIT_UNAVAILABLE')
     );
 
@@ -289,8 +289,10 @@ describe('FounderConsole failure and live-mode paths', () => {
       'GENERATE_LABEL · id cmd_contract_label · via provider_demo_au (parcel_id: parcel_contract, return_command_id: cmd_contract_return, label_format: PDF, chargeable: false)'
     );
     expect(field('Amount ceiling')).toHaveTextContent('$0.00 AUD');
-    expect(field('Expires')).toHaveTextContent(formatDate('2026-10-01T00:05:00Z'));
-    expect(field('Expires')).toHaveAttribute('title', '2026-10-01T00:05:00Z');
+    // The preview's own expiry, not a fixed date: an expired preview correctly
+    // disables Approve (#122 item 12).
+    expect(field('Expires')).toHaveTextContent(formatDate(CONTRACT_SHAPED_VIEW.action_preview!.scope.expires_at));
+    expect(field('Expires')).toHaveAttribute('title', CONTRACT_SHAPED_VIEW.action_preview!.scope.expires_at);
     expect(field('Environment')).toHaveTextContent('SIMULATED · allowlist allowlist-contract-v1');
 
     fireEvent.change(within(dialog).getByPlaceholderText(/Record justification for statutory audit/i), {
@@ -390,7 +392,7 @@ describe('FounderConsole failure and live-mode paths', () => {
     ).toBeInTheDocument();
     const dialog = screen.getByRole('dialog', { name: /Confirm Founder Decision: REJECT/i });
     expect(getFounderCase).toHaveBeenCalledTimes(2);
-    expect(listFounderCaseAudit).toHaveBeenCalledTimes(2);
+    expect(listFounderCaseAuditPage).toHaveBeenCalledTimes(2);
     expect(within(dialog).getByText(/\(v2\)/)).toBeInTheDocument();
     expect(vi.mocked(recordFounderDecision).mock.calls[0][1]).toMatchObject({ expected_case_version: 1 });
 
