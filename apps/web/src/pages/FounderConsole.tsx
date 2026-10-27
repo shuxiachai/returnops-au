@@ -1267,6 +1267,9 @@ export const FounderConsole: React.FC = () => {
                             type="button"
                             onClick={() => handleDownloadEvidence(item.evidence_id, item.filename)}
                             disabled={downloadingEvidence === item.evidence_id}
+                            // Several rows share the visible word "Download"; the
+                            // accessible name says which file each one fetches.
+                            aria-label={`Download ${item.filename}`}
                             className="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-700 font-medium hover:bg-slate-100 disabled:opacity-60 shrink-0"
                           >
                             {downloadingEvidence === item.evidence_id ? 'Downloading…' : 'Download'}

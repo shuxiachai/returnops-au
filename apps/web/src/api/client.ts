@@ -280,7 +280,9 @@ export async function stageEvidence(
       res.status,
       errEnv?.error?.message || 'Failed to upload evidence',
       errEnv?.error?.code,
-      correlationId
+      correlationId,
+      undefined,
+      errEnv?.error?.retryable
     );
   }
 
