@@ -57,7 +57,7 @@ def answer_group(uow, current, questions, answers, eligible):
     if reference is not None and not valid_reference:
         for q in remaining:
             if q['question_id']==group['reference_question_id']:
-                q['text']='Provide an order reference of at most120 characters, or answer the alternative purchase-context question.'
+                q['text']='Provide an order reference of at most 120 characters, or answer the alternative purchase-context question.'
     return dict(group=dict(group),remaining=remaining,reference=reference.encode('utf-8','surrogatepass') if valid_reference else None,
         alternative=alternative and not valid_reference)
 
@@ -77,7 +77,7 @@ def record_answers(uow, case_id, input_version, question_set_id, decision, now):
 
 def issue_questions(uow, head, now):
     reference_id,context_id=identifier('question'),identifier('question')
-    questions=[{'question_id':reference_id,'text':'Provide an order reference (at most120 characters), or use the alternative purchase-context question.',
+    questions=[{'question_id':reference_id,'text':'Provide an order reference (at most 120 characters), or use the alternative purchase-context question.',
         'reason':'No order is verified. Either an order reference or alternative purchase material can continue the investigation.'},
         {'question_id':context_id,'text':'Alternatively, describe the purchase or attach supporting evidence; you do not also need an order reference.',
         'reason':'Alternative material will be retained for further verification; it does not itself verify an order.'}]
