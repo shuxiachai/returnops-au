@@ -66,6 +66,7 @@ export const MOCK_CUSTOMER_CASES: Record<string, CustomerCaseView> = {
         preview_count: 1,
         unavailable_count: 0,
         truncated: false,
+        start_cursor: 'cur_demo001statements',
       },
       evidence: {
         kind: 'EVIDENCE',
@@ -75,6 +76,7 @@ export const MOCK_CUSTOMER_CASES: Record<string, CustomerCaseView> = {
         preview_count: 1,
         unavailable_count: 0,
         truncated: false,
+        start_cursor: 'cur_demo001evidence',
       },
     },
   },
