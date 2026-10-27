@@ -8,6 +8,75 @@ Offline preparation for **C2.01–C2.05**, `FR-008`, `NFR-001/002/009`,
 ProposalReview state model`. C owns this component; A reviews and integrates.
 This is not a live LLM, Gate 2, feature acceptance or semantic-quality result.
 
+## Second-interrupt fix independently rechecked — 26 October 2026 (Sydney)
+
+A adopted C's [PR #131](https://github.com/shuxiachai/returnops-au/pull/131)
+source `4d5a8994` as `6d19fb30` and the frontend fix
+[PR #133](https://github.com/shuxiachai/returnops-au/pull/133) source `a7a534b2`
+as `1fbc726a`; their respective CI runs 40262855381 and 40261899917 completed
+13/13 successfully. These adoptions supersede the pending status in the dated
+block below; earlier findings and diagnostic records remain preserved.
+
+A's [PR #129 response](https://github.com/shuxiachai/returnops-au/pull/129#issuecomment-6410207449)
+supplied [PR #136](https://github.com/shuxiachai/returnops-au/pull/136), exact source
+`65037770d452cc939e7b66f1cee9a437648edb5b`, for C's independent recheck.
+It was adopted as `041b542a` after CI 40283241847 completed 13/13. C reran
+76 tests in the two R.02 offline test files and the
+[nine-row OS diagnostic](../../docs/reviews/member-c-pr136-os-process-recheck-20261026.json):
+all passed. The original second-SIGINT scenario now kills and reaps the owned
+SIGTERM-ignoring child **before** returning, forwards a successful stop report,
+records FAILED/INTERRUPTED and removes its synthetic private directory. The
+harness does not have to kill a surviving child. The original 25 October
+expected-defect reproducer stays unchanged; its old hashes deliberately reject
+new source bytes.
+
+The [new diagnostic script](../../docs/reviews/member-c-pr136-os-process-recheck-20261026.py)
+pins both runtime files to the PR136 source. Run it with the locked Python,
+that exact exported repository and a new output directory. It uses real POSIX
+file permissions and signals with owned no-network sleep children, while the
+chain/API/DB seams remain synthetic. It does not exercise a real API child,
+PostgreSQL, a browser, Windows, a model or a course demonstration. This closes
+the **narrow second-interrupt child-leak finding at these bytes**, not all of
+R02-C-02 or R.02/R.03. Later cleanup interruption, power loss/disk-full coverage
+and full workflow acceptance remain separate. A non-blocking source limitation
+also remains: a first interrupt arriving only during forced kill/reap is
+suppressed after successful reap, rather than propagated as INTERRUPTED; it
+does not leave the child alive.
+
+The evidence branch starts from adopted main `707a6f8d` (including A's PR138
+Decision & Outcome UI). C has not independently exercised PR138's new browser
+path. No A/B runtime, root README, contract, workflow or frozen WBS field is
+changed by this review update. No new acceptance among C's original 20 WBS
+rows is inferred from these shared-review results.
+
+### Personal decisions now requested by A
+
+[Issue #135](https://github.com/shuxiachai/returnops-au/issues/135) asks C to
+check the completed-work row, supply a truthful AI-use paragraph and comment
+on A's proposed per-criterion shares **15/35/35/20** by **28 October 20:00 Sydney**.
+These are proposals, not C's confirmation. The final statement requires an
+actual personal response by **30 October 18:00**. Student ID must be supplied
+privately, never in this public repository. A source-grounded AI-use draft can
+be prepared; personal understanding, decisions and sign-off cannot be inferred
+from agent-generated commits or tests.
+
+[Issue #137](https://github.com/shuxiachai/returnops-au/issues/137) requests
+attendance confirmation by **27 October 20:00 Sydney** for the **29 October
+19:00** rehearsal (about two hours) and **2 November 16:00–17:00** demonstration
+(with deployment from **15:20**). A also schedules a Canvas-download rehearsal
+on **1 November 14:00**. These are A's announced times, not C's confirmed
+availability. A reports the tutor requires the contribution statement through
+Canvas, planned as a PDF at the ZIP root; independently recheck the live Canvas
+item before final submission. [PR #139](https://github.com/shuxiachai/returnops-au/pull/139)
+records that clarification; it explicitly leaves A3/C3 tutor disposition open.
+
+Still required for original completion: approved exact-byte corpus and excerpt
+boundary; E.01 freeze then sealed C labels before A/B timed answers; authorized
+real independent Risk and integration; C3 extraction/evidence; actual Gold/B4;
+personal S6/contribution confirmation, team rehearsals and final tagged-package
+verification. Gate 2 deferral is not a course waiver. AI-assisted technical review
+and preparation; no personal signature, attendance confirmation or Done claim.
+
 ## Confirmation-context fix reviewed — 26 October 2026 (Sydney)
 
 A's [PR #130 reply](https://github.com/shuxiachai/returnops-au/pull/130#issuecomment-6407242551)
