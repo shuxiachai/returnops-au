@@ -110,10 +110,13 @@ export interface CustomerStatement {
   kind: 'ORIGINAL' | 'CLARIFICATION';
   raw_text: string;
   submitted_at: string;
-  order_reference?: string;
   requested_outcome?: RequestedOutcome;
-  evidence_ids?: string[];
   question_id?: string;
+  // Demo extensions, not contract fields (#122 item 5): the v1 CustomerStatement
+  // carries neither an order reference nor evidence ids, so a live response never
+  // has them and anything that renders them is showing fixture data only.
+  order_reference?: string;
+  evidence_ids?: string[];
 }
 
 export interface ClarificationQuestion {

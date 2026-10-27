@@ -77,6 +77,21 @@ function forgetLodgementKey(): void {
   }
 }
 
+// #122 item 7: the envelope says whether the same request can be retried. Saying
+// so is what stops a customer from resending a request the server has already
+// refused on its content.
+function describeSubmitError(err: unknown, fallback: string): string {
+  if (!(err instanceof ApiError)) return fallback;
+  const base = `[${err.code}] ${err.message}`;
+  if (err.retryable === false) {
+    return `${base} This request cannot succeed as it stands; change it before sending again.`;
+  }
+  if (err.retryable === true) {
+    return `${base} This may be retried; sending the same request again reuses the same key.`;
+  }
+  return base;
+}
+
 export const CustomerPortal: React.FC = () => {
   const [activeSubTab, setActiveSubTab] = useState<'lodge' | 'track'>('lodge');
 
@@ -363,7 +378,7 @@ export const CustomerPortal: React.FC = () => {
       // The intent is accepted, so the next lodgement is a new one.
       forgetLodgementKey();
     } catch (err: unknown) {
-      setSubmitError(err instanceof ApiError ? `[${err.code}] ${err.message}` : 'Failed to lodge return case.');
+      setSubmitError(describeSubmitError(err, 'Failed to lodge return case.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -515,9 +530,7 @@ export const CustomerPortal: React.FC = () => {
         }
         return;
       }
-      setClarifyErrorMsg(
-        err instanceof ApiError ? `[${err.code}] ${err.message}` : 'Failed to submit clarification.'
-      );
+      setClarifyErrorMsg(describeSubmitError(err, 'Failed to submit clarification.'));
     } finally {
       clarifyInFlight.current -= 1;
       if (generation === clarificationGeneration.current) setIsSubmittingClarify(false);
@@ -1143,7 +1156,10 @@ export const CustomerPortal: React.FC = () => {
                       <p className="text-sm text-slate-800 whitespace-pre-wrap">{stmt.raw_text}</p>
                       {stmt.order_reference && (
                         <div className="text-slate-500">
-                          Order Ref: <strong className="font-mono text-slate-800">{stmt.order_reference}</strong>
+                          {/* Demo extension (#122 item 5): the contract's CustomerStatement
+                              carries no order reference, so this only appears on fixture data. */}
+                          Order Ref: <strong className="font-mono text-slate-800">{stmt.order_reference}</strong>{' '}
+                          <span className="text-[10px] text-slate-400">(mock fixture)</span>
                         </div>
                       )}
                       {stmt.requested_outcome && (
