@@ -8,6 +8,36 @@ Offline preparation for **C2.01–C2.05**, `FR-008`, `NFR-001/002/009`,
 ProposalReview state model`. C owns this component; A reviews and integrates.
 This is not a live LLM, Gate 2, feature acceptance or semantic-quality result.
 
+## E.01 decisions and C handoff — 28 October 2026 (Sydney)
+
+A adopted [PR #142](https://github.com/shuxiachai/returnops-au/pull/142)
+source `b3a8e073` as `1962551f` after its 13/13 CI success. In
+[Issue #67 comment6458606959](https://github.com/shuxiachai/returnops-au/issues/67#issuecomment-6458606959),
+A then reviewed the six E.01 choices and selected the C1 excerpt boundary.
+C records those choices in the
+[E.01 guide](../evaluation_candidate/README.md#e01-reviewed-definitions--pending-exact-commit-freeze)
+and its version/hash manifest. This revision still needs A's confirmation
+against its exact new commit before calling the definitions frozen or E.01
+accepted. No old-head approval is carried forward.
+
+C1 uses a separate offline annotation record before submission. A's planned
+Gate 2 internal adapter supplies exact asserted text and packet binding to C2;
+`Citation`, `CitationCheck`, `verify_citations` and runtime routing are unchanged.
+The ACCC exact-byte admission review remains A's open item. The chosen
+multi-defect evaluation precedence does not change this component's guards.
+
+The 12-case independent development-pilot coverage is distinct from the ten
+public teaching examples, the old mock handoff exercise and the 30 Gold inputs.
+A places the actual pilot, Gold/timing, B1/B4 and E.12 in Gate 2. This is a team
+schedule disposition, not a course waiver or a change to the original WBS S/F.
+Real Risk, C3 and joint runtime evidence remain absent; the local-only transport,
+image and capture candidates are not adopted by this documentation change.
+
+Personal S6 timing, truthful contribution/AI confirmation, the team rehearsal
+and final-source deployment/package checks still need actual evidence. The
+new contribution figures remain a proposal pending Lucas's decision. Dated
+records below retain their original historical scope.
+
 ## Adoption and branch reconciliation — 27 October 2026 (Sydney)
 
 A adopted [PR #141](https://github.com/shuxiachai/returnops-au/pull/141#issuecomment-6430162392)

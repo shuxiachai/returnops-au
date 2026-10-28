@@ -1,10 +1,74 @@
 # C1 — versioned retrieval and citation verification candidate
 
-Latest preparation: [27 October excerpt-check proposal](#c104-excerpt-check-handoff-proposal--27-october-2026)
-specifies a review record and negative cases without changing the frozen wire
-contract. It remains a proposal; corpus admission and C1.04 acceptance are open.
+## Current excerpt-check decision — 28 October 2026 (Sydney)
 
-## Current status (submission) — 24 October 2026
+Owner C / reviewer A; [KAN-23](https://lucastaooo.atlassian.net/browse/KAN-23),
+FR-006/NFR-001 and AH-08 → UC-02 → MC-SEQ. In
+[A's Issue #67 decision](https://github.com/shuxiachai/returnops-au/issues/67#issuecomment-6458606959),
+A selected **offline annotation only before submission**. The proposed internal
+adapter belongs to Gate 2: Assessment would supply the exact asserted text and
+packet binding, and a separate annotation would reach C2. This is a reviewed
+choice of scope, not a new runtime capability. `verify_citations`, `Citation`,
+`CitationCheck`, the original pilot data and all public contract fields/outcomes
+remain unchanged. C1 currently checks citation provenance, not quoted text.
+
+The [27 October proposal](#c104-excerpt-check-handoff-proposal--27-october-2026)
+is retained below as history. Its request for a choice between offline review
+and an internal adapter has now received the answer above; it must no longer be
+reported as entirely unanswered. Implementation/integration of that adapter,
+semantic correctness and final C1.04/C1.05 acceptance remain open. A's separate
+exact-byte review of the ACCC capture is still pending: this decision does not
+admit that corpus, create a trusted runtime pin or waive the original criteria.
+
+### Public offline annotation exercises
+
+[examples/excerpt_annotations.json](examples/excerpt_annotations.json) contains
+**nine AI-assisted provisional annotation exercises**, not a checker, a runtime
+test suite, a real model evaluation, a completed human review or Gold material.
+They reuse two complete passages from the existing invented `data/corpus.json`.
+The source commit and raw corpus/manifest SHA-256 hashes are pinned; the retained
+full passage text and its UTF-8 hash remain visibly synthetic. No ACCC text or
+private customer/Gold record is included.
+
+Each exercise identifies a full retained synthetic `DecisionPacket` artifact,
+its exact `utf8_text` and SHA-256 (including the final newline), the claimed
+case/input/proposal/version binding, `/rationale` and its selected range.
+Source and packet ranges use zero-based, end-exclusive **Unicode code points**
+in decoded text; they are not byte or UTF-16 offsets. The em dash in each packet
+makes that distinction explicit. Direct quotation, paraphrase and absent text
+are kept distinct. Source integrity, packet binding, literal equality and
+semantic support must be judged separately. The authored packet's fixed
+`model_run` metadata records **no actual invocation**, just the existing schema
+shape; none of these packets may enter the running application.
+
+| Exercise | Intentional distinction | Provisional annotation, not executed checker output |
+|---|---|---|
+| `excerpt-01` | Full sentence agrees with a qualified claim | Literal `MATCH`; narrow toy-source `SUPPORTS`. |
+| `excerpt-02` | Same citation metadata, quoted red lamp changed to blue | `MISMATCH`; toy-source `CONTRADICTS`. |
+| `excerpt-03` | Exact `coupon credit` substring drops unopened-goods/window conditions | `MATCH`; `INSUFFICIENT_CONTEXT` for the unconditional claim. |
+| `excerpt-04` | Annotation points at proposal v1 while the retained current packet is v2 | `INVALID_BINDING`; both complete packet byte strings/hashes remain available. |
+| `excerpt-05` | Faithful paraphrase, not a direct quotation | Literal `NOT_APPLICABLE`; provisional support needs separate human judgment. |
+| `excerpt-06` | Passage is absent from the pinned corpus | `UNAVAILABLE_SOURCE`; all-zero citation hash is an explicit invalid placeholder, not a source hash. |
+| `excerpt-07` | Source range extends beyond the complete passage | `INVALID_BINDING`; no semantic credit. |
+| `excerpt-08` | Empty direct quotation/range | `INVALID_BINDING`; empty-string equality is not coverage. |
+| `excerpt-09` | Packet field range extends beyond `/rationale` | `INVALID_BINDING`; a readable source cannot repair it. |
+
+For a real offline annotation, first retain the exact packet/source bytes and
+bindings, then inspect the selected field and complete source context. Record
+literal disposition separately from the qualified claim-support judgment,
+including unresolved cases, reasons, actual reviewer and source version. Never
+silently fix the deliberately invalid teaching records. Every supplied exercise
+keeps `human_review: null` and `human_approval: false`; those fields cannot be
+changed merely because the file is reviewed by an AI agent or its hashes match.
+
+Local preparation checked these examples' stored hashes, schema shapes, source
+copies and intended range/binding relations. This is **fixture self-consistency**,
+not proof that `verify_citations` detects quotes or that a person completed the
+annotation. No production excerpt checker, new API, model call or acceptance
+result was added. A must review the exact published artifact separately; the
+scope decision above does not approve these newly authored semantic labels.
+
+## Historical submission status — 24 October 2026
 
 Owner C (`lulucas-tao`), reviewer A; [KAN-23](https://lucastaooo.atlassian.net/browse/KAN-23),
 [Issue #58](https://github.com/shuxiachai/returnops-au/issues/58).
@@ -123,8 +187,10 @@ A's non-author acceptance or a Jira Done claim.
 
 ## C1.04 excerpt-check handoff proposal — 27 October 2026
 
-**C-owned design preparation for A's review, not an adopted port or completed
-C1.04.** FR-006/NFR-001 and AH-08 → UC-02 → MC-SEQ require both resolvable
+**Historical C-owned proposal.** The 28 October decision above selects offline
+annotation before submission and defers the internal adapter to Gate 2; this
+section preserves the design rationale, not an unanswered scope request or
+completed C1.04. FR-006/NFR-001 and AH-08 → UC-02 → MC-SEQ require both resolvable
 references and an explicit disposition of quoted content. The frozen
 `Citation` has identity/version/hash/location, but no quotation or claim text;
 `CitationCheck.result` has five metadata outcomes only. Adding a fabricated
@@ -168,7 +234,7 @@ only implemented C1 verification evidence.
 | Missing pinned content, invalid range or empty quotation | Metadata result does not supply missing text | Unavailable/invalid annotation; no automatic semantic success. |
 | Altered source version/hash/location | Existing mismatch outcome | Resolve provenance first; a matching substring cannot override rejection. |
 
-### Decision requested from A
+### Historical decision request to A — answered for scope on 28 October
 
 C can prepare and review these annotations without changing the shared
 contract. To integrate a deterministic excerpt checker, A/C must agree where

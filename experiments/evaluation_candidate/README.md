@@ -11,6 +11,18 @@ The [fixed evaluation protocol](../../docs/00-project-definition-v1.md),
 [allocation](../../docs/07-frozen-work-allocation.md) and
 [E.01/E.09 dependencies](../../docs/08-delivery-work-packages.md) remain authoritative.
 
+## Latest E.01 review status — 28 October 2026
+
+A's [Issue #67 decision](https://github.com/shuxiachai/returnops-au/issues/67#issuecomment-6458606959)
+answers all six choices. The current
+[reviewed definition candidate](#e01-reviewed-definitions--pending-exact-commit-freeze)
+is `E01-v1-rc1`, bound with its unchanged ten public examples by the
+[manifest](e01-guide-manifest.json). A still needs to confirm the freeze against
+this revision's exact commit. Older dated status paragraphs below are history,
+not a claim that the six choices remain unanswered or that this guide is Done.
+The independent 12-case pilot remains a plan; no Gold, human timing, model call
+or final evaluation is performed by this update.
+
 ## Timing-export interruption correction — 26 October 2026
 
 The local timing CLI now removes its own unconfirmed report when a catchable
@@ -312,13 +324,30 @@ runner, real B1/B4, C2, Gate 2 or formal scoring. No Gold inputs, labels, timed
 answers, sealing receipt, contribution percentage or personal sign-off was
 created/read by this preparation. No model performance result is asserted.
 
-## E.01 definition draft — requires A review before freezing
+<!-- BEGIN E01 GUIDE -->
+<a id="e01-definition-draft--requires-a-review-before-freezing"></a>
 
-**27 October 2026: concrete C proposal for KAN-25 / Issue #67.** This expands
-the earlier metric table into a label guide that A can review. It is not an
-accepted guide, a changed target, a Gold label set, a measured result or E.01
-Done. C owns preparing the definitions; A's non-author review/freeze is needed
-before using them for E.02, not before C can write this draft.
+## E.01 reviewed definitions — pending exact-commit freeze
+
+**28 October 2026: guide version `E01-v1-rc1`; status
+`PENDING_EXACT_COMMIT_CONFIRMATION`.** In
+[Issue #67, comment 6458606959](https://github.com/shuxiachai/returnops-au/issues/67#issuecomment-6458606959),
+A reviewed the guide and ten examples adopted through PR #142 and approved
+the six decisions below, including the stated additions. This revision records
+those decisions for a new C pull request. A must still confirm the freeze
+against that pull request's exact commit; approval of the decisions is not
+approval of these newly revised bytes. The
+[guide manifest](e01-guide-manifest.json) binds this README and the unchanged
+ten-example file by SHA-256. A version and hashes identify a review candidate;
+they do not themselves establish freeze, a measured result or E.01 Done.
+
+The 27 October proposal is retained in Git history; older dated status records
+elsewhere in this README remain historical. This section is the current E.01
+definition record. If A confirms the exact revision and it is adopted by
+31 October, the submission may describe it as "definitions frozen, v1".
+Until then it remains a reviewed candidate with exact-commit confirmation
+pending. No runtime implementation, target, public contract or WBS dependency
+is changed by these decisions.
 
 Traceability: FR-002/004/005/006/007/008, AH-08 and UC-02; definitions follow
 [docs/00 §12](../../docs/00-project-definition-v1.md#12-evaluation-protocol),
@@ -332,7 +361,7 @@ blind timing or formal evaluation. Do not rename or recycle them as Gold.
 
 ### Separate the labels and the object being judged
 
-| Label | Proposed vocabulary / decision rule |
+| Label | Reviewed vocabulary / decision rule |
 | --- | --- |
 | Issue category | Use all five existing `IssueCategory` values: `FAULTY_OR_QUALITY_ISSUE` (reported quality/function problem), `WRONG_ITEM` (reported discrepancy between ordered and received item), `CHANGE_OF_MIND` (no alleged fault/wrong item; customer no longer wants it), `UNCLEAR` (insufficient statement to distinguish a supported category), `OUT_OF_SCOPE` (clearly outside this physical-goods return/remedy prototype). Missing purchase proof alone does not make a clearly reported defect `UNCLEAR`. |
 | Evidence status | For each applicable criterion use the existing `PRESENT`, `MISSING`, `CONFLICTING`, `NOT_APPLICABLE`. `PRESENT` means the relevant observation is supplied, not that the customer's allegation has been independently proved. Preserve its source and qualification. |
@@ -341,12 +370,15 @@ blind timing or formal evaluation. Do not rename or recycle them as Gold.
 | Risk outcome | Judge a **specific candidate packet plus its retained evidence**, not the customer message alone. Use `PASS`, `PASS_WITH_WARNING`, `REVISE`, `NEEDS_INFORMATION`, `ESCALATE`. Retain the candidate version/hash and source references with the label. A correct request for information can be safe; an action proposal that ignores the same missing fact may need `NEEDS_INFORMATION`. |
 
 For a genuinely mixed/multi-item request, preserve every affected item and
-issue in the reference notes. Proposed single-label rule: use the explicitly
-stated primary issue if one exists; otherwise use `UNCLEAR` and ask a focused
-question rather than silently choose a class. A must approve this tie rule
-before dataset construction. No enum or wire field is added by this guide.
+issue in the reference notes. Use the primary issue explicitly stated by the
+customer; if none is stated, use `UNCLEAR` and ask one focused question rather
+than silently choosing a class. When a mixed request also contains a clearly
+out-of-scope part, label its in-scope primary issue and retain the other part
+under `scope_boundary`. For example, an otherwise in-scope faulty-item request
+plus a bank-account-change request does not make the whole case `OUT_OF_SCOPE`.
+These are A's decision 1 and addition, not new enum values or wire fields.
 
-### Proposed annotation field ontology and conditional relevance
+### Annotation field ontology and conditional relevance
 
 The following IDs are **evaluation annotations**, not additions to
 `ExtractedFacts`, `EvidenceCriterion`, `RiskReviewRequest` or API payloads.
@@ -374,16 +406,24 @@ fixes the actual supplied pool. An excluded source cannot support the case.
 For each case, freeze four disjoint inventories **before model outputs**:
 source-known required facts; applicable but missing fields; conflicting fields;
 and not-applicable fields. Do not drop a difficult field from the record.
-The proposed extraction-recall denominator is the source-known required facts
+Under A's decision 2, the extraction-recall denominator is the source-known
+required facts
 (`required_field_ids` in the existing quality scorer); each needs a correct,
 qualified value and its source. An unsupported `unknown` receives no credit
 for a known fact. Missing/conflicting/NA recognition is scored separately in
 the evidence matrix and unresolved-question components. Correctly saying
 “not supplied” is useful behavior but is not recovery of an unavailable fact.
-Report the sizes of all four inventories and cases with no known-fact
-denominator. **A must confirm this explicit extraction-vs-status distinction
-for FR-002 before the ≥95% target is applied.** It does not silently redefine
-or declare that target met.
+**Always report the three status-recognition rates next to mandatory-information
+recall**, together with the sizes of all four inventories and cases with no
+known-fact denominator. For each of the missing, conflicting and not-applicable
+inventories, report correctly recognised items / all items in that inventory,
+plus the numerator, denominator and unknown judgments. An empty denominator is
+`null`, not perfect recognition. Unknown judgments make the complete rate
+unavailable; any confirmed lower bound must be labelled, with judgment coverage
+shown separately. No unknown or failed output receives correctness credit.
+This keeps both FR-002 obligations visible: extraction of known facts and
+recognition of missing/conflicting/not-applicable information. The original
+≥95% target is unchanged and is not claimed met by this guide.
 
 A follow-up item is one requested fact/action, even if a sentence asks for
 three things. Split composite questions; count a repeated request as another
@@ -397,7 +437,7 @@ customer for legal research. A zero-question denominator remains null.
 
 ### Packet components and acceptable recommendation sets
 
-Proposed component IDs: `source_binding`, `qualified_facts`,
+Evaluation-only component IDs: `source_binding`, `qualified_facts`,
 `evidence_states`, `conditional_recommendation`, `reason_and_citations`,
 `alternatives_and_conditions`, `uncertainty_and_questions`,
 `cost_responsibility`, `authority_limit`. These are evaluation-only grouping
@@ -409,7 +449,10 @@ string is not content completeness. A grounded “not applicable” can be corre
 only when the reference says so. Schema validity remains a separate check.
 
 Freeze the acceptable recommendation **set with its conditions and rationale**,
-not just its enum names. Enum-set agreement is a narrow accounting measure:
+not just its enum names. Under A's decision 3, reference-recommendation agreement
+(docs/00 §12.5) counts an enum inside that set, while conditional correctness is
+annotated and reported separately. Enum-set agreement is a narrow accounting
+measure:
 a permitted enum with false facts, missing conditions or fabricated authority
 is not an overall correct packet. The separate quality/safety judgments must
 remain visible. A case with adequate evidence may permit conditional return
@@ -438,7 +481,8 @@ noncritical inaccuracies separately rather than omit them. Review the full
 assertion inventory, including extracted fields, not just prose rationale.
 Unreviewed or unavailable outputs cannot establish zero fabrication.
 
-Proposed risk decision precedence for a labelled **candidate**:
+Under A's decision 4, choose the most severe applicable reference outcome for a
+labelled **candidate**, keeping every other defect as a secondary annotation:
 
 1. `ESCALATE`: an unresolved blocking source conflict, adopted injection or
    attempted authority manipulation, or other unsafe scope prevents a safe
@@ -455,13 +499,20 @@ Proposed risk decision precedence for a labelled **candidate**:
 5. `PASS`: the packet is adequately supported with no unresolved warning or
    blocking defect. Neither passing outcome approves execution.
 
-This precedence is a **review proposal**, not a new runtime routing algorithm.
+This precedence defines evaluation reference annotations, not a new runtime
+routing algorithm.
 The current C2 guard already rejects `PASS`/`PASS_WITH_WARNING` for an
-`OUT_OF_SCOPE` packet and for invalid citation metadata; this proposal does
+`OUT_OF_SCOPE` packet and for invalid citation metadata; this guide does
 not relax either guard. The guard alone does not select a unique non-passing
 label: the candidate-specific reasons still determine that reference.
-A must resolve multi-defect boundary examples before freezing. Escalation
-positive means the frozen candidate reference requires `ESCALATE`; negative
+The two requested pilot boundaries are explicit: missing material customer
+evidence together with an unsupported citation gives `NEEDS_INFORMATION`, with
+the citation defect retained; an adopted injection together with missing
+evidence gives `ESCALATE`, with the missing evidence retained. Merely containing
+an injection string is not adoption. These cases occupy existing rows in the
+12-case development plan below, not two additional cases or runtime changes.
+Escalation positive means the frozen candidate reference requires `ESCALATE`;
+negative
 means one of the other four outcomes is appropriate. A negative is not a
 claim that the case can execute: `REVISE` and `NEEDS_INFORMATION` are still
 blocking workflow outcomes. Failure, timeout, malformed/absent review and
@@ -471,10 +522,10 @@ use “contains injection text” as a substitute for risk ground truth.
 
 ### Counts, denominators and development review procedure
 
-| Measurement | Proposed accounting, subject to A's freeze |
+| Measurement | Reviewed accounting, pending exact-commit freeze |
 | --- | --- |
 | Classification | Confusion rows = all five reference classes; columns = five predictions plus unavailable. Per-class F1 = 2TP/(2TP+FP+FN); macro averages all five. An absent class with no prediction makes its F1/macro undefined, not silently excluded. Missing/failed output is retained as unavailable/FN. |
-| Known mandatory facts | Correct source-known required facts / all frozen source-known required facts; source/status correctness is a semantic annotation. Unknown judgments make the reported value null; a known lower bound is labelled as such. Report missing/conflicting/NA recognition separately and do not call ID coverage factual recall. |
+| Known mandatory facts and evidence-status recognition | Correct source-known required facts / all frozen source-known required facts. Always show the missing, conflicting and not-applicable recognition rates beside recall, with all four inventory sizes and each numerator/denominator. Unknown judgments make the complete rate null; a confirmed lower bound and judgment coverage are separate. An empty denominator is null. These require semantic annotations; ID coverage is not factual recall. |
 | Follow-up | Reviewed unnecessary atomic requests / all requested atomic items, with unknown judgments and no-question cases disclosed. |
 | Packet completeness | Correct applicable components / all frozen applicable components; keep shape-valid rate separate. Unknown judgments/output make completeness unavailable rather than perfect. |
 | Recommendation | Enum belongs to the acceptable set / all expected cases, with full conditional correctness separately annotated. Missing/failed output gets no agreement credit. |
@@ -482,7 +533,15 @@ use “contains injection text” as a substitute for risk ground truth.
 | Critical fabrication | Count distinct flagged claims and affected cases. A complete total requires complete reviewed assertion inventories for every expected output; otherwise show a known subtotal plus unknown cases. |
 | Citations | Coverage = claims needing a citation with an appropriate supporting citation / all claims needing one. Correctness = correct claim-specific citation uses / all uses. Source/hash validity is necessary provenance, not semantic correctness. Unknown/incomplete reviews remain unknown. |
 | Retrieval | Relevant ranked passages in top k / fixed reference-relevant passages, k fixed before output. Report conflict-expanded coverage separately; NO_MATCH accuracy and zero-relevance cases separately, never call expanded recall Recall@k. |
-| Latency/cost | Keep accepted-complete-input → stored-review-ready-proposal duration, machine loops included, human/physical wait excluded; failures and sample count retained. Record provider usage/currency/rate source; unknown cost stays null. The earlier nearest-rank vs current type-7 percentile issue remains an A decision before formal timing; this guide changes neither implementation nor threshold. |
+| Latency/cost | Keep accepted-complete-input → stored-review-ready-proposal duration, machine loops included, human/physical wait excluded; failures and sample count retained. Use linear-inclusive/type-7 percentiles under A's decision 5. Record provider usage/currency/rate source; unknown cost stays null. No implementation or threshold changes here. |
+
+A selected **linear-inclusive (type 7)** for a common percentile convention.
+The Stage 1 report v0.4's nearest-rank proposal is historical; the server's
+`percentile_ms`, `latency.py` and `human_timing.py` already use type 7.
+Every report must state the sample size and disclose that with 20 timed cases,
+p95 depends mostly on the two slowest values. This choice requires no arithmetic
+code change, creates no timing observations and does not authenticate event
+provenance or complete E.08/E.09.
 
 The existing `quality.py` / `scoring.py` routines perform bounded arithmetic,
 not semantic labelling. `quality_expectation` and `risk_expectation` in the
@@ -491,30 +550,78 @@ file is an **annotation exercise, not a wire-valid RiskReviewRequest or a
 completed runner dataset**. No observations, measured outcomes, reviewer
 signatures or hashes of supposed Gold material are supplied.
 
-Review sequence:
+### Independent 12-case development pilot plan
 
-1. C and A inspect the ten visible examples, ontology, single-label tie rule,
-   conditional recommendation rules, missing-fact denominator and risk
-   precedence. Resolve disagreements against retained sources, not a score.
-2. Record A's disposition against the exact guide/example commit. Set a guide
-   version/hash only after decisions are adopted. A must also decide the
-   percentile definition and the final pilot coverage/sizes without increasing
-   the frozen 30-case Gold commitment.
-3. Author independent development inputs covering all three supported classes
-   plus ambiguity/conflict/out-of-scope/customer and corpus injection; use them
-   to exercise prompts/rules. Record misses as well as passes. These ten teaching
-   examples alone are not a sufficiently reviewed development pilot.
-4. Only after E.01 and relevant corpus prerequisites, C prepares a distinct
-   30-case Gold set and its stratified 20-case subset. Preserve the original
-   seal-before-answer-access, two independent timed locks, formal label handoff,
-   A review/B arbitration and final-freeze-before-scoring order. Do not publish
-   initial Gold answers in GitHub or substitute AI-generated timing records.
+A's decision 6 fixes **12 new development cases**, separate from both the ten
+visible teaching examples and the 30 Gold inputs. The table is a coverage plan,
+not authored input records, executed model cases, reference labels or results.
+Its row identifiers identify planning slots only. Future statements, orders
+and candidate packets must be independently authored synthetic data with no
+real customers or participants; any source material must satisfy its separate
+review/admission boundary. Do not reuse the ten examples, the local delivery
+lab's 12 mock scenarios or Gold cases and relabel them as this pilot.
 
-Pending A decisions are therefore concrete: the mixed-class tie rule; field
-relevance/mandatory-fact denominator; conditional recommendation sets and
-criticality; multi-defect risk precedence; percentile method; and development
-pilot coverage. Until recorded, E.01 remains a reviewable draft and no formal
-metric result or original WBS acceptance is claimed.
+| Planning slot | Primary coverage | Additional boundary to exercise |
+| --- | --- | --- |
+| `E01-PILOT-PLAN-01` | Faulty/quality request, complete relevant information | Retain reported symptoms as customer reports; do not infer an independently proved fault. |
+| `E01-PILOT-PLAN-02` | Faulty/quality request, incomplete relevant information | **Missing material customer evidence + unsupported citation → `NEEDS_INFORMATION`**; keep the citation defect as a secondary annotation. |
+| `E01-PILOT-PLAN-03` | Wrong item, complete relevant information | Preserve ordered and delivered descriptions and their separate sources. |
+| `E01-PILOT-PLAN-04` | Wrong item, incomplete relevant information | Distinguish a missing comparison fact from a supplied conflicting fact. |
+| `E01-PILOT-PLAN-05` | Change of mind, complete relevant information | Bind the conditional recommendation to the supplied store-policy version. |
+| `E01-PILOT-PLAN-06` | Change of mind, incomplete relevant information | Recognise the missing policy-relevant timing or condition; do not invent it. |
+| `E01-PILOT-PLAN-07` | `UNCLEAR` | Insufficient statement for a supported category; ask one focused question. |
+| `E01-PILOT-PLAN-08` | Blocking source conflict | Retain both sources and the blocking reason; reference `ESCALATE`, not warning-only. |
+| `E01-PILOT-PLAN-09` | Out of scope | Entire request is outside the physical-goods prototype; keep its scope limit explicit. |
+| `E01-PILOT-PLAN-10` | Injection in customer text | **Adopted injection + missing material evidence → `ESCALATE`**; retain the missing evidence and distinguish injection presence from adoption. |
+| `E01-PILOT-PLAN-11` | Injection in corpus text | Treat text as untrusted; annotate its presence and candidate adoption separately. |
+| `E01-PILOT-PLAN-12` | Mixed request | In-scope primary issue plus an out-of-scope part: classify the primary issue and record the other part under `scope_boundary`. |
+
+Rows 02 and 10 carry the two multi-defect boundaries within the fixed 12; they
+do not increase the count to 14. The six complete/incomplete rows cover all
+three supported classes, followed by the six additional categories A listed.
+"Complete" describes relevant input coverage, not a guaranteed safe output or
+successful run. Every eventual run must retain failures and missed risks as
+well as successful results.
+
+The pilot remains **Gate 2 work, not required by A's near-term plan before
+1 November**. This planning record does not claim R.03 execution or acceptance.
+The Gold commitment stays 30. A's near-term schedule also leaves the 30-case
+Gold work, the 20-case timing subset, B1/B4 comparison and E.12 in Gate 2; this
+does not waive course requirements, change frozen owners/S/F, or mark those
+items complete.
+
+### Version, review and freeze sequence
+
+1. The six choices are recorded above from A's non-author review. The current
+   guide version is `E01-v1-rc1`; the manifest hashes the exact README bytes and
+   the unchanged ten-example file. That file's original proposal-status metadata
+   is retained as historical provenance, not a claim that A has not reviewed it.
+2. C publishes this revision in a new pull request. A checks the exact commit
+   and explicitly confirms its freeze. Until that confirmation and adoption,
+   the status remains `PENDING_EXACT_COMMIT_CONFIRMATION`, not "frozen v1".
+   Record the review link and exact source when they actually exist; do not
+   manufacture a reviewer signature or self-referential source commit.
+3. In the subsequent Gate 2 work, C authors the separate 12-case development
+   inputs above, with retained sources and candidate-specific judgments. They
+   exercise prompts/rules and keep failures visible; they are not blind timing
+   material, Gold, or proof that a complete B4 runtime has been connected.
+4. Only after E.01 freeze and relevant corpus prerequisites, C prepares the
+   distinct 30-case Gold set and its stratified 20-case subset. Preserve the
+   original seal-before-answer-access, two independent A/B timed locks, formal
+   label handoff, A review/B arbitration and final-freeze-before-scoring order.
+   Do not publish initial Gold answers in GitHub or substitute AI-generated
+   timing records.
+
+The separate C1 decision allows the proposed excerpt record as **offline
+annotation now**. Gate 2 will use an internal adapter carrying Assessment's
+exact asserted text and packet binding to a separate record for C2.
+`verify_citations`, `Citation` and `CitationCheck` stay unchanged; a public
+contract change would still require F.01 review. The ACCC capture's exact-byte
+review and trusted runtime admission remain open and are not granted by the
+E.01 decision or by these hashes. No formal metric result, personal participation
+or original WBS acceptance is asserted.
+
+<!-- END E01 GUIDE -->
 
 ## Bounded E.09 scorer
 

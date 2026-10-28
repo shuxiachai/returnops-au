@@ -1,0 +1,52 @@
+{
+  "format_version": 1,
+  "guide_version": "E01-v1-rc1",
+  "freeze_status": "PENDING_EXACT_COMMIT_CONFIRMATION",
+  "author": "Member C; prepared with Codex assistance",
+  "decision_source": {
+    "reviewer": "shuxiachai",
+    "url": "https://github.com/shuxiachai/returnops-au/issues/67#issuecomment-6458606959",
+    "id": 6458606959,
+    "created_at": "2026-10-28T01:58:45Z",
+    "reviewed_prior_source": "1962551f8299fdd264c0f7942b99a43fdfdccb4b",
+    "current_base": "7174d2a8f72ba5ecd340f67fb77be7d26221bc5d",
+    "scope": "Six rule choices approved; exact revised commit freeze still pending."
+  },
+  "hash_convention": "SHA-256 of complete file bytes as stored in Git; UTF-8 with LF. Manifest does not hash itself. Exact candidate commit is recorded in the PR and future reviewer confirmation, never inferred from base.",
+  "guide_section_markers": [
+    "<!-- BEGIN E01 GUIDE -->",
+    "<!-- END E01 GUIDE -->"
+  ],
+  "files": [
+    {
+      "path": "experiments/evaluation_candidate/README.md",
+      "bytes": 65986,
+      "sha256": "65264af91172eb33c05cc8d79088828de37e8f2ece61809233d6d8db57545bef"
+    },
+    {
+      "path": "experiments/evaluation_candidate/examples/e01_development_examples.json",
+      "bytes": 41913,
+      "sha256": "7557306f014a64a9dcb36ea96ae7441260d30750ca056cb8e7cd11018dcea5d7"
+    }
+  ],
+  "teaching_examples": {
+    "count": 10,
+    "unchanged_from_reviewed_source": true,
+    "embedded_original_status": "C_PROPOSAL_PENDING_A_REVIEW",
+    "status_note": "Original file metadata retained byte-for-byte as historical draft metadata; current decision scope is recorded here and in README. Visible answers are not Gold or blind timing."
+  },
+  "pilot": {
+    "count": 12,
+    "status": "COVERAGE_PLAN_NOT_EXECUTED",
+    "independent_from_teaching_examples_and_gold": true,
+    "multi_defect_cases_reuse_slots": [
+      "E01-PILOT-PLAN-02",
+      "E01-PILOT-PLAN-10"
+    ]
+  },
+  "formal_gold_case_count": 30,
+  "timing_subset_count": 20,
+  "runtime_contract_change": false,
+  "actual_model_or_human_results_included": false,
+  "freeze_confirmation": null
+}
