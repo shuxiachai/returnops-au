@@ -252,7 +252,7 @@ describe('FounderConsole advisory facts card (Issue #95)', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
 
     // The proposal tab is open by default.
-    expect(await screen.findByText('PROPOSE_REFUND')).toBeInTheDocument();
+    expect(await screen.findByText('Refund')).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Model extraction (advisory)' })).not.toBeInTheDocument();
   });
 

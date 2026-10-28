@@ -198,8 +198,12 @@ describe('FounderConsole failure and live-mode paths', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
 
-    // Proposal uses recommended_action / confidence.
-    expect(await screen.findByText('PROPOSE_REFUND')).toBeInTheDocument();
+    // Proposal uses recommended_action / confidence. The outcome is shown in words,
+    // with the contract value on hover, and the tiles wrap long words.
+    const outcome = await screen.findByText('Refund');
+    expect(outcome).toHaveAttribute('title', 'PROPOSE_REFUND');
+    expect(outcome.closest('.grid')).toHaveClass('break-words');
+    expect(screen.queryByText('PROPOSE_REFUND')).not.toBeInTheDocument();
     expect(screen.getByText('50%')).toBeInTheDocument();
 
     // Review uses outcome / findings.
