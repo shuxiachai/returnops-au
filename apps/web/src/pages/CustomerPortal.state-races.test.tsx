@@ -534,3 +534,48 @@ describe('clarification answer-or-evidence contract', () => {
     expect(submittedEvidence('clarify')).toEqual([staged('pending.png').evidence_id]);
   });
 });
+
+describe('lodgement evidence staging retry (#122 item 11)', () => {
+  const busy = () =>
+    new ApiError(503, 'Too many uploads in progress', 'SERVICE_UNAVAILABLE', undefined, undefined, true);
+
+  it('retries a busy server twice under the same key, then shows the file as staged', async () => {
+    vi.mocked(stageEvidence)
+      .mockRejectedValueOnce(busy())
+      .mockRejectedValueOnce(busy())
+      .mockImplementationOnce(async file => staged(file.name));
+    await openPortal('lodge');
+    attachFile('busy.png');
+    stageFile('busy.png');
+
+    await waitFor(() => stagedBadge('lodge', 'busy.png'), { timeout: 4000 });
+    expect(stageEvidence).toHaveBeenCalledTimes(3);
+    const keys = vi.mocked(stageEvidence).mock.calls.map(call => call[2]);
+    expect(keys[0]).toBeTruthy();
+    expect(new Set(keys).size).toBe(1);
+    expect(window.alert).not.toHaveBeenCalled();
+  });
+
+  it('gives up after the third busy reply and reports it', async () => {
+    vi.mocked(stageEvidence).mockRejectedValue(busy());
+    await openPortal('lodge');
+    attachFile('busy.png');
+    stageFile('busy.png');
+
+    await waitFor(() => expect(window.alert).toHaveBeenCalledWith('Too many uploads in progress'), { timeout: 4000 });
+    expect(stageEvidence).toHaveBeenCalledTimes(3);
+    expect(fileRow('busy.png').getByRole('button', { name: /^Stage File$/i })).toBeEnabled();
+  });
+
+  it('does not retry a refusal the server marks as not retryable', async () => {
+    vi.mocked(stageEvidence).mockRejectedValue(
+      new ApiError(422, 'Unsupported file', 'VALIDATION_ERROR', undefined, undefined, false)
+    );
+    await openPortal('lodge');
+    attachFile('refused.png');
+    stageFile('refused.png');
+
+    await waitFor(() => expect(window.alert).toHaveBeenCalledWith('Unsupported file'));
+    expect(stageEvidence).toHaveBeenCalledTimes(1);
+  });
+});

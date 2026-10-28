@@ -5,6 +5,7 @@ import {
   getStatusBadgeClass,
   getRiskBadgeClass,
   formatCategory,
+  formatStatusLabel,
   formatActor,
   formatCustomerStatus,
   formatRequestedOutcome,
@@ -100,6 +101,32 @@ describe('formatters', () => {
 
       // The unknown-state fallback sits outside the sixteen-state domain map.
       expect(getStatusBadgeClass(undefined)).toContain('gray');
+    });
+  });
+
+  describe('formatStatusLabel', () => {
+    it('words every one of the sixteen CaseStatus values for the Founder filters (#111 item 9)', () => {
+      const expected: Record<CaseStatus, string> = {
+        SUBMITTED: 'Submitted',
+        AWAITING_INFORMATION: 'Awaiting Information',
+        UNDER_INVESTIGATION: 'Under Investigation',
+        POLICY_ASSESSMENT: 'Policy Assessment',
+        RISK_REVIEW: 'Risk Review',
+        AWAITING_APPROVAL: 'Awaiting Approval',
+        APPROVED: 'Approved',
+        ACTION_IN_PROGRESS: 'Action In Progress',
+        ACTION_FAILED: 'Action Failed',
+        RECONCILING: 'Reconciling',
+        ESCALATED: 'Escalated',
+        NOTIFICATION_PENDING: 'Notification Pending',
+        NOTIFICATION_FAILED: 'Notification Failed',
+        COMPLETED: 'Completed',
+        REJECTED: 'Rejected',
+        MANUAL_HANDLED: 'Manual Handled',
+      };
+      for (const [status, label] of Object.entries(expected)) {
+        expect(formatStatusLabel(status as CaseStatus)).toBe(label);
+      }
     });
   });
 

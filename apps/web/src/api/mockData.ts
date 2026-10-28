@@ -606,7 +606,8 @@ export const MOCK_FOUNDER_CASE_VIEWS: Record<string, CaseView> = {
         'The return goes to the Melbourne distribution hub with the label this approval authorises.',
       ],
       unresolved_questions: [
-        'No photograph of the sealed packaging was attached, so "unopened" is the customer word only.',
+        // The attached photograph shows the packaging; it cannot show the item unused.
+        'The photograph shows the packaging sealed; whether the item is unused is the customer word only.',
       ],
       citations: [
         {

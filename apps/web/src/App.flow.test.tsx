@@ -13,11 +13,12 @@ import {
 // starts from <App />, uses the shared fixture store the demo falls back to, and
 // stubs no boundary, so it adds no Playwright or Cypress dependency and no CI job.
 //
-// What it does not evidence, and says so rather than implying it: the mock store
-// is a fixed fixture set, so the case the Founder decides here is a curated queue
-// row, not the case lodged in the first half. The lodged case reaches the Founder
-// queue only on a real server, where the queue is built from the database. That
-// link is what the recorded live run from the 29 October rehearsal covers.
+// What it does not evidence, and says so rather than implying it: the case the
+// Founder decides here is a curated queue row with a proposal, not the case
+// lodged in the first half. Since #147 the lodged case does reach the Mock Mode
+// queue (asserted below), but it carries no proposal to approve. Lodging and then
+// deciding the same case is only possible on a real server; the recorded run of
+// the 29 October rehearsal covers that.
 const MOCK_VIEWS_AT_START = structuredClone(MOCK_FOUNDER_CASE_VIEWS);
 
 const STATEMENT = 'Two of the cups I ordered arrived chipped. I would like a refund.';

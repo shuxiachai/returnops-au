@@ -54,6 +54,43 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
     });
   });
 
+  it('offers all sixteen contract statuses in the queue filter, so any case can be found (#111 item 9)', async () => {
+    render(<FounderConsole />);
+    await waitFor(() => expect(screen.getByText('case_demo_001')).toBeInTheDocument());
+
+    const select = screen.getByRole('combobox', { name: 'Filter the queue by status' });
+    const values = within(select).getAllByRole('option').map((option) => (option as HTMLOptionElement).value);
+    expect(values).toEqual([
+      'ALL',
+      'SUBMITTED',
+      'AWAITING_INFORMATION',
+      'UNDER_INVESTIGATION',
+      'POLICY_ASSESSMENT',
+      'RISK_REVIEW',
+      'AWAITING_APPROVAL',
+      'APPROVED',
+      'ACTION_IN_PROGRESS',
+      'ACTION_FAILED',
+      'RECONCILING',
+      'ESCALATED',
+      'NOTIFICATION_PENDING',
+      'NOTIFICATION_FAILED',
+      'COMPLETED',
+      'REJECTED',
+      'MANUAL_HANDLED',
+    ]);
+    expect(within(select).getByRole('option', { name: 'Notification Pending' })).toBeInTheDocument();
+    expect(within(select).getByRole('option', { name: 'Manual Handled' })).toBeInTheDocument();
+
+    // POLICY_ASSESSMENT was not in the old seven-item list; its rows can now be isolated.
+    fireEvent.change(select, { target: { value: 'POLICY_ASSESSMENT' } });
+    await waitFor(() => {
+      expect(screen.getByText('case_demo_007')).toBeInTheDocument();
+      expect(screen.queryByText('case_demo_001')).not.toBeInTheDocument();
+      expect(screen.queryByText('case_demo_006')).not.toBeInTheDocument();
+    });
+  });
+
   it('opens case inspection modal and navigates across multi-tab projections', async () => {
     render(<FounderConsole />);
 
@@ -230,7 +267,7 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
       expect(screen.getByText('58')).toBeInTheDocument();
       expect(screen.getByText('p50 Median Latency')).toBeInTheDocument();
       expect(screen.getByText('11.20s')).toBeInTheDocument();
-      expect(screen.getByText('p95 Latency SLA')).toBeInTheDocument();
+      expect(screen.getByText('p95 Latency')).toBeInTheDocument();
       expect(screen.getByText('46.50s')).toBeInTheDocument();
     });
 
