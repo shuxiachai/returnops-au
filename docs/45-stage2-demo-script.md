@@ -53,7 +53,7 @@ Follow the [README "Deploy from zero"](../README.md#deploy-from-zero---22-octobe
 
 ### 2.3 Demo identities, API and frontend (T-5 minutes)
 
-The sessions written by `demo.py provision` last 899 s. The segments that use them (S2 to S4) end at about 7:00, so provision no earlier than about five minutes before the start. `tools\demo\demo.ps1 start` runs items 1, 3 and 4 and prints when the sessions expire (with `-ModelShowcase` after item 2 in the same window); item 5 stays manual.
+The sessions written by `demo.py provision` last 899 s. The segments that use them (S2 to S4) end at about 5:45, so provision no earlier than about five minutes before the start. `tools\demo\demo.ps1 start` runs items 1, 3 and 4 and prints when the sessions expire (with `-ModelShowcase` after item 2 in the same window); item 5 stays manual.
 
 1. Provision the demo shop with investigation and the fixed proposal (README step 3):
    `local.py run python -m returnops_api.demo provision --private-dir <abs>/tmp/demo-shop --store synthetic_au_store --customer-one synthetic_customer_a --customer-two synthetic_customer_b --founder synthetic_founder --order-investigation --fixed-proposal --founder-manual`.
@@ -82,23 +82,25 @@ The sessions written by `demo.py provision` last 899 s. The segments that use th
 - Screenshots from the rehearsal: customer case with question, Founder case list, case detail and audit, analytics, the driver's `COMPLETED` case, the facts card or response (only if a live call was made), the CI run page and the Jira board.
 - Any fallback is announced as a fallback when it is used ("this is the receipt from our rehearsal on <date>").
 
-## 3. Sequence (about 14:30 scripted, then questions)
+## 3. Sequence (about 11:30 scripted, then questions)
 
 Timings are planned, not measured. Each segment lists the speaker, the exact actions, what to say and the evidence on screen. The one-line gloss restates the segment's point in plain words for the speaker.
 
+On 28 October 2026 the presentation limit became 12 minutes, so every segment was shortened from the earlier 14:30 plan; 30 seconds are left in reserve. The plan assumes questions come after the 12 minutes; if the tutors count questions inside them, cut further. The actions and talking points below were written for the longer lengths: in the 29 October rehearsal each speaker notes what to drop to stay within their segment.
+
 | Cue | Segment | Speaker | Length |
 |---|---|---|---|
-| 0:00 | S1 Opening and scope | A | 1:00 |
-| 1:00 | S2 Customer submission and clarification | B | 2:30 |
-| 3:30 | S3 Founder view, analytics and one decision | B | 2:00 |
-| 5:30 | S4 Advisory model extraction and one fail-closed case | A | 1:30 |
-| 7:00 | S5 Approve to outcome with the R.02 driver (demo mode) | A | 3:30 |
-| 10:30 | S6 Grounding, risk contract and evaluation definitions | C | 2:00 |
-| 12:30 | S7 Evidence and Agile | A (each member confirms own row) | 1:15 |
-| 13:45 | S8 Roadmap | A | 0:45 |
-| 14:30 | Questions | All | as the tutors allow |
+| 0:00 | S1 Opening and scope | A | 0:45 |
+| 0:45 | S2 Customer submission and clarification | B | 2:00 |
+| 2:45 | S3 Founder view, analytics and one decision | B | 1:45 |
+| 4:30 | S4 Advisory model extraction and one fail-closed case | A | 1:15 |
+| 5:45 | S5 Approve to outcome with the R.02 driver (demo mode) | A | 3:00 |
+| 8:45 | S6 Grounding, risk contract and evaluation definitions | C | 1:30 |
+| 10:15 | S7 Evidence and Agile | A (each member confirms own row) | 0:45 |
+| 11:00 | S8 Roadmap | A | 0:30 |
+| 11:30 | Questions | All | as the tutors allow |
 
-### S1 Opening and scope (A, 0:00, 1:00)
+### S1 Opening and scope (A, 0:00, 0:45)
 
 Gloss: what the company does, who decides, and what today is and is not.
 
@@ -110,7 +112,7 @@ Say: "ReturnOps AU handles return and refund requests for one Australian online 
 
 Evidence: diagrams; [docs/00](00-project-definition-v1.md) Gate 1 text.
 
-### S2 Customer submission and clarification (B, 1:00, 2:30)
+### S2 Customer submission and clarification (B, 0:45, 2:00)
 
 Gloss: the customer tells their story; the system asks only for what is missing.
 
@@ -126,7 +128,7 @@ Say: "The customer writes in plain language. Every write carries an idempotency 
 
 Evidence: customer UI; requirements FR-001, FR-002, FR-005 ([apps/web README](../apps/web/README.md), Feature Mapping).
 
-### S3 Founder view, analytics and one decision (B, 3:30, 2:00)
+### S3 Founder view, analytics and one decision (B, 2:45, 1:45)
 
 Gloss: the Founder sees every case, the numbers, and makes the call.
 
@@ -146,7 +148,7 @@ Say: "The Founder works from one queue, scoped to their own store. For this case
 
 Evidence: Founder UI; FR-009, FR-011, FR-012, OF-006.
 
-### S4 Advisory model extraction and one fail-closed case (A, 5:30, 1:30)
+### S4 Advisory model extraction and one fail-closed case (A, 4:30, 1:15)
 
 Gloss: the model reads the customer's words and suggests structured facts; it cannot change anything.
 
@@ -163,7 +165,7 @@ If the key or the network is not available, say instead: "The model extraction i
 
 Evidence: `docs/44-coordinator-showcase.md` (PR #94); FR-002, NFR-003, NFR-007, NFR-008, NFR-009.
 
-### S5 Approve to outcome with the R.02 driver, demo mode (A, 7:00, 3:30)
+### S5 Approve to outcome with the R.02 driver, demo mode (A, 5:45, 3:00)
 
 Gloss: one complete governed run, from customer case to label and notification, with the bypass attempts refused.
 
@@ -189,7 +191,9 @@ If the driver refuses or fails: read the refusal code aloud (for example `IDENTI
 
 Evidence: [docs/41](41-r02-end-to-end-evidence.md); models [governed-execution-activity](diagrams/member-a/governed-execution-activity.puml) and [exact-scope-sequence](diagrams/member-a/exact-scope-sequence.puml); FR-009, FR-010, FR-011, FR-012, NFR-001, NFR-002, NFR-003, NFR-004, NFR-006, NFR-007, NFR-008.
 
-### S6 Grounding, risk contract and evaluation definitions (C, 10:30, 2:00)
+<a id="s6-grounding-risk-contract-and-evaluation-definitions-c-1030-200"></a>
+
+### S6 Grounding, risk contract and evaluation definitions (C, 8:45, 1:30)
 
 Gloss: how a proposal is grounded in sources, how it is challenged, and how we will measure it.
 
@@ -204,7 +208,7 @@ Say (C to adapt): "None of these components calls a live model in today's chain,
 
 Evidence: FR-006, FR-007, FR-008, NFR-001, NFR-009; [C's model chain](18-member-c-model-chain.md).
 
-### S7 Evidence and Agile (A, 12:30, 1:15; each member confirms their own row)
+### S7 Evidence and Agile (A, 10:15, 0:45; each member confirms their own row)
 
 Gloss: how we worked, and proof that the work is real.
 
@@ -223,7 +227,7 @@ Actions:
 
 Say: "We planned in Jira, worked in short pull requests, and every change ran the same CI. Where a reviewer asked for changes, the fix is in the next commit of the same pull request. The table shows each person's two core features and one optional, including the two optionals we could not finish and why."
 
-### S8 Roadmap (A, 13:45, 0:45)
+### S8 Roadmap (A, 11:00, 0:30)
 
 Gloss: what comes next, in order, and what must be true first.
 
