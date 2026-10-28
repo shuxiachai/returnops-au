@@ -1,0 +1,480 @@
+{
+  "format": "returnops-c1-offline-excerpt-annotation-exercise-v1",
+  "purpose": "PUBLIC SYNTHETIC OFFLINE HUMAN-ANNOTATION PRACTICE; not a quotation-checker implementation, runtime test, model result, corpus admission, Gold or C1.04 acceptance",
+  "is_synthetic": true,
+  "human_approval": false,
+  "prepared_with": "Codex AI assistance",
+  "human_reviewer": null,
+  "source_snapshot": {
+    "repository_commit": "7174d2a8f72ba5ecd340f67fb77be7d26221bc5d",
+    "corpus_path": "experiments/c1_grounding_candidate/data/corpus.json",
+    "corpus_file_sha256": "fdd42be5903f70912f14f87c061facd880f8c5e4bdd694c307ba650ffd78d102",
+    "manifest_path": "experiments/c1_grounding_candidate/data/manifest.json",
+    "manifest_file_sha256": "eab6b906554da8454f34af26f0e195aeb2208ec260abba27dceed9badbebae93",
+    "corpus_version": "synthetic-pilot-v1",
+    "admission_status": "SYNTHETIC_PILOT_PENDING_HUMAN_REVIEW_NOT_ACCC_ADMISSION"
+  },
+  "review_basis": {
+    "url": "https://github.com/shuxiachai/returnops-au/issues/67#issuecomment-6458606959",
+    "scope": "Before submission offline annotations only; any internal adapter is Gate 2 work; Citation/CitationCheck/verify_citations are unchanged."
+  },
+  "encoding_and_ranges": {
+    "packet_hash": "sha256 of utf8_text encoded as UTF-8 exactly, including its final newline; do not reserialize first",
+    "source_hash": "sha256 of the complete decoded passage content encoded as UTF-8, without normalization",
+    "ranges": "Zero-based, end-exclusive Unicode code-point indexes in the decoded JSON string field or complete passage content, not UTF-8 bytes, UTF-16 units or grapheme clusters.",
+    "literal_labels": "Exercise labels separate from CitationCheck.result; invalid binding takes precedence over substring equality.",
+    "semantic_labels": "AI-assisted provisional source/claim judgments for human review, separate from literal disposition.",
+    "not_replay_evidence": "These authored fixed packets contain deliberately invalid claims/bindings. The recommendation, model_run times/zero tokens, IDs and versions are fixture metadata, not actual requests, invocations, decisions or reviewer signatures."
+  },
+  "sources": {
+    "synthetic-wrong-sku-store": {
+      "passage_id": "synthetic-wrong-sku-store",
+      "document_id": "synthetic-store-policy",
+      "source_type": "STORE_POLICY",
+      "title": "SYNTHETIC store policy: wrong-item SKU fixture",
+      "source_uri": "urn:returnops:synthetic:store-policy:wrong-sku",
+      "accessed_on": "2026-10-09",
+      "source_version": "synthetic-store-v1",
+      "corpus_version": "synthetic-pilot-v1",
+      "location": "synthetic store section 3",
+      "content": "SYNTHETIC STORE POLICY FIXTURE. For the fictional wrong-item scenario, compare ordered SKU with delivered SKU before considering a replacement. Record the red lamp description. This is invented test data, not an actual store procedure.",
+      "content_sha256": "b051539743249b9d1993681ff3b1164ff2c97e843ab2a629b25f5430fcafdd7b",
+      "is_synthetic": true
+    },
+    "synthetic-mind-unopened-store": {
+      "passage_id": "synthetic-mind-unopened-store",
+      "document_id": "synthetic-store-policy",
+      "source_type": "STORE_POLICY",
+      "title": "SYNTHETIC store policy: unopened coupon fixture",
+      "source_uri": "urn:returnops:synthetic:store-policy:unopened-coupon",
+      "accessed_on": "2026-10-09",
+      "source_version": "synthetic-store-v1",
+      "corpus_version": "synthetic-pilot-v1",
+      "location": "synthetic store section 4",
+      "content": "SYNTHETIC STORE POLICY FIXTURE. The imaginary change-of-mind offer uses unopened goods, a twentyone day window, and coupon credit. All conditions are invented for retrieval testing and convey no real entitlement.",
+      "content_sha256": "2e3563639dee55ba6a685aeccfd66d183a1c1a627a24e815984b173b0f7830c6",
+      "is_synthetic": true
+    }
+  },
+  "packet_artifacts": {
+    "excerpt-01-packet-v1": {
+      "artifact_role": "COMPLETE_SYNTHETIC_DECISION_PACKET_NOT_RUNTIME_EVIDENCE",
+      "utf8_text": "{\"case_id\":\"excerpt-01\",\"proposal_id\":\"excerpt-01-proposal\",\"proposal_version\":1,\"input_version\":1,\"original_statement_id\":\"excerpt-01-statement\",\"created_at\":\"2026-10-28T00:00:00Z\",\"facts\":{\"issue_category\":\"WRONG_ITEM\",\"customer_requested_outcome\":\"UNSPECIFIED\",\"possible_basis\":\"STORE_POLICY\",\"assessment_status\":\"UNCERTAIN\",\"line_items\":[],\"summary\":\"SYNTHETIC annotation packet only; no actual customer, order, case, model output or decision exists.\"},\"evidence_matrix\":[{\"criterion_id\":\"synthetic-case-context\",\"status\":\"MISSING\",\"statement_ids\":[],\"evidence_ids\":[],\"rationale\":\"Only a public invented passage and an asserted claim are supplied; no operational case evidence is supplied.\"}],\"recommended_action\":\"REQUEST_INFORMATION\",\"rationale\":\"SYNTHETIC — quotation: «For the fictional wrong-item scenario, compare ordered SKU with delivered SKU before considering a replacement.»; claim: In this fictional exercise, compare the ordered and delivered SKU before considering a replacement; this does not establish entitlement or approval.\",\"alternatives\":[],\"conditions\":[\"Annotation exercise only; no approval or operation is permitted.\"],\"cost_responsibility_note\":\"Unresolved; no real costs or legal allocation are determined.\",\"citations\":[{\"citation_id\":\"excerpt-01-citation\",\"passage_id\":\"synthetic-wrong-sku-store\",\"document_id\":\"synthetic-store-policy\",\"source_version\":\"synthetic-store-v1\",\"corpus_version\":\"synthetic-pilot-v1\",\"content_sha256\":\"b051539743249b9d1993681ff3b1164ff2c97e843ab2a629b25f5430fcafdd7b\",\"location\":\"synthetic store section 3\"}],\"corpus_version\":\"synthetic-pilot-v1\",\"confidence\":0.0,\"unresolved_questions\":[\"No real case is being evaluated.\"],\"model_run\":{\"run_id\":\"excerpt-01-no-live-run\",\"role\":\"ASSESSMENT\",\"provider_id\":\"synthetic-fixture\",\"model_id\":\"authored-no-model-invocation\",\"prompt_version\":\"annotation-fixture-v1\",\"started_at\":\"2026-10-28T00:00:00Z\",\"finished_at\":\"2026-10-28T00:00:00Z\",\"input_tokens\":0,\"output_tokens\":0}}\n",
+      "sha256": "2a225910006dadef82ba6809d6e66dcd9bf780b4ed4f18aca521b9d46ccabb03",
+      "utf8_byte_length": 1984,
+      "model_run_note": "Fixed schema-fixture metadata, including dates/zero tokens, records no actual invocation."
+    },
+    "excerpt-02-packet-v1": {
+      "artifact_role": "COMPLETE_SYNTHETIC_DECISION_PACKET_NOT_RUNTIME_EVIDENCE",
+      "utf8_text": "{\"case_id\":\"excerpt-02\",\"proposal_id\":\"excerpt-02-proposal\",\"proposal_version\":1,\"input_version\":1,\"original_statement_id\":\"excerpt-02-statement\",\"created_at\":\"2026-10-28T00:00:00Z\",\"facts\":{\"issue_category\":\"WRONG_ITEM\",\"customer_requested_outcome\":\"UNSPECIFIED\",\"possible_basis\":\"STORE_POLICY\",\"assessment_status\":\"UNCERTAIN\",\"line_items\":[],\"summary\":\"SYNTHETIC annotation packet only; no actual customer, order, case, model output or decision exists.\"},\"evidence_matrix\":[{\"criterion_id\":\"synthetic-case-context\",\"status\":\"MISSING\",\"statement_ids\":[],\"evidence_ids\":[],\"rationale\":\"Only a public invented passage and an asserted claim are supplied; no operational case evidence is supplied.\"}],\"recommended_action\":\"REQUEST_INFORMATION\",\"rationale\":\"SYNTHETIC — quotation: «Record the blue lamp description.»; claim: The invented source says to record a blue lamp.\",\"alternatives\":[],\"conditions\":[\"Annotation exercise only; no approval or operation is permitted.\"],\"cost_responsibility_note\":\"Unresolved; no real costs or legal allocation are determined.\",\"citations\":[{\"citation_id\":\"excerpt-02-citation\",\"passage_id\":\"synthetic-wrong-sku-store\",\"document_id\":\"synthetic-store-policy\",\"source_version\":\"synthetic-store-v1\",\"corpus_version\":\"synthetic-pilot-v1\",\"content_sha256\":\"b051539743249b9d1993681ff3b1164ff2c97e843ab2a629b25f5430fcafdd7b\",\"location\":\"synthetic store section 3\"}],\"corpus_version\":\"synthetic-pilot-v1\",\"confidence\":0.0,\"unresolved_questions\":[\"No real case is being evaluated.\"],\"model_run\":{\"run_id\":\"excerpt-02-no-live-run\",\"role\":\"ASSESSMENT\",\"provider_id\":\"synthetic-fixture\",\"model_id\":\"authored-no-model-invocation\",\"prompt_version\":\"annotation-fixture-v1\",\"started_at\":\"2026-10-28T00:00:00Z\",\"finished_at\":\"2026-10-28T00:00:00Z\",\"input_tokens\":0,\"output_tokens\":0}}\n",
+      "sha256": "342c1e63e0426ccd6ec4bd6f35a59227b7eca187695c6213e6a22c5cf113ddd8",
+      "utf8_byte_length": 1805,
+      "model_run_note": "Fixed schema-fixture metadata, including dates/zero tokens, records no actual invocation."
+    },
+    "excerpt-03-packet-v1": {
+      "artifact_role": "COMPLETE_SYNTHETIC_DECISION_PACKET_NOT_RUNTIME_EVIDENCE",
+      "utf8_text": "{\"case_id\":\"excerpt-03\",\"proposal_id\":\"excerpt-03-proposal\",\"proposal_version\":1,\"input_version\":1,\"original_statement_id\":\"excerpt-03-statement\",\"created_at\":\"2026-10-28T00:00:00Z\",\"facts\":{\"issue_category\":\"CHANGE_OF_MIND\",\"customer_requested_outcome\":\"UNSPECIFIED\",\"possible_basis\":\"STORE_POLICY\",\"assessment_status\":\"UNCERTAIN\",\"line_items\":[],\"summary\":\"SYNTHETIC annotation packet only; no actual customer, order, case, model output or decision exists.\"},\"evidence_matrix\":[{\"criterion_id\":\"synthetic-case-context\",\"status\":\"MISSING\",\"statement_ids\":[],\"evidence_ids\":[],\"rationale\":\"Only a public invented passage and an asserted claim are supplied; no operational case evidence is supplied.\"}],\"recommended_action\":\"REQUEST_INFORMATION\",\"rationale\":\"SYNTHETIC — quotation: «coupon credit»; claim: Coupon credit is available for any goods at any time.\",\"alternatives\":[],\"conditions\":[\"Annotation exercise only; no approval or operation is permitted.\"],\"cost_responsibility_note\":\"Unresolved; no real costs or legal allocation are determined.\",\"citations\":[{\"citation_id\":\"excerpt-03-citation\",\"passage_id\":\"synthetic-mind-unopened-store\",\"document_id\":\"synthetic-store-policy\",\"source_version\":\"synthetic-store-v1\",\"corpus_version\":\"synthetic-pilot-v1\",\"content_sha256\":\"2e3563639dee55ba6a685aeccfd66d183a1c1a627a24e815984b173b0f7830c6\",\"location\":\"synthetic store section 4\"}],\"corpus_version\":\"synthetic-pilot-v1\",\"confidence\":0.0,\"unresolved_questions\":[\"No real case is being evaluated.\"],\"model_run\":{\"run_id\":\"excerpt-03-no-live-run\",\"role\":\"ASSESSMENT\",\"provider_id\":\"synthetic-fixture\",\"model_id\":\"authored-no-model-invocation\",\"prompt_version\":\"annotation-fixture-v1\",\"started_at\":\"2026-10-28T00:00:00Z\",\"finished_at\":\"2026-10-28T00:00:00Z\",\"input_tokens\":0,\"output_tokens\":0}}\n",
+      "sha256": "a5b30fd6822858a51e73a6ce715371ec1a6642734b49a024730bb11c9feeb4ef",
+      "utf8_byte_length": 1799,
+      "model_run_note": "Fixed schema-fixture metadata, including dates/zero tokens, records no actual invocation."
+    },
+    "excerpt-04-packet-v2": {
+      "artifact_role": "COMPLETE_SYNTHETIC_DECISION_PACKET_NOT_RUNTIME_EVIDENCE",
+      "utf8_text": "{\"case_id\":\"excerpt-04\",\"proposal_id\":\"excerpt-04-proposal\",\"proposal_version\":2,\"input_version\":1,\"original_statement_id\":\"excerpt-04-statement\",\"created_at\":\"2026-10-28T00:00:00Z\",\"facts\":{\"issue_category\":\"WRONG_ITEM\",\"customer_requested_outcome\":\"UNSPECIFIED\",\"possible_basis\":\"STORE_POLICY\",\"assessment_status\":\"UNCERTAIN\",\"line_items\":[],\"summary\":\"SYNTHETIC annotation packet only; no actual customer, order, case, model output or decision exists.\"},\"evidence_matrix\":[{\"criterion_id\":\"synthetic-case-context\",\"status\":\"MISSING\",\"statement_ids\":[],\"evidence_ids\":[],\"rationale\":\"Only a public invented passage and an asserted claim are supplied; no operational case evidence is supplied.\"}],\"recommended_action\":\"REQUEST_INFORMATION\",\"rationale\":\"SYNTHETIC — quotation: «For the fictional wrong-item scenario, compare ordered SKU with delivered SKU before considering a replacement.»; claim: In this fictional exercise, compare the ordered and delivered SKU before considering a replacement; this does not establish entitlement or approval.\",\"alternatives\":[],\"conditions\":[\"Annotation exercise only; no approval or operation is permitted.\"],\"cost_responsibility_note\":\"Unresolved; no real costs or legal allocation are determined.\",\"citations\":[{\"citation_id\":\"excerpt-04-citation\",\"passage_id\":\"synthetic-wrong-sku-store\",\"document_id\":\"synthetic-store-policy\",\"source_version\":\"synthetic-store-v1\",\"corpus_version\":\"synthetic-pilot-v1\",\"content_sha256\":\"b051539743249b9d1993681ff3b1164ff2c97e843ab2a629b25f5430fcafdd7b\",\"location\":\"synthetic store section 3\"}],\"corpus_version\":\"synthetic-pilot-v1\",\"confidence\":0.0,\"unresolved_questions\":[\"No real case is being evaluated.\"],\"model_run\":{\"run_id\":\"excerpt-04-no-live-run\",\"role\":\"ASSESSMENT\",\"provider_id\":\"synthetic-fixture\",\"model_id\":\"authored-no-model-invocation\",\"prompt_version\":\"annotation-fixture-v1\",\"started_at\":\"2026-10-28T00:00:00Z\",\"finished_at\":\"2026-10-28T00:00:00Z\",\"input_tokens\":0,\"output_tokens\":0}}\n",
+      "sha256": "b0b681b1a132be419cd3ab03a0fc3c18702e77ab5dd714b8b8c4643ee2ce9e4a",
+      "utf8_byte_length": 1984,
+      "model_run_note": "Fixed schema-fixture metadata, including dates/zero tokens, records no actual invocation."
+    },
+    "excerpt-04-packet-v1": {
+      "artifact_role": "COMPLETE_SYNTHETIC_DECISION_PACKET_NOT_RUNTIME_EVIDENCE",
+      "utf8_text": "{\"case_id\":\"excerpt-04\",\"proposal_id\":\"excerpt-04-proposal\",\"proposal_version\":1,\"input_version\":1,\"original_statement_id\":\"excerpt-04-statement\",\"created_at\":\"2026-10-28T00:00:00Z\",\"facts\":{\"issue_category\":\"WRONG_ITEM\",\"customer_requested_outcome\":\"UNSPECIFIED\",\"possible_basis\":\"STORE_POLICY\",\"assessment_status\":\"UNCERTAIN\",\"line_items\":[],\"summary\":\"SYNTHETIC annotation packet only; no actual customer, order, case, model output or decision exists.\"},\"evidence_matrix\":[{\"criterion_id\":\"synthetic-case-context\",\"status\":\"MISSING\",\"statement_ids\":[],\"evidence_ids\":[],\"rationale\":\"Only a public invented passage and an asserted claim are supplied; no operational case evidence is supplied.\"}],\"recommended_action\":\"REQUEST_INFORMATION\",\"rationale\":\"SYNTHETIC — quotation: «For the fictional wrong-item scenario, compare ordered SKU with delivered SKU before considering a replacement.»; claim: In this fictional exercise, compare the ordered and delivered SKU before considering a replacement; this does not establish entitlement or approval.\",\"alternatives\":[],\"conditions\":[\"Annotation exercise only; no approval or operation is permitted.\"],\"cost_responsibility_note\":\"Unresolved; no real costs or legal allocation are determined.\",\"citations\":[{\"citation_id\":\"excerpt-04-citation\",\"passage_id\":\"synthetic-wrong-sku-store\",\"document_id\":\"synthetic-store-policy\",\"source_version\":\"synthetic-store-v1\",\"corpus_version\":\"synthetic-pilot-v1\",\"content_sha256\":\"b051539743249b9d1993681ff3b1164ff2c97e843ab2a629b25f5430fcafdd7b\",\"location\":\"synthetic store section 3\"}],\"corpus_version\":\"synthetic-pilot-v1\",\"confidence\":0.0,\"unresolved_questions\":[\"No real case is being evaluated.\"],\"model_run\":{\"run_id\":\"excerpt-04-no-live-run\",\"role\":\"ASSESSMENT\",\"provider_id\":\"synthetic-fixture\",\"model_id\":\"authored-no-model-invocation\",\"prompt_version\":\"annotation-fixture-v1\",\"started_at\":\"2026-10-28T00:00:00Z\",\"finished_at\":\"2026-10-28T00:00:00Z\",\"input_tokens\":0,\"output_tokens\":0}}\n",
+      "sha256": "b8ebc4231f685d46dded9f67720c70d2c9db19a16719aa86ecc0de2fcd344a68",
+      "utf8_byte_length": 1984,
+      "model_run_note": "Fixed schema-fixture metadata, including dates/zero tokens, records no actual invocation."
+    },
+    "excerpt-05-packet-v1": {
+      "artifact_role": "COMPLETE_SYNTHETIC_DECISION_PACKET_NOT_RUNTIME_EVIDENCE",
+      "utf8_text": "{\"case_id\":\"excerpt-05\",\"proposal_id\":\"excerpt-05-proposal\",\"proposal_version\":1,\"input_version\":1,\"original_statement_id\":\"excerpt-05-statement\",\"created_at\":\"2026-10-28T00:00:00Z\",\"facts\":{\"issue_category\":\"WRONG_ITEM\",\"customer_requested_outcome\":\"UNSPECIFIED\",\"possible_basis\":\"STORE_POLICY\",\"assessment_status\":\"UNCERTAIN\",\"line_items\":[],\"summary\":\"SYNTHETIC annotation packet only; no actual customer, order, case, model output or decision exists.\"},\"evidence_matrix\":[{\"criterion_id\":\"synthetic-case-context\",\"status\":\"MISSING\",\"statement_ids\":[],\"evidence_ids\":[],\"rationale\":\"Only a public invented passage and an asserted claim are supplied; no operational case evidence is supplied.\"}],\"recommended_action\":\"REQUEST_INFORMATION\",\"rationale\":\"SYNTHETIC — paraphrase: Compare the ordered SKU and the delivered SKU before a replacement is considered.; claim: In this fictional exercise, compare the ordered and delivered SKU before considering a replacement; this does not establish entitlement or approval.\",\"alternatives\":[],\"conditions\":[\"Annotation exercise only; no approval or operation is permitted.\"],\"cost_responsibility_note\":\"Unresolved; no real costs or legal allocation are determined.\",\"citations\":[{\"citation_id\":\"excerpt-05-citation\",\"passage_id\":\"synthetic-wrong-sku-store\",\"document_id\":\"synthetic-store-policy\",\"source_version\":\"synthetic-store-v1\",\"corpus_version\":\"synthetic-pilot-v1\",\"content_sha256\":\"b051539743249b9d1993681ff3b1164ff2c97e843ab2a629b25f5430fcafdd7b\",\"location\":\"synthetic store section 3\"}],\"corpus_version\":\"synthetic-pilot-v1\",\"confidence\":0.0,\"unresolved_questions\":[\"No real case is being evaluated.\"],\"model_run\":{\"run_id\":\"excerpt-05-no-live-run\",\"role\":\"ASSESSMENT\",\"provider_id\":\"synthetic-fixture\",\"model_id\":\"authored-no-model-invocation\",\"prompt_version\":\"annotation-fixture-v1\",\"started_at\":\"2026-10-28T00:00:00Z\",\"finished_at\":\"2026-10-28T00:00:00Z\",\"input_tokens\":0,\"output_tokens\":0}}\n",
+      "sha256": "e34e9027195574f11a603bfd9360abc2834d31f323f65c3e8425683a8cdf0b98",
+      "utf8_byte_length": 1951,
+      "model_run_note": "Fixed schema-fixture metadata, including dates/zero tokens, records no actual invocation."
+    },
+    "excerpt-06-packet-v1": {
+      "artifact_role": "COMPLETE_SYNTHETIC_DECISION_PACKET_NOT_RUNTIME_EVIDENCE",
+      "utf8_text": "{\"case_id\":\"excerpt-06\",\"proposal_id\":\"excerpt-06-proposal\",\"proposal_version\":1,\"input_version\":1,\"original_statement_id\":\"excerpt-06-statement\",\"created_at\":\"2026-10-28T00:00:00Z\",\"facts\":{\"issue_category\":\"WRONG_ITEM\",\"customer_requested_outcome\":\"UNSPECIFIED\",\"possible_basis\":\"STORE_POLICY\",\"assessment_status\":\"UNCERTAIN\",\"line_items\":[],\"summary\":\"SYNTHETIC annotation packet only; no actual customer, order, case, model output or decision exists.\"},\"evidence_matrix\":[{\"criterion_id\":\"synthetic-case-context\",\"status\":\"MISSING\",\"statement_ids\":[],\"evidence_ids\":[],\"rationale\":\"Only a public invented passage and an asserted claim are supplied; no operational case evidence is supplied.\"}],\"recommended_action\":\"REQUEST_INFORMATION\",\"rationale\":\"SYNTHETIC — quotation: «An unavailable fictional passage supports this claim.»; claim: The missing source permits the next step.\",\"alternatives\":[],\"conditions\":[\"Annotation exercise only; no approval or operation is permitted.\"],\"cost_responsibility_note\":\"Unresolved; no real costs or legal allocation are determined.\",\"citations\":[{\"citation_id\":\"excerpt-06-citation\",\"passage_id\":\"synthetic-missing-passage\",\"document_id\":\"synthetic-missing-document\",\"source_version\":\"synthetic-missing-v1\",\"corpus_version\":\"synthetic-pilot-v1\",\"content_sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"location\":\"unavailable synthetic section\"}],\"corpus_version\":\"synthetic-pilot-v1\",\"confidence\":0.0,\"unresolved_questions\":[\"No real case is being evaluated.\"],\"model_run\":{\"run_id\":\"excerpt-06-no-live-run\",\"role\":\"ASSESSMENT\",\"provider_id\":\"synthetic-fixture\",\"model_id\":\"authored-no-model-invocation\",\"prompt_version\":\"annotation-fixture-v1\",\"started_at\":\"2026-10-28T00:00:00Z\",\"finished_at\":\"2026-10-28T00:00:00Z\",\"input_tokens\":0,\"output_tokens\":0}}\n",
+      "sha256": "21442a616fbdb69b109c5b57e16af56629a91a63611817f55b8ffc4340c69096",
+      "utf8_byte_length": 1829,
+      "model_run_note": "Fixed schema-fixture metadata, including dates/zero tokens, records no actual invocation."
+    },
+    "excerpt-07-packet-v1": {
+      "artifact_role": "COMPLETE_SYNTHETIC_DECISION_PACKET_NOT_RUNTIME_EVIDENCE",
+      "utf8_text": "{\"case_id\":\"excerpt-07\",\"proposal_id\":\"excerpt-07-proposal\",\"proposal_version\":1,\"input_version\":1,\"original_statement_id\":\"excerpt-07-statement\",\"created_at\":\"2026-10-28T00:00:00Z\",\"facts\":{\"issue_category\":\"WRONG_ITEM\",\"customer_requested_outcome\":\"UNSPECIFIED\",\"possible_basis\":\"STORE_POLICY\",\"assessment_status\":\"UNCERTAIN\",\"line_items\":[],\"summary\":\"SYNTHETIC annotation packet only; no actual customer, order, case, model output or decision exists.\"},\"evidence_matrix\":[{\"criterion_id\":\"synthetic-case-context\",\"status\":\"MISSING\",\"statement_ids\":[],\"evidence_ids\":[],\"rationale\":\"Only a public invented passage and an asserted claim are supplied; no operational case evidence is supplied.\"}],\"recommended_action\":\"REQUEST_INFORMATION\",\"rationale\":\"SYNTHETIC — quotation: «For the fictional wrong-item scenario, compare ordered SKU with delivered SKU before considering a replacement.»; claim: In this fictional exercise, compare the ordered and delivered SKU before considering a replacement; this does not establish entitlement or approval.\",\"alternatives\":[],\"conditions\":[\"Annotation exercise only; no approval or operation is permitted.\"],\"cost_responsibility_note\":\"Unresolved; no real costs or legal allocation are determined.\",\"citations\":[{\"citation_id\":\"excerpt-07-citation\",\"passage_id\":\"synthetic-wrong-sku-store\",\"document_id\":\"synthetic-store-policy\",\"source_version\":\"synthetic-store-v1\",\"corpus_version\":\"synthetic-pilot-v1\",\"content_sha256\":\"b051539743249b9d1993681ff3b1164ff2c97e843ab2a629b25f5430fcafdd7b\",\"location\":\"synthetic store section 3\"}],\"corpus_version\":\"synthetic-pilot-v1\",\"confidence\":0.0,\"unresolved_questions\":[\"No real case is being evaluated.\"],\"model_run\":{\"run_id\":\"excerpt-07-no-live-run\",\"role\":\"ASSESSMENT\",\"provider_id\":\"synthetic-fixture\",\"model_id\":\"authored-no-model-invocation\",\"prompt_version\":\"annotation-fixture-v1\",\"started_at\":\"2026-10-28T00:00:00Z\",\"finished_at\":\"2026-10-28T00:00:00Z\",\"input_tokens\":0,\"output_tokens\":0}}\n",
+      "sha256": "649a465ad0a66845e9989d76d12b9aaf997e92117cb7b41e1d878e93b2de4963",
+      "utf8_byte_length": 1984,
+      "model_run_note": "Fixed schema-fixture metadata, including dates/zero tokens, records no actual invocation."
+    },
+    "excerpt-08-packet-v1": {
+      "artifact_role": "COMPLETE_SYNTHETIC_DECISION_PACKET_NOT_RUNTIME_EVIDENCE",
+      "utf8_text": "{\"case_id\":\"excerpt-08\",\"proposal_id\":\"excerpt-08-proposal\",\"proposal_version\":1,\"input_version\":1,\"original_statement_id\":\"excerpt-08-statement\",\"created_at\":\"2026-10-28T00:00:00Z\",\"facts\":{\"issue_category\":\"WRONG_ITEM\",\"customer_requested_outcome\":\"UNSPECIFIED\",\"possible_basis\":\"STORE_POLICY\",\"assessment_status\":\"UNCERTAIN\",\"line_items\":[],\"summary\":\"SYNTHETIC annotation packet only; no actual customer, order, case, model output or decision exists.\"},\"evidence_matrix\":[{\"criterion_id\":\"synthetic-case-context\",\"status\":\"MISSING\",\"statement_ids\":[],\"evidence_ids\":[],\"rationale\":\"Only a public invented passage and an asserted claim are supplied; no operational case evidence is supplied.\"}],\"recommended_action\":\"REQUEST_INFORMATION\",\"rationale\":\"SYNTHETIC — quotation: «»; claim: In this fictional exercise, compare the ordered and delivered SKU before considering a replacement; this does not establish entitlement or approval.\",\"alternatives\":[],\"conditions\":[\"Annotation exercise only; no approval or operation is permitted.\"],\"cost_responsibility_note\":\"Unresolved; no real costs or legal allocation are determined.\",\"citations\":[{\"citation_id\":\"excerpt-08-citation\",\"passage_id\":\"synthetic-wrong-sku-store\",\"document_id\":\"synthetic-store-policy\",\"source_version\":\"synthetic-store-v1\",\"corpus_version\":\"synthetic-pilot-v1\",\"content_sha256\":\"b051539743249b9d1993681ff3b1164ff2c97e843ab2a629b25f5430fcafdd7b\",\"location\":\"synthetic store section 3\"}],\"corpus_version\":\"synthetic-pilot-v1\",\"confidence\":0.0,\"unresolved_questions\":[\"No real case is being evaluated.\"],\"model_run\":{\"run_id\":\"excerpt-08-no-live-run\",\"role\":\"ASSESSMENT\",\"provider_id\":\"synthetic-fixture\",\"model_id\":\"authored-no-model-invocation\",\"prompt_version\":\"annotation-fixture-v1\",\"started_at\":\"2026-10-28T00:00:00Z\",\"finished_at\":\"2026-10-28T00:00:00Z\",\"input_tokens\":0,\"output_tokens\":0}}\n",
+      "sha256": "4f9aad03a5be82a9f659f60f02562c2c61c3815b93c19483f03c81694610aa09",
+      "utf8_byte_length": 1873,
+      "model_run_note": "Fixed schema-fixture metadata, including dates/zero tokens, records no actual invocation."
+    },
+    "excerpt-09-packet-v1": {
+      "artifact_role": "COMPLETE_SYNTHETIC_DECISION_PACKET_NOT_RUNTIME_EVIDENCE",
+      "utf8_text": "{\"case_id\":\"excerpt-09\",\"proposal_id\":\"excerpt-09-proposal\",\"proposal_version\":1,\"input_version\":1,\"original_statement_id\":\"excerpt-09-statement\",\"created_at\":\"2026-10-28T00:00:00Z\",\"facts\":{\"issue_category\":\"WRONG_ITEM\",\"customer_requested_outcome\":\"UNSPECIFIED\",\"possible_basis\":\"STORE_POLICY\",\"assessment_status\":\"UNCERTAIN\",\"line_items\":[],\"summary\":\"SYNTHETIC annotation packet only; no actual customer, order, case, model output or decision exists.\"},\"evidence_matrix\":[{\"criterion_id\":\"synthetic-case-context\",\"status\":\"MISSING\",\"statement_ids\":[],\"evidence_ids\":[],\"rationale\":\"Only a public invented passage and an asserted claim are supplied; no operational case evidence is supplied.\"}],\"recommended_action\":\"REQUEST_INFORMATION\",\"rationale\":\"SYNTHETIC — quotation: «For the fictional wrong-item scenario, compare ordered SKU with delivered SKU before considering a replacement.»; claim: In this fictional exercise, compare the ordered and delivered SKU before considering a replacement; this does not establish entitlement or approval.\",\"alternatives\":[],\"conditions\":[\"Annotation exercise only; no approval or operation is permitted.\"],\"cost_responsibility_note\":\"Unresolved; no real costs or legal allocation are determined.\",\"citations\":[{\"citation_id\":\"excerpt-09-citation\",\"passage_id\":\"synthetic-wrong-sku-store\",\"document_id\":\"synthetic-store-policy\",\"source_version\":\"synthetic-store-v1\",\"corpus_version\":\"synthetic-pilot-v1\",\"content_sha256\":\"b051539743249b9d1993681ff3b1164ff2c97e843ab2a629b25f5430fcafdd7b\",\"location\":\"synthetic store section 3\"}],\"corpus_version\":\"synthetic-pilot-v1\",\"confidence\":0.0,\"unresolved_questions\":[\"No real case is being evaluated.\"],\"model_run\":{\"run_id\":\"excerpt-09-no-live-run\",\"role\":\"ASSESSMENT\",\"provider_id\":\"synthetic-fixture\",\"model_id\":\"authored-no-model-invocation\",\"prompt_version\":\"annotation-fixture-v1\",\"started_at\":\"2026-10-28T00:00:00Z\",\"finished_at\":\"2026-10-28T00:00:00Z\",\"input_tokens\":0,\"output_tokens\":0}}\n",
+      "sha256": "8d9a68e966d31e67f0736a6868aa2c284e49d946e007b84fbfb4370eccc37c89",
+      "utf8_byte_length": 1984,
+      "model_run_note": "Fixed schema-fixture metadata, including dates/zero tokens, records no actual invocation."
+    }
+  },
+  "annotations": [
+    {
+      "annotation_id": "excerpt-01",
+      "title": "Exact full sentence and qualified claim",
+      "current_retained_packet_ref": "excerpt-01-packet-v1",
+      "claimed_packet_ref": "excerpt-01-packet-v1",
+      "claimed_packet_binding": {
+        "case_id": "excerpt-01",
+        "input_version": 1,
+        "proposal_id": "excerpt-01-proposal",
+        "proposal_version": 1,
+        "corpus_version": "synthetic-pilot-v1",
+        "packet_sha256": "2a225910006dadef82ba6809d6e66dcd9bf780b4ed4f18aca521b9d46ccabb03"
+      },
+      "packet_field": {
+        "json_pointer": "/rationale",
+        "start_code_point": 24,
+        "end_code_point": 135
+      },
+      "quotation_kind": "DIRECT",
+      "asserted_text": "For the fictional wrong-item scenario, compare ordered SKU with delivered SKU before considering a replacement.",
+      "claim_under_review": "In this fictional exercise, compare the ordered and delivered SKU before considering a replacement; this does not establish entitlement or approval.",
+      "source_ref": {
+        "passage_id": "synthetic-wrong-sku-store",
+        "document_id": "synthetic-store-policy",
+        "source_version": "synthetic-store-v1",
+        "corpus_version": "synthetic-pilot-v1",
+        "location": "synthetic store section 3",
+        "content_sha256": "b051539743249b9d1993681ff3b1164ff2c97e843ab2a629b25f5430fcafdd7b"
+      },
+      "source_span": {
+        "start_code_point": 32,
+        "end_code_point": 143
+      },
+      "expected_literal_disposition": "MATCH",
+      "provisional_semantic_disposition": "SUPPORTS",
+      "provisional_reason": "The complete invented sentence states the same conditional comparison step. Support here is limited to that toy assertion; it proves no real entitlement or applicability.",
+      "human_review": null,
+      "annotation_status": "AI_ASSISTED_PROVISIONAL_FOR_OFFLINE_HUMAN_REVIEW",
+      "intentional_invalid_binding": null
+    },
+    {
+      "annotation_id": "excerpt-02",
+      "title": "Same citation metadata, one quoted word changed",
+      "current_retained_packet_ref": "excerpt-02-packet-v1",
+      "claimed_packet_ref": "excerpt-02-packet-v1",
+      "claimed_packet_binding": {
+        "case_id": "excerpt-02",
+        "input_version": 1,
+        "proposal_id": "excerpt-02-proposal",
+        "proposal_version": 1,
+        "corpus_version": "synthetic-pilot-v1",
+        "packet_sha256": "342c1e63e0426ccd6ec4bd6f35a59227b7eca187695c6213e6a22c5cf113ddd8"
+      },
+      "packet_field": {
+        "json_pointer": "/rationale",
+        "start_code_point": 24,
+        "end_code_point": 57
+      },
+      "quotation_kind": "DIRECT",
+      "asserted_text": "Record the blue lamp description.",
+      "claim_under_review": "The invented source says to record a blue lamp.",
+      "source_ref": {
+        "passage_id": "synthetic-wrong-sku-store",
+        "document_id": "synthetic-store-policy",
+        "source_version": "synthetic-store-v1",
+        "corpus_version": "synthetic-pilot-v1",
+        "location": "synthetic store section 3",
+        "content_sha256": "b051539743249b9d1993681ff3b1164ff2c97e843ab2a629b25f5430fcafdd7b"
+      },
+      "source_span": {
+        "start_code_point": 144,
+        "end_code_point": 176
+      },
+      "expected_literal_disposition": "MISMATCH",
+      "provisional_semantic_disposition": "CONTRADICTS",
+      "provisional_reason": "The pinned source says red, while the packet quotes blue. Valid identity/version/hash/location alone would not detect this textual substitution.",
+      "human_review": null,
+      "annotation_status": "AI_ASSISTED_PROVISIONAL_FOR_OFFLINE_HUMAN_REVIEW",
+      "intentional_invalid_binding": null
+    },
+    {
+      "annotation_id": "excerpt-03",
+      "title": "Exact short quotation drops the surrounding conditions",
+      "current_retained_packet_ref": "excerpt-03-packet-v1",
+      "claimed_packet_ref": "excerpt-03-packet-v1",
+      "claimed_packet_binding": {
+        "case_id": "excerpt-03",
+        "input_version": 1,
+        "proposal_id": "excerpt-03-proposal",
+        "proposal_version": 1,
+        "corpus_version": "synthetic-pilot-v1",
+        "packet_sha256": "a5b30fd6822858a51e73a6ce715371ec1a6642734b49a024730bb11c9feeb4ef"
+      },
+      "packet_field": {
+        "json_pointer": "/rationale",
+        "start_code_point": 24,
+        "end_code_point": 37
+      },
+      "quotation_kind": "DIRECT",
+      "asserted_text": "coupon credit",
+      "claim_under_review": "Coupon credit is available for any goods at any time.",
+      "source_ref": {
+        "passage_id": "synthetic-mind-unopened-store",
+        "document_id": "synthetic-store-policy",
+        "source_version": "synthetic-store-v1",
+        "corpus_version": "synthetic-pilot-v1",
+        "location": "synthetic store section 4",
+        "content_sha256": "2e3563639dee55ba6a685aeccfd66d183a1c1a627a24e815984b173b0f7830c6"
+      },
+      "source_span": {
+        "start_code_point": 116,
+        "end_code_point": 129
+      },
+      "expected_literal_disposition": "MATCH",
+      "provisional_semantic_disposition": "INSUFFICIENT_CONTEXT",
+      "provisional_reason": "The short substring is exact, but the complete invented sentence conditions the offer on unopened goods and a twentyone day window. Literal equality does not support the unconditional claim.",
+      "human_review": null,
+      "annotation_status": "AI_ASSISTED_PROVISIONAL_FOR_OFFLINE_HUMAN_REVIEW",
+      "intentional_invalid_binding": null
+    },
+    {
+      "annotation_id": "excerpt-04",
+      "title": "Old packet version must not validate the current packet",
+      "current_retained_packet_ref": "excerpt-04-packet-v2",
+      "claimed_packet_ref": "excerpt-04-packet-v1",
+      "claimed_packet_binding": {
+        "case_id": "excerpt-04",
+        "input_version": 1,
+        "proposal_id": "excerpt-04-proposal",
+        "proposal_version": 1,
+        "corpus_version": "synthetic-pilot-v1",
+        "packet_sha256": "b8ebc4231f685d46dded9f67720c70d2c9db19a16719aa86ecc0de2fcd344a68"
+      },
+      "packet_field": {
+        "json_pointer": "/rationale",
+        "start_code_point": 24,
+        "end_code_point": 135
+      },
+      "quotation_kind": "DIRECT",
+      "asserted_text": "For the fictional wrong-item scenario, compare ordered SKU with delivered SKU before considering a replacement.",
+      "claim_under_review": "In this fictional exercise, compare the ordered and delivered SKU before considering a replacement; this does not establish entitlement or approval.",
+      "source_ref": {
+        "passage_id": "synthetic-wrong-sku-store",
+        "document_id": "synthetic-store-policy",
+        "source_version": "synthetic-store-v1",
+        "corpus_version": "synthetic-pilot-v1",
+        "location": "synthetic store section 3",
+        "content_sha256": "b051539743249b9d1993681ff3b1164ff2c97e843ab2a629b25f5430fcafdd7b"
+      },
+      "source_span": {
+        "start_code_point": 32,
+        "end_code_point": 143
+      },
+      "expected_literal_disposition": "INVALID_BINDING",
+      "provisional_semantic_disposition": "UNRESOLVED",
+      "provisional_reason": "The annotation claims retained proposal v1 and its hash while the designated current packet is v2. Equal quote text does not repair the version/hash mismatch. Both complete packet artifacts are retained.",
+      "human_review": null,
+      "annotation_status": "AI_ASSISTED_PROVISIONAL_FOR_OFFLINE_HUMAN_REVIEW",
+      "intentional_invalid_binding": "stale"
+    },
+    {
+      "annotation_id": "excerpt-05",
+      "title": "A faithful paraphrase is not a literal quotation",
+      "current_retained_packet_ref": "excerpt-05-packet-v1",
+      "claimed_packet_ref": "excerpt-05-packet-v1",
+      "claimed_packet_binding": {
+        "case_id": "excerpt-05",
+        "input_version": 1,
+        "proposal_id": "excerpt-05-proposal",
+        "proposal_version": 1,
+        "corpus_version": "synthetic-pilot-v1",
+        "packet_sha256": "e34e9027195574f11a603bfd9360abc2834d31f323f65c3e8425683a8cdf0b98"
+      },
+      "packet_field": {
+        "json_pointer": "/rationale",
+        "start_code_point": 24,
+        "end_code_point": 105
+      },
+      "quotation_kind": "PARAPHRASE",
+      "asserted_text": "Compare the ordered SKU and the delivered SKU before a replacement is considered.",
+      "claim_under_review": "In this fictional exercise, compare the ordered and delivered SKU before considering a replacement; this does not establish entitlement or approval.",
+      "source_ref": {
+        "passage_id": "synthetic-wrong-sku-store",
+        "document_id": "synthetic-store-policy",
+        "source_version": "synthetic-store-v1",
+        "corpus_version": "synthetic-pilot-v1",
+        "location": "synthetic store section 3",
+        "content_sha256": "b051539743249b9d1993681ff3b1164ff2c97e843ab2a629b25f5430fcafdd7b"
+      },
+      "source_span": null,
+      "expected_literal_disposition": "NOT_APPLICABLE",
+      "provisional_semantic_disposition": "SUPPORTS",
+      "provisional_reason": "The wording paraphrases the complete invented condition. Literal matching is not applicable; this provisional semantic judgment still needs a human review and grants no approval.",
+      "human_review": null,
+      "annotation_status": "AI_ASSISTED_PROVISIONAL_FOR_OFFLINE_HUMAN_REVIEW",
+      "intentional_invalid_binding": null
+    },
+    {
+      "annotation_id": "excerpt-06",
+      "title": "Missing pinned passage cannot establish support",
+      "current_retained_packet_ref": "excerpt-06-packet-v1",
+      "claimed_packet_ref": "excerpt-06-packet-v1",
+      "claimed_packet_binding": {
+        "case_id": "excerpt-06",
+        "input_version": 1,
+        "proposal_id": "excerpt-06-proposal",
+        "proposal_version": 1,
+        "corpus_version": "synthetic-pilot-v1",
+        "packet_sha256": "21442a616fbdb69b109c5b57e16af56629a91a63611817f55b8ffc4340c69096"
+      },
+      "packet_field": {
+        "json_pointer": "/rationale",
+        "start_code_point": 24,
+        "end_code_point": 77
+      },
+      "quotation_kind": "DIRECT",
+      "asserted_text": "An unavailable fictional passage supports this claim.",
+      "claim_under_review": "The missing source permits the next step.",
+      "source_ref": null,
+      "source_span": null,
+      "expected_literal_disposition": "UNAVAILABLE_SOURCE",
+      "provisional_semantic_disposition": "UNRESOLVED",
+      "provisional_reason": "The citation deliberately names an absent passage and carries an all-zero placeholder hash, not a supplied content hash. There is no content or span to check; do not substitute another passage.",
+      "human_review": null,
+      "annotation_status": "AI_ASSISTED_PROVISIONAL_FOR_OFFLINE_HUMAN_REVIEW",
+      "intentional_invalid_binding": null
+    },
+    {
+      "annotation_id": "excerpt-07",
+      "title": "Source span extends beyond retained content",
+      "current_retained_packet_ref": "excerpt-07-packet-v1",
+      "claimed_packet_ref": "excerpt-07-packet-v1",
+      "claimed_packet_binding": {
+        "case_id": "excerpt-07",
+        "input_version": 1,
+        "proposal_id": "excerpt-07-proposal",
+        "proposal_version": 1,
+        "corpus_version": "synthetic-pilot-v1",
+        "packet_sha256": "649a465ad0a66845e9989d76d12b9aaf997e92117cb7b41e1d878e93b2de4963"
+      },
+      "packet_field": {
+        "json_pointer": "/rationale",
+        "start_code_point": 24,
+        "end_code_point": 135
+      },
+      "quotation_kind": "DIRECT",
+      "asserted_text": "For the fictional wrong-item scenario, compare ordered SKU with delivered SKU before considering a replacement.",
+      "claim_under_review": "In this fictional exercise, compare the ordered and delivered SKU before considering a replacement; this does not establish entitlement or approval.",
+      "source_ref": {
+        "passage_id": "synthetic-wrong-sku-store",
+        "document_id": "synthetic-store-policy",
+        "source_version": "synthetic-store-v1",
+        "corpus_version": "synthetic-pilot-v1",
+        "location": "synthetic store section 3",
+        "content_sha256": "b051539743249b9d1993681ff3b1164ff2c97e843ab2a629b25f5430fcafdd7b"
+      },
+      "source_span": {
+        "start_code_point": 0,
+        "end_code_point": 236
+      },
+      "expected_literal_disposition": "INVALID_BINDING",
+      "provisional_semantic_disposition": "UNRESOLVED",
+      "provisional_reason": "The source end offset is one code point beyond the full passage. A reviewer must reject the range before considering any match.",
+      "human_review": null,
+      "annotation_status": "AI_ASSISTED_PROVISIONAL_FOR_OFFLINE_HUMAN_REVIEW",
+      "intentional_invalid_binding": "source_range"
+    },
+    {
+      "annotation_id": "excerpt-08",
+      "title": "Empty direct quotation is not successful coverage",
+      "current_retained_packet_ref": "excerpt-08-packet-v1",
+      "claimed_packet_ref": "excerpt-08-packet-v1",
+      "claimed_packet_binding": {
+        "case_id": "excerpt-08",
+        "input_version": 1,
+        "proposal_id": "excerpt-08-proposal",
+        "proposal_version": 1,
+        "corpus_version": "synthetic-pilot-v1",
+        "packet_sha256": "4f9aad03a5be82a9f659f60f02562c2c61c3815b93c19483f03c81694610aa09"
+      },
+      "packet_field": {
+        "json_pointer": "/rationale",
+        "start_code_point": 24,
+        "end_code_point": 24
+      },
+      "quotation_kind": "DIRECT",
+      "asserted_text": "",
+      "claim_under_review": "In this fictional exercise, compare the ordered and delivered SKU before considering a replacement; this does not establish entitlement or approval.",
+      "source_ref": {
+        "passage_id": "synthetic-wrong-sku-store",
+        "document_id": "synthetic-store-policy",
+        "source_version": "synthetic-store-v1",
+        "corpus_version": "synthetic-pilot-v1",
+        "location": "synthetic store section 3",
+        "content_sha256": "b051539743249b9d1993681ff3b1164ff2c97e843ab2a629b25f5430fcafdd7b"
+      },
+      "source_span": {
+        "start_code_point": 0,
+        "end_code_point": 0
+      },
+      "expected_literal_disposition": "INVALID_BINDING",
+      "provisional_semantic_disposition": "UNRESOLVED",
+      "provisional_reason": "A zero-length packet selection and source selection supply no quotation. Empty-string equality cannot count as a successful literal check.",
+      "human_review": null,
+      "annotation_status": "AI_ASSISTED_PROVISIONAL_FOR_OFFLINE_HUMAN_REVIEW",
+      "intentional_invalid_binding": "empty"
+    },
+    {
+      "annotation_id": "excerpt-09",
+      "title": "Packet field range extends beyond the retained field",
+      "current_retained_packet_ref": "excerpt-09-packet-v1",
+      "claimed_packet_ref": "excerpt-09-packet-v1",
+      "claimed_packet_binding": {
+        "case_id": "excerpt-09",
+        "input_version": 1,
+        "proposal_id": "excerpt-09-proposal",
+        "proposal_version": 1,
+        "corpus_version": "synthetic-pilot-v1",
+        "packet_sha256": "8d9a68e966d31e67f0736a6868aa2c284e49d946e007b84fbfb4370eccc37c89"
+      },
+      "packet_field": {
+        "json_pointer": "/rationale",
+        "start_code_point": 24,
+        "end_code_point": 294
+      },
+      "quotation_kind": "DIRECT",
+      "asserted_text": "For the fictional wrong-item scenario, compare ordered SKU with delivered SKU before considering a replacement.",
+      "claim_under_review": "In this fictional exercise, compare the ordered and delivered SKU before considering a replacement; this does not establish entitlement or approval.",
+      "source_ref": {
+        "passage_id": "synthetic-wrong-sku-store",
+        "document_id": "synthetic-store-policy",
+        "source_version": "synthetic-store-v1",
+        "corpus_version": "synthetic-pilot-v1",
+        "location": "synthetic store section 3",
+        "content_sha256": "b051539743249b9d1993681ff3b1164ff2c97e843ab2a629b25f5430fcafdd7b"
+      },
+      "source_span": {
+        "start_code_point": 32,
+        "end_code_point": 143
+      },
+      "expected_literal_disposition": "INVALID_BINDING",
+      "provisional_semantic_disposition": "UNRESOLVED",
+      "provisional_reason": "The packet-field end offset is one code point beyond /rationale. The source being readable does not repair an invalid assertion binding.",
+      "human_review": null,
+      "annotation_status": "AI_ASSISTED_PROVISIONAL_FOR_OFFLINE_HUMAN_REVIEW",
+      "intentional_invalid_binding": "field_range"
+    }
+  ]
+}
