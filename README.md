@@ -4,10 +4,16 @@ ReturnOps AU is the Group 10 project for ELEC5620 Model-Based Software Engineeri
 
 **Start here:** [run it](#run-it-week-13-demonstration) · [what is in the system](#what-is-in-the-system) · [where AI is used](#where-ai-is-used-and-where-it-is-not) · [how we worked](#how-we-worked) · [known gaps](#known-gaps) · [deploy from zero](#deploy-from-zero---22-october-2026-sydney)
 
-## Status (23 October 2026)
+## Status (28 October 2026)
 
 - The Gate 1 scope is delivered on `main`: the governed case lifecycle, the customer and Founder HTTP APIs, exact-scope approval, the simulated return, label, PDF and notification chain, read-only analytics, the web frontend with a live API mode, and an advisory model extraction that is off by default.
+- Since 23 October:
+  - the frontend items required for the rehearsal (Issue #111 items 1-6) and most of Issue #122 are merged (#128, #130, #133, #138, #144, #147, #148);
+  - on a `demo.py serve` deployment the Founder can take over an escalated case (#132, `--founder-manual`);
+  - `tools/demo/demo.ps1` runs the deployment steps on the Windows demonstration machine (#146);
+  - C fixed the cleanup of interrupted timing exports (#141), rechecked the R.02 child-stop fix of #136 (#140) and added draft E.01 definitions, not yet frozen (#142).
 - Every change reaches `main` through a pull request and the full CI matrix: offline contracts and models, eight PostgreSQL parts, the no-LLM end-to-end driver and the web frontend.
+- Rehearsals: pass 0 from a zip of `main` ran on 24 October; pass 1 (29 October) and pass 2 from the Canvas download (1 November) are still to run ([docs/47](docs/47-stage2-submission-runbook.md), section 5).
 - The full three-role LLM orchestration (Gate 2) is deliberately deferred; see [docs/46](docs/46-gate2-roadmap.md).
 - The dated records further down this file keep the history of every adoption verbatim; where they differ from this section, this section is current.
 
