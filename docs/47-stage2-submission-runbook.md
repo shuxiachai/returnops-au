@@ -81,7 +81,7 @@ Since 27 October 2026 the Windows script `tools/demo/demo.ps1` ([README, Demo ma
 | 17 | Stop `serve`; provision `tmp/demo-cups` without `--order-investigation`, `--fixed-proposal` and `--founder-manual` (the driver refuses a store that already holds lifecycle authorities); set `DATABASE_URL`; driver with `--identities --api-port 8000 --keep-api --allow-existing-data` | `R.02 demo mode: driver result PASSED (see run-receipt.json).` | A | | |
 | 18 | Founder UI with `demo_cups_founder`: inspect the driver's case | Status `COMPLETED`; **Decision & Outcome** shows the approval, both operations `SUCCEEDED`, **Download label (PDF)** and the `SENT` notice | B | | |
 | 18a | Demo S6 (C): in Terminal 3 run the C1 pilot summary and the four selected C2 tests (docs/45 S6 item 4); show the evidence bundle pre-generated on macOS or Linux | Pilot: ranked recall 16/22, returned-set recall 20/22, citation outcomes 8 of 8; `4 passed`; the bundle's commit and `content_id` match the R.05.a record | C | | |
-| 19 | Timed run of the whole demo script | 12-15 minutes; note overruns per segment | A, B, C | | |
+| 19 | Timed run of the whole demo script | Within 12 minutes (the limit since 28 October 2026; planned 11:30, [docs/45](45-stage2-demo-script.md) section 3); note overruns per segment | A, B, C | | |
 | 20 | Clean up: Ctrl+C; delete `tmp/demo-shop`, `tmp/demo-cups`; **Clear token**; unset model variables; `docker compose down -v` (with the same `-p <name>` if one was used), so that the next fresh deployment does not meet this run's volume and password | No private files left; `docker volume ls` lists no `returnops-au-f02_postgres-data` | A | | |
 
 ### Pass 0 record (24 October 2026, Sydney)

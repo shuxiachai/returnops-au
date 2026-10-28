@@ -673,7 +673,7 @@ AI-assisted implementation and metadata preparation; author shuxiachai.
 ## R.05 demo script, Gate 2 roadmap and submission runbook - 22 October 2026 (Sydney)
 
 Owner A (`shuxiachai`, Jingbo Chai); reviewer C under docs/08. Documents only.
-- [docs/45](docs/45-stage2-demo-script.md): Week 13 live demo script (12-15 minutes, speakers A/B/C, fallbacks).
+- [docs/45](docs/45-stage2-demo-script.md): Week 13 live demo script (within 12 minutes, speakers A/B/C, fallbacks).
 - [docs/46](docs/46-gate2-roadmap.md): what Gate 1 delivered, Gate 2 preconditions, A3 and C3 status, 22 October deferrals.
 - [docs/47](docs/47-stage2-submission-runbook.md): R.05.a/R.05.b packaging, Canvas check, rehearsal and contribution draft.
 - No rehearsal, live model call, tag or Canvas upload has happened yet; no acceptance is implied.
