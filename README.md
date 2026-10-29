@@ -10,7 +10,7 @@ ReturnOps AU is the Group 10 project for ELEC5620 Model-Based Software Engineeri
 - Since 23 October:
   - the frontend items required for the rehearsal (Issue #111 items 1-6) and most of Issue #122 are merged (#128, #130, #133, #138, #144, #147, #148);
   - on a `demo.py serve` deployment the Founder can take over an escalated case (#132, `--founder-manual`);
-  - `tools/demo/demo.ps1` runs the deployment steps on the Windows demonstration machine (#146);
+  - `tools/demo/demo.ps1` runs the deployment steps on the Windows demonstration machine (#146), and since 29 October `tools/demo/start-demo.cmd` starts the demo on a double-click;
   - C fixed the cleanup of interrupted timing exports (#141), rechecked the R.02 child-stop fix of #136 (#140) and added draft E.01 definitions, not yet frozen (#142).
 - Every change reaches `main` through a pull request and the full CI matrix: offline contracts and models, eight PostgreSQL parts, the no-LLM end-to-end driver and the web frontend.
 - Rehearsals: pass 0 from a zip of `main` ran on 24 October; pass 1 (29 October) and pass 2 from the Canvas download (1 November) are still to run ([docs/47](docs/47-stage2-submission-runbook.md), section 5).
@@ -21,7 +21,7 @@ ReturnOps AU is the Group 10 project for ELEC5620 Model-Based Software Engineeri
 
 | Step | Where |
 |---|---|
-| Windows demo machine: steps 1 to 5 with one script, the steps below as fallback | [`tools/demo/demo.ps1`](tools/demo/demo.ps1); [Demo machine script](#demo-machine-script-windows) |
+| Windows demo machine: steps 1 to 5 with one script (or a double-click on `tools\demo\start-demo.cmd`), the steps below as fallback | [`tools/demo/demo.ps1`](tools/demo/demo.ps1); [Demo machine script](#demo-machine-script-windows) |
 | Prerequisites, Python environment, `.env`, Docker Compose database | [Deploy from zero](#deploy-from-zero---22-october-2026-sydney), steps 0 to 2 |
 | Demo identities, API with workers, web frontend and token login | the same chapter, steps 3 and 4 |
 | One governed case from lodging to label and notification | the same chapter, step 5, and the [R.02 driver](tools/r02/README.md) |
@@ -253,7 +253,7 @@ while this chapter was written.
 | CPython 3.12 (`>=3.12,<3.13`); on Windows 3.12.4 or later, because `demo.py` and the R.02 driver refuse earlier 3.12 releases there (private 0700 directory handling) | `pyproject.toml`, `apps/api/returnops_api/demo.py`, `tools/r02/api_child.py` |
 | Docker with Compose v2; images pinned by digest (`postgres:17-bookworm`, `python:3.12-slim-bookworm`) | `compose.yaml`, `Dockerfile` |
 | Node.js `^22.22.2 \|\| ^24.15.0 \|\| >=26.0.0`, npm 10 or later | `apps/web/package.json` |
-| Free loopback ports: 5433 (`DB_PORT`), the `API_PORT` of `.env`, 8000 (the API the frontend proxies to) and 5173 (Vite) | `.env.example`, `apps/web/vite.config.ts` |
+| Free loopback ports: 5433 (`DB_PORT`), the `API_PORT` of `.env`, 8000 (the API the frontend proxies to) and 5173 (Vite; the demo machine script moves to the next usable port when Windows has reserved 5173) | `.env.example`, `apps/web/vite.config.ts` |
 
 ### 1. Python environment and `.env` (docs/10 section 2)
 
@@ -478,13 +478,20 @@ because Windows blocks unsigned scripts from a downloaded zip:
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\demo\demo.ps1 check
 ```
 
+Since 29 October 2026 a double-click is enough: `tools\demo\start-demo.cmd`
+runs `fresh` (Docker Desktop, then `stop -RemoveData`, `prepare` and `start`)
+and `tools\demo\stop-demo.cmd` runs `stop -RemoveData` after a key press. Both
+windows stay open to show the result; a desktop shortcut to either file works
+the same way.
+
 | Action | When ([docs/45](docs/45-stage2-demo-script.md)) | What it does |
 |---|---|---|
-| `check` | Any time | Reports Python (3.12.4 or a later 3.12), Docker and Compose, Node and npm, the four ports and leftover data. Changes nothing. |
+| `check` | Any time | Reports Python (3.12.4 or a later 3.12), Docker and Compose, Node and npm, the four ports (including ports that Windows has reserved) and leftover data. Changes nothing. |
 | `prepare` | T-40 minutes | Step 1 (`.venv`, locked install, `pip check`, `local.py init`, `API_PORT=8001`), step 2 (Compose up with `--wait`, then `/health/live` and `/health/ready` on `API_PORT`) and `npm ci`. Safe to run again: finished installs are skipped. |
-| `start` | T-5 minutes | Step 3: provisions `tmp\demo-shop` once and opens the demo API in its own window on 8000. Step 4: opens the web frontend in its own window on 5173 and checks that its proxy reaches the API. Prints when the 899 s sessions expire. `-ModelShowcase` adds `--model-showcase`. |
+| `start` | T-5 minutes | Step 3: provisions `tmp\demo-shop` once and opens the demo API in its own window on 8000. Step 4: opens the web frontend in its own window on 5173, or on the first usable port up to 5399 when 5173 cannot be opened (Windows can reserve port ranges after Docker or WSL starts), and checks that its proxy reaches the API. Prints the address and when the 899 s sessions expire. `-ModelShowcase` adds `--model-showcase`. |
+| `fresh` | T-5 minutes, instead of `prepare` and `start` | Opens Docker Desktop when Docker does not answer and waits up to 3 minutes for it, then runs `stop -RemoveData`, `prepare` and `start`, stopping at the first failure. The data of an earlier run is deleted. `start-demo.cmd` runs it on a double-click. |
 | `s5` | S5 | Step 5: sends Ctrl+C to the demo API window, provisions `tmp\demo-cups` once, starts the R.02 driver in its own window and reports the receipt's result and case ID. |
-| `stop` | After S5, or between rehearsals | Sends Ctrl+C to the driver and demo API windows, closes the three windows and runs `docker compose stop` (the data is kept). `stop -RemoveData` runs `docker compose down -v` instead and deletes `tmp\demo-shop` and `tmp\demo-cups`. |
+| `stop` | After S5, or between rehearsals | Sends Ctrl+C to the driver and demo API windows, closes the three windows and runs `docker compose stop` (the data is kept). `stop -RemoveData` runs `docker compose down -v` instead and deletes `tmp\demo-shop` and `tmp\demo-cups`; `stop-demo.cmd` runs it on a double-click. |
 
 - **Secrets.** The script never reads, prints or stores a model API key or a
   session token, and prints no `.env` value except the two ports. For the
@@ -507,7 +514,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\demo\demo.ps1 check
 - **Identities.** The database refuses to register a principal twice, so
   `start` and `s5` reuse `tmp\demo-shop` and `tmp\demo-cups` once they exist.
   Fresh 899 s sessions need a fresh database: `stop -RemoveData`, `prepare`,
-  `start`.
+  `start`, or `fresh` for all three.
 - **Tested** on 27 October 2026 on the demonstration machine (Windows 11,
   Windows PowerShell 5.1, Python 3.12.9 through the py launcher, Docker 29.6.2
   with Compose 5.3.1, Node 24.14.0, npm 11.9.0). The package was a zip of
@@ -528,6 +535,23 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\demo\demo.ps1 check
   - another Windows machine, PowerShell 7, or a machine without the py
     launcher;
   - `-ModelShowcase` with a key.
+- **Double-click and port fallback, tested** on 29 October 2026 on the same
+  machine (`main` `b5bcfa95` plus this change). There Windows had reserved
+  ports 5163 to 5262 after Docker started, so Vite stopped on 5173 with
+  `listen EACCES`. These ran:
+  - `start-demo.cmd` with Docker Desktop closed: stop, prepare and start
+    finished 34 s after the start, with the web frontend on 5263 and its proxy
+    reaching the demo API;
+  - a desktop shortcut to `start-demo.cmd`, double-clicked: ready in 25 s;
+  - `stop-demo.cmd`: containers, volume and identities removed;
+  - `check` while the services ran, and the port choice for a reserved, a free
+    and a used first port.
+
+  A first attempt hung in `docker version` while Docker Desktop was failing to
+  start (a stale `engine.sock` under `%LOCALAPPDATA%\docker-secrets-engine` on
+  this machine); the engine check now gives up after 15 s, and `fresh` stops
+  after 3 minutes. In Docker's error window choose Quit, never Reset to factory
+  defaults. Not tested: a machine where 5173 is free, and the Canvas zip.
 
 ### Troubleshooting
 
@@ -539,6 +563,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\demo\demo.ps1 check
   step 5) needs 8000; the driver reports `API_PORT_UNAVAILABLE` when it is
   taken. A frontend error `HTTP 500: Backend server unavailable at
   http://127.0.0.1:8000` means nothing answers there.
+- **`listen EACCES: permission denied ::1:5173`** from Vite: Windows has
+  reserved a port range that includes 5173 (`netsh interface ipv4 show
+  excludedportrange protocol=tcp`), although nothing listens there. The demo
+  machine script moves to the next usable port; by hand, run
+  `npm run dev -- --port <port> --strictPort` with a port outside those
+  ranges, or restart Windows.
 - **Windows Python older than 3.12.4:** `demo.py provision` prints only
   `Demo setup or startup failed; no credentials are printed. ...`, and the
   driver stops with `PRIVATE_RUNTIME_REQUIRES_PYTHON_3_12_4`. Python 3.13 is
