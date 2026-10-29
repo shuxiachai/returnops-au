@@ -9,6 +9,7 @@ import {
   formatActor,
   formatCustomerStatus,
   formatRequestedOutcome,
+  formatRecommendation,
   describeProposalSource,
   FIXED_PROPOSAL_MODEL_ID,
 } from './formatters';
@@ -127,6 +128,29 @@ describe('formatters', () => {
       for (const [status, label] of Object.entries(expected)) {
         expect(formatStatusLabel(status as CaseStatus)).toBe(label);
       }
+    });
+  });
+
+  describe('formatRecommendation', () => {
+    it('words every one of the seven contract Recommendation values for the proposal card', () => {
+      const expected: Record<string, string> = {
+        PROPOSE_RETURN: 'Return',
+        PROPOSE_REFUND: 'Refund',
+        PROPOSE_REPLACEMENT: 'Replacement',
+        PROPOSE_REPAIR: 'Repair',
+        REQUEST_INFORMATION: 'Request more information',
+        REFER_FOR_MANUAL_HANDLING: 'Refer for manual handling',
+        PROPOSE_REJECTION: 'Rejection',
+      };
+      for (const [action, label] of Object.entries(expected)) {
+        expect(formatRecommendation(action)).toBe(label);
+      }
+    });
+
+    it('keeps an unknown value as sent and shows N/A when there is none', () => {
+      expect(formatRecommendation('SOMETHING_NEW')).toBe('SOMETHING_NEW');
+      expect(formatRecommendation(undefined)).toBe('N/A');
+      expect(formatRecommendation('')).toBe('N/A');
     });
   });
 

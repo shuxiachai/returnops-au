@@ -172,6 +172,29 @@ export function formatRequestedOutcome(outcome?: RequestedOutcome): string {
   }
 }
 
+// A contract Recommendation in words for the Founder's proposal card; the raw value
+// REFER_FOR_MANUAL_HANDLING is one long word that ran into the next tile.
+export function formatRecommendation(action?: string): string {
+  switch (action) {
+    case 'PROPOSE_RETURN':
+      return 'Return';
+    case 'PROPOSE_REFUND':
+      return 'Refund';
+    case 'PROPOSE_REPLACEMENT':
+      return 'Replacement';
+    case 'PROPOSE_REPAIR':
+      return 'Repair';
+    case 'REQUEST_INFORMATION':
+      return 'Request more information';
+    case 'REFER_FOR_MANUAL_HANDLING':
+      return 'Refer for manual handling';
+    case 'PROPOSE_REJECTION':
+      return 'Rejection';
+    default:
+      return action || 'N/A';
+  }
+}
+
 // Who produced a proposal (#111 item 4). The fixed Gate 1 proposal reports this model ID and is not a model.
 export const FIXED_PROPOSAL_MODEL_ID = 'fixture-no-live-model';
 

@@ -47,6 +47,7 @@ import {
   formatCategory,
   formatActor,
   formatStatusLabel,
+  formatRecommendation,
   describeProposalSource,
 } from '../utils/formatters';
 import { AdvisoryFactsCard } from '../components/AdvisoryFactsCard';
@@ -843,6 +844,8 @@ export const FounderConsole: React.FC = () => {
                       {(() => {
                         // #111 item 4: say who produced the proposal; the fixed Gate 1 proposal is not a model
                         // and shows no confidence. #111 item 3: tiles without a value are not shown.
+                        // The outcome is shown in words (raw value on hover), and break-words keeps a long
+                        // value such as a model ID inside its own tile.
                         const proposal = caseDetail.current_proposal;
                         const source = describeProposalSource(proposal.model_run);
                         const conf = proposal.confidence;
@@ -851,11 +854,11 @@ export const FounderConsole: React.FC = () => {
                             ? `${(conf * 100).toFixed(0)}%`
                             : null;
                         return (
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-white p-3.5 rounded-xl border border-slate-200 text-xs">
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-white p-3.5 rounded-xl border border-slate-200 text-xs break-words">
                             <div>
                               <div className="text-slate-400 font-semibold uppercase">Proposed Outcome</div>
-                              <div className="text-sm font-bold text-slate-900 mt-0.5">
-                                {proposal.recommended_action || 'N/A'}
+                              <div className="text-sm font-bold text-slate-900 mt-0.5" title={proposal.recommended_action}>
+                                {formatRecommendation(proposal.recommended_action)}
                               </div>
                             </div>
                             {proposal.refund_amount_cents !== undefined && proposal.refund_amount_cents !== null && (
