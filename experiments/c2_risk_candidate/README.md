@@ -8,6 +8,33 @@ Offline preparation for **C2.01–C2.05**, `FR-008`, `NFR-001/002/009`,
 ProposalReview state model`. C owns this component; A reviews and integrates.
 This is not a live LLM, Gate 2, feature acceptance or semantic-quality result.
 
+## S6 reduced to 90 seconds; freeze record adopted — 29 October 2026 (Sydney)
+
+A adopted [PR #152](https://github.com/shuxiachai/returnops-au/pull/152)
+source `b85fe27b79c19ae3db545b554a42a7a111205753` as main
+`b5bcfa95cf752b6e4ac347a5c7bfced93a47ec2f` at `2026-10-29T00:09:33Z`.
+[PR CI 40645198637](https://github.com/shuxiachai/returnops-au/actions/runs/40645198637)
+and [combined main CI 40792197994](https://github.com/shuxiachai/returnops-au/actions/runs/40792197994)
+each completed 13/13 successfully. This is lead adoption; there was no separate
+formal approval review. Definition freeze is already confirmed, not awaiting
+another decision. Pilot, Gold/timing and overall E.01 acceptance remain open.
+
+[PR #151](https://github.com/shuxiachai/returnops-au/pull/151) shortened the
+team demonstration to 11:30 within 12 minutes. C now has **90 seconds,
+8:45–10:15**, including speech, commands, waiting and screen changes.
+The [new C practice card](s6-90-second-practice.md) contains a shorter script,
+two-command sequence, cut list, current freeze wording and honest fallback.
+It supersedes the old 120-second practice target without altering historical
+practice records. The shared script's older "not frozen" wording needs A's
+alignment; the manifest and dated confirmation are current.
+
+Both offline S6 commands were rerun on main `b5bcfa95`: 12 synthetic C1 queries
+and 8 expected citation outcomes, plus four fixed-response C2 tests (7 subtests).
+These technical checks are not personal S6 timing, Windows rehearsal or live
+Risk evidence. The 12 C1 queries are not the 12 new E.01 development-pilot cases.
+KAN-41 remains In Progress. Personal timing/explanation, contribution and AI
+confirmation, joint rehearsal and final-source submission checks remain open.
+
 ## E.01 definitions frozen as v1 — 28 October 2026 (Sydney)
 
 A explicitly confirmed the definition freeze in
