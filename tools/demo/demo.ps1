@@ -277,9 +277,48 @@ function Send-CtrlC([System.Diagnostics.Process]$Window) {
     return ($answer.Code -eq 0)
 }
 
+# The window and every process started under it, each with its start time, so
+# a reused process ID is never taken for one of them.
+function Get-WindowTree([System.Diagnostics.Process]$Window) {
+    $all = @(Get-CimInstance Win32_Process)
+    $root = [pscustomobject]@{ Id = $Window.Id; Started = $Window.StartTime.ToFileTimeUtc() }
+    $tree = @($root)
+    $seen = @{ $Window.Id = $true }
+    $queue = New-Object System.Collections.Queue
+    $queue.Enqueue($root)
+    while ($queue.Count -gt 0) {
+        $parent = $queue.Dequeue()
+        foreach ($child in @($all | Where-Object { $_.ParentProcessId -eq $parent.Id -and -not $seen.ContainsKey([int]$_.ProcessId) })) {
+            try { $started = (Get-Process -Id $child.ProcessId -ErrorAction Stop).StartTime.ToFileTimeUtc() } catch { continue }
+            if ($started -lt $parent.Started) { continue }
+            $entry = [pscustomobject]@{ Id = [int]$child.ProcessId; Started = $started }
+            $seen[$entry.Id] = $true
+            $tree += $entry
+            $queue.Enqueue($entry)
+        }
+    }
+    return $tree
+}
+
+function Test-TreeEnded([object[]]$Tree, [int]$Seconds) {
+    $deadline = (Get-Date).AddSeconds($Seconds)
+    while ($true) {
+        $alive = @($Tree | Where-Object {
+            try { (Get-Process -Id $_.Id -ErrorAction Stop).StartTime.ToFileTimeUtc() -eq $_.Started } catch { $false }
+        })
+        if ($alive.Count -eq 0) { return $true }
+        if ((Get-Date) -ge $deadline) { return $false }
+        Start-Sleep -Milliseconds 500
+    }
+}
+
 function Close-Window([string]$Name, [string]$Label, [switch]$CtrlC, [int]$Seconds = 60) {
+    $hadRecord = Test-Path -LiteralPath (Join-Path $StateDir "$Name.window")
     $window = Get-Window $Name
-    if (-not $window) { return }
+    if (-not $window) {
+        if ($hadRecord) { Show-Info "The $Label window had already ended." }
+        return
+    }
     if ($CtrlC -and @(Get-WindowCommands $window).Count -gt 0) {
         if (Send-CtrlC $window) {
             Show-Info "Ctrl+C sent to the $Label window; waiting up to $Seconds s for it to finish."
@@ -290,7 +329,14 @@ function Close-Window([string]$Name, [string]$Label, [switch]$CtrlC, [int]$Secon
             Show-Warn "Ctrl+C could not be sent to the $Label window; it is ended now."
         }
     }
+    # taskkill's answer is not trusted: the record goes only once the window and
+    # every process under it have ended. Otherwise the script stops here, before
+    # any Compose or folder cleanup, and keeps the record for a later stop.
+    $tree = Get-WindowTree $window
     Invoke-Quiet { taskkill.exe /PID $window.Id /T /F } | Out-Null
+    if (-not (Test-TreeEnded $tree 15)) {
+        Stop-Script "The $Label window (process $($window.Id)) or a process under it is still running, so nothing was deleted. Close that window, then run stop again."
+    }
     Remove-Item -LiteralPath (Join-Path $StateDir "$Name.window") -Force -ErrorAction SilentlyContinue
     Show-Ok "$Label window closed."
 }

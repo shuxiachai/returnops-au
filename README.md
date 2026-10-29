@@ -510,7 +510,11 @@ the same way.
   opened. To stop the demo API or the driver, the script sends Ctrl+C to that
   console, the same as typing it there, so both shut down as in steps 3 and 5
   (the driver stops its API child and removes its private directory). Only
-  then is the window closed.
+  then is the window closed. Since 29 October the script then checks that the
+  window and every process under it have ended; if one is still running, it
+  keeps the window's record, stops with an error and deletes nothing, so
+  `stop -RemoveData` and `fresh` go no further and a later `stop` can try
+  again.
 - **Identities.** The database refuses to register a principal twice, so
   `start` and `s5` reuse `tmp\demo-shop` and `tmp\demo-cups` once they exist.
   Fresh 899 s sessions need a fresh database: `stop -RemoveData`, `prepare`,
@@ -545,7 +549,12 @@ the same way.
   - a desktop shortcut to `start-demo.cmd`, double-clicked: ready in 25 s;
   - `stop-demo.cmd`: containers, volume and identities removed;
   - `check` while the services ran, and the port choice for a reserved, a free
-    and a used first port.
+    and a used first port;
+  - closing the windows: a graceful stop after Ctrl+C, a window already closed
+    from outside (reported, then skipped), and a copy of the script whose
+    taskkill did nothing, so the demo API window stayed open: `fresh` stopped
+    with exit code 1 and kept the records, containers and identities, and the
+    next `stop-demo.cmd` closed both windows and removed them.
 
   A first attempt hung in `docker version` while Docker Desktop was failing to
   start (a stale `engine.sock` under `%LOCALAPPDATA%\docker-secrets-engine` on
