@@ -8,6 +8,44 @@ Offline preparation for **C2.01–C2.05**, `FR-008`, `NFR-001/002/009`,
 ProposalReview state model`. C owns this component; A reviews and integrates.
 This is not a live LLM, Gate 2, feature acceptance or semantic-quality result.
 
+## E.01 definitions frozen as v1 — 28 October 2026 (Sydney)
+
+A explicitly confirmed the definition freeze in
+[Issue #67 comment6462367944](https://github.com/shuxiachai/returnops-au/issues/67#issuecomment-6462367944)
+at `2026-10-28T06:30:44Z`: `E01-v1-rc1` is frozen **as v1** at source
+`6bb6cd6852c6ecc34a2528e9d209ec91692a3dad`, adopted by
+[PR #150](https://github.com/shuxiachai/returnops-au/pull/150) on main as
+`78755dcc377c196ba2ec9872d2cc98fb7515c9ae`. That PR source passed all 13 checks
+in [CI 40631989191](https://github.com/shuxiachai/returnops-au/actions/runs/40631989191).
+The later metadata publication is not a replacement frozen source or a new
+runtime-validation result.
+
+The [E.01 manifest](../evaluation_candidate/e01-guide-manifest.json) now records
+`FROZEN_DEFINITIONS_ONLY`, A's exact comment/time and both confirmed hashes.
+The entire evaluation README and its ten-example JSON are retained byte for
+byte: guide SHA-256 `65264af91172eb33c05cc8d79088828de37e8f2ece61809233d6d8db57545bef`,
+examples SHA-256 `7557306f014a64a9dcb36ea96ae7441260d30750ca056cb8e7cd11018dcea5d7`.
+Their embedded pending wording is historical source text. Current freeze
+status comes from that manifest and A's confirmation; do not edit the frozen
+files merely to change a status sentence and thereby invalidate their hashes.
+
+This closes the **definition-freeze decision**, not E.01's whole acceptance.
+The 12-case development pilot, 30 Gold cases, 20-case blind timing, real B1/B4
+comparison and E.12 remain unexecuted. C1 corpus admission and runtime excerpt
+integration, independent real Risk, C3 and original S/F acceptance remain open.
+The team's Gate 2 deferral does not waive course requirements. KAN-25 and the
+related feature work remain In Progress; no contribution agreement, personal
+understanding, S6 timing or team rehearsal is implied by this confirmation.
+
+For the next personal S6 practice, the status sentence can now be:
+**"The definitions are frozen as version one. The pilot and formal evaluation
+remain unfinished."** Use a newly versioned script if this wording is adopted;
+do not alter a running timing session or relabel a result from an older script.
+This is a suggested line, not a record that C has spoken or timed it.
+
+The following dated handoff notes retain their original scope and are superseded
+only on the definition-freeze question by the confirmed record above.
+
 ## E.01 decisions and C handoff — 28 October 2026 (Sydney)
 
 A adopted [PR #142](https://github.com/shuxiachai/returnops-au/pull/142)

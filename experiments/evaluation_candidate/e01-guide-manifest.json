@@ -1,7 +1,7 @@
 {
   "format_version": 1,
   "guide_version": "E01-v1-rc1",
-  "freeze_status": "PENDING_EXACT_COMMIT_CONFIRMATION",
+  "freeze_status": "FROZEN_DEFINITIONS_ONLY",
   "author": "Member C; prepared with Codex assistance",
   "decision_source": {
     "reviewer": "shuxiachai",
@@ -10,9 +10,9 @@
     "created_at": "2026-10-28T01:58:45Z",
     "reviewed_prior_source": "1962551f8299fdd264c0f7942b99a43fdfdccb4b",
     "current_base": "7174d2a8f72ba5ecd340f67fb77be7d26221bc5d",
-    "scope": "Six rule choices approved; exact revised commit freeze still pending."
+    "scope": "Status at this earlier decision: six rule choices approved; exact revised commit freeze was still pending. See freeze_confirmation for the later decision."
   },
-  "hash_convention": "SHA-256 of complete file bytes as stored in Git; UTF-8 with LF. Manifest does not hash itself. Exact candidate commit is recorded in the PR and future reviewer confirmation, never inferred from base.",
+  "hash_convention": "SHA-256 of complete file bytes as stored in Git; UTF-8 with LF. Manifest does not hash itself. The frozen source commit is explicit in freeze_confirmation, never inferred from base or from the later metadata-publication commit. Pending wording inside the frozen README and examples is retained historical source text; this manifest records the subsequent confirmation without changing those bytes.",
   "guide_section_markers": [
     "<!-- BEGIN E01 GUIDE -->",
     "<!-- END E01 GUIDE -->"
@@ -48,5 +48,16 @@
   "timing_subset_count": 20,
   "runtime_contract_change": false,
   "actual_model_or_human_results_included": false,
-  "freeze_confirmation": null
+  "freeze_confirmation": {
+    "reviewer": "shuxiachai",
+    "url": "https://github.com/shuxiachai/returnops-au/issues/67#issuecomment-6462367944",
+    "id": 6462367944,
+    "created_at": "2026-10-28T06:30:44Z",
+    "confirmed_as": "v1",
+    "source_commit": "6bb6cd6852c6ecc34a2528e9d209ec91692a3dad",
+    "adopted_commit": "78755dcc377c196ba2ec9872d2cc98fb7515c9ae",
+    "guide_sha256": "65264af91172eb33c05cc8d79088828de37e8f2ece61809233d6d8db57545bef",
+    "ten_example_sha256": "7557306f014a64a9dcb36ea96ae7441260d30750ca056cb8e7cd11018dcea5d7",
+    "scope": "Definitions only; pilot, Gold/timing and E.01 acceptance remain open. No further edits were requested for the frozen definitions."
+  }
 }
