@@ -35,7 +35,7 @@ Lecture 8 asks for representative agent results, failure cases and operating cos
 ### 2.1 Machine and network
 
 - [ ] Demo machine: the lead's Windows 11 laptop, where pass 0 ran the whole README chapter and the driver on 24 October 2026 ([runbook](47-stage2-submission-runbook.md) section 5). The driver's 0700/0600 private file modes were exercised on the Linux CI runner only and are not enforced the same way on Windows ([docs/41](41-r02-end-to-end-evidence.md), Deferred), so keep `tmp/demo-shop` and `tmp/demo-cups` inside the package folder and delete them after the demo. On Windows, CPython 3.12.4 or later is required ([README](../README.md#deploy-from-zero---22-october-2026-sydney), Prerequisites).
-- [ ] Prerequisites from README section 0: CPython 3.12, Docker with Compose v2, Node.js `^22.22.2 || ^24.15.0 || >=26.0.0` with npm 10 or later, free loopback ports 5433, 8001 (Compose API after the `.env` edit), 8000 (demo API) and 5173 (Vite).
+- [ ] Prerequisites from README section 0: CPython 3.12, Docker with Compose v2, Node.js `^22.22.2 || ^24.15.0 || >=26.0.0` with npm 10 or later, free loopback ports 5433, 8001 (Compose API after the `.env` edit), 8000 (demo API) and 5173 (Vite; the demo machine script uses the next usable port when Windows has reserved 5173).
 - [ ] Network reaches PyPI, the npm registry and Docker Hub (the on-site deployment installs locked dependencies and pulls digest-pinned images) **(not verified at the venue)**.
 - [ ] Model showcase only: the course proxy's base URL, model name and any VPN or proxy requirement are known, and the key is available to type into the serving shell's environment. None of these is in the repository; what was learned on 22 October 2026 (the course proxy is plain http on a private VPN address, hence `RETURNOPS_MODEL_ALLOW_PRIVATE_HTTP=1`) is in `docs/44-coordinator-showcase.md` (Provider record, Limitations and First live result; PR #94 and #98, merged 22 October 2026).
 - [ ] Two browser profiles (or one normal and one private window). The frontend keeps the bearer token in `localStorage` (`returnops_auth_token`), which is shared by every tab of one origin, so a customer and a Founder cannot be signed in side by side in one profile ([tools/r02 README](../tools/r02/README.md#demo-mode-live-demo-only), step 6).
@@ -53,7 +53,7 @@ Follow the [README "Deploy from zero"](../README.md#deploy-from-zero---22-octobe
 
 ### 2.3 Demo identities, API and frontend (T-5 minutes)
 
-The sessions written by `demo.py provision` last 899 s. The segments that use them (S2 to S4) end at about 5:45, so provision no earlier than about five minutes before the start. `tools\demo\demo.ps1 start` runs items 1, 3 and 4 and prints when the sessions expire (with `-ModelShowcase` after item 2 in the same window); item 5 stays manual.
+The sessions written by `demo.py provision` last 899 s. The segments that use them (S2 to S4) end at about 5:45, so provision no earlier than about five minutes before the start. `tools\demo\demo.ps1 start` runs items 1, 3 and 4 and prints the web address and when the sessions expire (with `-ModelShowcase` after item 2 in the same window); item 5 stays manual. Once the machine has been prepared, a double-click on `tools\demo\start-demo.cmd` (`demo.ps1 fresh`) does it all from a fresh database: Docker Desktop if needed, `stop -RemoveData`, `prepare` and `start` (34 s on 29 October 2026). It is not for the model showcase, whose variables must be set in the window that runs `start`.
 
 1. Provision the demo shop with investigation and the fixed proposal (README step 3):
    `local.py run python -m returnops_api.demo provision --private-dir <abs>/tmp/demo-shop --store synthetic_au_store --customer-one synthetic_customer_a --customer-two synthetic_customer_b --founder synthetic_founder --order-investigation --fixed-proposal --founder-manual`.
@@ -61,15 +61,15 @@ The sessions written by `demo.py provision` last 899 s. The segments that use th
 2. Model showcase only, and only if the key is present: in the serving shell set `RETURNOPS_MODEL_BASE_URL`, `RETURNOPS_MODEL_API_KEY`, `RETURNOPS_MODEL_ID`, `RETURNOPS_MODEL_PROVIDER_ID` and, for the course proxy's private http address, `RETURNOPS_MODEL_ALLOW_PRIVATE_HTTP=1` (optional `RETURNOPS_MODEL_DEADLINE_SECONDS`, `RETURNOPS_MODEL_PROXY_URL`) as environment variables; the VPN must be connected first. The values and the first live result of 22 October 2026 are in [docs/44](44-coordinator-showcase.md). Never put them in a file, a command argument or the screen share. `local.py run` passes the shell environment through.
 3. Start the API (README step 3):
    `local.py run python -m returnops_api.demo serve --auth-file <abs>/tmp/demo-shop/auth.json --port 8000 --fixed-proposal --founder-decisions`, adding `--model-showcase` only when step 2 was done. `--model-showcase` is in `main` since PR #94 (merged 22 October 2026); without the key, S4 uses its fallback wording. Check `http://127.0.0.1:8000/health/ready`.
-4. `npm run dev` in `apps/web`; open `http://localhost:5173` in both browser profiles.
+4. `npm run dev` in `apps/web`; open `http://localhost:5173` in both browser profiles. If Vite reports `listen EACCES` because Windows has reserved 5173, use `npm run dev -- --port <port> --strictPort` with a free port (README, troubleshooting); the script does this itself and prints the address.
 5. Token login (README step 4): **Auth Tokens** -> choose **Customer (End-User)** in profile 1 or **Founder (Merchant)** in profile 2 -> switch **Mock Data Fallback** off -> paste the matching token from `sessions.json` (`tokens` -> `synthetic_customer_a` or `synthetic_founder`) into **Bearer Token (JWT)** -> **Save & Apply**. Reopening **Auth Tokens** should show `Valid: <principal> (<ROLE>)`, and the header badge shows the role and principal the server reports. **Verify** checks the token in the box before it is saved. If the badge reads **Signed out** or a red "Session expired or not valid" banner appears, the 899 s session has ended (README, troubleshooting). Copy tokens with the clipboard commands of README step 4; never paste a token into a command line, chat or log.
 
 ### 2.4 Tabs and terminals
 
 | Window | Content |
 |---|---|
-| Browser profile 1 | Customer UI at `http://localhost:5173`, signed in as `synthetic_customer_a` |
-| Browser profile 2 | Founder UI at `http://localhost:5173`, signed in as `synthetic_founder` (later `demo_cups_founder`) |
+| Browser profile 1 | Customer UI at `http://localhost:5173` (or the address `start` printed), signed in as `synthetic_customer_a` |
+| Browser profile 2 | Founder UI at the same address, signed in as `synthetic_founder` (later `demo_cups_founder`) |
 | Browser profile 2, further tabs | GitHub Actions run of the submission tag; [run 39634415393](https://github.com/shuxiachai/returnops-au/actions/runs/39634415393) (first R.02 result); Jira KAN board on `lucastaooo.atlassian.net`; pull-request list; [docs/diagrams](diagrams) and the [model index](stage1-model-index.md) |
 | Editor | Rehearsal `run-receipt.json` (demo mode, not evidence) and, if a live model call was made, the `tools/model_showcase/run_once.py` evidence file |
 | Terminal 1 | `demo.py serve` (its WARNING lines show model failures) |
@@ -258,7 +258,7 @@ Say: "Gate 2 connects the three model roles, Coordinator, Assessment and an inde
 
 - Ctrl+C in the driver's terminal stops the kept API. Delete `tmp/demo-shop` and `tmp/demo-cups` (signing keys and tokens) and use **Clear token** in both browser profiles (README step 5).
 - `docker compose down -v` in the package directory removes the Compose containers and the database volume, so the next fresh deployment on this machine starts clean (runbook section 5, step 20).
-- With the script, `tools\demo\demo.ps1 stop -RemoveData` does both points above except **Clear token**, which stays manual.
+- With the script, `tools\demo\demo.ps1 stop -RemoveData` (or a double-click on `tools\demo\stop-demo.cmd`) does both points above except **Clear token**, which stays manual.
 - Unset the `RETURNOPS_MODEL_*` variables and close the serving shell.
 - Record in the runbook's R.05.b section: date, machine, package hash, which segments ran live, which fallbacks were used and any failure, without editing the outcome afterwards.
 

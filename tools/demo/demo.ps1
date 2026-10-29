@@ -20,14 +20,20 @@ Actions (from the package root):
            step 2 (Compose database, migration, health checks) and npm ci.
            Safe to run again.
   start    T-5 minutes. Step 3 (provision tmp\demo-shop once, demo API window
-           on port 8000) and step 4 (web window on port 5173). Sessions last
+           on port 8000) and step 4 (web window on port 5173, or on the first
+           usable port up to 5399 when 5173 cannot be opened). Sessions last
            899 s from provisioning.
+  fresh    T-5 minutes, all in one: opens Docker Desktop if Docker does not
+           answer, then stop -RemoveData, prepare and start. The data of an
+           earlier run is deleted. tools\demo\start-demo.cmd runs it on a
+           double-click.
   s5       Step 5. Ctrl+C to the demo API window, provision tmp\demo-cups once,
            and a driver window that keeps its API on port 8000.
   stop     Ctrl+C to the driver and demo API windows, close all three windows,
            docker compose stop (the data is kept).
            -RemoveData also removes this folder's Compose containers and
            database volume and deletes tmp\demo-shop and tmp\demo-cups.
+           tools\demo\stop-demo.cmd runs stop -RemoveData on a double-click.
 
 Usage:
   powershell -NoProfile -ExecutionPolicy Bypass -File tools\demo\demo.ps1 prepare
@@ -40,7 +46,7 @@ is displayed). AI-assisted implementation; author shuxiachai.
 #>
 param(
     [Parameter(Mandatory = $true, Position = 0)]
-    [ValidateSet('check', 'prepare', 'start', 's5', 'stop')]
+    [ValidateSet('check', 'prepare', 'start', 'fresh', 's5', 'stop')]
     [string]$Action,
     [switch]$ModelShowcase,
     [switch]$RemoveData
@@ -108,6 +114,56 @@ function Get-FileDigest([string[]]$Paths) {
 
 function Test-Listening([int]$Port) {
     try { return [bool](Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction Stop) } catch { return $false }
+}
+
+# Windows can reserve whole port ranges after Docker or WSL starts (netsh
+# interface ipv4 show excludedportrange protocol=tcp); nothing listens there,
+# but opening such a port fails. So a free port is checked by opening it on the
+# loopback addresses.
+function Test-PortOpenable([int]$Port) {
+    $addresses = @([System.Net.IPAddress]::Loopback)
+    if ([System.Net.Sockets.Socket]::OSSupportsIPv6) { $addresses += [System.Net.IPAddress]::IPv6Loopback }
+    foreach ($address in $addresses) {
+        $listener = New-Object System.Net.Sockets.TcpListener($address, $Port)
+        try { $listener.Start() } catch { return $false } finally { $listener.Stop() }
+    }
+    return $true
+}
+
+$ReservedHint = 'Windows has reserved it (netsh interface ipv4 show excludedportrange protocol=tcp); the ranges change when Windows restarts.'
+
+# The web frontend's port: 5173 (apps/web/vite.config.ts), or the first usable
+# port up to 5399; 0 when there is none. The proxy target stays 8000.
+function Select-WebPort {
+    $listening = @()
+    try { $listening = @(Get-NetTCPConnection -State Listen -ErrorAction Stop | ForEach-Object { [int]$_.LocalPort }) } catch { }
+    foreach ($port in 5173..5399) {
+        if ($listening -notcontains $port -and (Test-PortOpenable $port)) { return $port }
+    }
+    return 0
+}
+
+function Get-WebPort {
+    $path = Join-Path $StateDir 'web.port'
+    if (Test-Path -LiteralPath $path) { return [int][System.IO.File]::ReadAllText($path) }
+    return 5173
+}
+
+# The engine version, or $null. While Docker Desktop is starting, or after it
+# has failed to start, docker version can wait without end, so it gets 15 s.
+function Test-DockerEngine {
+    $info = New-Object System.Diagnostics.ProcessStartInfo('docker.exe', 'version --format "{{.Server.Version}}"')
+    $info.UseShellExecute = $false
+    $info.CreateNoWindow = $true
+    $info.RedirectStandardOutput = $true
+    $info.RedirectStandardError = $true
+    try { $process = [System.Diagnostics.Process]::Start($info) } catch { return $null }
+    $output = $process.StandardOutput.ReadToEndAsync()
+    $null = $process.StandardError.ReadToEndAsync()
+    if (-not $process.WaitForExit(15000)) { try { $process.Kill() } catch { }; return $null }
+    $version = $output.Result.Trim()
+    if ($process.ExitCode -eq 0 -and $version) { return $version }
+    return $null
 }
 
 function Wait-PortFree([int]$Port, [int]$Seconds) {
@@ -221,9 +277,48 @@ function Send-CtrlC([System.Diagnostics.Process]$Window) {
     return ($answer.Code -eq 0)
 }
 
+# The window and every process started under it, each with its start time, so
+# a reused process ID is never taken for one of them.
+function Get-WindowTree([System.Diagnostics.Process]$Window) {
+    $all = @(Get-CimInstance Win32_Process)
+    $root = [pscustomobject]@{ Id = $Window.Id; Started = $Window.StartTime.ToFileTimeUtc() }
+    $tree = @($root)
+    $seen = @{ $Window.Id = $true }
+    $queue = New-Object System.Collections.Queue
+    $queue.Enqueue($root)
+    while ($queue.Count -gt 0) {
+        $parent = $queue.Dequeue()
+        foreach ($child in @($all | Where-Object { $_.ParentProcessId -eq $parent.Id -and -not $seen.ContainsKey([int]$_.ProcessId) })) {
+            try { $started = (Get-Process -Id $child.ProcessId -ErrorAction Stop).StartTime.ToFileTimeUtc() } catch { continue }
+            if ($started -lt $parent.Started) { continue }
+            $entry = [pscustomobject]@{ Id = [int]$child.ProcessId; Started = $started }
+            $seen[$entry.Id] = $true
+            $tree += $entry
+            $queue.Enqueue($entry)
+        }
+    }
+    return $tree
+}
+
+function Test-TreeEnded([object[]]$Tree, [int]$Seconds) {
+    $deadline = (Get-Date).AddSeconds($Seconds)
+    while ($true) {
+        $alive = @($Tree | Where-Object {
+            try { (Get-Process -Id $_.Id -ErrorAction Stop).StartTime.ToFileTimeUtc() -eq $_.Started } catch { $false }
+        })
+        if ($alive.Count -eq 0) { return $true }
+        if ((Get-Date) -ge $deadline) { return $false }
+        Start-Sleep -Milliseconds 500
+    }
+}
+
 function Close-Window([string]$Name, [string]$Label, [switch]$CtrlC, [int]$Seconds = 60) {
+    $hadRecord = Test-Path -LiteralPath (Join-Path $StateDir "$Name.window")
     $window = Get-Window $Name
-    if (-not $window) { return }
+    if (-not $window) {
+        if ($hadRecord) { Show-Info "The $Label window had already ended." }
+        return
+    }
     if ($CtrlC -and @(Get-WindowCommands $window).Count -gt 0) {
         if (Send-CtrlC $window) {
             Show-Info "Ctrl+C sent to the $Label window; waiting up to $Seconds s for it to finish."
@@ -234,7 +329,14 @@ function Close-Window([string]$Name, [string]$Label, [switch]$CtrlC, [int]$Secon
             Show-Warn "Ctrl+C could not be sent to the $Label window; it is ended now."
         }
     }
+    # taskkill's answer is not trusted: the record goes only once the window and
+    # every process under it have ended. Otherwise the script stops here, before
+    # any Compose or folder cleanup, and keeps the record for a later stop.
+    $tree = Get-WindowTree $window
     Invoke-Quiet { taskkill.exe /PID $window.Id /T /F } | Out-Null
+    if (-not (Test-TreeEnded $tree 15)) {
+        Stop-Script "The $Label window (process $($window.Id)) or a process under it is still running, so nothing was deleted. Close that window, then run stop again."
+    }
     Remove-Item -LiteralPath (Join-Path $StateDir "$Name.window") -Force -ErrorAction SilentlyContinue
     Show-Ok "$Label window closed."
 }
@@ -300,8 +402,8 @@ function Test-Prerequisites {
         else { Show-Problem 'No Python found; install CPython 3.12.4 or a later 3.12.' }
     }
 
-    $engine = Invoke-Quiet { docker version --format '{{.Server.Version}}' }
-    if ($engine.Code -eq 0 -and $engine.Output) { Show-Ok "Docker engine $($engine.Output)" }
+    $engine = Test-DockerEngine
+    if ($engine) { Show-Ok "Docker engine $engine" }
     else { Show-Problem 'Docker does not answer; start Docker Desktop and wait until it reports running.' }
     $compose = Invoke-Quiet { docker compose version --short }
     if ($compose.Code -eq 0 -and $compose.Output -match '^v?(\d+)\.' -and [int]$Matches[1] -ge 2) { Show-Ok "Docker Compose $($compose.Output)" }
@@ -333,15 +435,21 @@ function Test-Prerequisites {
     } else {
         foreach ($port in @($dbPort, $apiPort)) {
             if (Test-Listening $port) { Show-Problem "Port $port is in use by another program. Stop it, or change DB_PORT / API_PORT in .env (README troubleshooting)." }
+            elseif (-not (Test-PortOpenable $port)) { Show-Problem "Port $port cannot be opened. $ReservedHint Or change DB_PORT / API_PORT in .env." }
             else { Show-Ok "Port $port is free" }
         }
     }
-    foreach ($entry in @(@(8000, 'demo API', @('serve', 'driver')), @(5173, 'web frontend', @('web')))) {
-        $port, $label, $names = $entry
-        $ours = @($names | Where-Object { Get-Window $_ }).Count -gt 0
-        if ($ours) { Show-Ok "Port $port is used by this script's $label window" }
-        elseif (Test-Listening $port) { Show-Problem "Port $port ($label) is in use by another program; the frontend proxy needs 8000 and Vite 5173. Stop that program first." }
-        else { Show-Ok "Port $port is free" }
+    if (@(@('serve', 'driver') | Where-Object { Get-Window $_ }).Count -gt 0) { Show-Ok "Port 8000 is used by this script's demo API window" }
+    elseif (Test-Listening 8000) { Show-Problem 'Port 8000 (demo API) is in use by another program; the frontend proxy needs it. Stop that program first.' }
+    elseif (-not (Test-PortOpenable 8000)) { Show-Problem "Port 8000 (demo API, needed by the frontend proxy) cannot be opened. $ReservedHint" }
+    else { Show-Ok 'Port 8000 is free' }
+    if (Get-Window 'web') {
+        Show-Ok "Port $(Get-WebPort) is used by this script's web window"
+    } else {
+        $webPort = Select-WebPort
+        if ($webPort -eq 5173) { Show-Ok 'Port 5173 is free' }
+        elseif ($webPort -gt 0) { Show-Warn "Port 5173 cannot be opened (in use, or reserved by Windows); start will open the web frontend on port $webPort." }
+        else { Show-Problem 'No port from 5173 to 5399 can be opened for the web frontend.' }
     }
 
     if (Test-VolumeExists) {
@@ -425,8 +533,10 @@ function Invoke-Prepare {
     }
 
     Show-Step 'Prepared'
-    Show-Info 'About five minutes before the demonstration (sessions last 899 s), run:'
-    Show-Info '  powershell -NoProfile -ExecutionPolicy Bypass -File tools\demo\demo.ps1 start'
+    if ($Action -ne 'fresh') {
+        Show-Info 'About five minutes before the demonstration (sessions last 899 s), run:'
+        Show-Info '  powershell -NoProfile -ExecutionPolicy Bypass -File tools\demo\demo.ps1 start'
+    }
 }
 
 function Invoke-Start {
@@ -465,21 +575,26 @@ function Invoke-Start {
         Show-Ok 'Demo API ready on http://127.0.0.1:8000 (its window shows warnings and errors)'
     }
 
-    Show-Step 'Step 4: web frontend (port 5173)'
+    Show-Step 'Step 4: web frontend'
     if (Get-Window 'web') {
-        Show-Ok 'The web window is already running'
+        $webPort = Get-WebPort
+        Show-Ok "The web window is already running (port $webPort)"
     } else {
-        if (Test-Listening 5173) { Stop-Script 'Port 5173 is in use by a program this script did not start; stop it first.' }
-        $webBody = 'Set-Location -LiteralPath ' + (Format-Literal $Web) + "`n& npm.cmd run dev"
-        $window = Start-Window 'web' 'ReturnOps web (port 5173)' $webBody
-        if ((Wait-WindowReady $window 'http://localhost:5173/' '<' 60) -ne 'ready') { Stop-Script 'The web frontend did not start; read its window.' }
+        $webPort = Select-WebPort
+        if ($webPort -eq 0) { Stop-Script 'No port from 5173 to 5399 can be opened for the web frontend.' }
+        if ($webPort -ne 5173) { Show-Warn "Port 5173 cannot be opened (in use, or reserved by Windows); the web frontend uses port $webPort instead." }
+        $webBody = 'Set-Location -LiteralPath ' + (Format-Literal $Web) + "`n& npm.cmd run dev -- --port $webPort --strictPort"
+        $window = Start-Window 'web' "ReturnOps web (port $webPort)" $webBody
+        [System.IO.File]::WriteAllText((Join-Path $StateDir 'web.port'), "$webPort")
+        if ((Wait-WindowReady $window "http://localhost:$webPort/" '<' 60) -ne 'ready') { Stop-Script 'The web frontend did not start; read its window.' }
     }
-    if (Wait-Http 'http://localhost:5173/health/ready' '"ready"' 15) { Show-Ok 'http://localhost:5173 answers, and its proxy reaches the demo API' }
-    else { Stop-Script 'http://localhost:5173 does not reach the demo API through its proxy.' }
+    $webUrl = "http://localhost:$webPort"
+    if (Wait-Http "$webUrl/health/ready" '"ready"' 15) { Show-Ok "$webUrl answers, and its proxy reaches the demo API" }
+    else { Stop-Script "$webUrl does not reach the demo API through its proxy." }
 
     $since = Get-SavedTime 'demo-shop'
     Show-Step 'Sign in (manual, README step 4)'
-    Show-Info 'Open http://localhost:5173 in two browser profiles: Auth Tokens -> role -> Mock Data Fallback off -> paste -> Save & Apply.'
+    Show-Info "Open $webUrl in two browser profiles: Auth Tokens -> role -> Mock Data Fallback off -> paste -> Save & Apply."
     Show-Info 'Copy a token to the clipboard without showing it (customer, then Founder):'
     Show-Info '  (Get-Content -Raw tmp\demo-shop\sessions.json | ConvertFrom-Json).tokens.synthetic_customer_a | Set-Clipboard'
     Show-Info '  (Get-Content -Raw tmp\demo-shop\sessions.json | ConvertFrom-Json).tokens.synthetic_founder | Set-Clipboard'
@@ -488,7 +603,37 @@ function Invoke-Start {
         if ($until -gt (Get-Date)) { Show-Info "The sessions were provisioned at $(Format-Time $since) and expire at $(Format-Time $until)." }
         else { Show-Warn "The sessions expired at $(Format-Time $until). New ones need a fresh database: stop -RemoveData, prepare, start." }
     }
-    Show-Info 'S5 later: tools\demo\demo.ps1 s5    After the demonstration: tools\demo\demo.ps1 stop -RemoveData'
+    Show-Info 'S5 later: tools\demo\demo.ps1 s5    After the demonstration: tools\demo\demo.ps1 stop -RemoveData (or tools\demo\stop-demo.cmd)'
+}
+
+# Docker Desktop's two default install folders: for all users and for one user.
+function Start-DockerDesktop {
+    Show-Step 'Docker Desktop'
+    $engine = Test-DockerEngine
+    if ($engine) { Show-Ok "Docker engine $engine answers"; return }
+    $exe = @(
+        (Join-Path $env:ProgramFiles 'Docker\Docker\Docker Desktop.exe'),
+        (Join-Path $env:LOCALAPPDATA 'Programs\DockerDesktop\Docker Desktop.exe')
+    ) | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+    if (-not $exe) { Stop-Script 'Docker does not answer and Docker Desktop was not found in its default folders; start it, wait until it reports running, then run this again.' }
+    Start-Process -FilePath $exe
+    Show-Info 'Docker Desktop opened; waiting up to 3 minutes for its engine.'
+    $deadline = (Get-Date).AddMinutes(3)
+    while ((Get-Date) -lt $deadline) {
+        Start-Sleep -Seconds 3
+        $engine = Test-DockerEngine
+        if ($engine) { Show-Ok "Docker engine $engine answers"; return }
+    }
+    Stop-Script 'Docker Desktop did not report running within 3 minutes; look at its window (if it reports an unexpected error, choose Quit, never Reset to factory defaults), then run this again.'
+}
+
+# stop -RemoveData, prepare and start in one go; Stop-Script ends it at the first failure.
+function Invoke-Fresh {
+    Start-DockerDesktop
+    $script:RemoveData = $true
+    Invoke-Stop
+    Invoke-Prepare
+    Invoke-Start
 }
 
 function Invoke-S5 {
@@ -558,10 +703,11 @@ function Invoke-S5 {
 
 function Invoke-Stop {
     Show-Step 'Stopping the windows this script started'
+    $webPort = Get-WebPort
     Close-Window 'driver' 'S5 driver' -CtrlC -Seconds 60
     Close-Window 'serve' 'demo API' -CtrlC -Seconds 30
     Close-Window 'web' 'web frontend'
-    foreach ($port in @(8000, 5173)) {
+    foreach ($port in @(8000, $webPort)) {
         if (Test-Listening $port) { Show-Warn "Port $port is still in use (a program this script did not start)." }
     }
 
@@ -598,6 +744,7 @@ switch ($Action) {
     }
     'prepare' { Invoke-Prepare }
     'start' { Invoke-Start }
+    'fresh' { Invoke-Fresh }
     's5' { Invoke-S5 }
     'stop' { Invoke-Stop }
 }
