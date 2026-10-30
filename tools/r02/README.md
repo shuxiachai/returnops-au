@@ -60,10 +60,18 @@ python tools/r02/driver.py --output <dir> [--keep-api-log] [--allow-existing-dat
 `DATABASE_URL` must be a `postgresql+psycopg` URL whose database name matches
 `returnops_f02*` (`returnops_api.settings.require_environment_database`). The
 driver refuses (exit 2, receipt result `REFUSED`) when the URL is rejected, the
-server is not PostgreSQL 17, `alembic_version` is not exactly the API's
+server is not PostgreSQL 17, the database clock differs from this computer's
+clock by more than 2 s (`DATABASE_CLOCK_SKEW`, since 30 October 2026),
+`alembic_version` is not exactly the API's
 expected revision, case rows already exist (unless `--allow-existing-data`), or
 its fixed identities (`r02_synthetic_store`, `r02_customer_one`,
-`r02_customer_two`, `r02_founder`) already exist. Use a fresh database for
+`r02_customer_two`, `r02_founder`) already exist. The clock check exists because
+approval times come from the API on this computer while the execution steps read
+the database clock: a database behind by more than the few seconds between
+approval and the return reservation stops the chain at `DENIED create_return`.
+Docker Desktop's virtual machine can fall behind after the laptop sleeps; compare
+`docker exec <database container> date -u` with the computer's clock, and restart
+Docker Desktop to resynchronise it. Use a fresh database for
 every run. It needs the locked development environment (`httpx` is a dev
 dependency). Exit codes: 0 `PASSED`, 1 `FAILED`, 2 `REFUSED`.
 

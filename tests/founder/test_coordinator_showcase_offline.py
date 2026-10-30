@@ -417,6 +417,8 @@ def reply_text(**changes):
     (reply_text(customer_requested_outcome='REFUND'), 'OUTCOME_MISMATCH'),
     (reply_text(summary='s' * 1001), 'SUMMARY_LENGTH'),
     (reply_text(summary='   '), 'SUMMARY_LENGTH'),
+    (reply_text(summary=chr(0x200B) * 3), 'SUMMARY_LENGTH'),
+    (reply_text(summary=chr(0x2060) + ' ' + chr(0xFEFF)), 'SUMMARY_LENGTH'),
 ])
 def test_parse_facts_rejection_matrix(text, code):
     with pytest.raises(FactsRejected) as caught:
@@ -459,6 +461,18 @@ def test_redaction_counts_placeholders_and_keeps_dates():
     assert 'jo.citizen' not in text and '0412' not in text and 'SYN-1001' not in text and 'ORD12345' not in text
     assert '2026-10-22' in text and '22/10/2026' in text and '129.95' in text and 'code 123' in text
     assert text.count('[PHONE]') == 3 and text.count('[EMAIL]') == 1 and text.count('[ORDER_REF]') == 2
+
+
+@pytest.mark.parametrize('reference', ['syn-1001', 'Syn-1001', 'SYN-CONFLICT', 'ORD-2026-9042', '#SYN-1001.'])
+def test_redaction_covers_reference_forms_from_the_30_october_review(reference):
+    text, counts = redact(f'My order is {reference} and it arrived chipped.')
+    assert counts['order_reference'] == 1 and '[ORDER_REF]' in text
+    assert reference.strip('#.') not in text and '9042' not in text and '1001' not in text
+
+
+def test_redaction_removes_a_whole_card_number():
+    text, counts = redact('Card 4111 1111 1111 1111 was charged.')
+    assert '1111' not in text and counts['phone'] == 1 and text == 'Card [PHONE] was charged.'
 
 
 # ---------------------------------------------------------------- fake unit of work
@@ -879,6 +893,28 @@ def test_lifespan_starts_the_worker_with_processors_and_stops_it_last(monkeypatc
     founder_routes = {r.path for r in app.routes if getattr(r, 'path', '').startswith('/v1/founder')}
     assert founder_routes == {'/v1/founder/cases', '/v1/founder/cases/{case_id}', '/v1/founder/cases/{case_id}/history',
                               '/v1/founder/cases/{case_id}/audit', '/v1/founder/analytics'}
+
+
+def test_a_worker_that_cannot_stop_does_not_leave_the_others_running(monkeypatch):
+    # 30 October 2026 review: one stop() failure used to skip the remaining workers
+    # and the engine disposal.
+    model_env(monkeypatch)
+    app = compose(monkeypatch, enable_processor=True, enable_model_showcase=True)
+    order = []
+    with pytest.raises(RuntimeError):
+        with TestClient(app):
+            worker = app.state.coordinator_showcase
+            for name in ('intake_worker', 'investigation_worker', 'coordinator_showcase'):
+                target = getattr(app.state, name)
+                original = target.stop
+                def recorded(original=original, name=name):
+                    order.append(name)
+                    original()
+                    if name == 'investigation_worker':
+                        raise RuntimeError('did not stop in time')
+                target.stop = recorded
+    assert order == ['investigation_worker', 'intake_worker', 'coordinator_showcase']
+    assert not worker.running
 
 
 def test_founder_queries_accept_only_a_callable_provider():

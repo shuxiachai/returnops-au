@@ -71,17 +71,22 @@ def create_app(*,engine=None,auth_config=None,enable_processor=True,enable_fixed
                     app.state.coordinator_showcase.start()
             yield
         finally:
-            try:
-                if app.state.proposal_worker is not None: app.state.proposal_worker.stop()
-                if app.state.investigation_worker is not None: app.state.investigation_worker.stop()
-                if app.state.intake_worker is not None: app.state.intake_worker.stop()
-            finally:
-                # Stopped last in its own try: stop() never waits for a model call.
+            # Each worker in its own try: one that cannot stop in time (a run_once waiting
+            # on a lock) must not leave the others running or the engine undisposed.
+            failed=False
+            for name in ('proposal_worker','investigation_worker','intake_worker'):
                 try:
-                    if app.state.coordinator_showcase is not None: app.state.coordinator_showcase.stop()
+                    worker=getattr(app.state,name)
+                    if worker is not None: worker.stop()
                 except Exception:
-                    pass
+                    failed=True
+            # Stopped last in its own try: stop() never waits for a model call.
+            try:
+                if app.state.coordinator_showcase is not None: app.state.coordinator_showcase.stop()
+            except Exception:
+                pass
             if engine is None: actual.dispose()
+            if failed: raise RuntimeError('A background worker did not stop in time.')
     app=FastAPI(title='ReturnOps AU',lifespan=lifespan,docs_url=None,redoc_url=None,openapi_url=None)
     @app.get('/health/live')
     def live(): return {'status':'alive'}

@@ -80,8 +80,10 @@ export function formatCategory(cat?: IssueCategory): string {
       return 'Wrong Item Sent';
     case 'CHANGE_OF_MIND':
       return 'Change of Mind';
+    // Gate 1 runs no classifier: the server's case summary always carries UNCLEAR as
+    // a placeholder (founder_queries.summary), so it says nothing about the statement.
     case 'UNCLEAR':
-      return 'Unclear Statement';
+      return 'Not yet classified';
     case 'OUT_OF_SCOPE':
       return 'Out of Scope';
     default:

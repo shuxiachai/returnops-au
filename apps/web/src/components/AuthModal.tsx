@@ -92,9 +92,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     window.location.reload();
   };
 
+  // Clears the field only. The saved token changes on Save & Apply, so Cancel
+  // after Clear token leaves the session as it was.
   const handleClear = () => {
     setTokenInput('');
-    setStoredToken('');
     resetVerification();
   };
 
@@ -110,7 +111,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             <h3 className="font-semibold text-slate-800 text-base">Authentication & Role Settings</h3>
           </div>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Close Auth Tokens"
             className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-200/50"
           >
             <X className="w-5 h-5" />
@@ -156,12 +159,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           {/* Mode Switcher */}
           <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 flex items-center justify-between">
             <div>
-              <div className="text-sm font-medium text-slate-800">Mock Data Fallback</div>
-              <div className="text-xs text-slate-500">
+              <div id="mock-fallback-label" className="text-sm font-medium text-slate-800">Mock Data Fallback</div>
+              <div id="mock-fallback-description" className="text-xs text-slate-500">
                 Use rich built-in synthetic records when local API is offline
               </div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
+              {/* Named by the text beside it; the track shows a ring when the switch has keyboard focus. */}
               <input
                 type="checkbox"
                 checked={mock}
@@ -169,9 +173,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                   setMock(e.target.checked);
                   resetVerification();
                 }}
+                aria-labelledby="mock-fallback-label"
+                aria-describedby="mock-fallback-description"
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600"></div>
+              <div className="w-11 h-6 bg-slate-200 peer-focus-visible:ring-2 peer-focus-visible:ring-sky-500 peer-focus-visible:ring-offset-2 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600"></div>
             </label>
           </div>
 

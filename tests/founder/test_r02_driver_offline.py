@@ -531,6 +531,33 @@ def test_refused_run_without_database_url_writes_only_a_safe_receipt(tmp_path, m
     assert (defaults.keep_api_log, defaults.allow_existing_data) == (False, False)
 
 
+@pytest.mark.parametrize('database_offset,code', [(-30.0, 'DATABASE_CLOCK_SKEW'), (30.0, 'DATABASE_CLOCK_SKEW'),
+                                                   (0.5, 'ALEMBIC_HEAD_MISMATCH')])
+def test_database_clock_skew_is_refused_before_any_write(tmp_path, monkeypatch, database_offset, code):
+    # 30 October 2026 review: approval times come from the API host, the execution
+    # checks read the database clock; a lagging container VM stopped the chain mid-run.
+    class Result:
+        def __init__(self, value): self.value = value
+        def scalar_one(self): return self.value
+        def scalars(self): return SimpleNamespace(all=lambda: ['0000_not_head'])
+    class Connection:
+        def __enter__(self): return self
+        def __exit__(self, *exc): return False
+        def execute(self, statement):
+            sql = str(statement)
+            if 'server_version_num' in sql: return Result('170011')
+            if 'server_version' in sql: return Result('17.11')
+            if 'clock_timestamp' in sql: return Result(1_800_000_000.0 + database_offset)
+            return Result(None)
+    monkeypatch.setenv('DATABASE_URL', 'postgresql+psycopg://synthetic:synthetic@127.0.0.1:1/returnops_f02_clock')
+    monkeypatch.setattr(driver, 'create_engine', lambda *args, **kwargs: SimpleNamespace(connect=Connection, dispose=lambda: None))
+    monkeypatch.setattr(driver.time, 'time', lambda: 1_800_000_000.0)
+    output = tmp_path / 'r02-output'
+    assert driver.main(['--output', str(output)]) == 2
+    receipt = json.loads((output / driver.RECEIPT).read_text(encoding='ascii'))
+    assert receipt['result'] == 'REFUSED' and receipt['stop'] == {'code': code, 'step': 0}
+
+
 def test_api_child_composition_and_environment_come_from_one_place():
     assert api_child.COMPOSITION == dict(enable_processor=False, enable_fixed_proposal=False,
                                          enable_founder_decisions=True)

@@ -572,6 +572,44 @@ describe('FounderConsole failure and live-mode paths', () => {
       expect(screen.getByText('The order service did not answer.')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /^Manual Takeover$/i })).toBeEnabled();
     });
+
+    it('reports an accepted decision as recorded when the case cannot be read again afterwards', async () => {
+      vi.mocked(isMockMode).mockReturnValue(false);
+      vi.mocked(getFounderCase)
+        .mockResolvedValueOnce(BLOCKED_VIEW)
+        .mockRejectedValue(
+          new ApiError(503, 'The service is temporarily unavailable; keep the original request key.', 'INTERNAL_ERROR', undefined, undefined, true)
+        );
+      vi.mocked(recordFounderDecision).mockResolvedValue({
+        case_id: 'case_contract_shape',
+        case_version: 5,
+        decision_id: 'dec_manual_live',
+        decision: 'MANUAL_HANDLING',
+        accepted_at: '2026-10-25T00:01:00Z',
+        processing_status: 'ACCEPTED',
+      });
+
+      render(<FounderConsole />);
+      fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
+      fireEvent.click(await screen.findByRole('button', { name: /^Manual Takeover$/i }));
+      const dialog = await screen.findByRole('dialog', { name: /Confirm Founder Decision: MANUAL_HANDLING/i });
+      fireEvent.change(within(dialog).getByPlaceholderText(/Record justification for statutory audit/i), {
+        target: { value: 'The order reference is ambiguous; I will contact the customer.' },
+      });
+      fireEvent.click(within(dialog).getByRole('button', { name: /Record decision/i }));
+
+      // The receipt decides what the Founder is told; the failed read only explains the stale view.
+      const notice = await screen.findByRole('status');
+      expect(notice).toHaveTextContent(
+        'Decision recorded: the server accepted MANUAL_HANDLING on case_contract_shape (decision dec_manual_live).'
+      );
+      expect(notice).toHaveTextContent(
+        'The case view could not be refreshed: [INTERNAL_ERROR] The service is temporarily unavailable; keep the original request key. Open the case again to see its current state.'
+      );
+      expect(screen.queryByText(/Could not open/)).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(recordFounderDecision).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('auto-refresh (#111 item 2)', () => {
@@ -980,5 +1018,64 @@ describe('FounderConsole audit paging and the in-flight decision dialog', () => 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Close decision confirmation' })).toBeEnabled());
     expect(screen.getByRole('button', { name: /^Cancel$/i })).toBeEnabled();
     expect(reason).toBeEnabled();
+  });
+
+  it('marks the case window and the confirmation as modal dialogs, and Escape closes the top one', async () => {
+    vi.mocked(listFounderCaseAuditPage).mockResolvedValue({ items: [], next_cursor: undefined });
+    render(<FounderConsole />);
+    fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
+
+    const caseWindow = await screen.findByRole('dialog', { name: 'Case case_contract_shape' });
+    expect(caseWindow).toHaveAttribute('aria-modal', 'true');
+    // Keyboard focus starts inside the window, not on the queue behind it.
+    expect(await screen.findByRole('button', { name: 'Close case' })).toHaveFocus();
+
+    fireEvent.click(screen.getByRole('button', { name: /^Reject$/i }));
+    const confirmation = await screen.findByRole('dialog', { name: /Confirm Founder Decision: REJECT/i });
+    expect(confirmation).toHaveAttribute('aria-modal', 'true');
+    expect(within(confirmation).getByPlaceholderText(/Record justification for statutory audit/i)).toHaveFocus();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: /Confirm Founder Decision/i })).not.toBeInTheDocument()
+    );
+    expect(screen.getByRole('dialog', { name: 'Case case_contract_shape' })).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('ignores Escape while a decision is being sent', async () => {
+    vi.mocked(isMockMode).mockReturnValue(false);
+    vi.mocked(listFounderCaseAuditPage).mockResolvedValue({ items: [], next_cursor: undefined });
+    let settle!: (error: Error) => void;
+    vi.mocked(recordFounderDecision).mockReturnValue(
+      new Promise((_resolve, reject) => {
+        settle = reject;
+      })
+    );
+
+    render(<FounderConsole />);
+    fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /^Reject$/i }));
+    fireEvent.change(await screen.findByPlaceholderText(/Record justification for statutory audit/i), {
+      target: { value: 'Outside the policy window.' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Record decision/i }));
+    await waitFor(() => expect(screen.getByRole('button', { name: /Submitting/i })).toBeDisabled());
+
+    // Closing now would hide whether the server accepted the decision.
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.getByRole('dialog', { name: /Confirm Founder Decision: REJECT/i })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Case case_contract_shape' })).toBeInTheDocument();
+
+    await act(async () => {
+      settle(new ApiError(409, 'The request is not available in the current state.', 'INVALID_STATE'));
+    });
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Cancel$/i })).toBeEnabled());
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: /Confirm Founder Decision/i })).not.toBeInTheDocument()
+    );
   });
 });

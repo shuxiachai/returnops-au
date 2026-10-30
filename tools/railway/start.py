@@ -27,6 +27,8 @@ SHOP = Path('/app/private/demo-shop')
 PROVISION = ['--store', 'synthetic_au_store', '--customer-one', 'synthetic_customer_a',
              '--customer-two', 'synthetic_customer_b', '--founder', 'synthetic_founder',
              '--order-investigation', '--fixed-proposal', '--founder-manual']
+REQUESTED = []
+CHILDREN = []
 
 
 def say(text):
@@ -36,6 +38,30 @@ def say(text):
 def stop(text):
     say(f'STOP {text}')
     raise SystemExit(1)
+
+
+def forward(signum, _frame):
+    REQUESTED.append(signum)
+    for child in CHILDREN:
+        if child.poll() is None:
+            child.send_signal(signum)
+
+
+def end_children():
+    for child in reversed(CHILDREN):
+        if child.poll() is None:
+            child.terminate()
+            try:
+                child.wait(timeout=20)
+            except subprocess.TimeoutExpired:
+                child.kill()
+
+
+def finish_if_requested():
+    if REQUESTED:
+        end_children()
+        say('stopped on request')
+        raise SystemExit(0)
 
 
 def database_urls(raw):
@@ -57,9 +83,13 @@ def reset_database(server):
                 connection.execute(sql.SQL('CREATE DATABASE {}').format(sql.Identifier(DATABASE)))
             return
         except psycopg.OperationalError:
+            finish_if_requested()
             if time.monotonic() > deadline:
                 stop('PostgreSQL did not accept a connection within 120 s.')
             time.sleep(3)
+        except psycopg.Error:
+            # libpq can quote the whole URL, password included, when it cannot parse it.
+            stop('DATABASE_URL could not be used as a PostgreSQL connection URL (README, Railway deployment); no detail is printed.')
 
 
 def run(step, arguments, environment):
@@ -70,7 +100,7 @@ def run(step, arguments, environment):
 def wait_ready(process, url, seconds):
     deadline = time.monotonic() + seconds
     while time.monotonic() < deadline:
-        if process.poll() is not None:
+        if process.poll() is not None or REQUESTED:
             return False
         try:
             with urllib.request.urlopen(url, timeout=3) as answer:
@@ -83,45 +113,41 @@ def wait_ready(process, url, seconds):
 
 
 def main():
+    # Handlers before any step: start.py is PID 1 in the container, and PID 1 ignores a
+    # signal without a handler, so a stop during the reset, migration or provisioning used
+    # to wait for SIGKILL while a newer deployment was already provisioning (30 October 2026).
+    signal.signal(signal.SIGTERM, forward)
+    signal.signal(signal.SIGINT, forward)
     server, app = database_urls(os.environ.get('DATABASE_URL'))
     environment = {**os.environ, 'DATABASE_URL': app}
     say(f'resetting the {DATABASE} database')
     reset_database(server)
+    finish_if_requested()
     run('alembic upgrade head', [sys.executable, '-m', 'alembic', 'upgrade', 'head'], environment)
+    finish_if_requested()
     if SHOP.exists():
         shutil.rmtree(SHOP)
     run('demo provision', [sys.executable, '-m', 'returnops_api.demo', 'provision', '--private-dir', str(SHOP), *PROVISION], environment)
+    finish_if_requested()
 
     api = subprocess.Popen([sys.executable, '-m', 'returnops_api.demo', 'serve', '--auth-file', str(SHOP / 'auth.json'),
                             '--port', '8000', '--fixed-proposal', '--founder-decisions'], env=environment, cwd='/app')
+    CHILDREN.append(api)
     if not wait_ready(api, 'http://127.0.0.1:8000/health/ready', 60):
+        finish_if_requested()
         api.kill()
         stop('the demo API did not become ready within 60 s.')
     say('demo API ready on 127.0.0.1:8000; starting Caddy')
     web = subprocess.Popen(['caddy', 'run', '--config', '/app/Caddyfile', '--adapter', 'caddyfile'], cwd='/app')
-
-    requested = []
-
-    def forward(signum, _frame):
-        requested.append(signum)
-        for child in (web, api):
-            if child.poll() is None:
-                child.send_signal(signum)
-    signal.signal(signal.SIGTERM, forward)
-    signal.signal(signal.SIGINT, forward)
+    CHILDREN.append(web)
+    finish_if_requested()
 
     # Either process ending on its own ends the container with exit code 1, so Railway's
     # restart policy starts a fresh demonstration; a stop that Railway asked for exits 0.
     while api.poll() is None and web.poll() is None:
         time.sleep(1)
-    for child in (web, api):
-        if child.poll() is None:
-            child.terminate()
-            try:
-                child.wait(timeout=20)
-            except subprocess.TimeoutExpired:
-                child.kill()
-    if requested:
+    end_children()
+    if REQUESTED:
         say('stopped on request')
         raise SystemExit(0)
     stop('the demo API or Caddy stopped.')

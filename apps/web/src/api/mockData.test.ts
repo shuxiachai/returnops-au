@@ -56,6 +56,14 @@ describe('mock queue and wording (#122 items 1 and 3)', () => {
     }
   });
 
+  it('carries the Gate 1 placeholder category on every row, as the server summary does', () => {
+    // founder_queries.summary sends UNCLEAR for every case while no classifier runs, so
+    // Mock Mode shows "Not yet classified" exactly where Live API mode does.
+    for (const summary of MOCK_FOUNDER_SUMMARIES) {
+      expect(summary.issue_category, summary.case_id).toBe('UNCLEAR');
+    }
+  });
+
   it('claims no PASS review for a case that has not reached risk review', () => {
     for (const summary of MOCK_FOUNDER_SUMMARIES) {
       if (summary.status === 'UNDER_INVESTIGATION' || summary.status === 'POLICY_ASSESSMENT') {

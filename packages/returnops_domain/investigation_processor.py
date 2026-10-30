@@ -133,7 +133,7 @@ class InvestigationProcessor:
                     input_version=claim.input_version,claim_id=claim.claim_id,epoch=claim.epoch,status=result['status'],
                     body_hash=observation.body_hash,available=True,recorded_at=now))
                 uow.execute(t.receipt_contents.insert().values(receipt_id=claim.invocation_id,body=observation.body))
-                self._accept(uow,work,head,result,now)
+                self._accept(uow,work,head,result,now,reference_given='order_reference' in request)
                 if work['lease_expires_at']<=self.clock(): raise FlowError()
                 uow.commit();return self._settled(observation,True)
         except AcceptanceOutcomeUnknown:
@@ -158,7 +158,7 @@ class InvestigationProcessor:
             and receipt['work_id']==claim.work_id and receipt['claim_id']==claim.claim_id and receipt['epoch']==claim.epoch
             and receipt['input_version']==claim.input_version and receipt['body_hash']==observation.body_hash)
 
-    def _accept(self,uow,work,head,result,now):
+    def _accept(self,uow,work,head,result,now,reference_given=False):
         status=result['status'];objects=[work['invocation_id']];refs=[]
         if status=='MATCHED':
             snapshot=result['snapshot']
@@ -181,7 +181,7 @@ class InvestigationProcessor:
             uow.execute(update(t.state).where(t.state.c.case_id==head['case_id']).values(current_projection_id=projection_id,current_block_id=None))
             objects.append(projection_id)
         elif status=='NOT_FOUND':
-            question_set_id=issue_questions(uow,head,now)
+            question_set_id=issue_questions(uow,head,now,reference_not_found=reference_given)
             transition(uow,head,'ORDER_NOT_FOUND','AWAITING_INFORMATION',now,question_set_id=question_set_id)
             session=uow.execute(select(old.intake_sessions).where(old.intake_sessions.c.case_id==head['case_id'])).mappings().one()
             uow.execute(update(old.intake_sessions).where(old.intake_sessions.c.case_id==head['case_id']).values(
@@ -228,15 +228,24 @@ class InvestigationProcessor:
         if self._pending_observation is not None: return self.finish(self._pending_observation)
         claim=self.claim()
         if claim is None: return False
-        observation=None
+        observation=None;transient=False
         try:
             observation=self.lookup(claim)
-        except (OrderLookupError,FlowError,AcceptanceOutcomeUnknown):
+        except OrderLookupError:
             pass
+        except (FlowError,AcceptanceOutcomeUnknown):
+            # A busy fence, a full pool or a lost connection says nothing about the
+            # case: retry the same work later instead of pausing it for good.
+            transient=True
         if observation is None:
-            # Authority/DB/lease failures are not technical provider outcomes.
+            # Authority/lease failures are not technical provider outcomes.
             with self._uow() as uow:
                 work=uow.execute(select(t.work).where(t.work.c.work_id==claim.work_id)).mappings().one_or_none()
-                if claimed(work,claim,self.clock()): self._pause(uow,work,'LOOKUP_CONTEXT_UNAVAILABLE',self.clock())
+                now=self.clock()
+                if claimed(work,claim,now):
+                    if transient:
+                        uow.execute(update(t.work).where(t.work.c.work_id==work['work_id']).values(state='PENDING',
+                            next_attempt_at=now+timedelta(seconds=max(self.retry_seconds,1)),safe_reason='LOOKUP_CONTEXT_UNAVAILABLE'))
+                    else: self._pause(uow,work,'LOOKUP_CONTEXT_UNAVAILABLE',now)
                 uow.commit();return False
         return self.finish(observation)

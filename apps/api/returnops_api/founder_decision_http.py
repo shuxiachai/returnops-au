@@ -81,6 +81,10 @@ def register_founder_decision_candidate(app, request_ports_factory):
             key = one_header(request, 'idempotency-key', required=True)
             validate('IdempotencyKey', key)
             value = validate('FounderDecisionRequest', await _json_body(request))
+            # The schema's minLength counts spaces; a blank rationale is no rationale (customer
+            # text has the same rule in wire.py). 30 October 2026 review.
+            if not value['reason'].strip():
+                raise FlowError('VALIDATION_ERROR')
             service = {'APPROVE': ports.approve, 'REJECT': ports.reject,
                        'REQUEST_REVISION': ports.revision,
                        'MANUAL_HANDLING': ports.manual}[value['decision']]

@@ -1,0 +1,41 @@
+# Files that `railway up` must not upload (tools/demo/demo.ps1 cloud; README, Railway
+# deployment). The folder unpacked from the Canvas zip has no .git, so .gitignore may
+# not apply there. The image itself is built from the .dockerignore whitelist; this
+# file keeps private and bulky local files from leaving the machine at all.
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Local runtime data: demo identities, sessions, Railway session copies, driver output
+tmp/
+data/private/
+uploads/
+logs/
+
+# Python
+.venv/
+.venv-contracts/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+build/
+
+# Node
+node_modules/
+dist/
+coverage/
+
+# Version control, editors and operating system
+.git/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

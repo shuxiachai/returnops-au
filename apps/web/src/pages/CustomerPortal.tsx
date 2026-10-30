@@ -24,6 +24,7 @@ import {
   downloadEvidence,
   isMockMode,
   ApiError,
+  formatApiError,
 } from '../api/client';
 import {
   CustomerCaseView,
@@ -159,7 +160,8 @@ export const CustomerPortal: React.FC = () => {
     setPendingClarifyKey(null);
     setLastClarifyPayload(null);
     setIsSubmittingClarify(false);
-    setClarifySuccessMsg(null);
+    // The "answers were received" confirmation is not part of the draft: it stays
+    // through the 5 s refresh and Refresh, and goes only on a case switch or a new lodgement.
     setClarifyErrorMsg(null);
   };
 
@@ -175,11 +177,11 @@ export const CustomerPortal: React.FC = () => {
     if (activeCaseId.current !== requestedCaseId) {
       activeCaseId.current = requestedCaseId;
       resetClarificationDraft();
+      setClarifySuccessMsg(null);
       setCurrentCase(null);
     }
     setIsLoadingCase(true);
     setCaseError(null);
-    setClarifySuccessMsg(null);
     setClarifyErrorMsg(null);
     try {
       const data = await getCustomerCase(requestedCaseId);
@@ -201,7 +203,13 @@ export const CustomerPortal: React.FC = () => {
       // A transient read failure hides the view without discarding an uncertain
       // POST's retry identity. Recovery must confirm the same scope to reuse it.
       setCurrentCase(null);
-      setCaseError(err instanceof ApiError ? `${err.code}: ${err.message}` : 'Failed to fetch case details');
+      setCaseError(
+        err instanceof ApiError
+          ? err.code
+            ? `${err.code}: ${err.message}`
+            : err.message
+          : 'Failed to fetch case details'
+      );
       return null;
     } finally {
       if (request === latestCaseLoad.current) setIsLoadingCase(false);
@@ -369,10 +377,14 @@ export const CustomerPortal: React.FC = () => {
     try {
       const newCase = await createCase(payloadObj, keyToUse);
       setCreatedCaseResult(newCase);
-      // Reset form and idempotency state
+      // Reset form and idempotency state. The outcome is reset too, so the next
+      // case never inherits this one's choice unseen.
       setOriginalMessage('');
       setOrderReference('');
+      setRequestedOutcome('UNSPECIFIED');
       setSelectedFiles([]);
+      // A confirmation for answers on an earlier case does not belong to this one.
+      setClarifySuccessMsg(null);
       setPendingLodgementKey(null);
       setLastSubmittedLodgementPayload(null);
       // The intent is accepted, so the next lodgement is a new one.
@@ -549,9 +561,7 @@ export const CustomerPortal: React.FC = () => {
     try {
       await downloadEvidence(ev.evidence_id, ev.filename);
     } catch (err: unknown) {
-      setDownloadError(
-        err instanceof ApiError ? `[${err.code}] ${err.message}` : 'Failed to download evidence content'
-      );
+      setDownloadError(err instanceof ApiError ? formatApiError(err) : 'Failed to download evidence content');
     } finally {
       setDownloadingEvId(null);
     }
@@ -614,7 +624,8 @@ export const CustomerPortal: React.FC = () => {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 bg-white/80 p-4 rounded-xl border border-emerald-200">
                 <div>
                   <div className="text-xs text-slate-500 font-semibold uppercase">Case ID</div>
-                  <div className="text-sm font-mono font-bold text-slate-900">{createdCaseResult.case_id}</div>
+                  {/* A server case ID is 37 characters with no break point; it wraps instead of running into the badge. */}
+                  <div className="text-sm font-mono font-bold text-slate-900 break-all">{createdCaseResult.case_id}</div>
                 </div>
                 <div>
                   <div className="text-xs text-slate-500 font-semibold uppercase">Status</div>
@@ -635,9 +646,10 @@ export const CustomerPortal: React.FC = () => {
               <div className="flex items-center space-x-3 pt-2">
                 <button
                   onClick={() => {
+                    // Switching to Track reads the case once, through the effect above;
+                    // reading it here as well sent a second GET.
                     setSearchCaseId(createdCaseResult.case_id);
                     setActiveSubTab('track');
-                    loadCase(createdCaseResult.case_id);
                   }}
                   className="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold rounded-xl shadow-sm flex items-center space-x-2 transition-colors"
                 >
@@ -749,16 +761,18 @@ export const CustomerPortal: React.FC = () => {
                       JPEG, PNG or PDF, up to 10 MB each and 10 files in total.
                     </p>
                   </div>
-                  <label className={`px-3.5 py-1.5 bg-sky-50 text-sky-700 text-xs font-semibold rounded-xl border border-sky-200 transition-colors flex items-center space-x-1 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-sky-100'}`}>
+                  <label className={`px-3.5 py-1.5 bg-sky-50 text-sky-700 text-xs font-semibold rounded-xl border border-sky-200 transition-colors flex items-center space-x-1 focus-within:ring-2 focus-within:ring-sky-500 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-sky-100'}`}>
                     <Plus className="w-3.5 h-3.5" />
                     <span>Add File</span>
+                    {/* Visually hidden, not display:none, so the keyboard can reach it;
+                        the label shows the focus ring. */}
                     <input
                       type="file"
                       multiple
                       accept="image/jpeg,image/png,application/pdf"
                       disabled={isSubmitting}
                       onChange={handleFileSelect}
-                      className="hidden"
+                      className="sr-only"
                     />
                   </label>
                 </div>
@@ -1043,16 +1057,17 @@ export const CustomerPortal: React.FC = () => {
                             Upload photos, barcode images, or receipts requested in clarification.
                           </p>
                         </div>
-                        <label className={`px-3 py-1 bg-amber-50 text-amber-800 text-xs font-semibold rounded-lg border border-amber-200 transition-colors flex items-center space-x-1 ${isSubmittingClarify ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-amber-100'}`}>
+                        <label className={`px-3 py-1 bg-amber-50 text-amber-800 text-xs font-semibold rounded-lg border border-amber-200 transition-colors flex items-center space-x-1 focus-within:ring-2 focus-within:ring-amber-500 ${isSubmittingClarify ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-amber-100'}`}>
                           <Plus className="w-3 h-3" />
                           <span>Add File</span>
+                          {/* Keyboard-reachable, as on the lodgement form. */}
                           <input
                             type="file"
                             multiple
                             accept="image/jpeg,image/png,application/pdf"
                             disabled={isSubmittingClarify}
                             onChange={handleClarificationFileSelect}
-                            className="hidden"
+                            className="sr-only"
                           />
                         </label>
                       </div>
