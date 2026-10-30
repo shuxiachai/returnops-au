@@ -6,6 +6,7 @@ from decimal import Decimal, DecimalException
 from math import isfinite
 from importlib.resources import files
 import json
+import unicodedata
 from jsonschema import Draft202012Validator, FormatChecker
 from .canonical import canonical_bytes
 from .errors import FlowError
@@ -27,9 +28,19 @@ def validate(name: str, value: object, *, internal: bool = False):
         raise FlowError("INTERNAL_ERROR" if internal else "VALIDATION_ERROR")
     return deepcopy(value)
 
+def blank(text: str) -> bool:
+    """No visible character: only separators, control and format characters.
+
+    str.strip() keeps zero-width and other format characters, so text made only of
+    them used to pass as an answer, a statement or a Founder rationale (31 October 2026).
+    """
+    return all(unicodedata.category(character)[0] in "ZC" for character in text)
+
 def create_request(value: object) -> dict:
     result = validate("CreateCaseRequest", value)
-    if not result["original_message"].strip(): raise FlowError("VALIDATION_ERROR")
+    if blank(result["original_message"]): raise FlowError("VALIDATION_ERROR")
+    # A blank reference is no reference; looked up, it came back as "not found".
+    if "order_reference" in result and blank(result["order_reference"]): raise FlowError("VALIDATION_ERROR")
     result.setdefault("requested_outcome", "UNSPECIFIED")
     result.setdefault("evidence_ids", [])
     return result
@@ -37,7 +48,7 @@ def create_request(value: object) -> dict:
 def clarification_request(value: object) -> dict:
     result = validate("ClarificationRequest", value)
     ids = [answer["question_id"] for answer in result["answers"]]
-    if len(set(ids)) != len(ids) or any(not answer["text"].strip() for answer in result["answers"]):
+    if len(set(ids)) != len(ids) or any(blank(answer["text"]) for answer in result["answers"]):
         raise FlowError("VALIDATION_ERROR")
     return result
 

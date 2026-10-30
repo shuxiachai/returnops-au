@@ -14,7 +14,7 @@ vi.mock('../api/client', async (importOriginal) => {
   };
 });
 
-import { createCase, getCustomerCase, submitClarification } from '../api/client';
+import { ApiError, createCase, getCustomerCase, submitClarification } from '../api/client';
 import { CustomerPortal } from './CustomerPortal';
 import type { CustomerCaseView } from '../types/domain';
 
@@ -137,5 +137,111 @@ describe('CustomerPortal after a lodgement (Live API mode)', () => {
     const clarifyInput = document.querySelector<HTMLInputElement>('input[type="file"]')!;
     expect(clarifyInput).toHaveClass('sr-only');
     expect(clarifyInput).not.toHaveClass('hidden');
+  });
+});
+
+function picture(name: string, bytes = 12, type = 'image/png'): File {
+  const file = new File(['image bytes'], name, { type });
+  Object.defineProperty(file, 'size', { value: bytes });
+  return file;
+}
+
+describe('CustomerPortal edge cases on the forms (Live API mode)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    vi.clearAllMocks();
+  });
+
+  it('refuses a wrong type, an empty or oversize file and an eleventh file on selection, and says why', () => {
+    render(<CustomerPortal />);
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+
+    fireEvent.change(input, {
+      target: {
+        files: [
+          picture('notes.txt', 10, 'text/plain'),
+          picture('empty.png', 0),
+          picture('huge.png', 10 * 1024 * 1024 + 1),
+          ...Array.from({ length: 11 }, (_, i) => picture(`chair_${i + 1}.png`)),
+        ],
+      },
+    });
+
+    // Ten files are the server's limit; nothing over it reaches the upload route.
+    expect(screen.getAllByRole('button', { name: /^Remove chair_/ })).toHaveLength(10);
+    expect(screen.queryByText('notes.txt')).not.toBeInTheDocument();
+    const notice = screen.getByRole('alert');
+    expect(notice).toHaveTextContent('notes.txt is not a JPEG, PNG or PDF file.');
+    expect(notice).toHaveTextContent('empty.png is empty.');
+    expect(notice).toHaveTextContent('huge.png is larger than 10 MB.');
+    expect(notice).toHaveTextContent('chair_11.png was not added: at most 10 files can be attached.');
+  });
+
+  it('refuses a wrong file type on the clarification form as well', async () => {
+    vi.mocked(getCustomerCase).mockResolvedValue(caseView(EARLIER_CASE_ID, 'AWAITING_INFORMATION', 2, true));
+    render(<CustomerPortal />);
+    fireEvent.click(screen.getByRole('button', { name: 'Track & Clarify' }));
+    fireEvent.change(screen.getByPlaceholderText('Enter your case ID...'), { target: { value: EARLIER_CASE_ID } });
+    fireEvent.click(screen.getByRole('button', { name: /Lookup/i }));
+    await screen.findByPlaceholderText('Your answer...');
+
+    fireEvent.change(document.querySelector<HTMLInputElement>('input[type="file"]')!, {
+      target: { files: [picture('invoice.docx', 2000, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')] },
+    });
+    expect(screen.getByRole('alert')).toHaveTextContent('invoice.docx is not a JPEG, PNG or PDF file.');
+    expect(screen.queryByRole('button', { name: 'Remove invoice.docx' })).not.toBeInTheDocument();
+  });
+
+  it('shows a refused lodgement next to the Submit button, not at the top of the form', async () => {
+    vi.mocked(createCase).mockRejectedValue(
+      new ApiError(422, 'Request fields are invalid.', 'VALIDATION_ERROR', undefined, undefined, false)
+    );
+    render(<CustomerPortal />);
+    fireEvent.change(statementField(), { target: { value: 'The kettle stopped heating after two days.' } });
+    fireEvent.click(screen.getByRole('button', { name: /Submit Return Request/i }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('[VALIDATION_ERROR] Request fields are invalid.');
+    expect(alert.nextElementSibling).toContainElement(screen.getByRole('button', { name: /Submit Return Request/i }));
+  });
+
+  it('looks a case up with Enter in the box, once, and not again while that lookup runs', async () => {
+    let settle!: (view: CustomerCaseView) => void;
+    vi.mocked(getCustomerCase).mockReturnValue(new Promise((resolve) => { settle = resolve; }));
+    render(<CustomerPortal />);
+    fireEvent.click(screen.getByRole('button', { name: 'Track & Clarify' }));
+    const box = screen.getByRole('textbox', { name: 'Case ID' });
+    fireEvent.change(box, { target: { value: ` ${CASE_ID} ` } });
+
+    // Enter submits the lookup form, as the Lookup button does.
+    fireEvent.submit(box.closest('form')!);
+    fireEvent.submit(box.closest('form')!);
+    expect(getCustomerCase).toHaveBeenCalledTimes(1);
+    expect(getCustomerCase).toHaveBeenCalledWith(CASE_ID);
+    expect(screen.getByRole('button', { name: /Lookup/i })).toHaveAttribute('type', 'submit');
+
+    settle(caseView(CASE_ID, 'UNDER_INVESTIGATION', 2));
+    expect(await screen.findByText('Being reviewed')).toBeInTheDocument();
+    // The case ID box keeps its full width below 1024 px: the bar stacks until then.
+    expect(box.closest('form')!.parentElement).toHaveClass('flex-col', 'lg:flex-row');
+  });
+
+  it('tells the customer in plain words when a case ID is malformed', async () => {
+    vi.mocked(getCustomerCase).mockRejectedValue(new ApiError(422, 'Request fields are invalid.', 'VALIDATION_ERROR'));
+    render(<CustomerPortal />);
+    fireEvent.click(screen.getByRole('button', { name: 'Track & Clarify' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Case ID' }), { target: { value: 'not a case id!' } });
+    fireEvent.click(screen.getByRole('button', { name: /Lookup/i }));
+
+    expect(
+      await screen.findByText('This is not a valid case ID. Use the ID shown when your request was lodged.')
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/VALIDATION_ERROR/)).not.toBeInTheDocument();
   });
 });

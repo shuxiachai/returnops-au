@@ -180,11 +180,13 @@ async function request<T>(
 
       let msg = errEnvelope?.error?.message;
       if (!msg) {
-        if (response.status === 500) {
-          msg = `HTTP 500: Backend server unavailable at http://127.0.0.1:8000. Start the backend or switch to Mock Mode in the top navbar.`;
-        } else {
-          msg = `HTTP ${response.status}: ${response.statusText}`;
-        }
+        // No error envelope, so the reply came from a proxy (Vite, Caddy), not from the
+        // API. No address is named: on the one-origin deployment the API sits behind this
+        // page's own address. An HTTP/2 reply carries no status text.
+        msg =
+          response.status >= 500
+            ? `HTTP ${response.status}: the API server did not answer. Check that it is running, or switch to Mock Mode in the top navbar.`
+            : `HTTP ${response.status}${response.statusText ? `: ${response.statusText}` : ''}`;
       }
       const code = errEnvelope?.error?.code || `HTTP_${response.status}`;
       throw new ApiError(

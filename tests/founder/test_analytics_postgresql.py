@@ -135,10 +135,12 @@ def test_hand_computed_cohort_current_review_isolation_and_no_writes(flow_engine
     base = (datetime.now(timezone.utc) - timedelta(days=10)).replace(microsecond=0)
     at = lambda hours: base + timedelta(hours=hours)
     facts = []
+    named = {}
 
     def case(name, created_at, status, *, reviews=(), proposal_version=None, input_version=1, available=True,
              latency=UNMEASURED):
         case_id = accepted(identities, key='analytics-' + name)['case_id']
+        named[name] = case_id
         shape(flow_engine, case_id, created_at, status, input_version=input_version, available=available)
         if available:
             row = {'case_id': case_id, 'created_at': timestamp(created_at), 'input_version': input_version,
@@ -214,6 +216,16 @@ def test_hand_computed_cohort_current_review_isolation_and_no_writes(flow_engine
         assert other['case_count'] == 1 and buckets(other) == [('ESCALATED', 1)]
         assert other['cases_without_current_review'] == 1
     assert everything(flow_engine) == before
+    # 30 October 2026 review: the queue shows the same current risk outcome as analytics,
+    # and none where analytics counts the case as without a current review.
+    with TestClient(create_app(engine=flow_engine, auth_config=identities.auth_config, enable_processor=False)) as client:
+        listing = client.get('/v1/founder/cases', headers={'Authorization': founder}, params={'limit': 100})
+        assert listing.status_code == 200, listing.text
+        risks = {item['case_id']: item.get('current_risk_outcome') for item in listing.json()['items']}
+    expected = {'pass': 'PASS', 'escalate': 'ESCALATE', 'retry': 'PASS_WITH_WARNING', 'legacy': 'PASS'}
+    assert {name: risks[case_id] for name, case_id in named.items() if name != 'unavailable'} == {
+        name: expected.get(name) for name in named if name != 'unavailable'}
+    assert named['unavailable'] not in risks and foreign not in risks
 
 
 def test_empty_cohort_and_future_bound_is_clamped_to_as_of(flow_engine, identities):

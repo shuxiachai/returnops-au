@@ -786,6 +786,20 @@ describe('client', () => {
       ).rejects.toMatchObject(expected);
     });
 
+    it('words a reply without an error envelope without naming a host, and without an empty status text', async () => {
+      // A proxy's 502 over HTTP/2 has no status text and no envelope.
+      vi.stubGlobal('fetch', vi.fn(async () => new Response('<html>Bad Gateway</html>', { status: 502, statusText: '' })));
+      const proxied = await listFounderCases().catch((err) => err);
+      expect(proxied).toMatchObject({ status: 502, code: 'HTTP_502' });
+      expect(proxied.message).toBe(
+        'HTTP 502: the API server did not answer. Check that it is running, or switch to Mock Mode in the top navbar.'
+      );
+      expect(proxied.message).not.toContain('127.0.0.1');
+
+      vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 404, statusText: '' })));
+      expect((await getCustomerCase('case_missing').catch((err) => err)).message).toBe('HTTP 404');
+    });
+
     it('formats an error as [CODE] message, and never prints a missing code', () => {
       expect(formatApiError(new ApiError(0, 'Failed to fetch', NETWORK_ERROR))).toBe('[NETWORK_ERROR] Failed to fetch');
       expect(formatApiError(new ApiError(0, 'Failed to fetch'))).toBe('Failed to fetch');

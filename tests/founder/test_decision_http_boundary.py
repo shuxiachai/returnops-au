@@ -195,7 +195,7 @@ def test_client_authority_and_unknown_fields_are_rejected_not_stripped(boundary,
     {'expected_case_version': 1.5}, {'expected_case_version': 9007199254740992}, {'expected_case_version': '7'},
     {'proposal_version': False}, {'proposal_version': 0}, {'proposal_version': 2.2},
     {'proposal_id': 'bad/id'}, {'reason': ''}, {'reason': None}, {'reason': 3}, {'reason': 'x' * 2001},
-    {'reason': '   '}, {'reason': ' \t \n '},
+    {'reason': '   '}, {'reason': ' \t \n '}, {'reason': chr(0x200B) + chr(0x2060) + chr(0xFEFF)},
     {'decision': 'EXECUTE'}, {'decision': False}, {'preview_id': None}, {'scope_fingerprint': 'bad'},
     {'processing_failure_id': 'failure_boundary'}, {'order_lookup_block_id': 'block_boundary'},
 ])

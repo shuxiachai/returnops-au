@@ -185,7 +185,7 @@ describe('what the Founder sees before deciding (#122 item 5)', () => {
 
   it('lists the customer evidence and downloads the file the Founder picked', async () => {
     await openCase();
-    fireEvent.click(screen.getByRole('button', { name: /Customer Statements/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /Customer Statements/i }));
 
     expect(await screen.findByText('Customer evidence (1)')).toBeInTheDocument();
     expect(screen.getByText('parcel_photo.jpg')).toBeInTheDocument();
@@ -202,7 +202,7 @@ describe('what the Founder sees before deciding (#122 item 5)', () => {
       new ApiError(403, 'not your evidence', 'FORBIDDEN')
     );
     await openCase();
-    fireEvent.click(screen.getByRole('button', { name: /Customer Statements/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /Customer Statements/i }));
     fireEvent.click(await screen.findByRole('button', { name: /Download parcel_photo\.jpg/i }));
 
     expect(await screen.findByText(/\[FORBIDDEN\] not your evidence/)).toBeInTheDocument();

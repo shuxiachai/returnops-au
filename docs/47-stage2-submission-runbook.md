@@ -171,8 +171,8 @@ Attach this list (updated on the submission day) with the package, for example a
      - item 7, no size, count or text-length checks on the customer's uploads and text;
      - item 8, no copy button for the case ID;
      - item 10 in part: the mock analytics count 128 cases against 25 queue rows, and `case_demo_003` shows a $220 refund beside a $0 approval ceiling;
-     - item 11, times without a time zone and an analytics filter that sends whole UTC days;
-     - item 13, dialogs that do not close with Esc or manage focus.
+     - item 11, times without a time zone and an analytics filter that sends whole UTC days.
+     - Item 13 (dialogs, Esc and focus) was fixed on 30 October 2026 in #158, together with ten other frontend findings of that day's review, among them the narrow-screen queue and the requested outcome carried into the next lodgement (apps/web/README.md, section 5).
    - Issue #122 (still open): the items are merged through #130, #132, #138, #144 and #147, and #148 added tests for #147's part, with these limits:
      - item 6 is an App-level Vitest flow in Mock Mode, not a browser end-to-end test;
      - item 7 keeps the form editable after an uncertain failure; the lodgement key is kept for the tab instead;

@@ -256,6 +256,14 @@ function Get-SavedTime([string]$Name) {
     return [datetime]::Parse([System.IO.File]::ReadAllText($path), $null, [System.Globalization.DateTimeStyles]::RoundtripKind)
 }
 
+# demo.py writes auth.json before it registers the identities, so only the time this
+# script saves after a successful provision, no older than auth.json, shows they work.
+function Test-Provisioned([string]$Name, [string]$Folder) {
+    $saved = Get-SavedTime $Name
+    if (-not $saved) { return $false }
+    return ($saved -ge (Get-Item -LiteralPath (Join-Path $Folder 'auth.json')).LastWriteTime)
+}
+
 # -- the three windows ----------------------------------------------------------
 # Each window is a PowerShell console started by this script. Its record holds
 # the process ID and start time, so a reused process ID is never acted on.
@@ -576,6 +584,9 @@ function Invoke-Start {
     } else {
         if (Test-Listening 8000) { Stop-Script 'Port 8000 is in use by a program this script did not start; stop it first.' }
         if (Test-Path -LiteralPath (Join-Path $Shop 'auth.json')) {
+            if (-not (Test-Provisioned 'demo-shop' $Shop)) {
+                Stop-Script 'tmp\demo-shop holds identities whose provision did not finish, so the server would refuse their tokens. Run stop -RemoveData, then prepare and start.'
+            }
             Show-Warn 'tmp\demo-shop exists, so its identities are reused (the database refuses to register them twice).'
         } elseif (Test-Path -LiteralPath $Shop) {
             Stop-Script 'tmp\demo-shop exists without auth.json (an interrupted provision). Run stop -RemoveData, then prepare and start.'
@@ -674,6 +685,9 @@ function Invoke-S5 {
 
     Show-Step 'Step 5: S5 identities and the R.02 driver (demo mode)'
     if (Test-Path -LiteralPath (Join-Path $Cups 'auth.json')) {
+        if (-not (Test-Provisioned 'demo-cups' $Cups)) {
+            Stop-Script 'tmp\demo-cups holds identities whose provision did not finish, so the server would refuse their tokens. Run stop -RemoveData, then prepare and start.'
+        }
         Show-Warn 'tmp\demo-cups exists, so its identities are reused; the driver refuses if the cups store already has a case.'
     } elseif (Test-Path -LiteralPath $Cups) {
         Stop-Script 'tmp\demo-cups exists without auth.json (an interrupted provision). Run stop -RemoveData, then prepare and start.'

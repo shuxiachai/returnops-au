@@ -18,6 +18,7 @@ export const ApprovalScopeSummary: React.FC<{ preview: ActionPreview }> = ({ pre
   const commands = Array.isArray(scope.commands) ? scope.commands : [];
 
   return (
+    // Long IDs and command parameters break anywhere, so the scope fits a phone screen.
     <dl className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1 text-xs">
       <dt className="font-semibold text-slate-500">Preview ID</dt>
       <dd className="font-mono text-slate-900 break-all">{preview.preview_id}</dd>
@@ -26,20 +27,20 @@ export const ApprovalScopeSummary: React.FC<{ preview: ActionPreview }> = ({ pre
       <dd className="font-mono text-slate-900 break-all">{preview.scope_fingerprint}</dd>
 
       <dt className="font-semibold text-slate-500">Case / input</dt>
-      <dd className="font-mono text-slate-900">
+      <dd className="font-mono text-slate-900 break-all">
         {scope.case_id} · input v{scope.input_version}
       </dd>
 
       <dt className="font-semibold text-slate-500">Proposal / review</dt>
-      <dd className="font-mono text-slate-900">
+      <dd className="font-mono text-slate-900 break-all">
         {scope.proposal_id} v{scope.proposal_version} · {scope.review_id}
       </dd>
 
       <dt className="font-semibold text-slate-500">Parcel</dt>
-      <dd className="font-mono text-slate-900">{scope.parcel_id}</dd>
+      <dd className="font-mono text-slate-900 break-all">{scope.parcel_id}</dd>
 
       <dt className="font-semibold text-slate-500">Commands ({commands.length})</dt>
-      <dd>
+      <dd className="break-all">
         <ol className="list-decimal pl-4 space-y-0.5">
           {commands.map((command) => (
             <li key={command.command_id}>

@@ -8,6 +8,12 @@ import {
   PolicyPassage,
 } from '../types/domain';
 
+// case_demo_005's notice to the customer, in the server's CORE_MOCK v2 wording
+// (packages/returnops_domain/notification_profile.py). The Founder's Outcome tab
+// shows it as SENT, so the customer's Track view of the completed case shows it too.
+const DEMO_005_NOTICE_MESSAGE =
+  'A simulated return and parcel label have been recorded. The prototype PDF is not valid for postage. This prototype has not arranged a real shipment or made a charge.';
+
 export const MOCK_CUSTOMER_CASES: Record<string, CustomerCaseView> = {
   'case_demo_001': {
     case_id: 'case_demo_001',
@@ -170,6 +176,7 @@ export const MOCK_CUSTOMER_CASES: Record<string, CustomerCaseView> = {
     status: 'COMPLETED',
     created_at: new Date(Date.now() - 3600000 * 48).toISOString(),
     updated_at: new Date(Date.now() - 3600000 * 36).toISOString(),
+    outcome_message: DEMO_005_NOTICE_MESSAGE,
     statements: [
       {
         statement_id: 'stmt_orig_005',
@@ -420,8 +427,7 @@ const DEMO_005_OUTCOME: Pick<CaseView, 'decisions' | 'approvals' | 'operations' 
       status: 'SENT',
       outcome: 'RETURN_CREATED',
       // The server's CORE_MOCK v2 wording (packages/returnops_domain/notification_profile.py).
-      message:
-        'A simulated return and parcel label have been recorded. The prototype PDF is not valid for postage. This prototype has not arranged a real shipment or made a charge.',
+      message: DEMO_005_NOTICE_MESSAGE,
       next_steps: [
         `View the simulated label using authorised attachment access at /v1/evidence/${DEMO_005_LABEL_EVIDENCE_ID}/content. This PDF must not be used for postage.`,
         'Next step: ask the store operator to confirm the contact channel and any further arrangements.',

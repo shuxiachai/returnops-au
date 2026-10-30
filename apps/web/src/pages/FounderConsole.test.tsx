@@ -103,11 +103,11 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
     fireEvent.click(inspectButtons[0]);
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Order & Facts Projection/i })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /Order & Facts Projection/i })).toBeInTheDocument();
     });
 
     // Check Order & Facts tab
-    const orderTabBtn = screen.getByRole('button', { name: /Order & Facts Projection/i });
+    const orderTabBtn = screen.getByRole('tab', { name: /Order & Facts Projection/i });
     fireEvent.click(orderTabBtn);
 
     await waitFor(() => {
@@ -116,7 +116,7 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
     });
 
     // Check Statements tab
-    const statementsTabBtn = screen.getByRole('button', { name: /Customer Statements/i });
+    const statementsTabBtn = screen.getByRole('tab', { name: /Customer Statements/i });
     fireEvent.click(statementsTabBtn);
 
     await waitFor(() => {
@@ -126,7 +126,7 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
     });
 
     // Check Tamper-Evident Audit Chain tab
-    const auditTabBtn = screen.getByRole('button', { name: /Tamper-Evident Audit Chain/i });
+    const auditTabBtn = screen.getByRole('tab', { name: /Tamper-Evident Audit Chain/i });
     fireEvent.click(auditTabBtn);
 
     await waitFor(() => {
@@ -148,7 +148,7 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
       target: { value: 'case_demo_001' },
     });
     fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
-    fireEvent.click(await screen.findByRole('button', { name: /Order & Facts Projection/i }));
+    fireEvent.click(await screen.findByRole('tab', { name: /Order & Facts Projection/i }));
 
     const card = await screen.findByRole('region', { name: 'Model extraction (advisory)' });
     expect(within(card).getByText('Mock data: not a model result')).toBeInTheDocument();
@@ -167,7 +167,7 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
       target: { value: 'case_demo_002' },
     });
     fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
-    fireEvent.click(await screen.findByRole('button', { name: /Order & Facts Projection/i }));
+    fireEvent.click(await screen.findByRole('tab', { name: /Order & Facts Projection/i }));
 
     expect(await screen.findByText('ord_8819')).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Model extraction (advisory)' })).not.toBeInTheDocument();
@@ -237,7 +237,7 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
       target: { value: 'case_demo_005' },
     });
     fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
-    fireEvent.click(await screen.findByRole('button', { name: /Decision & Outcome/i }));
+    fireEvent.click(await screen.findByRole('tab', { name: /Decision & Outcome/i }));
 
     const reason = await screen.findByText(
       'Approved the simulated return and label for the reported electrical fault.'
@@ -416,7 +416,7 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
 
     fireEvent.click(
-      await screen.findByRole('button', { name: /Tamper-Evident Audit Chain/i })
+      await screen.findByRole('tab', { name: /Tamper-Evident Audit Chain/i })
     );
 
     expect(
@@ -449,5 +449,41 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
     expect(await screen.findByText('No active proposal generated for this case yet.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Approve Return/i })).toBeDisabled();
     expect(alertSpy).not.toHaveBeenCalled();
+  });
+
+  it('exposes the case views as tabs and keeps the window usable on a phone', async () => {
+    render(<FounderConsole />);
+    fireEvent.change(await screen.findByPlaceholderText(/Filter by Case ID or Category/i), {
+      target: { value: 'case_demo_004' },
+    });
+    fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
+
+    const tablist = await screen.findByRole('tablist', { name: 'Case views' });
+    expect(within(tablist).getAllByRole('tab')).toHaveLength(5);
+    expect(within(tablist).getByRole('tab', { name: /Proposal & Risk Review/i })).toHaveAttribute('aria-selected', 'true');
+    fireEvent.click(within(tablist).getByRole('tab', { name: /Customer Statements/i }));
+    expect(within(tablist).getByRole('tab', { name: /Customer Statements/i })).toHaveAttribute('aria-selected', 'true');
+    expect(within(tablist).getByRole('tab', { name: /Proposal & Risk Review/i })).toHaveAttribute('aria-selected', 'false');
+
+    // At 375 px the window used to grow to its widest row and push the close button,
+    // the later tabs and Manual Takeover off the screen.
+    expect(tablist).toHaveClass('overflow-x-auto');
+    expect(tablist.parentElement).toHaveClass('min-w-0');
+    const dialog = screen.getByRole('dialog', { name: 'Case case_demo_004' });
+    expect(within(dialog).getAllByText('case_demo_004')[0]).toHaveClass('break-all');
+    expect(screen.getByRole('button', { name: /^Manual Takeover$/ }).parentElement).toHaveClass('flex-wrap');
+
+    // The customer's words break inside their card and follow their own script direction.
+    const words = screen.getByText(/Purchased 50 espresso units/);
+    expect(words).toHaveClass('break-words');
+    expect(words).toHaveAttribute('dir', 'auto');
+  });
+
+  it('keeps long risk outcome names inside their analytics tiles', async () => {
+    render(<FounderConsole />);
+    fireEvent.click(screen.getByRole('button', { name: /Analytics Dashboard/i }));
+
+    expect(await screen.findByText('PASS_WITH_WARNING')).toHaveClass('break-all');
+    expect(screen.getByText('NEEDS_INFORMATION')).toHaveClass('break-all');
   });
 });

@@ -118,4 +118,24 @@ describe('FounderConsole queue (Live API mode)', () => {
     expect(screen.getAllByText('Not yet classified')).toHaveLength(20);
     expect(screen.queryByText('Unclear Statement')).not.toBeInTheDocument();
   });
+
+  it('finds rows by the category words on screen and says when the store has no case yet', async () => {
+    serveQueue();
+    const view = render(<FounderConsole />);
+    await screen.findByText(ROWS[0].case_id);
+    const search = screen.getByPlaceholderText(/Filter by Case ID or Category/i);
+
+    // The table shows "Not yet classified", so that is what the Founder types.
+    fireEvent.change(search, { target: { value: ' not yet ' } });
+    expect(screen.getAllByRole('button', { name: /Inspect/i })).toHaveLength(20);
+    fireEvent.change(search, { target: { value: 'zzzz' } });
+    expect(screen.getByText('No matching cases found.')).toBeInTheDocument();
+    view.unmount();
+
+    // An empty store is not described as a filter that matched nothing.
+    vi.mocked(listFounderCases).mockResolvedValue({ items: [], next_cursor: undefined });
+    render(<FounderConsole />);
+    expect(await screen.findByText('No cases in the queue yet.')).toBeInTheDocument();
+    expect(screen.queryByText('No matching cases found.')).not.toBeInTheDocument();
+  });
 });

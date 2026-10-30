@@ -104,7 +104,7 @@ const SUMMARY_ROW = {
 async function openOrderTab() {
   render(<FounderConsole />);
   fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
-  fireEvent.click(await screen.findByRole('button', { name: /Order & Facts Projection/i }));
+  fireEvent.click(await screen.findByRole('tab', { name: /Order & Facts Projection/i }));
   await screen.findByText(/No order snapshot projected for this case/i);
 }
 

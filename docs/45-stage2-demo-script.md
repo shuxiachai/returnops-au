@@ -226,7 +226,7 @@ Gloss: how we worked, and proof that the work is real.
 
 Actions:
 
-1. GitHub Actions: the CI run of the submission tag, all jobs; then run 39634415393 with the `end-to-end-no-llm` job. Keep [docs/48](48-agile-evidence-and-technology-data.md) open: its iteration table, the feedback-loop list and the technology table are the material for this segment.
+1. GitHub Actions: the CI run of the submission tag, all jobs; then run 39634415393 with the `end-to-end-no-llm` job. Keep [docs/48](48-agile-evidence-and-technology-data.md) open on GitHub, where its two charts render: the iteration table and burn-up, the burn-down of the final iteration, the feedback-loop list and the technology table are the material for this segment.
 2. Jira KAN board: timeline and the R.05 / Gate 2 issues (KAN-38, KAN-39, KAN-40, KAN-41, KAN-42).
 3. Pull requests: one cycle each, for example #60 (B's frontend: review comments, fixes, merge), #89 and #90 (A: CI green, merged), #94 (advisory showcase, merged 22 October), #70 (C's evaluation candidate: A's review found a `Decimal`-context rounding risk, fixed with integer arithmetic and regression tests).
 4. Core and optional mapping ([docs/07](07-frozen-work-allocation.md)):

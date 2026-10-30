@@ -93,6 +93,38 @@ function describeSubmitError(err: unknown, fallback: string): string {
   return base;
 }
 
+// The contract's limits on attached files (EvidenceAttachment, CreateCaseRequest and
+// ClarificationRequest): JPEG, PNG or PDF, 1 byte to 10 MiB each, at most 10 per
+// request. A file outside them is refused here, with the reason, instead of being
+// uploaded and refused by the server, or sent and refused as "Request fields are invalid".
+const ATTACHABLE_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
+const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+const MAX_ATTACHMENTS = 10;
+// CreateCaseRequest.order_reference allows at most 120 characters.
+const MAX_ORDER_REFERENCE = 120;
+
+function admitAttachments(alreadySelected: number, picked: File[]): { admitted: File[]; refused: string | null } {
+  const admitted: File[] = [];
+  const reasons: string[] = [];
+  for (const file of picked) {
+    if (!ATTACHABLE_TYPES.includes(file.type)) reasons.push(`${file.name} is not a JPEG, PNG or PDF file.`);
+    else if (file.size === 0) reasons.push(`${file.name} is empty.`);
+    else if (file.size > MAX_ATTACHMENT_BYTES) reasons.push(`${file.name} is larger than 10 MB.`);
+    else if (alreadySelected + admitted.length >= MAX_ATTACHMENTS) reasons.push(`${file.name} was not added: at most ${MAX_ATTACHMENTS} files can be attached.`);
+    else admitted.push(file);
+  }
+  return { admitted, refused: reasons.length > 0 ? `Not attached: ${reasons.join(' ')}` : null };
+}
+
+// A customer reads plain words for the two lookups that are the customer's to fix;
+// any other refusal keeps the server's code.
+function describeLookupError(err: unknown): string {
+  if (!(err instanceof ApiError)) return 'Failed to fetch case details';
+  if (err.status === 404) return 'No case with this ID was found for your account. Check the ID and try again.';
+  if (err.status === 422) return 'This is not a valid case ID. Use the ID shown when your request was lodged.';
+  return err.code ? `${err.code}: ${err.message}` : err.message;
+}
+
 export const CustomerPortal: React.FC = () => {
   const [activeSubTab, setActiveSubTab] = useState<'lodge' | 'track'>('lodge');
 
@@ -107,6 +139,8 @@ export const CustomerPortal: React.FC = () => {
   >([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  // Files refused on selection, with the reason (type, size or count).
+  const [fileNotice, setFileNotice] = useState<string | null>(null);
   const [createdCaseResult, setCreatedCaseResult] = useState<CustomerCaseView | null>(null);
   // Idempotency state for case lodgement
   const [pendingLodgementKey, setPendingLodgementKey] = useState<string | null>(null);
@@ -130,6 +164,7 @@ export const CustomerPortal: React.FC = () => {
   const [isSubmittingClarify, setIsSubmittingClarify] = useState(false);
   const [clarifySuccessMsg, setClarifySuccessMsg] = useState<string | null>(null);
   const [clarifyErrorMsg, setClarifyErrorMsg] = useState<string | null>(null);
+  const [clarificationFileNotice, setClarificationFileNotice] = useState<string | null>(null);
   const [pendingClarifyKey, setPendingClarifyKey] = useState<string | null>(null);
   const [lastClarifyPayload, setLastClarifyPayload] = useState<string | null>(null);
   const activeClarificationUploads = useRef(new Set<string>());
@@ -160,6 +195,7 @@ export const CustomerPortal: React.FC = () => {
     setPendingClarifyKey(null);
     setLastClarifyPayload(null);
     setIsSubmittingClarify(false);
+    setClarificationFileNotice(null);
     // The "answers were received" confirmation is not part of the draft: it stays
     // through the 5 s refresh and Refresh, and goes only on a case switch or a new lodgement.
     setClarifyErrorMsg(null);
@@ -203,13 +239,7 @@ export const CustomerPortal: React.FC = () => {
       // A transient read failure hides the view without discarding an uncertain
       // POST's retry identity. Recovery must confirm the same scope to reuse it.
       setCurrentCase(null);
-      setCaseError(
-        err instanceof ApiError
-          ? err.code
-            ? `${err.code}: ${err.message}`
-            : err.message
-          : 'Failed to fetch case details'
-      );
+      setCaseError(describeLookupError(err));
       return null;
     } finally {
       if (request === latestCaseLoad.current) setIsLoadingCase(false);
@@ -271,7 +301,11 @@ export const CustomerPortal: React.FC = () => {
   // so the success reset can only clear what was actually submitted.
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || isSubmitting) return;
-    const newFiles = Array.from(e.target.files).map((f) => ({
+    const { admitted, refused } = admitAttachments(selectedFiles.length, Array.from(e.target.files));
+    setFileNotice(refused);
+    // The same file can be picked again after it was refused or removed.
+    e.target.value = '';
+    const newFiles = admitted.map((f) => ({
       file: f,
       description: '',
       // Binding the key at selection time means a lost-response retry of the
@@ -383,6 +417,7 @@ export const CustomerPortal: React.FC = () => {
       setOrderReference('');
       setRequestedOutcome('UNSPECIFIED');
       setSelectedFiles([]);
+      setFileNotice(null);
       // A confirmation for answers on an earlier case does not belong to this one.
       setClarifySuccessMsg(null);
       setPendingLodgementKey(null);
@@ -401,7 +436,10 @@ export const CustomerPortal: React.FC = () => {
   // ---------------------------------------------------------
   const handleClarificationFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || isSubmittingClarify) return;
-    const newFiles = Array.from(e.target.files).map((f) => ({
+    const { admitted, refused } = admitAttachments(clarificationFiles.length, Array.from(e.target.files));
+    setClarificationFileNotice(refused);
+    e.target.value = '';
+    const newFiles = admitted.map((f) => ({
       file: f,
       description: '',
       // Same identity handling as UC-01 uploads (Finding 1).
@@ -666,13 +704,6 @@ export const CustomerPortal: React.FC = () => {
             </div>
           ) : (
             <form onSubmit={handleSubmitCase} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
-              {submitError && (
-                <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-sm flex items-center space-x-2">
-                  <ShieldAlert className="w-5 h-5 text-rose-600 flex-shrink-0" />
-                  <span>{submitError}</span>
-                </div>
-              )}
-
               {/* Natural Language Statement */}
               <div>
                 <div className="flex items-center justify-between mb-2">
@@ -708,7 +739,7 @@ export const CustomerPortal: React.FC = () => {
                 {/* Order Reference */}
                 <div>
                   <label className="block text-sm font-bold text-slate-900 mb-1.5">
-                    Order Reference <span className="text-xs font-normal text-slate-500">(Optional)</span>
+                    Order Reference <span className="text-xs font-normal text-slate-500">(Optional, up to 120 characters)</span>
                   </label>
                   <input
                     type="text"
@@ -718,6 +749,7 @@ export const CustomerPortal: React.FC = () => {
                       if (!isSubmitting) setOrderReference(e.target.value);
                     }}
                     placeholder="e.g. SYN-1001"
+                    maxLength={MAX_ORDER_REFERENCE}
                     className="w-full text-sm px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-500 focus:bg-white transition-all font-mono disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                   <span className="text-[11px] text-slate-400 mt-1 block">
@@ -777,6 +809,12 @@ export const CustomerPortal: React.FC = () => {
                   </label>
                 </div>
 
+                {fileNotice && (
+                  <p role="alert" className="mb-3 p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs break-words">
+                    {fileNotice}
+                  </p>
+                )}
+
                 {selectedFiles.length === 0 ? (
                   <div className="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center text-slate-400 text-xs bg-slate-50/50">
                     No files attached yet. Click "Add File" to attach photos of damaged items, packaging, or receipts.
@@ -833,6 +871,17 @@ export const CustomerPortal: React.FC = () => {
                 )}
               </div>
 
+              {/* A refusal is shown next to the button that sent the request, not at the top of a long form. */}
+              {submitError && (
+                <div
+                  role="alert"
+                  className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-sm flex items-center space-x-2 break-words"
+                >
+                  <ShieldAlert className="w-5 h-5 text-rose-600 flex-shrink-0" />
+                  <span className="min-w-0">{submitError}</span>
+                </div>
+              )}
+
               {/* Submit Button */}
               <div className="border-t border-slate-100 pt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
                 <div className="text-xs">
@@ -876,12 +925,22 @@ export const CustomerPortal: React.FC = () => {
       {activeSubTab === 'track' && (
         <div className="space-y-6">
           {/* Lookup Bar */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="flex-1 w-full flex items-center space-x-2">
+          {/* Stacked below 1024 px, so Mock Mode's demo buttons never squeeze the case ID box. */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            {/* A form, so Enter in the box looks the case up as the button does; while a
+                lookup runs the button is disabled and Enter sends nothing more. */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!isLoadingCase && searchCaseId.trim()) loadCase(searchCaseId);
+              }}
+              className="flex-1 w-full flex items-center space-x-2"
+            >
               <div className="relative flex-1">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 <input
                   type="text"
+                  aria-label="Case ID"
                   value={searchCaseId}
                   onChange={(e) => setSearchCaseId(e.target.value)}
                   placeholder={isMockMode() ? 'Enter Case ID (e.g. case_demo_001)...' : 'Enter your case ID...'}
@@ -889,18 +948,18 @@ export const CustomerPortal: React.FC = () => {
                 />
               </div>
               <button
-                onClick={() => loadCase(searchCaseId)}
+                type="submit"
                 disabled={isLoadingCase || !searchCaseId.trim()}
                 className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white text-sm font-semibold rounded-xl transition-colors flex items-center space-x-1.5 disabled:opacity-50"
               >
                 {isLoadingCase ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                 <span>Lookup</span>
               </button>
-            </div>
+            </form>
 
-            {/* Quick Demo Case Selector: Mock Mode only (#111 item 3) */}
+            {/* Quick Demo Case Selector: Mock Mode only (#111 item 3); wraps on a phone. */}
             {isMockMode() && (
-            <div className="flex items-center space-x-1.5 text-xs text-slate-500">
+            <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
               <span>Demo Cases:</span>
               <button
                 onClick={() => {
@@ -936,8 +995,9 @@ export const CustomerPortal: React.FC = () => {
               {/* Case Overview Card */}
               <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-2">
-                  <div className="flex items-center space-x-3">
-                    <span className="font-mono text-xl font-bold text-slate-900">{currentCase.case_id}</span>
+                  {/* The 37-character case ID and the status wrap on a phone instead of leaving the card. */}
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-2 min-w-0">
+                    <span className="font-mono text-xl font-bold text-slate-900 break-all">{currentCase.case_id}</span>
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusBadgeClass(
                         currentCase.status
@@ -962,7 +1022,7 @@ export const CustomerPortal: React.FC = () => {
                 </div>
 
                 {currentCase.outcome_message && (
-                  <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 text-sm">
+                  <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 text-sm break-words">
                     <strong>Final Outcome: </strong>
                     {currentCase.outcome_message}
                   </div>
@@ -1072,6 +1132,12 @@ export const CustomerPortal: React.FC = () => {
                         </label>
                       </div>
 
+                      {clarificationFileNotice && (
+                        <p role="alert" className="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-rose-800 text-xs break-words">
+                          {clarificationFileNotice}
+                        </p>
+                      )}
+
                       {clarificationFiles.length > 0 && (
                         <div className="space-y-2">
                           {clarificationFiles.map((item) => (
@@ -1171,7 +1237,10 @@ export const CustomerPortal: React.FC = () => {
                         </span>
                         <span>{formatDate(stmt.submitted_at)}</span>
                       </div>
-                      <p className="text-sm text-slate-800 whitespace-pre-wrap">{stmt.raw_text}</p>
+                      {/* The customer's own words: a long unbroken word wraps, and right-to-left text sets its own direction. */}
+                      <p dir="auto" className="text-sm text-slate-800 whitespace-pre-wrap break-words">
+                        {stmt.raw_text}
+                      </p>
                       {stmt.order_reference && (
                         <div className="text-slate-500">
                           {/* Demo extension (#122 item 5): the contract's CustomerStatement

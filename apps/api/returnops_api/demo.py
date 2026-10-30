@@ -6,6 +6,7 @@ from .database import build_engine
 from .settings import Settings,require_environment_database
 from returnops_domain.audit import identifier
 from returnops_domain.registry import TrustedRegistry
+from returnops_domain.errors import FlowError
 from returnops_domain.wire import validate
 
 def _private_write(path,value):
@@ -45,7 +46,9 @@ def provision(directory,*,store,customer_one,customer_two,founder,order_investig
     if not directory.is_absolute() or directory.exists(): raise ValueError('Use a new absolute private output directory.')
     people_ids=[customer_one,customer_two,founder]
     if len(set(people_ids))!=3: raise ValueError('Use three distinct demo principal IDs.')
-    for value in people_ids+[store]: validate('Id',value)
+    for value in people_ids+[store]:
+        try: validate('Id',value)
+        except FlowError: raise ValueError('Store and principal IDs must be 3 to 80 letters, digits, - or _, starting with a letter or digit.') from None
     settings=Settings.from_environment();require_environment_database(settings.database_url.get_secret_value())
     now=int(time.time());key=secrets.token_bytes(48);issuer='returnops-private-demo';audience='returnops-customer-demo'
     principals=[{'principal_id':value,'role':'FOUNDER' if value==founder else 'CUSTOMER','store_id':store,'enabled':True} for value in people_ids]
