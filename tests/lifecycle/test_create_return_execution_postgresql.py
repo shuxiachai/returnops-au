@@ -20,7 +20,6 @@ from approve_helpers import approve
 from conftest import migrate
 
 
-@pytest.mark.parametrize('flow_engine', [PREPARATION], indirect=True)
 def test_database_now_is_utc_whatever_the_session_time_zone(flow_engine):
     # 30 October 2026 review: with a non-UTC server or role TimeZone, check_time
     # refused every step after approval because the offset was not zero.
@@ -35,6 +34,7 @@ def test_database_now_is_utc_whatever_the_session_time_zone(flow_engine):
     assert now.utcoffset() == timedelta(0)
 
 
+@pytest.mark.parametrize('flow_engine', [PREPARATION], indirect=True)
 def test_RE_G1_retained0010_upgrade_and_original_approval_preparation_replay(flow_engine, identities, enabled, request):
     arguments, setup = ready(flow_engine, identities, grants=False)
     before = snapshot(flow_engine)
