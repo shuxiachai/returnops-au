@@ -85,4 +85,25 @@ Three independent read-only reviews of main on 23 October 2026 (decision boundar
 | Clarification rounds have no cap | New typed refusal in the customer contract path | Documented cap with a test |
 | Authority loss during a decision's service body is reported as 409 rather than 401/403; replay receipts are JSON-equal but not byte-identical; acceptance facts store 200 for the 202 route | Consistency, no data or safety effect | One PostgreSQL test each, then the mapping and `sort_keys` changes together |
 
+## 9. Cloud deployment (considered 30 October 2026)
+
+On 30 October 2026 the lead asked whether the demonstration could run on a cloud platform such as Railway. Decision: not for Week 13. The demonstration keeps the local deployment of PD-02 ([docs/15](15-package-deployment-models.md), section 4), started with `tools/demo/start-demo.cmd` ([README, Demo machine script](../README.md#demo-machine-script-windows)). A cloud deployment is later work.
+
+Reasons:
+
+- In the Week 13 demonstration the source is downloaded from Canvas and deployed on site (Stage 2 Marking Criteria, [docs/47](47-stage2-submission-runbook.md) section 1). A service deployed in advance is not that deployment. Pushing the downloaded package to a cloud service at the venue would add the venue network, an account sign-in and a remote build to the deployment slot.
+- The rubric's examples for advanced technologies do not ask for a new cloud service ([docs/28](28-stage2-submission-checklist.md)).
+- The prototype is built for one machine. The table lists what would change.
+
+| Area | Today | Change for a cloud deployment |
+|---|---|---|
+| Demo API | `demo.py serve` binds `127.0.0.1` only | Bind address from configuration, behind the platform's HTTPS endpoint |
+| Web frontend | The Vite dev server proxies `/v1` and `/health` to `127.0.0.1:8000`; the API registers no CORS middleware | A production build served from the API's origin or behind one reverse proxy, so the browser makes no cross-origin calls |
+| Database | Compose PostgreSQL 17 on loopback; the password lives in the ignored `.env` | Managed PostgreSQL with the password as a platform secret; `alembic upgrade head` as a release step |
+| Demo identities | `demo.py provision` writes the signing key and the 899 s sessions to a private folder on the machine | Signing key as a platform secret, provisioning as a one-off job before each demonstration; tokens never in logs or build output |
+| Exposure | Loopback only | A public URL: synthetic data only, rate limiting, and the service stopped after use (NFR-003, NFR-009) |
+| Models | PD-02 shows the local topology | A second deployment view in docs/15, with its checks |
+
+Owner: A, who owns PD-02 and the demo machine tooling. Not scheduled, and not before the Week 13 demonstration.
+
 AI-assisted implementation and metadata preparation; author shuxiachai.
