@@ -1,0 +1,30 @@
+# Railway entry for the demonstration (tools/railway/Dockerfile): the web build on
+# Railway's PORT, with /v1 and /health proxied to the demo API on 127.0.0.1:8000,
+# so the browser stays on one origin. No access log: requests carry bearer tokens.
+{
+	admin off
+	auto_https off
+	persist_config off
+}
+
+:{$PORT:8080} {
+	encode gzip
+
+	handle /v1/* {
+		reverse_proxy 127.0.0.1:8000
+	}
+	handle /health/* {
+		reverse_proxy 127.0.0.1:8000
+	}
+	handle {
+		root * /app/web
+		try_files {path} /index.html
+		file_server
+	}
+
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy no-referrer
+	}
+}

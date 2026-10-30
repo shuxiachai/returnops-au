@@ -77,6 +77,24 @@ api/migrate 内的 localhost 指该容器自身，不能把主机 5433 当 Postg
 
 配置通过环境注入，不把 bearer/provider token、密码或完整 DSN 写入模型、普通日志或客户端。LLM 仅收到允许的合成/去标识化字段；C3 通过 evidence ID 的 scoped capability 获得获准内容，不拿客户 token、任意 URL/path。labelStore 是内部生成制品边界，不能借客户上传 API 伪装保存 provider 效果；具体存储后端、保留与删除仍属 F.04/F.07、CS-Q02。
 
+### 4.1 PD-03：Railway 云端演示部署（2026-10-30 新增）
+
+2026-10-30 组长决定 Week 13 演示在 Railway 上运行，PD-02 本地部署保留为备用（[docs/46](46-gate2-roadmap.md) 第 9 节）。上一段“本稿不新增外部访问、TLS、反向代理”的边界只对 PD-02 成立；PD-03 是为演示另加的一个部署视图，不改 PD-01 的包、接口或 Domain 规则。
+
+[PlantUML 源文件](diagrams/shared/deployment-railway.puml) · [完整 SVG](diagrams/shared/deployment-railway.svg)
+
+![PD-03 Railway deployment](diagrams/shared/deployment-railway.svg)
+
+| 部署位置 | 制品与连接 | 边界 |
+|---|---|---|
+| 演示电脑 | 两个浏览器 profile；Railway CLI 与 `tools/demo/demo.ps1 cloud / cloud-fresh / cloud-tokens` | 会话文件经 `railway ssh` 读入变量后写到 `tmp/railway-shop`，不显示；演示后删除 |
+| Railway edge | 服务的公开 HTTPS 地址 → 容器 `PORT` | TLS 由平台终止；容器内不签证书 |
+| 演示服务容器（`tools/railway/Dockerfile`，UID 10001） | `start.py`：重建 `returnops_f02`、`alembic upgrade head`、`demo.py provision`；Caddy 在 `PORT` 提供网页构建，并把 `/v1`、`/health` 代理到 `127.0.0.1:8000`；`demo.py serve --fixed-proposal --founder-decisions` | 演示 API 仍只监听 loopback，浏览器与它同源，不需要 CORS；Caddy 不写访问日志；任一进程退出则容器以 1 退出，Railway 按 `railway.json` 重启为新的演示 |
+| PostgreSQL 17 服务（与 `compose.yaml` 同一镜像摘要，挂 Railway 数据卷） | 平台引用变量拼出的 `DATABASE_URL`（`postgresql://`，私网主机名）；应用使用同一服务器上的 `returnops_f02` 库 | 每次启动删除并重建该库（与 PD-02 的 `fresh` 相同），只放合成数据；密码只在平台变量里 |
+| 不在 PD-03 | S4 模型展示（课程代理在私有 VPN 地址，平台访问不到）；S5 R.02 驱动（在 PD-02 上运行） | 两者都按 docs/45 的备用方案处理 |
+
+需求对应：R.05.b 演示；NFR-003（只用合成数据，私有文件不进日志和镜像）；NFR-009（不显示凭据，公开地址只在演示期间运行）。2026-10-30 在本机用 Docker 模拟 Railway（PostgreSQL 容器加本镜像，`PORT=8080`）跑通：启动约 6 秒，`/health/ready`、网页、顾客提交与追问、店主队列和详情都经同一地址工作；在真实 Railway 上的记录见 README 的 Railway 一节。
+
 ## 5. 需求 → 包/接口 → 部署 → 验证
 
 | 要求与原工作包 | 包/接口与部署位置 | 应检查的证据 |

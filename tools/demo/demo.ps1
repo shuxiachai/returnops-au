@@ -35,6 +35,19 @@ Actions (from the package root):
            database volume and deletes tmp\demo-shop and tmp\demo-cups.
            tools\demo\stop-demo.cmd runs stop -RemoveData on a double-click.
 
+Railway (docs/46 section 9, docs/15 PD-03): the Railway service runs
+tools/railway/start.py, and every start of it is a fresh demonstration with new
+899 s sessions. Run `railway login`, then `railway link` once in this folder,
+and register this machine's SSH key once (README, Railway deployment).
+  cloud        Deploys this folder (railway up) and copies the new sessions to
+               tmp\railway-shop through railway ssh, never showing them.
+               tools\demo\cloud-demo.cmd runs it on a double-click.
+  cloud-fresh  Redeploys the running service for new sessions and copies them.
+  cloud-tokens Copies the current sessions again; warns if they have expired.
+  -Url https://... checks that the service answers ready through its address.
+  -Service name is the app service these act on (default returnops-demo-app),
+               whichever service railway link chose; never the database.
+
 Usage:
   powershell -NoProfile -ExecutionPolicy Bypass -File tools\demo\demo.ps1 prepare
 
@@ -46,10 +59,13 @@ is displayed). AI-assisted implementation; author shuxiachai.
 #>
 param(
     [Parameter(Mandatory = $true, Position = 0)]
-    [ValidateSet('check', 'prepare', 'start', 'fresh', 's5', 'stop')]
+    [ValidateSet('check', 'prepare', 'start', 'fresh', 's5', 'stop', 'cloud', 'cloud-fresh', 'cloud-tokens')]
     [string]$Action,
     [switch]$ModelShowcase,
-    [switch]$RemoveData
+    [switch]$RemoveData,
+    [string]$Url,
+    [ValidatePattern('^[A-Za-z0-9][A-Za-z0-9_-]*$')]
+    [string]$Service = 'returnops-demo-app'
 )
 
 Set-StrictMode -Version 2
@@ -62,6 +78,7 @@ $EnvFile = Join-Path $Root '.env'
 $Tmp = Join-Path $Root 'tmp'
 $Shop = Join-Path $Tmp 'demo-shop'
 $Cups = Join-Path $Tmp 'demo-cups'
+$CloudShop = Join-Path $Tmp 'railway-shop'
 $StateDir = Join-Path $Tmp 'demo-script'
 $Web = Join-Path $Root 'apps\web'
 $SessionSeconds = 899
@@ -701,6 +718,88 @@ function Invoke-S5 {
     Show-Info '  (Get-Content -Raw tmp\demo-cups\sessions.json | ConvertFrom-Json).tokens.demo_cups_founder | Set-Clipboard'
 }
 
+# -- Railway --------------------------------------------------------------------
+# The sessions file of the running Railway deployment is read through `railway ssh`
+# into a variable and written to tmp\railway-shop; it is never shown. cmd passes the
+# `--` to the Railway CLI unchanged, which Windows PowerShell 5.1 may not.
+# Every Railway command names -Service: a folder can be linked to the database service
+# (`railway add` links the service it adds), and `railway up` there would replace it.
+
+function Assert-Railway {
+    Show-Step 'Railway CLI'
+    if (-not (Get-Command railway -ErrorAction SilentlyContinue)) { Stop-Script 'The Railway CLI is not installed: npm install -g @railway/cli, then railway login and railway link.' }
+    if ((Invoke-Quiet { railway whoami }).Code -ne 0) { Stop-Script 'The Railway CLI is not signed in: run railway login.' }
+    Show-Ok 'Railway CLI signed in'
+}
+
+# The sessions of the running deployment as text and data, or $null.
+function Get-CloudSessions {
+    $answer = Invoke-Quiet { cmd.exe /d /c "railway ssh --service $Service -- cat /app/private/demo-shop/sessions.json" }
+    if ($answer.Code -ne 0 -or -not $answer.Output) { return $null }
+    try { $data = $answer.Output | ConvertFrom-Json } catch { return $null }
+    if (-not ($data.PSObject.Properties['tokens'] -and $data.PSObject.Properties['sessions'])) { return $null }
+    return [pscustomobject]@{ Text = $answer.Output; Data = $data; Issued = [long]$data.sessions[0].issued_at }
+}
+
+# Waits for sessions issued after $Before (the issue time seen before the deploy, or 0),
+# so the server's clock is compared only with itself.
+function Wait-CloudSessions([long]$Before, [int]$Minutes) {
+    Show-Info "Waiting up to $Minutes minutes for the new deployment's sessions (railway ssh)."
+    $deadline = (Get-Date).AddMinutes($Minutes)
+    while ((Get-Date) -lt $deadline) {
+        $found = Get-CloudSessions
+        if ($found -and $found.Issued -gt $Before) { return $found }
+        Start-Sleep -Seconds 10
+    }
+    Stop-Script "No new sessions within $Minutes minutes. Look at the deployment logs on railway.com, and check that this machine's SSH key is registered (railway ssh keys list; README, Railway deployment)."
+}
+
+function Save-CloudSessions($Found) {
+    if (Test-Path -LiteralPath $CloudShop) { Remove-Item -LiteralPath $CloudShop -Recurse -Force }
+    New-Item -ItemType Directory -Path $CloudShop | Out-Null
+    [System.IO.File]::WriteAllText((Join-Path $CloudShop 'sessions.json'), $Found.Text + "`n")
+    $until = [DateTimeOffset]::FromUnixTimeSeconds([long]$Found.Data.sessions[0].expires_at).LocalDateTime
+    if ($until -le (Get-Date)) { Show-Warn "Sessions copied to tmp\railway-shop (not shown), but they expired at $(Format-Time $until); run cloud-fresh for new ones." }
+    else { Show-Ok "Sessions copied to tmp\railway-shop (not shown); they expire at $(Format-Time $until)." }
+    $address = 'the Railway address of the service (railway.com, service, Settings, Networking)'
+    if ($Url) {
+        $address = $Url.TrimEnd('/')
+        if (Wait-Http "$address/health/ready" '"ready"' 30) { Show-Ok "$address answers ready" }
+        else { Show-Warn "$address does not answer ready; check the address and the deployment on railway.com." }
+    }
+    Show-Step 'Sign in (manual, README step 4)'
+    Show-Info "Open $address in two browser profiles: Auth Tokens -> role -> Mock Data Fallback off -> paste -> Save & Apply."
+    Show-Info 'Copy a token to the clipboard without showing it (customer, then Founder):'
+    Show-Info '  (Get-Content -Raw tmp\railway-shop\sessions.json | ConvertFrom-Json).tokens.synthetic_customer_a | Set-Clipboard'
+    Show-Info '  (Get-Content -Raw tmp\railway-shop\sessions.json | ConvertFrom-Json).tokens.synthetic_founder | Set-Clipboard'
+    Show-Info 'New sessions: tools\demo\demo.ps1 cloud-fresh. After the demonstration: stop the Railway service and run stop -RemoveData here.'
+}
+
+function Invoke-Cloud {
+    Assert-Railway
+    $before = Get-CloudSessions
+    $since = 0; if ($before) { $since = $before.Issued }
+    Show-Step "Deploying this folder to the Railway service $Service (railway up; $Root)"
+    Invoke-Checked 'railway up' { railway up --ci --service $Service }
+    Save-CloudSessions (Wait-CloudSessions $since 10)
+}
+
+function Invoke-CloudFresh {
+    Assert-Railway
+    $before = Get-CloudSessions
+    if (-not $before) { Stop-Script 'railway ssh returned no sessions from the running service; run cloud first, or cloud-tokens to see the reason.' }
+    Show-Step "Redeploying the Railway service $Service for new sessions (railway redeploy)"
+    Invoke-Checked 'railway redeploy' { railway redeploy --yes --service $Service }
+    Save-CloudSessions (Wait-CloudSessions $before.Issued 5)
+}
+
+function Invoke-CloudTokens {
+    Assert-Railway
+    $found = Get-CloudSessions
+    if (-not $found) { Stop-Script "railway ssh returned no sessions from the service $Service. Check that this machine's SSH key is registered (railway ssh keys list; README, Railway deployment), that -Service names the app service, and that it is running." }
+    Save-CloudSessions $found
+}
+
 function Invoke-Stop {
     Show-Step 'Stopping the windows this script started'
     $webPort = Get-WebPort
@@ -721,7 +820,7 @@ function Invoke-Stop {
             if (Test-VolumeExists) { Invoke-Checked 'docker volume rm' { docker volume rm $Volume } }
         }
         Show-Ok 'Containers and the database volume removed'
-        foreach ($dir in @($Shop, $Cups, $StateDir)) {
+        foreach ($dir in @($Shop, $Cups, $CloudShop, $StateDir)) {
             if (Test-Path -LiteralPath $dir) { Remove-Item -LiteralPath $dir -Recurse -Force; Show-Ok "Deleted tmp\$(Split-Path -Leaf $dir)" }
         }
         Show-Info 'Kept: .env, .venv, apps\web\node_modules and the driver receipts in tmp\r02-demo-run-*.'
@@ -747,5 +846,8 @@ switch ($Action) {
     'fresh' { Invoke-Fresh }
     's5' { Invoke-S5 }
     'stop' { Invoke-Stop }
+    'cloud' { Invoke-Cloud }
+    'cloud-fresh' { Invoke-CloudFresh }
+    'cloud-tokens' { Invoke-CloudTokens }
 }
 exit 0

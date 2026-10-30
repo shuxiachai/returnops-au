@@ -21,3 +21,23 @@
 !alembic/*.mako
 !alembic/versions/
 !alembic/versions/*.py
+# tools/railway/Dockerfile also builds the web frontend and adds the Railway entry files.
+!apps/web/
+!apps/web/index.html
+!apps/web/package.json
+!apps/web/package-lock.json
+!apps/web/postcss.config.js
+!apps/web/tailwind.config.js
+!apps/web/tsconfig.json
+!apps/web/tsconfig.node.json
+!apps/web/vite.config.ts
+!apps/web/public/
+!apps/web/public/**
+!apps/web/src/
+!apps/web/src/**
+!tools/
+!tools/railway/
+!tools/railway/Caddyfile
+!tools/railway/start.py
+apps/web/node_modules
+apps/web/dist

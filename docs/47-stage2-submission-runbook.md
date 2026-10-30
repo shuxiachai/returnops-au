@@ -60,6 +60,14 @@ Derived from the README chapter [Deploy from zero](../README.md#deploy-from-zero
 
 Since 27 October 2026 the Windows script `tools/demo/demo.ps1` ([README, Demo machine script](../README.md#demo-machine-script-windows)) runs steps 4 to 7 (`prepare`), 9 to 11 (`start`), 17 (`s5`) and the Compose and directory part of step 20 (`stop -RemoveData`); `check` prints the versions for step 1. Passes 1 and 2 use it and record any step where it stops; the commands in the table stay the fallback, and step 8 stays manual. Since 29 October 2026 `tools\demo\start-demo.cmd` runs `stop -RemoveData`, `prepare` and `start` on a double-click (opening Docker Desktop first when needed) and `tools\demo\stop-demo.cmd` runs `stop -RemoveData`; when Windows has reserved 5173, step 11's page is on the port that `start` prints.
 
+Since 30 October 2026 the Week 13 demonstration runs on Railway, and the local steps stay the fallback ([README, Railway deployment](../README.md#railway-deployment-since-30-october-2026); [docs/46](46-gate2-roadmap.md) section 9). Pass 2 adds the Railway path to the table's local steps:
+1. `railway link` in the folder downloaded from Canvas;
+2. `demo.ps1 cloud` (`railway up`, then the sessions copied to `tmp\railway-shop` without showing them);
+3. S2 to S4 on the service's Railway address;
+4. `demo.ps1 cloud-fresh` once, to check that new sessions arrive.
+
+Record the build time, the time to ready, and any step where it stops. S5 stays on the local deployment.
+
 | # | Step | Expected output | Who | Date | Result |
 |---|---|---|---|---|---|
 | 1 | Record machine, OS, CPython (3.12; 3.12.4 or later on Windows), Docker and Compose, Node and npm versions | Versions within README section 0 | A | 29 Oct / pass 2 | |

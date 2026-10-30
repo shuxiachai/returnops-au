@@ -85,25 +85,25 @@ Three independent read-only reviews of main on 23 October 2026 (decision boundar
 | Clarification rounds have no cap | New typed refusal in the customer contract path | Documented cap with a test |
 | Authority loss during a decision's service body is reported as 409 rather than 401/403; replay receipts are JSON-equal but not byte-identical; acceptance facts store 200 for the 202 route | Consistency, no data or safety effect | One PostgreSQL test each, then the mapping and `sort_keys` changes together |
 
-## 9. Cloud deployment (considered 30 October 2026)
+## 9. Cloud deployment (decided 30 October 2026)
 
-On 30 October 2026 the lead asked whether the demonstration could run on a cloud platform such as Railway. Decision: not for Week 13. The demonstration keeps the local deployment of PD-02 ([docs/15](15-package-deployment-models.md), section 4), started with `tools/demo/start-demo.cmd` ([README, Demo machine script](../README.md#demo-machine-script-windows)). A cloud deployment is later work.
+On 30 October 2026 the lead asked whether the demonstration could run on Railway. The first answer, recorded here in #156, was "not for Week 13". Later the same day the lead decided to use Railway for the Week 13 demonstration and to keep the local deployment of PD-02 as the fallback. This section records that decision and how it was carried out.
 
-Reasons:
+The rule of the Stage 2 Marking Criteria still holds: the source is downloaded from Canvas and deployed on site ([docs/47](47-stage2-submission-runbook.md) section 1). At the venue, the downloaded folder is deployed with `railway up`, so Railway builds the downloaded package. Two things are added to the deployment slot: the venue network and a remote build. If either fails, the presenter double-clicks `tools/demo/start-demo.cmd` instead ([README, Demo machine script](../README.md#demo-machine-script-windows)).
 
-- In the Week 13 demonstration the source is downloaded from Canvas and deployed on site (Stage 2 Marking Criteria, [docs/47](47-stage2-submission-runbook.md) section 1). A service deployed in advance is not that deployment. Pushing the downloaded package to a cloud service at the venue would add the venue network, an account sign-in and a remote build to the deployment slot.
-- The rubric's examples for advanced technologies do not ask for a new cloud service ([docs/28](28-stage2-submission-checklist.md)).
-- The prototype is built for one machine. The table lists what would change.
-
-| Area | Today | Change for a cloud deployment |
+| Area | Before (PD-02 only) | Railway (PD-03, [docs/15](15-package-deployment-models.md) section 4.1) |
 |---|---|---|
-| Demo API | `demo.py serve` binds `127.0.0.1` only | Bind address from configuration, behind the platform's HTTPS endpoint |
-| Web frontend | The Vite dev server proxies `/v1` and `/health` to `127.0.0.1:8000`; the API registers no CORS middleware | A production build served from the API's origin or behind one reverse proxy, so the browser makes no cross-origin calls |
-| Database | Compose PostgreSQL 17 on loopback; the password lives in the ignored `.env` | Managed PostgreSQL with the password as a platform secret; `alembic upgrade head` as a release step |
-| Demo identities | `demo.py provision` writes the signing key and the 899 s sessions to a private folder on the machine | Signing key as a platform secret, provisioning as a one-off job before each demonstration; tokens never in logs or build output |
-| Exposure | Loopback only | A public URL: synthetic data only, rate limiting, and the service stopped after use (NFR-003, NFR-009) |
-| Models | PD-02 shows the local topology | A second deployment view in docs/15, with its checks |
+| Demo API | `demo.py serve` binds `127.0.0.1` only | Unchanged: it still binds loopback inside the container, and Caddy in the same container is the only public listener |
+| Web frontend | The Vite dev server proxies `/v1` and `/health` to `127.0.0.1:8000`; the API registers no CORS middleware | A production build served by Caddy on the same origin as `/v1`, so no CORS is needed (`tools/railway/Caddyfile`) |
+| Database | Compose PostgreSQL 17 on loopback; the password lives in the ignored `.env` | PostgreSQL 17 as a Railway image service, the same image as Compose (Railway's own template was PostgreSQL 18, where migration 0010 refuses); its `DATABASE_URL` stays a platform variable. Each start drops and creates `returnops_f02`, then migrates (`tools/railway/start.py`) |
+| Demo identities | `demo.py provision` on the machine | `demo.py provision` inside the container at each start. The sessions are copied to the presenter's machine through `railway ssh` and never shown (`demo.ps1 cloud-tokens`) |
+| Exposure | Loopback only | A public HTTPS address with synthetic data only; the service runs only for the rehearsal and the demonstration (NFR-003, NFR-009) |
+| Models | PD-02 | PD-03 added in docs/15 |
 
-Owner: A, who owns PD-02 and the demo machine tooling. Not scheduled, and not before the Week 13 demonstration.
+What is not on Railway:
+- S4's live model showcase: the course proxy is on a private VPN address that the platform cannot reach, so S4 uses its fallback wording.
+- S5's R.02 driver: it runs on PD-02.
+
+Owner: A. Still open: a real Railway run from the Canvas download (rehearsal pass 2), and rate limiting for the public address.
 
 AI-assisted implementation and metadata preparation; author shuxiachai.

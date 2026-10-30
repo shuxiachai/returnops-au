@@ -21,6 +21,7 @@ ReturnOps AU is the Group 10 project for ELEC5620 Model-Based Software Engineeri
 
 | Step | Where |
 |---|---|
+| Week 13 on Railway (the lead's choice since 30 October 2026), the local script as fallback | [Railway deployment](#railway-deployment-since-30-october-2026); `tools\demo\cloud-demo.cmd` |
 | Windows demo machine: steps 1 to 5 with one script (or a double-click on `tools\demo\start-demo.cmd`), the steps below as fallback | [`tools/demo/demo.ps1`](tools/demo/demo.ps1); [Demo machine script](#demo-machine-script-windows) |
 | Prerequisites, Python environment, `.env`, Docker Compose database | [Deploy from zero](#deploy-from-zero---22-october-2026-sydney), steps 0 to 2 |
 | Demo identities, API with workers, web frontend and token login | the same chapter, steps 3 and 4 |
@@ -561,6 +562,136 @@ the same way.
   this machine); the engine check now gives up after 15 s, and `fresh` stops
   after 3 minutes. In Docker's error window choose Quit, never Reset to factory
   defaults. Not tested: a machine where 5173 is free, and the Canvas zip.
+
+### Railway deployment (since 30 October 2026)
+
+The lead chose [Railway](https://railway.com) for the Week 13 demonstration, and
+the local deployment above stays the fallback ([docs/46](docs/46-gate2-roadmap.md)
+section 9; deployment model PD-03 in [docs/15](docs/15-package-deployment-models.md)
+section 4.1).
+
+One Railway service is built from `tools/railway/Dockerfile`. The service
+variable `RAILWAY_DOCKERFILE_PATH` selects that file: on 30 October 2026 a
+`railway up` built the root `Dockerfile` although `railway.json` named the other
+one. `railway.json` keeps the health check and the restart policy; Railway warns
+that this file format works until 1 December 2026. The service holds:
+- the web build;
+- the demo API on `127.0.0.1:8000` inside the container;
+- Caddy on Railway's `PORT`, which serves the web build and proxies `/v1` and
+  `/health`, so the browser stays on one origin.
+
+A second service runs PostgreSQL 17 (the image of `compose.yaml`). Every start of the demo service is a fresh
+demonstration, done by `tools/railway/start.py`:
+1. it drops and creates `returnops_f02`;
+2. it runs `alembic upgrade head`;
+3. it runs step 3's `demo.py provision` into a private folder in the container;
+4. it starts the demo API and Caddy.
+
+Nothing it prints contains a credential.
+
+Setup, once per Railway account:
+
+1. Sign in on railway.com and create a project. Add PostgreSQL **17** as an
+   image service, the same image as `compose.yaml`. Railway's own database
+   template was PostgreSQL 18 on 30 October 2026, and there migration 0010
+   stopped with "Preparation upgrade requires exact 0009 approval schema".
+   - The service, named `Postgres17`:
+     `railway add --service Postgres17 --image postgres:17-bookworm@sha256:051f7b7b3abdd564d5d1bd1e8c4b9c1b6e77087d1dd22020ede611c096a272e0 --variables "POSTGRES_USER=postgres" --variables "POSTGRES_DB=railway" --variables "PGDATA=/var/lib/postgresql/data/pgdata"`.
+   - A volume mounted at `/var/lib/postgresql/data`:
+     `railway volume --service <its service ID> add --mount-path /var/lib/postgresql/data`.
+   - A random `POSTGRES_PASSWORD` of letters and digits, set with
+     `railway variable set POSTGRES_PASSWORD --stdin --service Postgres17`.
+     The value must have no trailing newline, space or byte-order mark.
+2. Add an empty service for the app and give it three variables:
+   `DATABASE_URL = postgresql://${{Postgres17.POSTGRES_USER}}:${{Postgres17.POSTGRES_PASSWORD}}@${{Postgres17.RAILWAY_PRIVATE_DOMAIN}}:5432/${{Postgres17.POSTGRES_DB}}`,
+   `PORT = 8080` and
+   `RAILWAY_DOCKERFILE_PATH = tools/railway/Dockerfile`. In Settings, Networking,
+   generate a public domain on port 8080. With the CLI:
+   `railway add --service returnops-demo-app --variables "PORT=8080" --variables "RAILWAY_DOCKERFILE_PATH=tools/railway/Dockerfile"`.
+   Add `DATABASE_URL` as above with `railway variable set`, then run
+   `railway domain --service returnops-demo-app --port 8080`.
+3. On the demo machine: `npm install -g @railway/cli`, `railway login`. Then, in
+   the package folder, run `railway link` and choose the project and the app
+   service. `demo.ps1` names the app service in every Railway command
+   (`-Service`, default `returnops-demo-app`), because `railway add` can leave
+   the folder linked to the database service.
+4. Register the demo machine's SSH key once, for `railway ssh`:
+   - `ssh-keygen -t ed25519 -f "$env:USERPROFILE\.ssh\id_ed25519"` with an empty
+     passphrase;
+   - `railway ssh keys add --key "$env:USERPROFILE\.ssh\id_ed25519.pub" --name <a name>`;
+   - `railway ssh keys list` shows it.
+
+At the demonstration, in the package folder downloaded from Canvas (after
+`railway link`):
+
+| Action | When | What it does |
+|---|---|---|
+| `demo.ps1 cloud` or a double-click on `tools\demo\cloud-demo.cmd` | T-10 minutes | `railway up --ci` builds and deploys this folder. It then waits for the new deployment's sessions and copies them through `railway ssh` to `tmp\railway-shop`, never showing them. It prints when they expire and the clipboard commands of step 4 for that folder. |
+| `demo.ps1 cloud-fresh` | Sessions expired | `railway redeploy`: a fresh database and new sessions, copied the same way. |
+| `demo.ps1 cloud-tokens` | Any time | Copies the current sessions again, with a warning if they have expired. |
+
+`-Url https://<the domain>` also checks that the address answers ready.
+
+- **Not on Railway:**
+  - S4's live model showcase: the course proxy is on a private VPN address.
+  - S5's driver: it runs on the local deployment.
+- **After the demonstration:**
+  - remove the app service's deployment on railway.com;
+  - run `demo.ps1 stop -RemoveData`, which also deletes `tmp\railway-shop`;
+  - use Clear token in both browser profiles.
+- **Tested on 30 October 2026** with Docker on the demonstration machine
+  standing in for Railway: a PostgreSQL 17 container, plus this image with
+  `DATABASE_URL` and `PORT=8080`.
+  - The service was ready in about 6 s.
+  - The page, deep links, `/health/ready` and an unauthenticated `/v1/session`
+    (401) worked.
+  - A customer case was lodged and clarified with `SYN-1001` (RISK_REVIEW). The
+    Founder queue, detail and audit read it through the same address.
+  - A restart gave a new database and new sessions.
+  - A stop request exited 0.
+  - The logs held no token, signing key or database URL.
+  - `cloud`, `cloud-fresh` and `cloud-tokens` ran against a stand-in for the
+    Railway CLI that used `docker exec`.
+
+- **On Railway, 30 October 2026** (project `returnops-demo`, deployed with
+  `railway up` from a folder equal to `main` plus this change):
+  - The first deployment built the root `Dockerfile` and crashed. The service
+    variable `RAILWAY_DOCKERFILE_PATH` fixed the build.
+  - The second deployment met PostgreSQL 18 and stopped in migration 0010.
+    PostgreSQL 17.11 as an image service fixed it.
+  - Then the service was ready 39 s after a redeploy. Through
+    `https://returnops-demo-app-production.up.railway.app`:
+    - `/health/ready` gave 200, the page and a deep link loaded, and
+      `/v1/session` without a token gave 401;
+    - `X-Frame-Options` and `Referrer-Policy` were set, and the browser showed
+      no console error;
+    - the deployment logs held no token, key or database URL.
+
+  - In the evening, after the account's first SSH key was registered from this
+    machine:
+    - `cloud-tokens` first reached the database container. The folder was linked
+      to `Postgres17`, the service `railway add` had last created. A
+      `railway up` there would have replaced the database, so `demo.ps1` now
+      names the app service.
+    - With the app service, `cloud-tokens` copied sessions that had expired at
+      13:16; it now says so.
+    - `cloud-fresh` redeployed and copied new sessions in 29 s.
+    - With those sessions, S2 and S3 ran through the public address by HTTP
+      calls from this machine. No token was shown.
+      - Without a token the Founder queue gave 401; with the customer's token
+        it gave 403.
+      - A case without an order reference got two questions; the answer
+        `SYN-1001` took it to RISK_REVIEW.
+      - A `SYN-CONFLICT` case was ESCALATED with the order-lookup block "The
+        authorized order reference is ambiguous."
+      - The Founder queue, detail, audit and analytics answered 200.
+      - MANUAL_HANDLING on the block was accepted (202): NOTIFICATION_PENDING
+        for the Founder and the customer, and `FOUNDER_DECISION_ACCEPTED` in
+        the audit chain.
+
+  Not yet tested: pasting a token in the web page on Railway, because the test
+  browser could not paste from the clipboard. Also not yet tested: a deployment
+  from the Canvas zip.
 
 ### Troubleshooting
 
