@@ -51,6 +51,18 @@ Follow the [README "Deploy from zero"](../README.md#deploy-from-zero---22-octobe
 5. Optional host check of the migration: `local.py run python -m alembic upgrade head` (README step 2, **not verified**).
 6. In `apps/web`: `npm ci --no-audit --no-fund` (README step 4; the flags only shorten the output, see known gap 17 in the [runbook](47-stage2-submission-runbook.md)). Leave `VITE_API_BASE_URL` unset.
 
+**Railway (the lead's choice since 30 October 2026; [README, Railway deployment](../README.md#railway-deployment-since-30-october-2026)).**
+
+1. After item 1, run `railway link` in the unzipped folder and choose the project and the app service.
+2. About ten minutes before the start, double-click `tools\demo\cloud-demo.cmd` (`demo.ps1 cloud`). Railway builds the downloaded folder, and every new deployment provisions its own demo store, so sections 2.3 items 1 and 3 to 4 happen on Railway.
+3. The script copies the sessions to `tmp\railway-shop` and prints when they expire. Open the service's Railway address instead of `http://localhost:5173`.
+
+For the fallback, keep the local deployment prepared:
+- items 2 to 6 above, or `demo.ps1 prepare`;
+- if Railway or the venue network fails, double-click `tools\demo\start-demo.cmd`.
+
+S5's driver and S4's live model call run only on the local deployment.
+
 ### 2.3 Demo identities, API and frontend (T-5 minutes)
 
 The sessions written by `demo.py provision` last 899 s. The segments that use them (S2 to S4) end at about 5:45, so provision no earlier than about five minutes before the start. `tools\demo\demo.ps1 start` runs items 1, 3 and 4 and prints the web address and when the sessions expire (with `-ModelShowcase` after item 2 in the same window); item 5 stays manual. Once the machine has been prepared, a double-click on `tools\demo\start-demo.cmd` (`demo.ps1 fresh`) does it all from a fresh database: Docker Desktop if needed, `stop -RemoveData`, `prepare` and `start` (34 s on 29 October 2026). It is not for the model showcase, whose variables must be set in the window that runs `start`.

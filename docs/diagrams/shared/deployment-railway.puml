@@ -1,0 +1,53 @@
+@startuml
+title PD-03 / Railway deployment for the Week 13 demonstration\nadded 30 October 2026; PD-02 (local) stays the fallback
+!pragma layout smetana
+top to bottom direction
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 14
+skinparam shadowing false
+skinparam componentStyle rectangle
+skinparam ArrowColor #27465B
+skinparam nodeBorderColor #27465B
+skinparam noteBackgroundColor #FFF5D9
+skinparam nodesep 55
+skinparam ranksep 55
+
+node "Presenter laptop\n(the demo machine)" as Laptop {
+  node "Browser, two profiles\ncustomer and Founder" as Browser <<executionEnvironment>> #E4F2EB
+  node "Railway CLI + tools/demo/demo.ps1\ncloud / cloud-fresh / cloud-tokens" as Cli <<executionEnvironment>> #E4F2EB {
+    artifact "tmp/railway-shop/sessions.json\ncopy of the 899 s sessions\nnever shown; deleted after use" as LocalSessions #E8EEF7
+  }
+}
+
+cloud "Railway project" as Railway {
+  node "Railway edge\npublic HTTPS address" as Edge <<executionEnvironment>> #E4F2EB
+  node "Service: demo container\ntools/railway/Dockerfile\nnon-root UID 10001" as Service <<executionEnvironment>> #E4F2EB {
+    artifact "start.py\nreset returnops_f02, alembic upgrade head,\ndemo.py provision, then supervise" as Start #E4F2EB
+    artifact "Caddy on PORT\nweb build /app/web\n/v1 and /health -> 127.0.0.1:8000" as Caddy #E4F2EB
+    artifact "demo.py serve 127.0.0.1:8000\nfixed proposal and Founder decisions on" as Api #E4F2EB
+    artifact "/app/private/demo-shop\nauth.json, sessions.json" as Private #E8EEF7
+  }
+  node "Service: Railway PostgreSQL\nprivate network only for the app" as Postgres <<executionEnvironment>> #E4F2EB {
+    database "returnops_f02\ndropped and created on every start" as Database #E8EEF7
+  }
+}
+
+node "Not deployed here\nS4 model showcase: course proxy on a private VPN address\nS5 R.02 driver: runs on PD-02" as Elsewhere <<external>> #FFF3D6
+
+Browser --> Edge : HTTPS, bearer token\nper browser profile
+Edge --> Caddy : PORT
+Caddy --> Api : loopback proxy
+Start --> Private : writes
+Api --> Private : reads auth.json
+Start --> Database : reset + migrate + provision
+Api --> Database : SQLAlchemy + psycopg
+Cli --> Service : railway up / redeploy\n(build from this folder)
+Cli --> Private : railway ssh -- cat sessions.json\n(stdout captured, not shown)
+Cli --> LocalSessions : writes
+
+note bottom of Service
+Every start is a fresh synthetic demonstration
+(the same as demo.ps1 fresh on PD-02). No credential is
+printed; logs carry no tokens; Caddy keeps no access log.
+end note
+@enduml

@@ -21,6 +21,7 @@ ReturnOps AU is the Group 10 project for ELEC5620 Model-Based Software Engineeri
 
 | Step | Where |
 |---|---|
+| Week 13 on Railway (the lead's choice since 30 October 2026), the local script as fallback | [Railway deployment](#railway-deployment-since-30-october-2026); `tools\demo\cloud-demo.cmd` |
 | Windows demo machine: steps 1 to 5 with one script (or a double-click on `tools\demo\start-demo.cmd`), the steps below as fallback | [`tools/demo/demo.ps1`](tools/demo/demo.ps1); [Demo machine script](#demo-machine-script-windows) |
 | Prerequisites, Python environment, `.env`, Docker Compose database | [Deploy from zero](#deploy-from-zero---22-october-2026-sydney), steps 0 to 2 |
 | Demo identities, API with workers, web frontend and token login | the same chapter, steps 3 and 4 |
@@ -561,6 +562,75 @@ the same way.
   this machine); the engine check now gives up after 15 s, and `fresh` stops
   after 3 minutes. In Docker's error window choose Quit, never Reset to factory
   defaults. Not tested: a machine where 5173 is free, and the Canvas zip.
+
+### Railway deployment (since 30 October 2026)
+
+The lead chose [Railway](https://railway.com) for the Week 13 demonstration, and
+the local deployment above stays the fallback ([docs/46](docs/46-gate2-roadmap.md)
+section 9; deployment model PD-03 in [docs/15](docs/15-package-deployment-models.md)
+section 4.1).
+
+One Railway service is built from `tools/railway/Dockerfile` (`railway.json`
+selects it). It holds:
+- the web build;
+- the demo API on `127.0.0.1:8000` inside the container;
+- Caddy on Railway's `PORT`, which serves the web build and proxies `/v1` and
+  `/health`, so the browser stays on one origin.
+
+A second service is Railway PostgreSQL. Every start of the demo service is a fresh
+demonstration, done by `tools/railway/start.py`:
+1. it drops and creates `returnops_f02`;
+2. it runs `alembic upgrade head`;
+3. it runs step 3's `demo.py provision` into a private folder in the container;
+4. it starts the demo API and Caddy.
+
+Nothing it prints contains a credential.
+
+Setup, once per Railway account:
+
+1. Sign in on railway.com, create a project, and add PostgreSQL
+   (`railway add --database postgres`, or New, Database in the dashboard).
+2. Add an empty service for the app, then in its Variables add
+   `DATABASE_URL = ${{Postgres.DATABASE_URL}}`. In Settings, Networking, generate
+   a public domain.
+3. On the demo machine: `npm install -g @railway/cli`, `railway login`. Then, in
+   the package folder, run `railway link` and choose the project and the app
+   service. Run `railway ssh` once, which registers the machine's SSH key.
+
+At the demonstration, in the package folder downloaded from Canvas (after
+`railway link`):
+
+| Action | When | What it does |
+|---|---|---|
+| `demo.ps1 cloud` or a double-click on `tools\demo\cloud-demo.cmd` | T-10 minutes | `railway up --ci` builds and deploys this folder. It then waits for the new deployment's sessions and copies them through `railway ssh` to `tmp\railway-shop`, never showing them. It prints when they expire and the clipboard commands of step 4 for that folder. |
+| `demo.ps1 cloud-fresh` | Sessions expired | `railway redeploy`: a fresh database and new sessions, copied the same way. |
+| `demo.ps1 cloud-tokens` | Any time | Copies the current sessions again. |
+
+`-Url https://<the domain>` also checks that the address answers ready.
+
+- **Not on Railway:**
+  - S4's live model showcase: the course proxy is on a private VPN address.
+  - S5's driver: it runs on the local deployment.
+- **After the demonstration:**
+  - remove the app service's deployment on railway.com;
+  - run `demo.ps1 stop -RemoveData`, which also deletes `tmp\railway-shop`;
+  - use Clear token in both browser profiles.
+- **Tested on 30 October 2026** with Docker on the demonstration machine
+  standing in for Railway: a PostgreSQL 17 container, plus this image with
+  `DATABASE_URL` and `PORT=8080`.
+  - The service was ready in about 6 s.
+  - The page, deep links, `/health/ready` and an unauthenticated `/v1/session`
+    (401) worked.
+  - A customer case was lodged and clarified with `SYN-1001` (RISK_REVIEW). The
+    Founder queue, detail and audit read it through the same address.
+  - A restart gave a new database and new sessions.
+  - A stop request exited 0.
+  - The logs held no token, signing key or database URL.
+  - `cloud`, `cloud-fresh` and `cloud-tokens` ran against a stand-in for the
+    Railway CLI that used `docker exec`.
+
+  Not yet tested: a real Railway project, `railway ssh` on this machine, and a
+  deployment from the Canvas zip.
 
 ### Troubleshooting
 
