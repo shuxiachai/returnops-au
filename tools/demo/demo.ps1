@@ -37,13 +37,16 @@ Actions (from the package root):
 
 Railway (docs/46 section 9, docs/15 PD-03): the Railway service runs
 tools/railway/start.py, and every start of it is a fresh demonstration with new
-899 s sessions. Run `railway login`, then `railway link` once in this folder.
+899 s sessions. Run `railway login`, then `railway link` once in this folder,
+and register this machine's SSH key once (README, Railway deployment).
   cloud        Deploys this folder (railway up) and copies the new sessions to
                tmp\railway-shop through railway ssh, never showing them.
                tools\demo\cloud-demo.cmd runs it on a double-click.
   cloud-fresh  Redeploys the running service for new sessions and copies them.
-  cloud-tokens Copies the current sessions again.
+  cloud-tokens Copies the current sessions again; warns if they have expired.
   -Url https://... checks that the service answers ready through its address.
+  -Service name is the app service these act on (default returnops-demo-app),
+               whichever service railway link chose; never the database.
 
 Usage:
   powershell -NoProfile -ExecutionPolicy Bypass -File tools\demo\demo.ps1 prepare
@@ -60,7 +63,9 @@ param(
     [string]$Action,
     [switch]$ModelShowcase,
     [switch]$RemoveData,
-    [string]$Url
+    [string]$Url,
+    [ValidatePattern('^[A-Za-z0-9][A-Za-z0-9_-]*$')]
+    [string]$Service = 'returnops-demo-app'
 )
 
 Set-StrictMode -Version 2
@@ -717,6 +722,8 @@ function Invoke-S5 {
 # The sessions file of the running Railway deployment is read through `railway ssh`
 # into a variable and written to tmp\railway-shop; it is never shown. cmd passes the
 # `--` to the Railway CLI unchanged, which Windows PowerShell 5.1 may not.
+# Every Railway command names -Service: a folder can be linked to the database service
+# (`railway add` links the service it adds), and `railway up` there would replace it.
 
 function Assert-Railway {
     Show-Step 'Railway CLI'
@@ -727,7 +734,7 @@ function Assert-Railway {
 
 # The sessions of the running deployment as text and data, or $null.
 function Get-CloudSessions {
-    $answer = Invoke-Quiet { cmd.exe /d /c 'railway ssh -- cat /app/private/demo-shop/sessions.json' }
+    $answer = Invoke-Quiet { cmd.exe /d /c "railway ssh --service $Service -- cat /app/private/demo-shop/sessions.json" }
     if ($answer.Code -ne 0 -or -not $answer.Output) { return $null }
     try { $data = $answer.Output | ConvertFrom-Json } catch { return $null }
     if (-not ($data.PSObject.Properties['tokens'] -and $data.PSObject.Properties['sessions'])) { return $null }
@@ -744,7 +751,7 @@ function Wait-CloudSessions([long]$Before, [int]$Minutes) {
         if ($found -and $found.Issued -gt $Before) { return $found }
         Start-Sleep -Seconds 10
     }
-    Stop-Script "No new sessions within $Minutes minutes. Look at the deployment logs on railway.com; if railway ssh has never run on this machine, run it once to register the SSH key."
+    Stop-Script "No new sessions within $Minutes minutes. Look at the deployment logs on railway.com, and check that this machine's SSH key is registered (railway ssh keys list; README, Railway deployment)."
 }
 
 function Save-CloudSessions($Found) {
@@ -752,7 +759,8 @@ function Save-CloudSessions($Found) {
     New-Item -ItemType Directory -Path $CloudShop | Out-Null
     [System.IO.File]::WriteAllText((Join-Path $CloudShop 'sessions.json'), $Found.Text + "`n")
     $until = [DateTimeOffset]::FromUnixTimeSeconds([long]$Found.Data.sessions[0].expires_at).LocalDateTime
-    Show-Ok "Sessions copied to tmp\railway-shop (not shown); they expire at $(Format-Time $until)."
+    if ($until -le (Get-Date)) { Show-Warn "Sessions copied to tmp\railway-shop (not shown), but they expired at $(Format-Time $until); run cloud-fresh for new ones." }
+    else { Show-Ok "Sessions copied to tmp\railway-shop (not shown); they expire at $(Format-Time $until)." }
     $address = 'the Railway address of the service (railway.com, service, Settings, Networking)'
     if ($Url) {
         $address = $Url.TrimEnd('/')
@@ -771,8 +779,8 @@ function Invoke-Cloud {
     Assert-Railway
     $before = Get-CloudSessions
     $since = 0; if ($before) { $since = $before.Issued }
-    Show-Step "Deploying this folder to Railway (railway up; $Root)"
-    Invoke-Checked 'railway up' { railway up --ci }
+    Show-Step "Deploying this folder to the Railway service $Service (railway up; $Root)"
+    Invoke-Checked 'railway up' { railway up --ci --service $Service }
     Save-CloudSessions (Wait-CloudSessions $since 10)
 }
 
@@ -780,15 +788,15 @@ function Invoke-CloudFresh {
     Assert-Railway
     $before = Get-CloudSessions
     if (-not $before) { Stop-Script 'railway ssh returned no sessions from the running service; run cloud first, or cloud-tokens to see the reason.' }
-    Show-Step 'Redeploying the Railway service for new sessions (railway redeploy)'
-    Invoke-Checked 'railway redeploy' { railway redeploy --yes }
+    Show-Step "Redeploying the Railway service $Service for new sessions (railway redeploy)"
+    Invoke-Checked 'railway redeploy' { railway redeploy --yes --service $Service }
     Save-CloudSessions (Wait-CloudSessions $before.Issued 5)
 }
 
 function Invoke-CloudTokens {
     Assert-Railway
     $found = Get-CloudSessions
-    if (-not $found) { Stop-Script 'railway ssh returned no sessions. Run railway ssh once in this folder (it registers the SSH key on first use), and check that the service is running.' }
+    if (-not $found) { Stop-Script "railway ssh returned no sessions from the service $Service. Check that this machine's SSH key is registered (railway ssh keys list; README, Railway deployment), that -Service names the app service, and that it is running." }
     Save-CloudSessions $found
 }
 

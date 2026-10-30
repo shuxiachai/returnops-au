@@ -612,7 +612,14 @@ Setup, once per Railway account:
    `railway domain --service returnops-demo-app --port 8080`.
 3. On the demo machine: `npm install -g @railway/cli`, `railway login`. Then, in
    the package folder, run `railway link` and choose the project and the app
-   service. Run `railway ssh` once, which registers the machine's SSH key.
+   service. `demo.ps1` names the app service in every Railway command
+   (`-Service`, default `returnops-demo-app`), because `railway add` can leave
+   the folder linked to the database service.
+4. Register the demo machine's SSH key once, for `railway ssh`:
+   - `ssh-keygen -t ed25519 -f "$env:USERPROFILE\.ssh\id_ed25519"` with an empty
+     passphrase;
+   - `railway ssh keys add --key "$env:USERPROFILE\.ssh\id_ed25519.pub" --name <a name>`;
+   - `railway ssh keys list` shows it.
 
 At the demonstration, in the package folder downloaded from Canvas (after
 `railway link`):
@@ -621,7 +628,7 @@ At the demonstration, in the package folder downloaded from Canvas (after
 |---|---|---|
 | `demo.ps1 cloud` or a double-click on `tools\demo\cloud-demo.cmd` | T-10 minutes | `railway up --ci` builds and deploys this folder. It then waits for the new deployment's sessions and copies them through `railway ssh` to `tmp\railway-shop`, never showing them. It prints when they expire and the clipboard commands of step 4 for that folder. |
 | `demo.ps1 cloud-fresh` | Sessions expired | `railway redeploy`: a fresh database and new sessions, copied the same way. |
-| `demo.ps1 cloud-tokens` | Any time | Copies the current sessions again. |
+| `demo.ps1 cloud-tokens` | Any time | Copies the current sessions again, with a warning if they have expired. |
 
 `-Url https://<the domain>` also checks that the address answers ready.
 
@@ -660,9 +667,31 @@ At the demonstration, in the package folder downloaded from Canvas (after
       no console error;
     - the deployment logs held no token, key or database URL.
 
-  Not yet tested: `railway ssh` on this machine (it needs an SSH key registered
-  by the account owner), signing in on Railway, and a deployment from the Canvas
-  zip.
+  - In the evening, after the account's first SSH key was registered from this
+    machine:
+    - `cloud-tokens` first reached the database container. The folder was linked
+      to `Postgres17`, the service `railway add` had last created. A
+      `railway up` there would have replaced the database, so `demo.ps1` now
+      names the app service.
+    - With the app service, `cloud-tokens` copied sessions that had expired at
+      13:16; it now says so.
+    - `cloud-fresh` redeployed and copied new sessions in 29 s.
+    - With those sessions, S2 and S3 ran through the public address by HTTP
+      calls from this machine. No token was shown.
+      - Without a token the Founder queue gave 401; with the customer's token
+        it gave 403.
+      - A case without an order reference got two questions; the answer
+        `SYN-1001` took it to RISK_REVIEW.
+      - A `SYN-CONFLICT` case was ESCALATED with the order-lookup block "The
+        authorized order reference is ambiguous."
+      - The Founder queue, detail, audit and analytics answered 200.
+      - MANUAL_HANDLING on the block was accepted (202): NOTIFICATION_PENDING
+        for the Founder and the customer, and `FOUNDER_DECISION_ACCEPTED` in
+        the audit chain.
+
+  Not yet tested: pasting a token in the web page on Railway, because the test
+  browser could not paste from the clipboard. Also not yet tested: a deployment
+  from the Canvas zip.
 
 ### Troubleshooting
 
