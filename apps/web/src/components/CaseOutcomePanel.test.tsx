@@ -158,4 +158,14 @@ describe('CaseOutcomePanel (#122 item 4; FR-012, docs/08 B2.03)', () => {
 
     expect(screen.getByText(/No Founder decision is recorded for this case yet/)).toBeInTheDocument();
   });
+
+  it('wraps a 2,000-character rationale with no break point and lets its script set the direction', () => {
+    const reason = 'Twoordersshareonereference'.repeat(74).slice(0, 2000);
+    render(<CaseOutcomePanel caseView={{ ...COMPLETED, decisions: [{ ...DECISION, reason }] }} />);
+
+    const text = screen.getByText(reason);
+    expect(text).toHaveClass('break-words');
+    expect(text).toHaveAttribute('dir', 'auto');
+    expect(screen.getByText(SENT_NOTICE.message)).toHaveClass('break-words');
+  });
 });

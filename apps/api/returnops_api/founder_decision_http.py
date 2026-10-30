@@ -7,7 +7,7 @@ from starlette.concurrency import run_in_threadpool
 
 from returnops_domain.audit import identifier
 from returnops_domain.errors import FlowError
-from returnops_domain.wire import validate
+from returnops_domain.wire import blank, validate
 from .customer_http import _json_body, one_header, safe_json
 
 
@@ -81,9 +81,9 @@ def register_founder_decision_candidate(app, request_ports_factory):
             key = one_header(request, 'idempotency-key', required=True)
             validate('IdempotencyKey', key)
             value = validate('FounderDecisionRequest', await _json_body(request))
-            # The schema's minLength counts spaces; a blank rationale is no rationale (customer
-            # text has the same rule in wire.py). 30 October 2026 review.
-            if not value['reason'].strip():
+            # The schema's minLength counts spaces and invisible characters; a blank rationale
+            # is no rationale (the same rule as customer text in wire.py). 30-31 October 2026.
+            if blank(value['reason']):
                 raise FlowError('VALIDATION_ERROR')
             service = {'APPROVE': ports.approve, 'REJECT': ports.reject,
                        'REQUEST_REVISION': ports.revision,

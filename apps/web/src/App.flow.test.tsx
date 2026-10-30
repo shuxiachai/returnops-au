@@ -104,7 +104,7 @@ describe('Mock Mode journey across both pages (KAN-20; B2.05, E.11)', () => {
     expect(screen.getByText(RATIONALE)).toBeInTheDocument();
 
     // 5. Audit (NFR-003): the recorded chain, shown as recorded, not as verified.
-    fireEvent.click(await screen.findByRole('button', { name: /Tamper-Evident Audit Chain/i }));
+    fireEvent.click(await screen.findByRole('tab', { name: /Tamper-Evident Audit Chain/i }));
     expect(await screen.findByText(/Recorded Audit Events:/i)).toBeInTheDocument();
     expect(screen.getByText(/This view does not recompute or verify the chain\./i)).toBeInTheDocument();
     expect(screen.getByText(/CASE_CREATED/)).toBeInTheDocument();

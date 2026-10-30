@@ -88,7 +88,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <header className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        {/* Wraps onto more rows on a narrow screen, so no control is pushed off it. */}
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2 min-h-16">
           {/* Brand Logo & Title */}
           <div className="flex items-center space-x-3">
             <div className="bg-sky-600 text-white p-2 rounded-xl shadow-md flex items-center justify-center">

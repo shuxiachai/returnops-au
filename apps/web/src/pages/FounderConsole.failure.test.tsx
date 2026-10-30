@@ -235,7 +235,7 @@ describe('FounderConsole failure and live-mode paths', () => {
     expect(screen.queryByText(/GENERATE_RETURN_CONSIGNMENT/)).not.toBeInTheDocument();
 
     // Order uses line_items / unit_price_minor and computes the total.
-    fireEvent.click(screen.getByRole('button', { name: /Order & Facts Projection/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /Order & Facts Projection/i }));
     expect(await screen.findByText('ord_contract_1')).toBeInTheDocument();
     expect(screen.getByText('Contract Shaped Widget')).toBeInTheDocument();
     expect(screen.getByText(/Total:\s*\$25\.00/)).toBeInTheDocument();
@@ -250,7 +250,7 @@ describe('FounderConsole failure and live-mode paths', () => {
 
     render(<FounderConsole />);
     fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
-    fireEvent.click(await screen.findByRole('button', { name: /Tamper-Evident Audit Chain/i }));
+    fireEvent.click(await screen.findByRole('tab', { name: /Tamper-Evident Audit Chain/i }));
 
     expect(await screen.findByText(/Audit chain retrieval failed/i)).toBeInTheDocument();
     expect(screen.queryByText(/Recorded Audit Events:/i)).not.toBeInTheDocument();
@@ -543,7 +543,7 @@ describe('FounderConsole failure and live-mode paths', () => {
       expect(screen.getByText(/not sent yet/)).toBeInTheDocument();
 
       // The block reason stays on the proposal tab, but no second manual takeover is offered.
-      fireEvent.click(screen.getByRole('button', { name: /Proposal & Risk Review/i }));
+      fireEvent.click(screen.getByRole('tab', { name: /Proposal & Risk Review/i }));
       expect(screen.getByText('The authorized order reference is ambiguous.')).toBeInTheDocument();
       expect(screen.queryByText(/Only the Founder can decide it/)).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: /^Manual Takeover$/i })).toBeDisabled();
@@ -571,6 +571,18 @@ describe('FounderConsole failure and live-mode paths', () => {
       expect(await screen.findByText('Processing failed at stage ORDER_LOOKUP')).toBeInTheDocument();
       expect(screen.getByText('The order service did not answer.')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /^Manual Takeover$/i })).toBeEnabled();
+    });
+
+    it('keeps the long target IDs of the confirmation inside a phone screen', async () => {
+      vi.mocked(getFounderCase).mockResolvedValue(BLOCKED_VIEW);
+      render(<FounderConsole />);
+      fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
+      fireEvent.click(await screen.findByRole('button', { name: /^Manual Takeover$/i }));
+
+      const dialog = await screen.findByRole('dialog', { name: /Confirm Founder Decision: MANUAL_HANDLING/i });
+      expect(dialog).toHaveClass('min-w-0');
+      expect(within(dialog).getByText('block_conflict')).toHaveClass('break-all');
+      expect(within(dialog).getByText('case_contract_shape')).toHaveClass('break-all');
     });
 
     it('reports an accepted decision as recorded when the case cannot be read again afterwards', async () => {
@@ -930,7 +942,7 @@ describe('FounderConsole audit paging and the in-flight decision dialog', () => 
   const openAudit = async () => {
     render(<FounderConsole />);
     fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
-    fireEvent.click(await screen.findByRole('button', { name: /Tamper-Evident Audit Chain/i }));
+    fireEvent.click(await screen.findByRole('tab', { name: /Tamper-Evident Audit Chain/i }));
   };
 
   beforeEach(() => {

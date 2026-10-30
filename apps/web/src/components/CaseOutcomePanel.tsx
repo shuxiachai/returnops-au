@@ -128,8 +128,9 @@ export const CaseOutcomePanel: React.FC<{ caseView: CaseView }> = ({ caseView })
                   {formatDate(decision.decided_at)}
                 </span>
               </div>
-              <p className="text-slate-800 whitespace-pre-wrap">{decision.reason}</p>
-              <div className="text-slate-500">
+              {/* A rationale of up to 2,000 characters may hold one unbroken word, in any script. */}
+              <p dir="auto" className="text-slate-800 whitespace-pre-wrap break-words">{decision.reason}</p>
+              <div className="text-slate-500 break-words">
                 By <span className="font-mono">{decision.principal_id}</span> · on {decisionTarget(decision)}
                 {decision.approval_id && (
                   <>
@@ -150,7 +151,7 @@ export const CaseOutcomePanel: React.FC<{ caseView: CaseView }> = ({ caseView })
               key={approval.approval_id}
               className="p-4 bg-white rounded-xl border border-slate-200 text-xs space-y-2"
             >
-              <div className="text-slate-500">
+              <div className="text-slate-500 break-words">
                 Approval <span className="font-mono">{approval.approval_id}</span> issued{' '}
                 <span title={approval.issued_at}>{formatDate(approval.issued_at)}</span> by{' '}
                 <span className="font-mono">{approval.principal_id}</span>
@@ -240,7 +241,7 @@ export const CaseOutcomePanel: React.FC<{ caseView: CaseView }> = ({ caseView })
                 </span>
                 <StatusBadge status={notice.status} />
               </div>
-              <p className="text-slate-800 whitespace-pre-wrap">{notice.message}</p>
+              <p className="text-slate-800 whitespace-pre-wrap break-words">{notice.message}</p>
               {notice.next_steps.length > 0 && (
                 <ul className="list-disc pl-4 space-y-0.5 text-slate-700">
                   {notice.next_steps.map((step, index) => (

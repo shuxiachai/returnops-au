@@ -51,6 +51,23 @@ def test_invalid_dto_errors_do_not_retain_payload_or_validation_exception(value)
         assert error.__cause__ is None and error.__context__ is None
     else: pytest.fail("Invalid request accepted")
 
+@pytest.mark.parametrize("value", [
+    {"original_message": chr(0x200B) * 2},
+    {"original_message": chr(0x2060) + " " + chr(0xFEFF)},
+    {"original_message": "cups arrived chipped", "order_reference": "   "},
+    {"original_message": "cups arrived chipped", "order_reference": chr(0x200B)},
+], ids=["zero-width", "word-joiner-and-bom", "blank-reference", "invisible-reference"])
+def test_invisible_statement_or_reference_is_blank(value):
+    # 31 October 2026 review: str.strip() keeps format characters, so these passed.
+    with pytest.raises(FlowError): create_request(value)
+
+def test_clarification_answer_of_invisible_characters_is_blank():
+    body = {"expected_case_version": 1, "question_set_id": "qs_001", "evidence_ids": [],
+            "answers": [{"question_id": "q_001", "text": chr(0x200B) + chr(0x200D)}]}
+    with pytest.raises(FlowError): clarification_request(body)
+    body["answers"][0]["text"] = chr(0x200B) + "SYN-1001"
+    assert clarification_request(body)["answers"][0]["text"] == chr(0x200B) + "SYN-1001"
+
 def test_clarification_requires_a_real_answer_or_evidence_and_unique_questions():
     body = {"expected_case_version": 1, "question_set_id": "qs_001", "answers": [], "evidence_ids": []}
     with pytest.raises(FlowError): clarification_request(body)

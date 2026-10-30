@@ -24,6 +24,17 @@ def test_cli_prints_the_safe_reason_for_configuration_errors(tmp_path, monkeypat
     assert not (tmp_path / 'fresh').exists()
 
 
+def test_cli_names_the_id_rule_for_an_invalid_id(tmp_path, monkeypatch, capsys):
+    # 31 October 2026 review: an invalid ID used to print the generic sentence.
+    monkeypatch.setattr(demo.sys, 'version_info', (3, 12, 9))
+    argv = _provision_argv(tmp_path / 'fresh')
+    argv[argv.index('--store') + 1] = 'bad store'
+    assert demo.cli(argv) == 1
+    printed = capsys.readouterr().out
+    assert 'Store and principal IDs must be 3 to 80 letters, digits, - or _' in printed
+    assert not (tmp_path / 'fresh').exists()
+
+
 def test_cli_keeps_the_generic_sentence_for_unexpected_errors(monkeypatch, capsys):
     def explode(argv=None):
         raise RuntimeError('private detail dsn=postgresql://user:secret@host/db')

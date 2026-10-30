@@ -76,12 +76,29 @@ def resume(uow, actor, purpose, case_id, query, now):
     return snap, row['last_sequence'], row['last_record_id']
 
 
-def summary(row):
+def summary(row, risk=None):
     result = {name: row[name] for name in SUMMARY}
     result.update(created_at=timestamp(row['created_at']), updated_at=timestamp(row['updated_at']),
                   issue_category='UNCLEAR')
+    if risk is not None:
+        result['current_risk_outcome'] = risk
     validate('CaseSummary', result, internal=True)
     return result
+
+
+def current_risks(uow, store_id, case_ids):
+    """Current review outcome per listed case, by the analytics rule (docs/43).
+
+    Read live for each page rather than frozen in the list snapshot: before 30 October
+    2026 the queue never sent the optional field, so a reviewed case showed none.
+    """
+    from datetime import datetime, timezone
+    from .analytics_queries import cohort_statement, current_outcome
+    if not case_ids:
+        return {}
+    statement = cohort_statement(store_id, None, datetime(9999, 1, 1, tzinfo=timezone.utc)).where(
+        t.case_heads.c.case_id.in_(case_ids))
+    return {row['case_id']: current_outcome(row) for row in uow.execute(statement).mappings()}
 
 
 def list_cases(uow, actor, query, now, ttl):
@@ -104,7 +121,8 @@ def list_cases(uow, actor, query, now, ttl):
                f.members.c.ordinal <= snap['highwater'], t.case_heads.c.store_id == actor.store_id,
                t.case_heads.c.available.is_(True)).order_by(f.members.c.ordinal).limit(query['limit'] + 1)).mappings().all()
     chosen = rows[:query['limit']]
-    result = {'items': [summary(row) for row in chosen]}
+    risks = current_risks(uow, actor.store_id, [row['case_id'] for row in chosen])
+    result = {'items': [summary(row, risks.get(row['case_id'])) for row in chosen]}
     if len(rows) > query['limit']:
         result['next_cursor'] = cursor(uow, snap, query, chosen[-1]['ordinal'])
     validate('CaseList', result, internal=True)

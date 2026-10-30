@@ -138,9 +138,13 @@ describe('CustomerPortal (UC-01 & UC-01E)', () => {
     expect(lookupBtn).not.toBeDisabled();
     fireEvent.click(lookupBtn);
 
+    // The customer reads plain words, not the raw NOT_FOUND code.
     await waitFor(() => {
-      expect(screen.getByText(/NOT_FOUND: Case case_does_not_exist_999 not found/i)).toBeInTheDocument();
+      expect(
+        screen.getByText('No case with this ID was found for your account. Check the ID and try again.')
+      ).toBeInTheDocument();
     });
+    expect(screen.queryByText(/NOT_FOUND/)).not.toBeInTheDocument();
   });
 
   it('blocks case submission while a selected evidence file is unstaged (Finding 7)', async () => {
@@ -197,5 +201,32 @@ describe('CustomerPortal (UC-01 & UC-01E)', () => {
     fireEvent.change(textarea, { target: { value: 'a'.repeat(12001) } });
     expect(screen.getByText('12001 / 12,000 chars')).toBeInTheDocument();
     expect(textarea).not.toHaveAttribute('maxlength');
+  });
+
+  it('holds the order reference to the 120 characters the server accepts, and says so', () => {
+    render(<CustomerPortal />);
+
+    // A 121st character used to reach the server and come back as "Request fields are invalid".
+    expect(screen.getByPlaceholderText('e.g. SYN-1001')).toHaveAttribute('maxlength', '120');
+    expect(screen.getByText('(Optional, up to 120 characters)')).toBeInTheDocument();
+  });
+
+  it('shows a completed case with its outcome, the long ID wrapping and the customer words breaking', async () => {
+    render(<CustomerPortal />);
+    fireEvent.click(screen.getByRole('button', { name: /Track & Clarify/i }));
+    // The tab first opens the demo case; Lookup is disabled until that read settles.
+    await screen.findByText('case_demo_001', { selector: 'span' });
+    fireEvent.change(screen.getByPlaceholderText(/Enter Case ID/i), { target: { value: 'case_demo_005' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Lookup$/ }));
+
+    expect(await screen.findByText('Completed')).toBeInTheDocument();
+    // Mock Mode now tells the customer what the Founder's Outcome tab shows as sent.
+    expect(screen.getByText(/A simulated return and parcel label have been recorded/)).toBeInTheDocument();
+    const id = screen.getByText('case_demo_005', { selector: 'span' });
+    expect(id).toHaveClass('break-all');
+    expect(id.parentElement).toHaveClass('flex-wrap');
+    const words = screen.getByText(/My Synthbrew S2 coffee machine stopped heating/);
+    expect(words).toHaveClass('break-words');
+    expect(words).toHaveAttribute('dir', 'auto');
   });
 });

@@ -53,6 +53,13 @@ version changes cannot shift the old sequence. Each page still restricts current
 case availability and trusted store. Unevaluated classification is `UNCLEAR`;
 there is no fabricated facts or risk result.
 
+Since 31 October 2026 each listed case also carries the optional `current_risk_outcome`
+when it has a current review: the outcome of an accepted, decodable review bound to the
+case's current input and proposal, the same rule as `analytics_queries.current_outcome`
+([docs/43](43-f06-analytics.md)). It is read for each page when the page is served, not
+frozen in the list snapshot; before, the field was never sent, so the queue showed no
+risk outcome even for a reviewed case.
+
 History snapshots freeze case version and sequence high-water. Audit snapshots
 freeze sequence and the corresponding chain hash. Opaque random tokens are stored
 only by their SHA-256 and bound to purpose, principal, role, store, case, kind,

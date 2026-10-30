@@ -478,10 +478,14 @@ export const FounderConsole: React.FC = () => {
     return 'unavailable' in selected ? selected.unavailable : null;
   };
 
+  const searchText = searchFilter.trim().toLowerCase();
   const filteredCases = cases.filter((c) => {
+    // The category matches by its value and by the words the table shows for it.
     const matchesSearch =
-      c.case_id.toLowerCase().includes(searchFilter.toLowerCase()) ||
-      (c.issue_category && c.issue_category.toLowerCase().includes(searchFilter.toLowerCase()));
+      c.case_id.toLowerCase().includes(searchText) ||
+      (c.issue_category &&
+        (c.issue_category.toLowerCase().includes(searchText) ||
+          formatCategory(c.issue_category).toLowerCase().includes(searchText)));
     const matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -670,7 +674,13 @@ export const FounderConsole: React.FC = () => {
                   {filteredCases.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="px-6 py-8 text-center text-slate-400">
-                        {isLoadingCases ? 'Loading case queue...' : 'No matching cases found.'}
+                        {isLoadingCases
+                          ? 'Loading case queue...'
+                          : cases.length > 0
+                            ? 'No matching cases found.'
+                            : queueError
+                              ? 'The queue could not be read; see the message above.'
+                              : 'No cases in the queue yet.'}
                       </td>
                     </tr>
                   ) : (
@@ -769,11 +779,12 @@ export const FounderConsole: React.FC = () => {
               <span className="text-sm font-semibold text-slate-700">Loading case details...</span>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl max-w-4xl w-full shadow-2xl border border-slate-200 max-h-[90vh] flex flex-col overflow-hidden">
-            {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 flex-shrink-0">
-              <div className="flex items-center space-x-3">
-                <span className="font-mono text-lg font-bold text-slate-900">{caseDetail.case_id}</span>
+            // min-w-0 lets the window shrink to a phone screen instead of growing to its widest row.
+            <div className="bg-white rounded-2xl max-w-4xl w-full min-w-0 shadow-2xl border border-slate-200 max-h-[90vh] flex flex-col overflow-hidden">
+            {/* Modal Header: the 37-character case ID and the badges wrap on a narrow screen. */}
+            <div className="px-6 py-4 border-b border-slate-100 flex items-start justify-between gap-3 bg-slate-50 flex-shrink-0">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
+                <span className="font-mono text-lg font-bold text-slate-900 break-all">{caseDetail.case_id}</span>
                 <span
                   className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getStatusBadgeClass(
                     caseDetail.status
@@ -791,15 +802,22 @@ export const FounderConsole: React.FC = () => {
                 aria-label="Close case"
                 // Keyboard focus starts inside the window rather than on the queue behind it.
                 autoFocus
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Modal Nav Tabs */}
-            <div className="px-6 border-b border-slate-200 bg-white flex space-x-6 text-xs font-semibold flex-shrink-0">
+            {/* Modal Nav Tabs: a tablist that scrolls sideways when it is wider than the screen. */}
+            <div
+              role="tablist"
+              aria-label="Case views"
+              className="px-6 border-b border-slate-200 bg-white flex space-x-6 text-xs font-semibold flex-shrink-0 overflow-x-auto"
+            >
               <button
+                type="button"
+                role="tab"
+                aria-selected={detailTab === 'proposal'}
                 onClick={() => setDetailTab('proposal')}
                 className={`py-3 border-b-2 transition-all flex items-center space-x-1.5 ${
                   detailTab === 'proposal'
@@ -811,6 +829,9 @@ export const FounderConsole: React.FC = () => {
                 <span>Proposal & Risk Review</span>
               </button>
               <button
+                type="button"
+                role="tab"
+                aria-selected={detailTab === 'order'}
                 onClick={() => setDetailTab('order')}
                 className={`py-3 border-b-2 transition-all flex items-center space-x-1.5 ${
                   detailTab === 'order'
@@ -822,6 +843,9 @@ export const FounderConsole: React.FC = () => {
                 <span>Order & Facts Projection</span>
               </button>
               <button
+                type="button"
+                role="tab"
+                aria-selected={detailTab === 'statements'}
                 onClick={() => setDetailTab('statements')}
                 className={`py-3 border-b-2 transition-all flex items-center space-x-1.5 ${
                   detailTab === 'statements'
@@ -833,6 +857,9 @@ export const FounderConsole: React.FC = () => {
                 <span>Customer Statements ({caseDetail.statements.length})</span>
               </button>
               <button
+                type="button"
+                role="tab"
+                aria-selected={detailTab === 'outcome'}
                 onClick={() => setDetailTab('outcome')}
                 className={`py-3 border-b-2 transition-all flex items-center space-x-1.5 ${
                   detailTab === 'outcome'
@@ -844,6 +871,9 @@ export const FounderConsole: React.FC = () => {
                 <span>Decision & Outcome</span>
               </button>
               <button
+                type="button"
+                role="tab"
+                aria-selected={detailTab === 'audit'}
                 onClick={() => setDetailTab('audit')}
                 className={`py-3 border-b-2 transition-all flex items-center space-x-1.5 ${
                   detailTab === 'audit'
@@ -1309,7 +1339,9 @@ export const FounderConsole: React.FC = () => {
                           </span>
                           <span>{formatDate(stmt.submitted_at)}</span>
                         </div>
-                        <p className="text-sm text-slate-800 whitespace-pre-wrap">{stmt.raw_text}</p>
+                        <p dir="auto" className="text-sm text-slate-800 whitespace-pre-wrap break-words">
+                          {stmt.raw_text}
+                        </p>
                       </div>
                     ))}
                   </div>
@@ -1454,7 +1486,7 @@ export const FounderConsole: React.FC = () => {
                 )}
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex flex-wrap items-center justify-end gap-2">
                 <button
                   type="button"
                   disabled={caseDetail.status === 'ESCALATED' || decisionUnavailable('APPROVE') !== null}
@@ -1520,7 +1552,7 @@ export const FounderConsole: React.FC = () => {
             role="dialog"
             aria-modal="true"
             aria-labelledby="decision-dialog-title"
-            className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden"
+            className="bg-white rounded-2xl max-w-lg w-full min-w-0 shadow-2xl border border-slate-200 overflow-hidden"
           >
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
               <h4 id="decision-dialog-title" className="font-bold text-slate-900 text-sm">
@@ -1551,12 +1583,12 @@ export const FounderConsole: React.FC = () => {
               <div className="text-xs text-slate-600 space-y-1">
                 <div>
                   Case Target:{' '}
-                  <strong className="font-mono text-slate-900">{caseDetail.case_id}</strong> (v{caseDetail.case_version})
+                  <strong className="font-mono text-slate-900 break-all">{caseDetail.case_id}</strong> (v{caseDetail.case_version})
                 </div>
                 {caseDetail.current_proposal && (
                   <div>
                     Bound Proposal:{' '}
-                    <strong className="font-mono text-slate-900">
+                    <strong className="font-mono text-slate-900 break-all">
                       {caseDetail.current_proposal.proposal_id}
                     </strong>
                   </div>
@@ -1565,13 +1597,13 @@ export const FounderConsole: React.FC = () => {
                 {!caseDetail.current_proposal && caseDetail.processing_failure && (
                   <div>
                     Bound processing failure:{' '}
-                    <strong className="font-mono text-slate-900">{caseDetail.processing_failure.failure_id}</strong>
+                    <strong className="font-mono text-slate-900 break-all">{caseDetail.processing_failure.failure_id}</strong>
                   </div>
                 )}
                 {!caseDetail.current_proposal && !caseDetail.processing_failure && caseDetail.order_lookup_block && (
                   <div>
                     Bound order-lookup block:{' '}
-                    <strong className="font-mono text-slate-900">{caseDetail.order_lookup_block.block_id}</strong>
+                    <strong className="font-mono text-slate-900 break-all">{caseDetail.order_lookup_block.block_id}</strong>
                   </div>
                 )}
               </div>
@@ -1859,7 +1891,7 @@ export const FounderConsole: React.FC = () => {
                       key={outcome}
                       className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-center space-y-1"
                     >
-                      <div className="text-xs font-semibold text-slate-600">{outcome}</div>
+                      <div className="text-xs font-semibold text-slate-600 break-all">{outcome}</div>
                       <div className="text-2xl font-bold text-slate-900">{count}</div>
                     </div>
                   ))}
