@@ -701,6 +701,19 @@ from the Canvas zip has no `.git` for `.gitignore` to apply to.
   Not yet tested: pasting a token in the web page on Railway, because the test
   browser could not paste from the clipboard. Also not yet tested: a deployment
   from the Canvas zip.
+- 31 October 2026, `demo.ps1 cloud` from the run folder at `main` `5be358ee`:
+  - the upload snapshot was 15 MB: `.railwayignore` kept the local `.venv`
+    (124 MB), `node_modules` (159 MB) and `tmp` out;
+  - build, deployment and the session copy took 243 s; the script read the
+    address from `railway status` and reported that it answers ready and
+    accepts the copied sessions;
+  - over the public address: the page `no-cache`, the bundle files
+    `immutable`; a zero-width statement and a blank or invisible order
+    reference 422; S2 and S3 as on 30 October, MANUAL_HANDLING 202 and
+    NOTIFICATION_PENDING;
+  - a missing bundle file came back 404 with the year-long cache header, which
+    a browser may keep; corrected the same day so that only existing files get
+    it.
 
 ### Troubleshooting
 
