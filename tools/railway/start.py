@@ -5,7 +5,7 @@ machine: the returnops_f02 database is dropped and created again, migrated, the 
 is provisioned into a private folder (README step 3), the demo API serves on 127.0.0.1:8000
 and Caddy serves the web build and proxies /v1 and /health on Railway's PORT.
 
-DATABASE_URL is the variable of the Railway PostgreSQL service (postgresql://...); the app
+DATABASE_URL is the postgresql:// URL of the project's PostgreSQL 17 service (README); the app
 uses its own returnops_f02 database on that server. No credential or token is printed; the
 presenter copies the sessions with `demo.ps1 cloud-tokens`. R.05.b; NFR-003/009.
 """
@@ -42,7 +42,7 @@ def database_urls(raw):
     """The server URL from Railway, and the app URL on the dedicated returnops_f02 database."""
     parts = urlsplit(raw or '')
     if parts.scheme not in ('postgresql', 'postgres') or not parts.hostname:
-        stop('DATABASE_URL must be the postgresql:// variable of the Railway PostgreSQL service.')
+        stop('DATABASE_URL must be the postgresql:// URL of the PostgreSQL 17 service (README, Railway deployment).')
     server = urlunsplit(('postgresql', parts.netloc, parts.path or '/postgres', '', ''))
     app = urlunsplit(('postgresql+psycopg', parts.netloc, '/' + DATABASE, '', ''))
     return server, app

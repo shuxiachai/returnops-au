@@ -570,14 +570,17 @@ the local deployment above stays the fallback ([docs/46](docs/46-gate2-roadmap.m
 section 9; deployment model PD-03 in [docs/15](docs/15-package-deployment-models.md)
 section 4.1).
 
-One Railway service is built from `tools/railway/Dockerfile` (`railway.json`
-selects it). It holds:
+One Railway service is built from `tools/railway/Dockerfile`. The service
+variable `RAILWAY_DOCKERFILE_PATH` selects that file: on 30 October 2026 a
+`railway up` built the root `Dockerfile` although `railway.json` named the other
+one. `railway.json` keeps the health check and the restart policy; Railway warns
+that this file format works until 1 December 2026. The service holds:
 - the web build;
 - the demo API on `127.0.0.1:8000` inside the container;
 - Caddy on Railway's `PORT`, which serves the web build and proxies `/v1` and
   `/health`, so the browser stays on one origin.
 
-A second service is Railway PostgreSQL. Every start of the demo service is a fresh
+A second service runs PostgreSQL 17 (the image of `compose.yaml`). Every start of the demo service is a fresh
 demonstration, done by `tools/railway/start.py`:
 1. it drops and creates `returnops_f02`;
 2. it runs `alembic upgrade head`;
@@ -588,11 +591,25 @@ Nothing it prints contains a credential.
 
 Setup, once per Railway account:
 
-1. Sign in on railway.com, create a project, and add PostgreSQL
-   (`railway add --database postgres`, or New, Database in the dashboard).
-2. Add an empty service for the app, then in its Variables add
-   `DATABASE_URL = ${{Postgres.DATABASE_URL}}`. In Settings, Networking, generate
-   a public domain.
+1. Sign in on railway.com and create a project. Add PostgreSQL **17** as an
+   image service, the same image as `compose.yaml`. Railway's own database
+   template was PostgreSQL 18 on 30 October 2026, and there migration 0010
+   stopped with "Preparation upgrade requires exact 0009 approval schema".
+   - The service, named `Postgres17`:
+     `railway add --service Postgres17 --image postgres:17-bookworm@sha256:051f7b7b3abdd564d5d1bd1e8c4b9c1b6e77087d1dd22020ede611c096a272e0 --variables "POSTGRES_USER=postgres" --variables "POSTGRES_DB=railway" --variables "PGDATA=/var/lib/postgresql/data/pgdata"`.
+   - A volume mounted at `/var/lib/postgresql/data`:
+     `railway volume --service <its service ID> add --mount-path /var/lib/postgresql/data`.
+   - A random `POSTGRES_PASSWORD` of letters and digits, set with
+     `railway variable set POSTGRES_PASSWORD --stdin --service Postgres17`.
+     The value must have no trailing newline, space or byte-order mark.
+2. Add an empty service for the app and give it three variables:
+   `DATABASE_URL = postgresql://${{Postgres17.POSTGRES_USER}}:${{Postgres17.POSTGRES_PASSWORD}}@${{Postgres17.RAILWAY_PRIVATE_DOMAIN}}:5432/${{Postgres17.POSTGRES_DB}}`,
+   `PORT = 8080` and
+   `RAILWAY_DOCKERFILE_PATH = tools/railway/Dockerfile`. In Settings, Networking,
+   generate a public domain on port 8080. With the CLI:
+   `railway add --service returnops-demo-app --variables "PORT=8080" --variables "RAILWAY_DOCKERFILE_PATH=tools/railway/Dockerfile"`.
+   Add `DATABASE_URL` as above with `railway variable set`, then run
+   `railway domain --service returnops-demo-app --port 8080`.
 3. On the demo machine: `npm install -g @railway/cli`, `railway login`. Then, in
    the package folder, run `railway link` and choose the project and the app
    service. Run `railway ssh` once, which registers the machine's SSH key.
@@ -629,8 +646,23 @@ At the demonstration, in the package folder downloaded from Canvas (after
   - `cloud`, `cloud-fresh` and `cloud-tokens` ran against a stand-in for the
     Railway CLI that used `docker exec`.
 
-  Not yet tested: a real Railway project, `railway ssh` on this machine, and a
-  deployment from the Canvas zip.
+- **On Railway, 30 October 2026** (project `returnops-demo`, deployed with
+  `railway up` from a folder equal to `main` plus this change):
+  - The first deployment built the root `Dockerfile` and crashed. The service
+    variable `RAILWAY_DOCKERFILE_PATH` fixed the build.
+  - The second deployment met PostgreSQL 18 and stopped in migration 0010.
+    PostgreSQL 17.11 as an image service fixed it.
+  - Then the service was ready 39 s after a redeploy. Through
+    `https://returnops-demo-app-production.up.railway.app`:
+    - `/health/ready` gave 200, the page and a deep link loaded, and
+      `/v1/session` without a token gave 401;
+    - `X-Frame-Options` and `Referrer-Policy` were set, and the browser showed
+      no console error;
+    - the deployment logs held no token, key or database URL.
+
+  Not yet tested: `railway ssh` on this machine (it needs an SSH key registered
+  by the account owner), signing in on Railway, and a deployment from the Canvas
+  zip.
 
 ### Troubleshooting
 

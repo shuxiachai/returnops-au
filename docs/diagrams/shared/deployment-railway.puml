@@ -27,7 +27,7 @@ cloud "Railway project" as Railway {
     artifact "demo.py serve 127.0.0.1:8000\nfixed proposal and Founder decisions on" as Api #E4F2EB
     artifact "/app/private/demo-shop\nauth.json, sessions.json" as Private #E8EEF7
   }
-  node "Service: Railway PostgreSQL\nprivate network only for the app" as Postgres <<executionEnvironment>> #E4F2EB {
+  node "Service: PostgreSQL 17\nsame image as compose.yaml, Railway volume\nprivate network only for the app" as Postgres <<executionEnvironment>> #E4F2EB {
     database "returnops_f02\ndropped and created on every start" as Database #E8EEF7
   }
 }

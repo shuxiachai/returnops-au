@@ -95,7 +95,7 @@ The rule of the Stage 2 Marking Criteria still holds: the source is downloaded f
 |---|---|---|
 | Demo API | `demo.py serve` binds `127.0.0.1` only | Unchanged: it still binds loopback inside the container, and Caddy in the same container is the only public listener |
 | Web frontend | The Vite dev server proxies `/v1` and `/health` to `127.0.0.1:8000`; the API registers no CORS middleware | A production build served by Caddy on the same origin as `/v1`, so no CORS is needed (`tools/railway/Caddyfile`) |
-| Database | Compose PostgreSQL 17 on loopback; the password lives in the ignored `.env` | Railway PostgreSQL; its `DATABASE_URL` stays a platform variable. Each start drops and creates `returnops_f02`, then migrates (`tools/railway/start.py`) |
+| Database | Compose PostgreSQL 17 on loopback; the password lives in the ignored `.env` | PostgreSQL 17 as a Railway image service, the same image as Compose (Railway's own template was PostgreSQL 18, where migration 0010 refuses); its `DATABASE_URL` stays a platform variable. Each start drops and creates `returnops_f02`, then migrates (`tools/railway/start.py`) |
 | Demo identities | `demo.py provision` on the machine | `demo.py provision` inside the container at each start. The sessions are copied to the presenter's machine through `railway ssh` and never shown (`demo.ps1 cloud-tokens`) |
 | Exposure | Loopback only | A public HTTPS address with synthetic data only; the service runs only for the rehearsal and the demonstration (NFR-003, NFR-009) |
 | Models | PD-02 | PD-03 added in docs/15 |

@@ -90,7 +90,7 @@ api/migrate 内的 localhost 指该容器自身，不能把主机 5433 当 Postg
 | 演示电脑 | 两个浏览器 profile；Railway CLI 与 `tools/demo/demo.ps1 cloud / cloud-fresh / cloud-tokens` | 会话文件经 `railway ssh` 读入变量后写到 `tmp/railway-shop`，不显示；演示后删除 |
 | Railway edge | 服务的公开 HTTPS 地址 → 容器 `PORT` | TLS 由平台终止；容器内不签证书 |
 | 演示服务容器（`tools/railway/Dockerfile`，UID 10001） | `start.py`：重建 `returnops_f02`、`alembic upgrade head`、`demo.py provision`；Caddy 在 `PORT` 提供网页构建，并把 `/v1`、`/health` 代理到 `127.0.0.1:8000`；`demo.py serve --fixed-proposal --founder-decisions` | 演示 API 仍只监听 loopback，浏览器与它同源，不需要 CORS；Caddy 不写访问日志；任一进程退出则容器以 1 退出，Railway 按 `railway.json` 重启为新的演示 |
-| Railway PostgreSQL 服务 | 平台变量 `DATABASE_URL`（`postgresql://`）；应用使用同一服务器上的 `returnops_f02` 库 | 每次启动删除并重建该库（与 PD-02 的 `fresh` 相同），只放合成数据；密码只在平台变量里 |
+| PostgreSQL 17 服务（与 `compose.yaml` 同一镜像摘要，挂 Railway 数据卷） | 平台引用变量拼出的 `DATABASE_URL`（`postgresql://`，私网主机名）；应用使用同一服务器上的 `returnops_f02` 库 | 每次启动删除并重建该库（与 PD-02 的 `fresh` 相同），只放合成数据；密码只在平台变量里 |
 | 不在 PD-03 | S4 模型展示（课程代理在私有 VPN 地址，平台访问不到）；S5 R.02 驱动（在 PD-02 上运行） | 两者都按 docs/45 的备用方案处理 |
 
 需求对应：R.05.b 演示；NFR-003（只用合成数据，私有文件不进日志和镜像）；NFR-009（不显示凭据，公开地址只在演示期间运行）。2026-10-30 在本机用 Docker 模拟 Railway（PostgreSQL 容器加本镜像，`PORT=8080`）跑通：启动约 6 秒，`/health/ready`、网页、顾客提交与追问、店主队列和详情都经同一地址工作；在真实 Railway 上的记录见 README 的 Railway 一节。
