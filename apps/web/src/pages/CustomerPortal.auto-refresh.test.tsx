@@ -162,4 +162,39 @@ describe('CustomerPortal auto-refresh and stale answers (Live API mode)', () => 
     });
     expect(second[2]).not.toBe(first[2]);
   });
+
+  it('keeps the answers-received confirmation through the 5 s refresh and Refresh, and drops it for another case', async () => {
+    vi.mocked(getCustomerCase)
+      .mockResolvedValueOnce(view('AWAITING_INFORMATION', 2, true))
+      // The read after the accepted answers, then the shop moving the case on.
+      .mockResolvedValueOnce(view('UNDER_INVESTIGATION', 3))
+      .mockResolvedValue(view('RISK_REVIEW', 5));
+    vi.mocked(submitClarification).mockResolvedValueOnce(view('UNDER_INVESTIGATION', 3));
+
+    await lookUpCase();
+    fireEvent.change(await screen.findByPlaceholderText('Your answer...'), { target: { value: 'SYN-1001' } });
+    fireEvent.click(screen.getByRole('button', { name: /Submit Answers/i }));
+    expect(await screen.findByText(/Your answers were received/i)).toBeInTheDocument();
+    expect(getCustomerCase).toHaveBeenCalledTimes(2);
+
+    // The 5 s refresh reads a newer version of the case; the confirmation stays.
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
+    await waitFor(() => expect(getCustomerCase).toHaveBeenCalledTimes(3));
+    expect(screen.getByText(/Your answers were received/i)).toBeInTheDocument();
+
+    // So does a manual Refresh.
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+    await waitFor(() => expect(getCustomerCase).toHaveBeenCalledTimes(4));
+    await waitFor(() => expect(screen.getByRole('button', { name: /Lookup/i })).toBeEnabled());
+    expect(screen.getByText(/Your answers were received/i)).toBeInTheDocument();
+
+    // Another case: the confirmation belonged to the first one.
+    vi.mocked(getCustomerCase).mockResolvedValueOnce({ ...view('RISK_REVIEW', 2), case_id: 'case_live_002' });
+    fireEvent.change(screen.getByPlaceholderText('Enter your case ID...'), { target: { value: 'case_live_002' } });
+    fireEvent.click(screen.getByRole('button', { name: /Lookup/i }));
+    expect(await screen.findByText('case_live_002')).toBeInTheDocument();
+    expect(screen.queryByText(/Your answers were received/i)).not.toBeInTheDocument();
+  });
 });

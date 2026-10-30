@@ -1,5 +1,5 @@
 """Explicit 0011 continuation proof; the strict 0010 verifier is unchanged."""
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import select, func
 from . import customer_tables as old, founder_tables as founder, lifecycle_tables as life
 from . import founder_codec as finite, preview_profile as policy
@@ -35,7 +35,8 @@ def config_hash():
 
 
 def database_now(uow):
-    return uow.execute(select(func.clock_timestamp())).scalar_one()
+    # In UTC whatever the session TimeZone, because check_time requires a zero offset.
+    return uow.execute(select(func.clock_timestamp())).scalar_one().astimezone(timezone.utc)
 
 
 def key_hash(actor, key):

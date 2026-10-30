@@ -13,6 +13,7 @@ from returnops_domain.intake_processor import IntakeProcessor
 from returnops_domain.investigation_processor import InvestigationProcessor
 from returnops_domain.investigation_policy import InvestigationPolicy
 from returnops_domain.mock_orders import load_builtin_catalogue
+from returnops_domain.order_ports import OrderLookupError
 from returnops_domain.registry import TrustedRegistry
 from returnops_domain.retention import RetentionService
 from test_outcomes_postgresql import admitted,rows
@@ -56,6 +57,36 @@ def test_result_commit_unknown_reuses_same_observation(flow_engine,identities,en
     assert rows(flow_engine,t.receipts)[0]['receipt_id']==claim.invocation_id
     assert len(rows(flow_engine,t.receipts))==len(rows(flow_engine,t.projections))==1
     assert rows(flow_engine,old.case_heads)[0]['input_version']==2
+
+@pytest.mark.parametrize('error',[FlowError('INTERNAL_ERROR'),AcceptanceOutcomeUnknown()])
+def test_transient_lookup_failure_retries_instead_of_pausing(flow_engine,identities,enabled,error):
+    # 30 October 2026 review: a busy fence or pool during the shared lookup used to
+    # pause the work for good, leaving the case in UNDER_INVESTIGATION.
+    original,_=admitted(flow_engine,identities)
+    now=datetime.now(timezone.utc)
+    processor=InvestigationProcessor(flow_engine,clock=lambda:now)
+    real=processor.lookup
+    def failing(claim): raise error
+    processor.lookup=failing
+    assert processor.run_once() is False
+    work=rows(flow_engine,t.work)[0]
+    assert (work['state'],work['safe_reason'],work['failure_count'])==('PENDING','LOOKUP_CONTEXT_UNAVAILABLE',0)
+    assert work['next_attempt_at']>now
+    assert processor.claim() is None
+    processor.lookup=real;now+=timedelta(seconds=2)
+    assert processor.run_once()
+    assert len(rows(flow_engine,t.receipts))==len(rows(flow_engine,t.projections))==1
+    assert identities.flow().get_case(original.body['case_id']).body['status']=='POLICY_ASSESSMENT'
+    assert rows(flow_engine,t.discarded)==[] and rows(flow_engine,old.processing_failures)==[]
+
+def test_authority_lookup_failure_still_pauses(flow_engine,identities,enabled):
+    admitted(flow_engine,identities)
+    processor=InvestigationProcessor(flow_engine)
+    def denied(claim): raise OrderLookupError('STALE_INPUT')
+    processor.lookup=denied
+    assert processor.run_once() is False
+    work=rows(flow_engine,t.work)[0]
+    assert (work['state'],work['safe_reason'])==('PAUSED','LOOKUP_CONTEXT_UNAVAILABLE')
 
 def test_intake_enqueue_rollback_and_unknown_commit_are_atomic(flow_engine,identities,enabled):
     case=identities.flow().create({'original_message':'original','order_reference':'SYN-1001'},'create-key',identifier('corr')).body['case_id']

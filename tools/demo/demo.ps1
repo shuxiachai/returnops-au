@@ -44,7 +44,9 @@ and register this machine's SSH key once (README, Railway deployment).
                tools\demo\cloud-demo.cmd runs it on a double-click.
   cloud-fresh  Redeploys the running service for new sessions and copies them.
   cloud-tokens Copies the current sessions again; warns if they have expired.
-  -Url https://... checks that the service answers ready through its address.
+  -Url https://... is the service's public address; without it the address is read
+               from railway status. The copied customer session is then tried
+               there until the new deployment accepts it.
   -Service name is the app service these act on (default returnops-demo-app),
                whichever service railway link chose; never the database.
 
@@ -70,6 +72,8 @@ param(
 
 Set-StrictMode -Version 2
 $ErrorActionPreference = 'Stop'
+# Railway shows domains without a scheme; HttpWebRequest needs one.
+if ($Url -and $Url -notmatch '^[A-Za-z][A-Za-z0-9+.-]*://') { $Url = 'https://' + $Url }
 
 $Root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..')).Path
 Set-Location -LiteralPath $Root
@@ -108,8 +112,10 @@ function Invoke-Checked([string]$What, [scriptblock]$Command) {
 }
 
 # Runs a native command whose failure is an answer, not an error; stderr is dropped.
+# A command that does not exist leaves LASTEXITCODE unchanged, so it starts at -1.
 function Invoke-Quiet([scriptblock]$Command) {
     $ErrorActionPreference = 'Continue'
+    $global:LASTEXITCODE = -1
     $output = & $Command 2>$null
     return [pscustomobject]@{ Code = $LASTEXITCODE; Output = (@($output) -join "`n").Trim() }
 }
@@ -192,12 +198,14 @@ function Wait-PortFree([int]$Port, [int]$Seconds) {
     return (-not (Test-Listening $Port))
 }
 
-# Direct HTTP without the system proxy; returns $null when nothing answers.
-function Get-Http([string]$Url) {
+# Direct HTTP without the system proxy; returns $null when nothing answers. A bearer
+# token goes only into the request header and is never shown.
+function Get-Http([string]$Url, [string]$Bearer = '') {
     try {
         $request = [System.Net.HttpWebRequest]::Create($Url)
         $request.Proxy = $null
         $request.Timeout = 5000
+        if ($Bearer) { $request.Headers.Add('Authorization', 'Bearer ' + $Bearer) }
         $response = $request.GetResponse()
         try {
             $reader = New-Object System.IO.StreamReader($response.GetResponseStream())
@@ -206,6 +214,8 @@ function Get-Http([string]$Url) {
     } catch [System.Net.WebException] {
         $failed = $_.Exception.Response
         if ($failed) { $code = [int]$failed.StatusCode; $failed.Close(); return [pscustomobject]@{ Status = $code; Body = '' } }
+        return $null
+    } catch {
         return $null
     }
 }
@@ -754,6 +764,41 @@ function Wait-CloudSessions([long]$Before, [int]$Minutes) {
     Stop-Script "No new sessions within $Minutes minutes. Look at the deployment logs on railway.com, and check that this machine's SSH key is registered (railway ssh keys list; README, Railway deployment)."
 }
 
+# The public address of the app service from `railway status --json`, or $null when
+# there is none or more than one.
+function Get-CloudAddress {
+    $answer = Invoke-Quiet { railway status --json }
+    if ($answer.Code -ne 0 -or -not $answer.Output) { return $null }
+    try { $status = $answer.Output | ConvertFrom-Json } catch { return $null }
+    $found = @()
+    try {
+        foreach ($environment in @($status.environments.edges)) {
+            foreach ($instance in @($environment.node.serviceInstances.edges)) {
+                if ($instance.node.serviceName -ne $Service) { continue }
+                foreach ($domain in @($instance.node.domains.customDomains) + @($instance.node.domains.serviceDomains)) {
+                    if ($domain -and $domain.domain) { $found += [string]$domain.domain }
+                }
+            }
+        }
+    } catch { return $null }
+    $found = @($found | Select-Object -Unique)
+    if ($found.Count -ne 1) { return $null }
+    return 'https://' + $found[0]
+}
+
+# The copied sessions are new only once the public address serves the deployment that
+# issued them: until Railway switches traffic, the old deployment answers 401.
+function Wait-CloudSignIn([string]$Address, $Found, [int]$Seconds) {
+    $token = [string]$Found.Data.tokens.synthetic_customer_a
+    $deadline = (Get-Date).AddSeconds($Seconds)
+    while ((Get-Date) -lt $deadline) {
+        $answer = Get-Http "$Address/v1/session" $token
+        if ($answer -and $answer.Status -eq 200) { return $true }
+        Start-Sleep -Seconds 5
+    }
+    return $false
+}
+
 function Save-CloudSessions($Found) {
     if (Test-Path -LiteralPath $CloudShop) { Remove-Item -LiteralPath $CloudShop -Recurse -Force }
     New-Item -ItemType Directory -Path $CloudShop | Out-Null
@@ -761,11 +806,16 @@ function Save-CloudSessions($Found) {
     $until = [DateTimeOffset]::FromUnixTimeSeconds([long]$Found.Data.sessions[0].expires_at).LocalDateTime
     if ($until -le (Get-Date)) { Show-Warn "Sessions copied to tmp\railway-shop (not shown), but they expired at $(Format-Time $until); run cloud-fresh for new ones." }
     else { Show-Ok "Sessions copied to tmp\railway-shop (not shown); they expire at $(Format-Time $until)." }
-    $address = 'the Railway address of the service (railway.com, service, Settings, Networking)'
-    if ($Url) {
-        $address = $Url.TrimEnd('/')
-        if (Wait-Http "$address/health/ready" '"ready"' 30) { Show-Ok "$address answers ready" }
-        else { Show-Warn "$address does not answer ready; check the address and the deployment on railway.com." }
+    $address = $Url
+    if (-not $address) { $address = Get-CloudAddress }
+    if ($address) {
+        $address = $address.TrimEnd('/')
+        if (-not (Wait-Http "$address/health/ready" '"ready"' 30)) { Show-Warn "$address does not answer ready; check the address and the deployment on railway.com." }
+        elseif ($until -le (Get-Date)) { Show-Ok "$address answers ready" }
+        elseif (Wait-CloudSignIn $address $Found 180) { Show-Ok "$address answers ready and accepts the copied sessions" }
+        else { Show-Warn "$address does not accept the copied sessions yet (the previous deployment may still be serving); wait a minute and run cloud-tokens." }
+    } else {
+        $address = 'the Railway address of the service (railway.com, service, Settings, Networking)'
     }
     Show-Step 'Sign in (manual, README step 4)'
     Show-Info "Open $address in two browser profiles: Auth Tokens -> role -> Mock Data Fallback off -> paste -> Save & Apply."
@@ -778,7 +828,9 @@ function Save-CloudSessions($Found) {
 function Invoke-Cloud {
     Assert-Railway
     $before = Get-CloudSessions
-    $since = 0; if ($before) { $since = $before.Issued }
+    # Without an answer from the running deployment, sessions issued more than a minute
+    # before this deploy are old ones, not the new deployment's (local and server clocks).
+    $since = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds() - 60; if ($before) { $since = $before.Issued }
     Show-Step "Deploying this folder to the Railway service $Service (railway up; $Root)"
     Invoke-Checked 'railway up' { railway up --ci --service $Service }
     Save-CloudSessions (Wait-CloudSessions $since 10)

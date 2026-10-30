@@ -171,6 +171,28 @@ def test_same_snapshot_identity_with_conflicting_content_rejects_atomically(flow
     assert rows(flow_engine,t.projections)[0]['snapshot_hash']!='0'*64
     assert rows(flow_engine,old.case_heads)[0]['status']=='POLICY_ASSESSMENT'
 
+def test_photo_lodged_without_reference_is_asked_for_the_order(flow_engine,identities,enabled):
+    # 30 October 2026 review: a damage photo lodged without an order reference used
+    # to count as alternative purchase proof and pause the case with no way forward.
+    import io
+    from PIL import Image
+    from returnops_domain.evidence_validation import validate_evidence
+    image=io.BytesIO();Image.new('RGB',(2,2),(200,10,10)).save(image,format='PNG')
+    staged=identities.flow().stage(validate_evidence(image.getvalue(),'chipped-cup.png','image/png'),'photo-key',identifier('corr'))
+    created=identities.flow().create({'original_message':'Two of the cups arrived chipped.','evidence_ids':[staged.body['evidence_id']]},
+        'photo-create-key',identifier('corr'))
+    assert created.status==201 and IntakeProcessor(flow_engine).run_once()
+    processor=InvestigationProcessor(flow_engine);assert processor.run_once()
+    case=created.body['case_id'];view=identities.flow().get_case(case).body
+    assert view['status']=='AWAITING_INFORMATION' and len(view['clarification']['questions'])==2
+    assert rows(flow_engine,t.work)[0]['safe_reason'] is None and rows(flow_engine,t.work)[0]['state']=='DONE'
+    group=rows(flow_engine,t.groups)[0]
+    answer={'expected_case_version':view['case_version'],'question_set_id':view['clarification']['question_set_id'],
+        'answers':[{'question_id':group['reference_question_id'],'text':'SYN-1001'}],'evidence_ids':[]}
+    assert identities.flow().clarify(case,answer,'photo-answer-key',identifier('corr')).status==202
+    assert IntakeProcessor(flow_engine).run_once() and processor.run_once()
+    assert identities.flow().get_case(case).body['status']=='POLICY_ASSESSMENT'
+
 def test_authorized_bound_file_satisfies_or_without_fake_order(flow_engine,identities,enabled):
     import io
     from PIL import Image

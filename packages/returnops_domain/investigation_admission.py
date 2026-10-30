@@ -23,8 +23,10 @@ def ensure_work(uow, intake, head, now):
         reference=uow.execute(select(original_statement_contents.c.original_order_reference).join(original_statement_records,
             original_statement_contents.c.statement_id==original_statement_records.c.statement_id)
             .where(original_statement_records.c.case_id==head['case_id'])).scalar_one_or_none()
-        alternative=reference is None and uow.execute(select(old.evidence.c.evidence_id).where(old.evidence.c.case_id==head['case_id'],
-            old.evidence.c.available.is_(True),old.evidence.c.status=='BOUND').limit(1)).first() is not None
+        # Files attached when the case is lodged show the problem (a damage photo),
+        # so the order is still looked up and, without a reference, the questions
+        # follow. Only an answer to the purchase-context question is alternative proof.
+        alternative=False
         available=True
     else:
         reference,alternative,available=projection['reference'],projection['alternative'],projection['available']
@@ -75,10 +77,16 @@ def record_answers(uow, case_id, input_version, question_set_id, decision, now):
             reference_question_id=group['reference_question_id'],context_question_id=group['context_question_id']))
 
 
-def issue_questions(uow, head, now):
+def issue_questions(uow, head, now, *, reference_not_found=False):
     reference_id,context_id=identifier('question'),identifier('question')
-    questions=[{'question_id':reference_id,'text':'Provide an order reference (at most 120 characters), or use the alternative purchase-context question.',
-        'reason':'No order is verified. Either an order reference or alternative purchase material can continue the investigation.'},
+    if reference_not_found:
+        # Matching is exact (docs/22), so say why the same question comes back.
+        first={'question_id':reference_id,'text':'We could not find an order with that reference on your account. Check it and enter it exactly as it appears on your order (at most 120 characters), or use the alternative purchase-context question.',
+            'reason':'The order reference given did not match an order on your account, so no order is verified yet. Either a corrected order reference or alternative purchase material can continue the investigation.'}
+    else:
+        first={'question_id':reference_id,'text':'Provide an order reference (at most 120 characters), or use the alternative purchase-context question.',
+            'reason':'No order is verified. Either an order reference or alternative purchase material can continue the investigation.'}
+    questions=[first,
         {'question_id':context_id,'text':'Alternatively, describe the purchase or attach supporting evidence; you do not also need an order reference.',
         'reason':'Alternative material will be retained for further verification; it does not itself verify an order.'}]
     question_set_id=identifier('questions')

@@ -25,6 +25,7 @@ import re
 from secrets import token_hex
 from threading import Event, Lock, Thread
 from time import monotonic
+import unicodedata
 from sqlalchemy import select
 from . import customer_tables as t
 from .audit import identifier, timestamp
@@ -74,9 +75,17 @@ Placeholders such as [EMAIL], [PHONE] and [ORDER_REF] replace redacted values; k
 """
 
 _EMAIL = re.compile(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}')
-_ORDER = re.compile(r'(?<![A-Za-z0-9])[A-Z]{2,}-?\d{3,}(?![A-Za-z0-9])')
-_PHONE = re.compile(r'(?<![\w+])\+?(?:\(\d{1,4}\)[ -]?)?\d(?:[ -]?\d){7,14}(?!\w)')
+# Order references in any letter case and with several segments (SYN-1001, syn-1001,
+# ORD-2026-9042, SYN-CONFLICT); 30 October 2026 review.
+_ORDER = re.compile(r'(?<![A-Za-z0-9])(?:[A-Za-z]{2,}[-/#]?\d[A-Za-z0-9]*(?:[-/][A-Za-z0-9]+)*|[A-Z]{2,}(?:-[A-Z0-9]+)+)(?![A-Za-z0-9])')
+# Up to 19 digits, so a 16-digit card number is removed whole, not cut into [PHONE] 1111.
+_PHONE = re.compile(r'(?<![\w+])\+?(?:\(\d{1,4}\)[ -]?)?\d(?:[ -]?\d){7,18}(?!\w)')
 _DATE = re.compile(r'\d{4}-\d{1,2}-\d{1,2}|\d{1,2}[-/]\d{1,2}[-/]\d{2,4}')
+
+
+def _visible(text):
+    # str.strip() keeps zero-width and control characters, which look blank to the Founder.
+    return any(unicodedata.category(c)[0] in 'LNPS' for c in text)
 
 
 def redact(text):
@@ -236,7 +245,7 @@ def parse_facts(text, original_outcome):
         raise FactsRejected('SUPPORTED')
     if value['customer_requested_outcome'] != original_outcome:
         raise FactsRejected('OUTCOME_MISMATCH')
-    if len(value['summary']) > MAX_SUMMARY_CHARS or not value['summary'].strip():
+    if len(value['summary']) > MAX_SUMMARY_CHARS or not _visible(value['summary']):
         raise FactsRejected('SUMMARY_LENGTH')
     return value
 

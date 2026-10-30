@@ -226,12 +226,15 @@ describe('a preview that expired while the dialog is open (review round 2, findi
     await openCase();
 
     // An expired preview never opens the APPROVE dialog (selectDecisionTarget refuses it).
+    // The case window is itself a dialog, so the confirmation is found by its name.
     fireEvent.click(screen.getByRole('button', { name: /Approve Return/i }));
-    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: /Confirm Founder Decision/i })).not.toBeInTheDocument()
+    );
 
     // Reject does not depend on a preview, so the same case still allows it.
     fireEvent.click(screen.getByRole('button', { name: /^Reject$/i }));
-    const rejectDialog = await screen.findByRole('dialog');
+    const rejectDialog = await screen.findByRole('dialog', { name: /Confirm Founder Decision: REJECT/i });
     fireEvent.change(screen.getByPlaceholderText(/Record justification for statutory audit/i), {
       target: { value: 'Rejected after looking at the case.' },
     });

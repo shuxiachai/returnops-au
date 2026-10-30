@@ -24,6 +24,7 @@ import {
   downloadEvidence,
   isMockMode,
   ApiError,
+  formatApiError,
 } from '../api/client';
 import { selectDecisionTarget, describeDecisionError } from '../api/founderDecision';
 import { ApprovalScopeSummary } from '../components/ApprovalScopeSummary';
@@ -86,6 +87,9 @@ export const FounderConsole: React.FC = () => {
   // ---------------------------------------------------------
   const [cases, setCases] = useState<CaseSummary[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
+  // The server binds a cursor to the page size it was issued with (founder_queries.resume),
+  // so the next page is read with the limit that produced nextCursor, not a fixed 20.
+  const [nextCursorLimit, setNextCursorLimit] = useState(20);
   const [isLoadingCases, setIsLoadingCases] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [queueError, setQueueError] = useState<string | null>(null);
@@ -103,6 +107,8 @@ export const FounderConsole: React.FC = () => {
   const [detailTab, setDetailTab] = useState<DetailTab>('proposal');
   // A case that cannot be opened is reported on the page, not in a browser alert.
   const [caseOpenError, setCaseOpenError] = useState<string | null>(null);
+  // An accepted decision whose follow-up read failed: the decision still stands.
+  const [decisionNotice, setDecisionNotice] = useState<string | null>(null);
   // Only the latest read of the open case may update it (#111 item 2).
   const selectedCaseRef = useRef<string | null>(null);
   const detailLoad = useRef(0);
@@ -154,8 +160,9 @@ export const FounderConsole: React.FC = () => {
       const data = await listFounderCases(undefined, limit);
       setCases(data.items);
       setNextCursor(data.next_cursor || null);
+      setNextCursorLimit(limit);
     } catch (err: unknown) {
-      setQueueError(err instanceof ApiError ? `[${err.code}] ${err.message}` : 'Failed to load case queue');
+      setQueueError(err instanceof ApiError ? formatApiError(err) : 'Failed to load case queue');
     } finally {
       setIsLoadingCases(false);
     }
@@ -164,12 +171,14 @@ export const FounderConsole: React.FC = () => {
   const loadMoreCases = async () => {
     if (!nextCursor || isLoadingMore) return;
     setIsLoadingMore(true);
+    const limit = nextCursorLimit;
     try {
-      const data = await listFounderCases(nextCursor, 20);
+      const data = await listFounderCases(nextCursor, limit);
       setCases((prev) => [...prev, ...data.items]);
       setNextCursor(data.next_cursor || null);
+      setNextCursorLimit(limit);
     } catch (err: unknown) {
-      setQueueError(err instanceof ApiError ? `[${err.code}] ${err.message}` : 'Failed to load next page');
+      setQueueError(err instanceof ApiError ? formatApiError(err) : 'Failed to load next page');
     } finally {
       setIsLoadingMore(false);
     }
@@ -186,7 +195,7 @@ export const FounderConsole: React.FC = () => {
       const data = await getFounderAnalytics(query);
       setAnalytics(data);
     } catch (err: unknown) {
-      setAnalyticsError(err instanceof ApiError ? `[${err.code}] ${err.message}` : 'Failed to load analytics');
+      setAnalyticsError(err instanceof ApiError ? formatApiError(err) : 'Failed to load analytics');
       setAnalytics(null);
     } finally {
       setIsLoadingAnalytics(false);
@@ -220,7 +229,7 @@ export const FounderConsole: React.FC = () => {
   };
 
   const describeApiError = (err: unknown, fallback: string) =>
-    err instanceof ApiError ? `[${err.code}] ${err.message}` : err instanceof Error ? err.message : fallback;
+    err instanceof ApiError ? formatApiError(err) : err instanceof Error ? err.message : fallback;
 
   // #122 item 13: read every page of the chain, with a bound, so a long case is
   // not silently truncated to its first page. Overflow is shown as an error rather
@@ -260,11 +269,14 @@ export const FounderConsole: React.FC = () => {
     }
   };
 
-  const openCaseDetail = async (caseId: string, tab: DetailTab = 'proposal') => {
+  // Resolves to why the case could not be opened, or null once it is shown (or a
+  // later open has taken over).
+  const openCaseDetail = async (caseId: string, tab: DetailTab = 'proposal'): Promise<string | null> => {
     const load = ++detailLoad.current;
     selectedCaseRef.current = caseId;
     setSelectedCaseId(caseId);
     setCaseOpenError(null);
+    setDecisionNotice(null);
     setIsLoadingDetail(true);
     setDetailTab(tab);
     setAuditError(null);
@@ -276,17 +288,19 @@ export const FounderConsole: React.FC = () => {
         getFounderCase(caseId),
         loadWholeAuditChain(caseId),
       ]);
-      if (load !== detailLoad.current) return;
+      if (load !== detailLoad.current) return null;
 
       if (detailResult.status === 'fulfilled') {
         setCaseDetail(detailResult.value);
       } else {
-        setCaseOpenError(`Could not open ${caseId}: ${describeApiError(detailResult.reason, 'Failed to fetch case detail')}`);
+        const reason = describeApiError(detailResult.reason, 'Failed to fetch case detail');
+        setCaseOpenError(`Could not open ${caseId}: ${reason}`);
         selectedCaseRef.current = null;
         setSelectedCaseId(null);
-        return;
+        return reason;
       }
       applyAuditResult(auditResult);
+      return null;
     } finally {
       if (load === detailLoad.current) setIsLoadingDetail(false);
     }
@@ -300,8 +314,7 @@ export const FounderConsole: React.FC = () => {
     try {
       await downloadEvidence(evidenceId, filename);
     } catch (err: unknown) {
-      const text =
-        err instanceof ApiError ? `[${err.code}] ${err.message}` : 'The evidence file could not be downloaded.';
+      const text = err instanceof ApiError ? formatApiError(err) : 'The evidence file could not be downloaded.';
       setEvidenceDownloadError(`${filename}: ${text}`);
     } finally {
       setDownloadingEvidence(null);
@@ -327,7 +340,23 @@ export const FounderConsole: React.FC = () => {
     detailLoad.current += 1;
     selectedCaseRef.current = null;
     setSelectedCaseId(null);
+    // Escape can close the window while it is still loading; the discarded read
+    // must not leave the next case stuck on the loading screen.
+    setIsLoadingDetail(false);
   };
+
+  // Escape closes the top window: the decision dialog first, then the case. It does
+  // nothing while a decision is being sent, so its outcome cannot be hidden.
+  useEffect(() => {
+    if (!selectedCaseId && !decisionModalOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || isSubmittingDecision) return;
+      if (decisionModalOpen) setDecisionModalOpen(false);
+      else closeCaseDetail();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [selectedCaseId, decisionModalOpen, isSubmittingDecision]);
 
   // #111 item 2: the open case is read again every 5 s until it reaches a final
   // status. Polling pauses while a decision is being confirmed, so the version the
@@ -405,13 +434,21 @@ export const FounderConsole: React.FC = () => {
     setDecisionError(null);
 
     try {
-      await recordFounderDecision(caseDetail.case_id, payload, keyToUse);
+      const receipt = await recordFounderDecision(caseDetail.case_id, payload, keyToUse);
 
       setPendingDecisionKey(null);
       setLastDecisionPayload(null);
       setDecisionModalOpen(false);
       // Reload detail and queue; the Founder lands on what the decision produced.
-      await openCaseDetail(caseDetail.case_id, 'outcome');
+      const reloadFailure = await openCaseDetail(caseDetail.case_id, 'outcome');
+      if (reloadFailure) {
+        // The receipt is the server's acceptance. A failed read after it must not
+        // read as a failed decision, or invite the Founder to decide again.
+        setCaseOpenError(null);
+        setDecisionNotice(
+          `Decision recorded: the server accepted ${receipt.decision} on ${receipt.case_id} (decision ${receipt.decision_id}). The case view could not be refreshed: ${reloadFailure} Open the case again to see its current state.`
+        );
+      }
       loadCases();
     } catch (err: unknown) {
       if (err instanceof ApiError && err.code === 'STALE_CASE_VERSION') {
@@ -592,76 +629,103 @@ export const FounderConsole: React.FC = () => {
             </div>
           )}
 
+          {decisionNotice && (
+            <div
+              role="status"
+              className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-900 text-sm flex items-center justify-between gap-3"
+            >
+              <span className="flex items-center space-x-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                <span>{decisionNotice}</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setDecisionNotice(null)}
+                aria-label="Dismiss"
+                className="text-emerald-600 hover:text-emerald-800 p-1 rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
           {/* Cases Table */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
-              <thead className="bg-slate-50 text-slate-500 font-semibold uppercase tracking-wider">
-                <tr>
-                  <th className="px-6 py-3.5">Case ID</th>
-                  <th className="px-4 py-3.5">Status</th>
-                  <th className="px-4 py-3.5">Category</th>
-                  <th className="px-4 py-3.5">Risk Outcome</th>
-                  <th className="px-4 py-3.5">Version</th>
-                  <th className="px-4 py-3.5">Updated</th>
-                  <th className="px-6 py-3.5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
-                {filteredCases.length === 0 ? (
+            {/* The table scrolls sideways inside the card and the Actions column stays
+                pinned, so a narrow window never hides Inspect. */}
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
+                <thead className="bg-slate-50 text-slate-500 font-semibold uppercase tracking-wider">
                   <tr>
-                    <td colSpan={7} className="px-6 py-8 text-center text-slate-400">
-                      {isLoadingCases ? 'Loading case queue...' : 'No matching cases found.'}
-                    </td>
+                    <th className="px-6 py-3.5">Case ID</th>
+                    <th className="px-4 py-3.5">Status</th>
+                    <th className="px-4 py-3.5">Category</th>
+                    <th className="px-4 py-3.5">Risk Outcome</th>
+                    <th className="px-4 py-3.5">Version</th>
+                    <th className="px-4 py-3.5">Updated</th>
+                    <th className="px-6 py-3.5 text-right sticky right-0 bg-slate-50">Actions</th>
                   </tr>
-                ) : (
-                  filteredCases.map((c) => (
-                    <tr key={c.case_id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="px-6 py-4 font-mono font-bold text-slate-900 whitespace-nowrap">
-                        {c.case_id}
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <span
-                          className={`px-2.5 py-0.5 rounded-full font-semibold border ${getStatusBadgeClass(
-                            c.status
-                          )}`}
-                        >
-                          {c.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 text-slate-700 whitespace-nowrap font-medium">
-                        {formatCategory(c.issue_category)}
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        {c.current_risk_outcome ? (
-                          <span
-                            className={`px-2 py-0.5 rounded-full font-semibold border text-[11px] ${getRiskBadgeClass(
-                              c.current_risk_outcome
-                            )}`}
-                          >
-                            {c.current_risk_outcome}
-                          </span>
-                        ) : (
-                          <span className="text-slate-400">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-4 font-mono text-slate-500">
-                        v{c.case_version} / in{c.input_version}
-                      </td>
-                      <td className="px-4 py-4 text-slate-500 whitespace-nowrap">{formatDate(c.updated_at)}</td>
-                      <td className="px-6 py-4 text-right whitespace-nowrap">
-                        <button
-                          onClick={() => openCaseDetail(c.case_id)}
-                          className="px-3.5 py-1.5 bg-sky-50 hover:bg-sky-100 text-sky-700 font-semibold rounded-lg border border-sky-200 transition-colors flex items-center space-x-1 ml-auto"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span>Inspect</span>
-                        </button>
+                </thead>
+                <tbody className="divide-y divide-slate-100 bg-white">
+                  {filteredCases.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-8 text-center text-slate-400">
+                        {isLoadingCases ? 'Loading case queue...' : 'No matching cases found.'}
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    filteredCases.map((c) => (
+                      <tr key={c.case_id} className="group hover:bg-slate-50/80 transition-colors">
+                        <td className="px-6 py-4 font-mono font-bold text-slate-900 whitespace-nowrap">
+                          {/* A server case ID is 37 characters; the full ID is on hover and in the case window. */}
+                          <span className="block max-w-[12rem] truncate" title={c.case_id}>
+                            {c.case_id}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full font-semibold border ${getStatusBadgeClass(
+                              c.status
+                            )}`}
+                          >
+                            {c.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 text-slate-700 whitespace-nowrap font-medium">
+                          {formatCategory(c.issue_category)}
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          {c.current_risk_outcome ? (
+                            <span
+                              className={`px-2 py-0.5 rounded-full font-semibold border text-[11px] ${getRiskBadgeClass(
+                                c.current_risk_outcome
+                              )}`}
+                            >
+                              {c.current_risk_outcome}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-4 font-mono text-slate-500">
+                          v{c.case_version} / in{c.input_version}
+                        </td>
+                        <td className="px-4 py-4 text-slate-500 whitespace-nowrap">{formatDate(c.updated_at)}</td>
+                        <td className="px-6 py-4 text-right whitespace-nowrap sticky right-0 bg-white group-hover:bg-slate-50">
+                          <button
+                            onClick={() => openCaseDetail(c.case_id)}
+                            className="px-3.5 py-1.5 bg-sky-50 hover:bg-sky-100 text-sky-700 font-semibold rounded-lg border border-sky-200 transition-colors flex items-center space-x-1 ml-auto"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>Inspect</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
 
             {/* Pagination Controls (Finding 6) */}
             <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
@@ -693,7 +757,12 @@ export const FounderConsole: React.FC = () => {
       {/* CASE INSPECTION MODAL (UC-03 / UC-05 / UC-04)             */}
       {/* ========================================================= */}
       {selectedCaseId && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Case ${selectedCaseId}`}
+          className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4"
+        >
           {isLoadingDetail || !caseDetail ? (
             <div className="bg-white rounded-2xl p-8 flex items-center space-x-3 shadow-2xl">
               <RefreshCw className="w-5 h-5 text-sky-600 animate-spin" />
@@ -720,6 +789,8 @@ export const FounderConsole: React.FC = () => {
               <button
                 onClick={closeCaseDetail}
                 aria-label="Close case"
+                // Keyboard focus starts inside the window rather than on the queue behind it.
+                autoFocus
                 className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
               >
                 <X className="w-5 h-5" />
@@ -1447,6 +1518,7 @@ export const FounderConsole: React.FC = () => {
         <div className="fixed inset-0 z-[60] overflow-y-auto bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div
             role="dialog"
+            aria-modal="true"
             aria-labelledby="decision-dialog-title"
             className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden"
           >
@@ -1525,6 +1597,8 @@ export const FounderConsole: React.FC = () => {
                   onChange={(e) => setDecisionReason(e.target.value)}
                   placeholder="Record justification for statutory audit and customer notification..."
                   disabled={isSubmittingDecision}
+                  // The rationale is the first thing to type, so focus starts here.
+                  autoFocus
                   className="w-full text-xs p-3 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:bg-white resize-none"
                 />
               </div>

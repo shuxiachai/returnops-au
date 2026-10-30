@@ -21,6 +21,20 @@ from conftest import migrate
 
 
 @pytest.mark.parametrize('flow_engine', [PREPARATION], indirect=True)
+def test_database_now_is_utc_whatever_the_session_time_zone(flow_engine):
+    # 30 October 2026 review: with a non-UTC server or role TimeZone, check_time
+    # refused every step after approval because the offset was not zero.
+    from datetime import timedelta
+    from returnops_domain.return_execution_sources import database_now
+    with flow_engine.connect() as connection:
+        connection.execute(text("SET TIME ZONE 'Australia/Sydney'"))
+        class Reader:
+            def execute(self, statement): return connection.execute(statement)
+        now = database_now(Reader())
+        connection.rollback()
+    assert now.utcoffset() == timedelta(0)
+
+
 def test_RE_G1_retained0010_upgrade_and_original_approval_preparation_replay(flow_engine, identities, enabled, request):
     arguments, setup = ready(flow_engine, identities, grants=False)
     before = snapshot(flow_engine)

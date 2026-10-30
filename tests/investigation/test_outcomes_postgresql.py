@@ -118,6 +118,18 @@ def test_no_reference_first_question_and_either_answer(flow_engine,identities,en
     assert identities.flow().clarify(case,answer,'answer-key',identifier('corr')).body==accepted.body
     assert identities.flow().create(request,'create-key',identifier('corr')).body==original.body
 
+@pytest.mark.parametrize('reference,first',[(None,'Provide an order reference'),('syn-1001','We could not find an order with that reference')])
+def test_question_says_when_a_given_reference_was_not_found(flow_engine,identities,enabled,reference,first):
+    # 30 October 2026 review: matching stays exact (docs/22), but a reference that
+    # matched nothing must not come back as the same unexplained question.
+    original,_=admitted(flow_engine,identities,reference)
+    assert InvestigationProcessor(flow_engine).run_once()
+    view=identities.flow().get_case(original.body['case_id']).body
+    assert view['status']=='AWAITING_INFORMATION'
+    questions=view['clarification']['questions']
+    assert len(questions)==2 and questions[0]['text'].startswith(first)
+    assert questions[1]['text'].startswith('Alternatively, describe the purchase')
+
 def test_oversize_reference_is_saved_without_truncation_or_lookup(flow_engine,identities,enabled):
     original,_=admitted(flow_engine,identities,None);assert InvestigationProcessor(flow_engine).run_once()
     case=original.body['case_id'];view=identities.flow().get_case(case).body;group=rows(flow_engine,t.groups)[0]

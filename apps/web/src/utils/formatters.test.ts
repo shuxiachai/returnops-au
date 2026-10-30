@@ -178,7 +178,11 @@ describe('formatters', () => {
       expect(formatCategory('FAULTY_OR_QUALITY_ISSUE')).toBe('Faulty / Quality Issue');
       expect(formatCategory('WRONG_ITEM')).toBe('Wrong Item Sent');
       expect(formatCategory('CHANGE_OF_MIND')).toBe('Change of Mind');
-      expect(formatCategory('UNCLEAR')).toBe('Unclear Statement');
+    });
+
+    it('words the Gate 1 placeholder UNCLEAR as not yet classified, not as a judgement on the statement', () => {
+      // The server's case summary sends UNCLEAR for every case while no classifier runs.
+      expect(formatCategory('UNCLEAR')).toBe('Not yet classified');
     });
 
     it('returns Uncategorised for undefined category', () => {

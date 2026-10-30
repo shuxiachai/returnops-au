@@ -1,19 +1,19 @@
 # 48. Agile evidence and technology data for the Stage 2 demonstration
 
-Owner: A Jingbo Chai. Prepared on 23 October 2026 (Sydney) for the Week 13 demonstration and the two rubric rows that are judged from records rather than from the running system: "Agile Development Experience" (4 marks) and "Incorporation of Advanced Technologies" (5 marks) in the Stage 2 marking criteria ([docs/28](28-stage2-submission-checklist.md), [docs/47](47-stage2-submission-runbook.md) section 1). Every number below is taken from a record that is named next to it; nothing is estimated. Where a record does not exist, this page says so.
+Owner: A Jingbo Chai. Prepared on 23 October 2026 (Sydney) for the Week 13 demonstration and the two rubric rows that are judged from records rather than from the running system: "Agile Development Experience" (4 marks) and "Incorporation of Advanced Technologies" (5 marks) in the Stage 2 marking criteria ([docs/28](28-stage2-submission-checklist.md), [docs/47](47-stage2-submission-runbook.md) section 1). Updated on 30 October 2026 with the iterations to that date, a burn-down chart of the final iteration, two corrected counts and the Railway measurements. Every number below is taken from a record that is named next to it; nothing is estimated. Where a record does not exist, this page says so.
 
-How to use it in the demo: segment S7 of [docs/45](45-stage2-demo-script.md) ("Agile and engineering practice") points here. The presenter reads the two tables in sections 3 and 6 and shows one feedback loop from section 4 live on GitHub.
+How to use it in the demo: segment S7 of [docs/45](45-stage2-demo-script.md) ("Agile and engineering practice") points here. The presenter shows the two charts in section 3, reads the technology table in section 6 and shows one feedback loop from section 4 live on GitHub.
 
 ## 1. What the rubric asks for and where the evidence is
 
 | Rubric wording (Stage 2 criteria) | Evidence in this repository and its systems |
 |---|---|
 | "detailed documentation of all iterations" | Section 3 (iteration table from merged pull requests), the dated README chapters, [docs/08](08-delivery-work-packages.md) work packages, [docs/11](11-stage1-readiness.md) planning record |
-| "burn-down charts" | Section 3 cumulative delivery table (a burn-up built from pull-request adoption dates; see the note on why Jira resolution dates are not used) |
+| "burn-down charts" | Section 3: the burn-down of the final iteration's dated plan (22 October to 2 November) and the burn-up of adopted pull requests per iteration; the note there says why Jira resolution dates are not used |
 | "user stories" | Section 2: the six Jira epics E1 to E6, the twelve functional requirements FR-001 to FR-012 and the per-member use cases in the Stage 1 report ([docs/00](00-project-definition-v1.md), [docs/12](12-member-a-model-chain.md), [docs/19](19-member-b-model-chain.md), [docs/18](18-member-c-model-chain.md)) |
-| "feedback loops" and "iterative improvements" | Section 4: six recorded review-to-change loops with their pull-request and comment links |
+| "feedback loops" and "iterative improvements" | Section 4: thirteen recorded review-to-change loops with their pull-request and comment links |
 | "team collaboration" | Section 5: the frozen allocation ([docs/07](07-frozen-work-allocation.md)), Owner/Reviewer pairs, the delegated review and adoption flow, Jira board |
-| "advanced technologies (at least 6) ... supported by data" | Section 6: ten technologies with the measurement each one is tied to |
+| "advanced technologies (at least 6) ... supported by data" | Section 6: eleven technologies with the measurement each one is tied to |
 
 ## 2. User stories: epics, requirements and work packages
 
@@ -28,11 +28,13 @@ The product definition fixes twelve functional requirements (FR-001 to FR-012) a
 | E5 Resolution and human control | As the founder, I want to approve exactly one previewed action, with nothing executed without my decision | FR-008, FR-011, FR-012, NFR-004, NFR-005 | A2.01 to A2.07, B2, C2 | A backend, B console, C risk review |
 | E6 Evaluation and evidence | As the team, I want every claim about safety and behaviour backed by a repeatable test or run | NFR-006 to NFR-009 | E.01 to E.12, F.06, R.02, B3 | A, C evaluation, B analytics page |
 
-Jira: project KAN, 37 issues on 23 October 2026 (epics KAN-6 to KAN-11, stories and tasks KAN-12 to KAN-43). The board is a Kanban board without sprints; iterations were weekly, aligned to the course's practical sessions (Monday 13:00 to 15:00), with the practical's planning conversation recorded in the dated README chapters and the handover notes.
+Jira: project KAN, 37 issues on 30 October 2026 (epics KAN-6 to KAN-11, stories and tasks KAN-12 to KAN-43). The board is a Kanban board without sprints; iterations were weekly, aligned to the course's practical sessions (Monday 13:00 to 15:00), with the practical's planning conversation recorded in the dated README chapters and the handover notes.
 
-## 3. Iterations and cumulative delivery
+## 3. Iterations, burn-down and cumulative delivery
 
-Source: the 65 pull requests merged into `main` by the evening of 23 October 2026, read from GitHub (`gh pr list --state merged --base main`), grouped by ISO week of the merge date. Pull requests merged into another branch are not counted. A pull request is counted when it is adopted into `main`, because adoption is the only event that is independently timestamped and reviewed. Jira resolution dates are deliberately not used for the chart: the lead moved the completed Jira items to Done in one pass on 22 October 2026 when the board was reconciled, so those dates record the reconciliation, not the work.
+Source: the 107 pull requests merged into `main` by the evening of 30 October 2026, read from GitHub (`gh pr list --state merged --base main`), grouped by the ISO week of the merge time in Sydney. Pull requests merged into another branch are not counted. A pull request is counted when it is adopted into `main`, because adoption is the only event that is independently timestamped and reviewed. Jira resolution dates are deliberately not used for the charts: the lead moved the completed Jira items to Done in one pass on 22 October 2026 when the board was reconciled, so those dates record the reconciliation, not the work.
+
+Correction of 30 October 2026: the first version of this table (23 October) grouped merges by their UTC date, which moved #7 (merged on Monday 19 October, 10:42 Sydney) into week 42. All weeks are now Sydney weeks; weeks 36 to 41 are unchanged.
 
 | Iteration (ISO week, Sydney) | A | B | C | Merged | Cumulative | What landed |
 |---|---|---|---|---|---|---|
@@ -42,25 +44,60 @@ Source: the 65 pull requests merged into `main` by the evening of 23 October 202
 | Week 39, 21 to 27 Sep | 8 | 0 | 0 | 8 | 17 | F.03 isolated identity and access; Stage 2 entry; customer notification fixtures (#15, #18, #19 and others) |
 | Week 40, 28 Sep to 4 Oct | 5 | 0 | 0 | 5 | 22 | Authoritative lifecycle: Founder case views, persisted guards, denial audit (#30, #32, #34 and others) |
 | Week 41, 5 to 11 Oct | 10 | 0 | 2 | 12 | 34 | Stage 1 consolidation; A1.03 acceptance; A1.05 fixed proposal; C1 offline grounding candidate (#40, #41, #43 and others) |
-| Week 42, 12 to 18 Oct | 6 | 0 | 1 | 7 | 41 | Jira delivery guide; A2.01 PASS proposal handling; approval admission (#7, #63, #65 and others) |
-| Week 43, 19 to 25 Oct (to 23 Oct) | 14 | 2 | 8 | 24 | 65 | A2.06 notification, A2.07 decision boundary, R.02 end-to-end evidence, F.06 analytics, Coordinator showcase and its live result, R.05 documents, B frontend scaffold and live connection, C handoff, receipts and source review, review fixes (#60, #78, #87, #89, #90, #94, #96 to #100, #107, #108, #17, #61 and others) |
+| Week 42, 12 to 18 Oct | 6 | 0 | 0 | 6 | 40 | A2.01 PASS proposal handling; approval admission; prepared and executed core return (#63, #65, #72, #74, #76, #80) |
+| Week 43, 19 to 25 Oct | 28 | 2 | 14 | 44 | 84 | Jira delivery guide (#7); C's corpus admission, risk-reviewer stub and evaluation candidates (#68, #69, #70); label and PDF, notification, decision boundary (#82, #87, #78); R.02 end-to-end evidence (#89); F.06 analytics (#90); B frontend scaffold and live connection (#60, #100, #107); Coordinator showcase (#94, #98, #99); demo script, roadmap and runbook (#96, #97, #110); review fixes (#108, #112, #114, #116, #119); rehearsal pass 0 (#120); web wording and session expiry (#128, #130) |
+| Week 44, 26 Oct to 1 Nov (to 30 Oct) | 14 | 2 | 7 | 23 | 107 | Live manual takeover in the demo (#132); Decision & Outcome tab (#133, #138); driver child-stop fix (#136); tutor's answer and demo slot (#139); B's frontend review items (#144, #147); token masking and queue filters (#148); Windows demo script and double-click start (#146, #154); demo script fitted to 12 minutes (#151); C's evaluation definitions and their freeze (#142, #150, #152); Railway deployment (#156, #157) |
 
-Burn-up of adopted pull requests (each block is one pull request):
+Per-member totals of the 107 adopted pull requests: A 76, C 25, B 6. #107 is counted under A because the lead opened it to bring B's reviewed #101 and #102 onto `main`. These are counts of adoptions, not of effort or value; the contribution statement handed to the course is prepared separately and agreed by all three members ([docs/47](47-stage2-submission-runbook.md) section 6).
 
-```text
-Week 36  ###                                                             3
-Week 37  #                                                               4
-Week 38  #####                                                           9
-Week 39  ########                                                       17
-Week 40  #####                                                          22
-Week 41  ############                                                   34
-Week 42  #######                                                        41
-Week 43  ########################                                       65
+### Burn-up of adopted pull requests
+
+Bars: pull requests adopted in the iteration; line: cumulative total.
+
+```mermaid
+xychart-beta
+    title "Pull requests adopted into main, by iteration (Sydney weeks)"
+    x-axis ["W36", "W37", "W38", "W39", "W40", "W41", "W42", "W43", "W44"]
+    y-axis "Pull requests" 0 --> 110
+    bar [3, 1, 5, 8, 5, 12, 6, 44, 23]
+    line [3, 4, 9, 17, 22, 34, 40, 84, 107]
 ```
 
-Reading the shape honestly: delivery accelerated into the last two iterations, and B's frontend adoption started late (first merge 22 October; the live connection, the facts card and the pending-submission fix were adopted on 23 October through #100 and the integration pull request #107). The retrospective in section 7 records why and what the team changed.
+### Burn-down of the final iteration (22 October to 2 November)
 
-Per-member totals of the 65 adopted pull requests: A 48, C 13, B 4. #107 is counted under A because the lead opened it to bring B's reviewed #101 and #102 onto `main`. These are counts of adoptions, not of effort or value; the contribution statement handed to the course is prepared separately and agreed by all three members ([docs/47](47-stage2-submission-runbook.md) section 6).
+On 22 October 2026 the lead fixed a dated plan for the last iteration ([docs/47](47-stage2-submission-runbook.md) section 2). Its thirteen deliverables are the scope below. The planned line counts an item as done at the end of its planned day (the last day of a range); the actual line counts it on the day the named record shows it done. Items with no record stay open. Actual values stop at 30 October, the day of this update.
+
+| # | Deliverable (plan of 22 October) | Planned | Done | Record |
+|---|---|---|---|---|
+| 1 | Rehearsal pass 0 from a zip of `main` | 24 Oct | 24 Oct | docs/47 section 5, pass 0 (#120) |
+| 2 | Ask the tutor how the contribution statement is handed in, and record it | 26 Oct | 26 Oct | docs/47 section 2 (#139) |
+| 3 | Demo script final | 26 Oct | 28 Oct | fitted to the new 12-minute limit (#151) |
+| 4 | Contribution statement draft sent to the three | 27-28 Oct | 26 Oct | Issues #134 and #135 |
+| 5 | A3 tutor disposition requested and recorded | 27-28 Oct | open | docs/47 section 7, item 3 says "to record" |
+| 6 | First full rehearsal on A's machine | 27-28 Oct | 27 Oct | docs/47 section 7, item 15 (zip of `main` at `5d67231c`) |
+| 7 | B's Issue #111 items 1-6 merged | 27-28 Oct | 25 Oct | #128 and #130 |
+| 8 | Clean-machine rehearsal, pass 1 | 29 Oct | open | not held on 29 October; pass 2 is the remaining full rehearsal |
+| 9 | Contribution statement final, signed by all three | 30-31 Oct | open | B's and C's confirmations outstanding on 30 October |
+| 10 | Tag and package | 30-31 Oct | open | docs/47 section 3 |
+| 11 | Canvas upload and download-and-reopen check | 1 Nov | open | docs/47 section 4 |
+| 12 | Rehearsal pass 2 from the Canvas download | 1 Nov | open | docs/47 section 5 |
+| 13 | Week 13 demonstration | 2 Nov | open | docs/47 section 9 |
+
+```mermaid
+xychart-beta
+    title "Final iteration: deliverables remaining (first line planned, second line actual)"
+    x-axis ["22 Oct", "23", "24", "25", "26", "27", "28", "29", "30", "31", "1 Nov", "2 Nov"]
+    y-axis "Deliverables remaining" 0 --> 14
+    line [13, 13, 12, 12, 10, 10, 6, 5, 5, 3, 1, 0]
+    line [13, 13, 12, 11, 9, 8, 7, 7, 7]
+```
+
+| End of day | 22 Oct | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 1 Nov | 2 Nov |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Planned remaining | 13 | 13 | 12 | 12 | 10 | 10 | 6 | 5 | 5 | 3 | 1 | 0 |
+| Actual remaining | 13 | 13 | 12 | 11 | 9 | 8 | 7 | 7 | 7 | | | |
+
+Reading the shapes honestly: delivery accelerated into the last two iterations, and B's frontend adoption started late (first merge 22 October; the live connection, the facts card and the pending-submission fix were adopted on 23 October through #100 and the integration pull request #107). In the final iteration the early items finished ahead of plan, but the A3 tutor disposition and the clean-machine pass 1 slipped, so on 30 October the actual line sits two items above the plan. The retrospective in section 7 records why and what the team changed.
 
 ## 4. Feedback loops: review comment to change
 
@@ -74,8 +111,21 @@ Each loop names the reviewer, the comment or review, and the change it produced.
 6. **Flaky concurrency test triaged rather than silenced (23 October).** The same-key competition test `test_R04_independent_process_competition[same]` failed in CI on two branches that change no backend code (lock timeout on the global fence under runner load). Change: issue #103 and Jira KAN-43 record the evidence; reading the code showed the server already answers that case with a retryable 503 and no denial audit, so the probe now records every attempt and re-sends the same key once, as the client contract says, and the API's statement timeout was raised to outlast the lock timeout (#108). The receipt assertion itself was not relaxed.
 7. **A full technical review before the final week (23 October).** Three independent read-only reviews of `main` produced the fixes in #108 (line endings on Windows clones, the demo tool's error reasons, the interrupted driver receipt, strict query integers, new tests) and the backlog in issue #106, recorded in [docs/46](46-gate2-roadmap.md) section 8 and [docs/47](47-stage2-submission-runbook.md) section 7 rather than hidden.
 8. **A's reviews of C's code (#68 and #70, 18 to 19 October).** On #68 (reviewed-corpus admission) A's Windows capability review showed that the secure descriptor-based reads cannot work on native Windows. Change: the admission tests now check the same `O_DIRECTORY`, `O_NOFOLLOW` and `O_NONBLOCK` capabilities as the loader and expect an explicit unsupported-filesystem refusal ([ACCC candidate README](../experiments/c1_grounding_candidate/candidates/accc-20261012/README.md#19-october-platform-aware-admission-tests)). On #70 (evaluation) A's review found that known-cost addition could round or raise under a caller's `Decimal` context. Change: integer coefficients and scale, with four regression tests ([evaluation candidate README](../experiments/evaluation_candidate/README.md#review-correction--18-october-2026)).
+9. **Rehearsal pass 0 (24 October).** The early rehearsal on the demonstration machine found that `MANUAL_HANDLING` on a demo case was refused with 403, because `demo.py provision` granted no decision capability, so S3 could not show a live Founder decision. Change: #132 (26 October) added the opt-in `--founder-manual` grant, and the S3 takeover of the escalated case was accepted against PostgreSQL ([docs/47](47-stage2-submission-runbook.md) section 5).
+10. **Reviews of B's frontend (Issues #111 and #122, 23 and 24 October).** The lead's read-only reviews found, among others, that 20 of the 25 Mock Mode queue rows could not be opened, that a 409 `STALE_CASE_VERSION` did not reload the case, that mock text contradicted the demo's safety wording, that the console showed nothing after a decision, and that the token field was plain text. Change: #128 and #130 (25 October) fixed the wording, the session-expiry banner, the 409 reload and the mock rows; #138 (26 October) added the Decision & Outcome tab; B closed the remaining #122 items in #144 and #147 (27 October), including a Mock Mode that follows the server; #148 (28 October) masked the token field and listed every status in the queue filter.
+11. **C's review of the double-click start (#146 on 27 October, again on #154 on 29 October).** C found that the stop step reported a window as closed after `taskkill` without checking that its processes had ended, so `fresh` could go on to remove the database while the API still ran. Change: the second commit of #154 records each window's process tree, deletes the record and continues only when the whole tree has ended within 15 s, and otherwise stops with exit code 1 before any cleanup; four cases were tested on Windows.
+12. **First Railway trial (30 October).** Deploying the demonstration to Railway exposed three problems the local runs could not: `railway up` ignored the Dockerfile path in `railway.json`, Railway's PostgreSQL 18 template stopped migration 0010, and the first `railway ssh` reached the database container because the folder was linked to it. Change: the three commits of #157 set `RAILWAY_DOCKERFILE_PATH`, add PostgreSQL 17 from the `compose.yaml` image, and make every Railway command in `demo.ps1` name the app service.
+13. **Rubric review of 30 October.** Four independent read-only reviews of `main` at `ea227f48` (web frontend; HTTP layer and deployment tools; customer and preparation domain; Founder decision and execution domain) reported 30 findings, none of them an authorization, approval or duplicate-effect defect, and a check of this page against the Stage 2 rubric found two wrong counts and the UTC week grouping. Change, in the pull request that carries this update, each with a regression test:
+    - a case no longer stays in UNDER_INVESTIGATION after a passing database delay during the order lookup, or when a photo is lodged without an order reference; a reference that matches nothing is asked again with a reason ([docs/23](23-order-investigation.md));
+    - database sessions run in UTC, and the R.02 driver refuses a database clock more than 2 s away from the API host before it writes anything; its private folder is removed on Windows too;
+    - order references in lower case or with several segments, and card numbers, are redacted before the model call; a summary of only invisible characters is refused; a blank Founder rationale is refused;
+    - the Founder queue keeps the Inspect column on narrow screens, the customer form starts each new case from "Not sure", and nine smaller web fixes (an accepted decision reported as accepted, paging after a reload, network errors without "undefined", the answer confirmation, keyboard access to dialogs and files, one read per lookup, Cancel in Auth Tokens, the long case ID, "Not yet classified" for the Gate 1 placeholder category);
+    - `.railwayignore`, and `demo.ps1` reads the public address and waits until it accepts the copied sessions; `start.py` stops cleanly during start-up and never prints a database URL;
+    - the corrections in sections 3 and 6 of this page.
 
-A ninth loop is external: the tutor's Stage 1 interview feedback and the 13 October Canvas clarification ("deploy on site from the Canvas download") produced the "Deploy from zero" README chapter and the clean-machine rehearsal checklist in [docs/47](47-stage2-submission-runbook.md) section 5.
+    Five findings are not fixed: two were already in the backlog of 23 October (the global audit scan behind each customer read, and history snapshots that are never pruned), two are newly deferred with reasons in [docs/46](46-gate2-roadmap.md) section 8, and one (a setting changed in another tab of the same browser profile shows only after a reload) is left because the only simple fix, reloading the page, could discard a rationale being typed.
+
+A fourteenth loop is external: the tutor's Stage 1 interview feedback and the 13 October Canvas clarification ("deploy on site from the Canvas download") produced the "Deploy from zero" README chapter and the clean-machine rehearsal checklist in [docs/47](47-stage2-submission-runbook.md) section 5.
 
 ## 5. Team collaboration and the delivery rules
 
@@ -87,22 +137,25 @@ A ninth loop is external: the tutor's Stage 1 interview feedback and the 13 Octo
 
 ## 6. Technologies and the data behind each
 
-Each row names the technology, where it is used, and the measurement or record that shows its effect. "Observed" means a value read from a run; "counted" means a value read from the repository on 23 October 2026.
+Each row names the technology, where it is used, and the measurement or record that shows its effect. "Observed" means a value read from a run; "counted" means a value read from the repository (on 30 October 2026 unless another date is given).
+
+Correction of 30 October 2026: row 1 said "25 operations" and "85 schema definitions with `additionalProperties: false`". The contract has 15 operations (the frozen fifteen routes) and 85 schema definitions, and `additionalProperties: false` appears 78 times in them.
 
 | # | Technology | Where | Data |
 |---|---|---|---|
-| 1 | FastAPI with Pydantic v2 on CPython 3.12 | `apps/api` | Counted: 25 operations in `contracts/v1/openapi.json`, 85 schema definitions with `additionalProperties: false`; every route fails closed with a typed error envelope. Observed: `/health/ready` answers in well under a second on the demo machine (22 October live run). |
+| 1 | FastAPI with Pydantic v2 on CPython 3.12 | `apps/api` | Counted: 15 operations in `contracts/v1/openapi.json`; 85 schema definitions in `contracts/v1/schemas.json`, with `additionalProperties: false` in 78 places; every route fails closed with a typed error envelope. Observed on the demonstration machine (rehearsal pass 0, 24 October 2026, client on the same machine, 100 calls each, 0 non-2xx): `POST /v1/cases` p50 192.7 ms and p95 238.3 ms; `GET /v1/cases/{case_id}` p50 180.8 ms and p95 218.9 ms. Each request re-checks the session and the case scope before and after its work, which is where most of that time goes. |
 | 2 | PostgreSQL 17 with transactional advisory locks | authoritative lifecycle, global fence | Counted: 14 Alembic migrations (`0001` to `0014`), 8 CI matrix parts. Observed: the fence's 5 s `lock_timeout` is the production value; its behaviour under load is the subject of issue #103 (two timeouts in CI on 22 October, 10/10 local passes). |
 | 3 | SQLAlchemy 2.0 and Alembic | schema, migrations, schema gate | Counted: `lifecycle_schema.version()` accepts exactly the listed table set, so a drifted database is refused at readiness (HTTP 503) instead of silently used. |
-| 4 | Docker Compose with health-gated start order | `compose.yaml` | Observed (22 October, demo machine): `db` healthy, `migrate` exited 0, `api` healthy within the 180 s wait; a stale volume with a different password was detected by the failing `migrate` step, not by a silent fallback. |
-| 5 | GitHub Actions with a planned matrix | `.github/workflows/ci.yml`, `tools/checks/run.py` | Counted: 7 jobs plus an 8-part PostgreSQL matrix; the gate requires exactly offline, plan and all eight parts. Observed: full runs on `main` of 52.5 to 82.0 minutes (last eight completed runs), with the longest single part (`label_artifact`) at 41 to 61 minutes; the matrix runs the parts in parallel, so the wall time is the longest part rather than the sum. Measured on the green `main` run 39893879577 (commit b04d0a32, 23 October 2026): the eight PostgreSQL parts used 265.7 minutes of runner time but finished in 60.9 minutes, about **4.4 times faster** than running them one after another; the whole run took 61.6 minutes for 270.1 minutes of job time. |
-| 6 | pytest suite with process-level concurrency probes | `tests/` | Counted: 1,355 test functions in 135 files; the R04 probes start two independent operating-system processes against one database to prove same-key idempotency and different-key denial. |
-| 7 | React 18, TypeScript, Vite and Vitest | `apps/web` | Observed (CI, 22 October): 134 tests in 14 files on the head of #102, type-check and production build passed; the `web-frontend` job runs outside the PostgreSQL gate so frontend changes are checked in minutes. |
+| 4 | Docker Compose with health-gated start order | `compose.yaml` | Observed (22 October, demo machine): `db` healthy, `migrate` exited 0, `api` healthy within the 180 s wait; a stale volume with a different password was detected by the failing `migrate` step, not by a silent fallback. On 29 October the double-click start brought up the database, the API and the web page in 25 s ([README](../README.md#demo-machine-script-windows)). |
+| 5 | GitHub Actions with a planned matrix | `.github/workflows/ci.yml`, `tools/checks/run.py` | Counted: 13 jobs, among them an 8-part PostgreSQL matrix; the gate requires exactly offline, plan and all eight parts. Observed on the green `main` run 41035242231 (commit `ea227f48`, 30 October 2026): the eight PostgreSQL parts used 300.6 minutes of runner time but finished in 76.3 minutes, about **3.9 times faster** than running them one after another; the whole run took 77.1 minutes for 306.1 minutes of job time. The same measurement on run 39893879577 (23 October) gave 4.4 times. |
+| 6 | pytest suite with process-level concurrency probes | `tests/` | Counted: 1,453 test functions in 136 files under `tests/`, and 100 more in `tools/` and `experiments/`; the R04 probes start two independent operating-system processes against one database to prove same-key idempotency and different-key denial. |
+| 7 | React 18, TypeScript, Vite and Vitest | `apps/web` | Observed (30 October, `main` at `ea227f48`): 198 tests in 20 files pass and the type-check is clean; the `web-frontend` CI job also builds the production bundle and runs outside the PostgreSQL gate, so frontend changes are checked in minutes (0.7 minutes on run 41035242231). |
 | 8 | Chat-completions model gateway with fail-closed acceptance | `packages/returnops_domain/model_transport.py`, `coordinator_showcase.py` | Observed (22 October, course proxy, model `campus-qwen`): two live calls, 1 attempt each, 441 and 444 input tokens, 599 output tokens each, 6,437 and 6,625 ms; a statement carrying an injected instruction produced `OUT_OF_SCOPE` and no line items ([docs/44](44-coordinator-showcase.md), "First live result"). |
-| 9 | Idempotency keys end to end | customer and Founder POST routes, web client | Counted: every write route requires `Idempotency-Key`; the R.02 driver exercises same-key retry and recovery paths (`UNKNOWN` gets exactly one same-key recover call). Observed: the R.02 CI job passed on `main` for every adoption since 22 October. |
-| 10 | Deterministic keyword retrieval (category-filtered, ranked by the number of distinct matching word tokens, with register-triggered conflict expansion; no BM25 weighting, stemming or semantic search) with exact citation verification | `experiments/c1_grounding_candidate` | Counted: an offline candidate with its own tests, adopted in Week 41 (#59) and reviewed in #61; it does not yet run inside the API (Gate 2, [docs/46](46-gate2-roadmap.md)). Synthetic pilot (`run_pilot()`, top 2): ranked recall 16/22, returned-set recall 20/22, 2 of 2 no-match queries correct; citation checks 8 of 8 outcomes as expected, 6 of 6 invalid citations rejected, 0 accepted. C's 279 unit tests (132 for C1, C2 and the handoff; 147 for evaluation) run in the CI offline job; 56 of them need POSIX file handling and skip on Windows. No live retrieval latency is recorded. |
+| 9 | Idempotency keys end to end | customer and Founder POST routes, web client | Counted: every write route requires `Idempotency-Key`; the R.02 driver exercises same-key retry and recovery paths (`UNKNOWN` gets exactly one same-key recover call). Observed: the R.02 CI job passed on `main` for every adoption since 22 October (2.7 minutes on run 41035242231). |
+| 10 | Deterministic keyword retrieval (category-filtered, ranked by the number of distinct matching word tokens, with register-triggered conflict expansion; no BM25 weighting, stemming or semantic search) with exact citation verification | `experiments/c1_grounding_candidate` | Counted: an offline candidate with its own tests, adopted in Week 41 (#59) and reviewed in #61; it does not yet run inside the API (Gate 2, [docs/46](46-gate2-roadmap.md)). Synthetic pilot (`run_pilot()`, top 2): ranked recall 16/22, returned-set recall 20/22, 2 of 2 no-match queries correct; citation checks 8 of 8 outcomes as expected, 6 of 6 invalid citations rejected, 0 accepted. C's 279 unit tests (132 for C1, C2 and the handoff; 147 for evaluation; counted on 23 October) run in the CI offline job; 56 of them need POSIX file handling and skip on Windows. No live retrieval latency is recorded. |
+| 11 | Railway platform with one digest-pinned Docker image and Caddy | `railway.json`, `tools/railway/` | Observed (30 October 2026, project `returnops-demo`): the service was ready 39 s after a redeploy, and `cloud-fresh` redeployed and copied new sessions in 29 to 30 s. Caddy serves the web build and proxies `/v1` and `/health` on one origin with gzip: measured with `curl` on the public address, the main JavaScript bundle shrinks from 303,933 to 87,354 bytes (71 % fewer) and the stylesheet from 30,952 to 6,164 bytes (80 % fewer). Requests from the lead's location took about 0.42 s each on a reused connection, for a static file as well as for `/health/ready`, so that time is network distance to the service region, not server work. |
 
-What is not claimed: no load test, no production traffic, and no comparison against an alternative stack were run. The "performance improvement" the rubric mentions is shown where it was measured: the parallel CI matrix against serial execution (4.4 times faster, row 5), the fail-closed schema and health gates against silent drift, and the model call's bounded latency and token cost. API response times on the demonstration machine are measured during the 29 October rehearsal ([docs/47](47-stage2-submission-runbook.md) section 5, step 16) and recorded there; no figure is claimed before that run.
+What is not claimed: no load test, no production traffic, and no comparison against an alternative stack were run. The "performance improvement" the rubric mentions is shown where it was measured: the parallel CI matrix against serial execution (3.9 times faster, row 5), gzip on the deployed web build (71 % and 80 % fewer bytes, row 11), the fail-closed schema and health gates against silent drift, and the model call's bounded latency and token cost. The API response times in row 1 are a demonstration-machine observation from rehearsal pass 0, not a load test.
 
 ## 7. Retrospective (truthful)
 
@@ -110,12 +163,15 @@ What worked:
 
 - Freezing the contract and the allocation early (Weeks 37 to 38) let A build the backend to the contract while B and C modelled against the same text; no contract change was needed after the freeze.
 - Gate 1 before any model: the whole no-model path was proven by the R.02 driver and its CI job before the advisory model extraction was added, and the model was then added in a place where it cannot execute anything.
-- Reviews that produced changes rather than approvals: the showcase design was rejected once and rebuilt; C's receipts were corrected three times; the flaky test was triaged rather than retried blindly.
+- Reviews that produced changes rather than approvals: the showcase design was rejected once and rebuilt; C's receipts were corrected three times; the flaky test was triaged rather than retried blindly; C's review of the double-click start stopped a cleanup that could have run under a live API.
+- Rehearsing early on the real machine: pass 0 on 24 October found the missing decision grant for S3 a week before the demonstration.
 
 What did not work and what the team changed:
 
-- The frontend's live connection came late. The scaffold merged on 22 October and the live analytics, decisions and facts card arrived as three stacked pull requests on 23 October. Adopting them in order exposed a process error: the two upper pull requests targeted the branch below them, not `main`, so their squash merges landed on B's branches and had to be brought onto `main` by an integration pull request (#107). The team's rule since then: check the base branch before every merge, and rehearse the whole path on a clean machine on 29 October.
-- Jira was reconciled in one pass on 22 October rather than continuously, which is why the burn-up uses adoption dates. The team changed to naming the KAN key in every pull request and moving the item when the pull request is adopted.
+- The frontend's live connection came late. The scaffold merged on 22 October and the live analytics, decisions and facts card arrived as three stacked pull requests on 23 October. Adopting them in order exposed a process error: the two upper pull requests targeted the branch below them, not `main`, so their squash merges landed on B's branches and had to be brought onto `main` by an integration pull request (#107). The team's rule since then: check the base branch before every merge, and rehearse the whole path on a clean machine.
+- Jira was reconciled in one pass on 22 October rather than continuously, which is why the charts use adoption dates. The team changed to naming the KAN key in every pull request and moving the item when the pull request is adopted.
+- The clean-machine pass 1 planned for 29 October was not held as planned, and the A3 tutor disposition was not recorded; the lead's runs on 27 and 29 October and the Railway trial of 30 October cover part of it, and pass 2 from the Canvas download on 1 November is the remaining full rehearsal (section 3, burn-down).
+- The decision to demonstrate on Railway came on 30 October, two days before the demonstration; three deployment problems were found and fixed the same day (section 4, loop 12), and the remaining checks are in pass 2.
 - The full LLM three-role orchestration (Gate 2) was deferred past 1 November by the lead's decision of 22 October; the roadmap is in [docs/46](46-gate2-roadmap.md), and the demonstration says so in S8 rather than implying otherwise.
 
 Each member's own contribution is stated in the course's contribution form, not here.

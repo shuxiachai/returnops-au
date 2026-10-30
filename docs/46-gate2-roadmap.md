@@ -85,6 +85,13 @@ Three independent read-only reviews of main on 23 October 2026 (decision boundar
 | Clarification rounds have no cap | New typed refusal in the customer contract path | Documented cap with a test |
 | Authority loss during a decision's service body is reported as 409 rather than 401/403; replay receipts are JSON-equal but not byte-identical; acceptance facts store 200 for the 202 route | Consistency, no data or safety effect | One PostgreSQL test each, then the mapping and `sort_keys` changes together |
 
+The review of 30 October 2026 (four independent read-only reviews of `main` at `ea227f48`: web frontend; HTTP layer and deployment tooling; customer and preparation domain; Founder decision and execution domain) confirmed the first row with a measurement (about 0.29 ms per audit event, so about 4.8 s of global fence time at the 16,384-row cap; an S5 case writes about 28 events) and fixed what it found on the demonstration paths in the pull request that records it ([docs/48](48-agile-evidence-and-technology-data.md) section 4, loop 13). Deferred, with the same reasoning as above:
+
+| Finding | Why it is deferred | Direction |
+|---|---|---|
+| The notification profile hash includes the bytes of `notification_profile.py`, so any edit of that file makes existing notification controls unreadable (409) on a database that already holds them | Every demonstration database is fresh (Railway resets it on each start, the local script removes it), so no demonstration path reaches it; changing the hash input changes stored identities | Hash only the declared profile content, or keep a registry of earlier hashes, with a migration test |
+| A transient INTERNAL_ERROR on APPROVE is recorded as a denial; when the same key is then accepted, the R.02 driver counts two denials and reports FAILED | Needs a decision on what a denial audit means; unlikely at demonstration load (the driver's API runs no workers) | Record only guard refusals as denials, or let the driver count the wrong-fingerprint denial by its code |
+
 ## 9. Cloud deployment (decided 30 October 2026)
 
 On 30 October 2026 the lead asked whether the demonstration could run on Railway. The first answer, recorded here in #156, was "not for Week 13". Later the same day the lead decided to use Railway for the Week 13 demonstration and to keep the local deployment of PD-02 as the fallback. This section records that decision and how it was carried out.

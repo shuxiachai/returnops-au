@@ -30,7 +30,7 @@ The input digest is `digest({statement_record_ids, content_hashes, original_requ
 | `possible_basis` is `UNDETERMINED` (the Coordinator does not decide rights, docs/00 section 4.1) | `BASIS` |
 | `assessment_status` is not `SUPPORTED` | `SUPPORTED` |
 | `customer_requested_outcome` equals the outcome stored with the original statement (BR-008) | `OUTCOME_MISMATCH` |
-| `summary` is non-blank and at most 1000 characters | `SUMMARY_LENGTH` |
+| `summary` has at least one visible character (a letter, digit, punctuation mark or symbol; since 30 October 2026 zero-width and control characters alone do not count) and is at most 1000 characters | `SUMMARY_LENGTH` |
 
 The transport's own closed codes are `TRANSPORT`, `TIMEOUT`, `REDIRECT`, `HTTP_4XX`, `HTTP_429`, `HTTP_5XX`, `MALFORMED`, `NO_USAGE` and `TOO_LARGE`. Transient failures (`TRANSPORT`, `TIMEOUT`, `HTTP_429`, `HTTP_5XX` after their retries) may be tried again after 60 seconds, `RECHECK_UNAVAILABLE` after 10 seconds. Every other failure, including every acceptance-chain code, is remembered for that input digest until the API process restarts, so the same input is not sent again. To retry the same input, restart the API, or run the CLI (`tools/model_showcase/run_once.py`), which uses its own store; a new clarification produces a new digest and is tried normally.
 
@@ -56,7 +56,7 @@ Sent to the model, as one JSON user message: for each AVAILABLE statement revisi
 
 Kept: the accepted facts, the source pairs (history record ID and content hash), the `ModelRun` (role `COORDINATOR`, provider ID, model ID, prompt version, start and finish times, tokens) and the attempt count, in process memory only. The store holds at most 500 entries, is lost on restart and is never written to the database. The trusted CLI (`tools/model_showcase/run_once.py`) writes a local evidence file with digests, codes, counts, tokens and latency, never statement text, summary text, the base URL or the key.
 
-**Redaction before sending** (deterministic, counted per case): e-mail addresses become `[EMAIL]`; order-reference-like tokens (`[A-Z]{2,}-?\d{3,}`, for example `SYN-1001`) become `[ORDER_REF]`; phone-like digit runs with at least 8 digits, optionally with `+`, an area code in brackets, spaces or dashes, become `[PHONE]`, except dates such as `2026-10-22`. The counts appear in the CLI evidence and the worker result, never the values. All data in this repository and its demo is synthetic; redaction is a second line of defence, not anonymisation.
+**Redaction before sending** (deterministic, counted per case): e-mail addresses become `[EMAIL]`; order-reference-like tokens become `[ORDER_REF]`: two or more letters in either case followed by digits, with further `-` or `/` segments (`SYN-1001`, `syn-1001`, `ORD-2026-9042`), or upper-case words joined by hyphens (`SYN-CONFLICT`); phone-like digit runs with 8 to 19 digits, optionally with `+`, an area code in brackets, spaces or dashes, become `[PHONE]` (so a 16-digit card number is removed whole), except dates such as `2026-10-22`. The lower-case, multi-segment, hyphenated-word and card-number forms were added on 30 October 2026, after a review found them sent unredacted or cut in two. The counts appear in the CLI evidence and the worker result, never the values. All data in this repository and its demo is synthetic; redaction is a second line of defence, not anonymisation.
 
 ## Fail-closed paths
 

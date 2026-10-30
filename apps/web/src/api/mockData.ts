@@ -209,12 +209,12 @@ const GENERATED_QUEUE_SUMMARIES: CaseSummary[] = Array.from({ length: 20 }, (_, 
     status: i % 2 === 0 ? 'UNDER_INVESTIGATION' : 'POLICY_ASSESSMENT',
     created_at: new Date(Date.now() - 3600000 * (50 + i * 2)).toISOString(),
     updated_at: new Date(Date.now() - 3600000 * (40 + i * 2)).toISOString(),
-    issue_category: i % 3 === 0 ? 'CHANGE_OF_MIND' : 'FAULTY_OR_QUALITY_ISSUE',
+    issue_category: 'UNCLEAR',
   };
 });
 
 function generatedQueueView(summary: CaseSummary, index: number): CaseView {
-  const changeOfMind = summary.issue_category === 'CHANGE_OF_MIND';
+  const changeOfMind = index % 3 === 0;
   return {
     case_id: summary.case_id,
     case_version: summary.case_version,
@@ -238,7 +238,10 @@ function generatedQueueView(summary: CaseSummary, index: number): CaseView {
   };
 }
 
-// 25 synthetic cases to exercise limit=20 pagination and ensure 21st case is reachable
+// 25 synthetic cases to exercise limit=20 pagination and ensure 21st case is reachable.
+// Every row carries the UNCLEAR placeholder category, as the server's case summary
+// does in Gate 1 (founder_queries.summary; no classifier runs), so Mock Mode shows
+// "Not yet classified" exactly where Live API mode does.
 export const MOCK_FOUNDER_SUMMARIES: CaseSummary[] = [
   {
     case_id: 'case_demo_001',
@@ -247,7 +250,7 @@ export const MOCK_FOUNDER_SUMMARIES: CaseSummary[] = [
     status: 'AWAITING_INFORMATION',
     created_at: new Date(Date.now() - 3600000 * 4).toISOString(),
     updated_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-    issue_category: 'WRONG_ITEM',
+    issue_category: 'UNCLEAR',
     current_risk_outcome: 'NEEDS_INFORMATION',
   },
   {
@@ -257,7 +260,7 @@ export const MOCK_FOUNDER_SUMMARIES: CaseSummary[] = [
     status: 'RISK_REVIEW',
     created_at: new Date(Date.now() - 3600000 * 8).toISOString(),
     updated_at: new Date(Date.now() - 3600000 * 1).toISOString(),
-    issue_category: 'FAULTY_OR_QUALITY_ISSUE',
+    issue_category: 'UNCLEAR',
     current_risk_outcome: 'PASS_WITH_WARNING',
   },
   {
@@ -267,7 +270,7 @@ export const MOCK_FOUNDER_SUMMARIES: CaseSummary[] = [
     status: 'AWAITING_APPROVAL',
     created_at: new Date(Date.now() - 3600000 * 12).toISOString(),
     updated_at: new Date(Date.now() - 3600000 * 3).toISOString(),
-    issue_category: 'CHANGE_OF_MIND',
+    issue_category: 'UNCLEAR',
     current_risk_outcome: 'PASS',
   },
   {
@@ -277,7 +280,7 @@ export const MOCK_FOUNDER_SUMMARIES: CaseSummary[] = [
     status: 'ESCALATED',
     created_at: new Date(Date.now() - 3600000 * 24).toISOString(),
     updated_at: new Date(Date.now() - 3600000 * 18).toISOString(),
-    issue_category: 'OUT_OF_SCOPE',
+    issue_category: 'UNCLEAR',
     current_risk_outcome: 'ESCALATE',
   },
   {
@@ -287,7 +290,7 @@ export const MOCK_FOUNDER_SUMMARIES: CaseSummary[] = [
     status: 'COMPLETED',
     created_at: new Date(Date.now() - 3600000 * 48).toISOString(),
     updated_at: new Date(Date.now() - 3600000 * 36).toISOString(),
-    issue_category: 'FAULTY_OR_QUALITY_ISSUE',
+    issue_category: 'UNCLEAR',
     current_risk_outcome: 'PASS',
   },
   ...GENERATED_QUEUE_SUMMARIES,

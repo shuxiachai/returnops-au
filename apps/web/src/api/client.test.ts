@@ -15,6 +15,8 @@ import {
   stageEvidence,
   downloadEvidence,
   ApiError,
+  formatApiError,
+  NETWORK_ERROR,
 } from './client';
 import { MOCK_AUDIT_EVENTS, MOCK_CUSTOMER_CASES, MOCK_FOUNDER_CASE_VIEWS } from './mockData';
 import type { AnalyticsSnapshot, CaseStatus, RiskOutcome } from '../types/domain';
@@ -753,6 +755,40 @@ describe('client', () => {
 
       expect(error).toBeInstanceOf(ApiError);
       expect(error.retryable).toBeUndefined();
+    });
+  });
+
+  describe('a request that gets no reply', () => {
+    beforeEach(() => {
+      localStorage.clear();
+      setMockMode(false);
+    });
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      localStorage.clear();
+      setMockMode(true);
+    });
+
+    it('carries the NETWORK_ERROR code on reads, downloads and uploads alike', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => {
+          throw new TypeError('Failed to fetch');
+        })
+      );
+      const expected = { status: 0, code: NETWORK_ERROR, message: 'Failed to fetch' };
+
+      await expect(listFounderCases()).rejects.toMatchObject(expected);
+      await expect(getCustomerCase('case_offline')).rejects.toMatchObject(expected);
+      await expect(downloadEvidence('ev_offline', 'receipt.png')).rejects.toMatchObject(expected);
+      await expect(
+        stageEvidence(new File(['image bytes'], 'receipt.png', { type: 'image/png' }), undefined, 'ev_idem_offline_01')
+      ).rejects.toMatchObject(expected);
+    });
+
+    it('formats an error as [CODE] message, and never prints a missing code', () => {
+      expect(formatApiError(new ApiError(0, 'Failed to fetch', NETWORK_ERROR))).toBe('[NETWORK_ERROR] Failed to fetch');
+      expect(formatApiError(new ApiError(0, 'Failed to fetch'))).toBe('Failed to fetch');
     });
   });
 

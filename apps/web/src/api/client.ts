@@ -58,6 +58,20 @@ export class ApiError extends Error {
   }
 }
 
+// "[CODE] message", or the message alone when the error has no code, so no
+// screen ever shows "[undefined]".
+export function formatApiError(err: ApiError): string {
+  return err.code ? `[${err.code}] ${err.message}` : err.message;
+}
+
+// A request that got no usable reply (offline, connection refused, an unreadable
+// body) carries this code, so it never reaches the page as "undefined".
+export const NETWORK_ERROR = 'NETWORK_ERROR';
+
+function networkError(err: unknown, fallback: string): ApiError {
+  return new ApiError(0, err instanceof Error ? err.message : fallback, NETWORK_ERROR);
+}
+
 // Storage keys
 const TOKEN_KEY = 'returnops_auth_token';
 const MOCK_MODE_KEY = 'returnops_mock_mode';
@@ -193,7 +207,7 @@ async function request<T>(
       throw err;
     }
     // Network failure / server offline
-    throw new ApiError(0, err instanceof Error ? err.message : 'Network error or backend unavailable');
+    throw networkError(err, 'Network error or backend unavailable');
   }
 }
 
@@ -261,11 +275,16 @@ export async function stageEvidence(
   const token = getStoredToken();
   if (token) headers.set('Authorization', `Bearer ${token}`);
 
-  const res = await fetch(`${BASE_URL}/v1/evidence`, {
-    method: 'POST',
-    headers,
-    body: formData,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}/v1/evidence`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+  } catch (err: unknown) {
+    throw networkError(err, 'Network error or backend unavailable');
+  }
   trackResponseStatus(res.status);
 
   if (!res.ok) {
@@ -279,7 +298,7 @@ export async function stageEvidence(
     throw new ApiError(
       res.status,
       errEnv?.error?.message || 'Failed to upload evidence',
-      errEnv?.error?.code,
+      errEnv?.error?.code || `HTTP_${res.status}`,
       correlationId,
       undefined,
       errEnv?.error?.retryable
@@ -314,9 +333,14 @@ export async function downloadEvidence(evidenceId: string, fallbackFilename = 'e
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const res = await fetch(`${BASE_URL}/v1/evidence/${encodeURIComponent(evidenceId)}/content`, {
-    headers,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}/v1/evidence/${encodeURIComponent(evidenceId)}/content`, {
+      headers,
+    });
+  } catch (err: unknown) {
+    throw networkError(err, 'Network error or backend unavailable');
+  }
   trackResponseStatus(res.status);
 
   if (!res.ok) {

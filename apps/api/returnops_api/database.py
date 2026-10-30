@@ -18,7 +18,8 @@ def build_engine(settings: Settings) -> Engine:
         pool_size=2,
         max_overflow=2,
         pool_timeout=3,
-        connect_args={"connect_timeout": 3, "options": "-c statement_timeout=10000"},
+        # UTC sessions: the approval checks compare database time with UTC-only instants.
+        connect_args={"connect_timeout": 3, "options": "-c statement_timeout=10000 -c timezone=UTC"},
         hide_parameters=True,
         echo=False,
     )

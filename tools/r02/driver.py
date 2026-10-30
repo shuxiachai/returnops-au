@@ -114,6 +114,9 @@ KEEP_API_LIMITATION = ('Demo mode: the API child kept running after this receipt
 # Demo sessions come from demo.py (899 s from provisioning): at step 0 the
 # remaining window must still cover the 300 s preview plus this margin.
 DEMO_SESSION_MARGIN_SECONDS = 120
+# Approval times come from the API host clock, the execution checks read the database
+# clock (return_execution_sources.database_now); see the environment step.
+MAX_DATABASE_CLOCK_SKEW_SECONDS = 2.0
 RESULT_FIELDS = ('safe_code', 'audit', 'work_id', 'operation_id', 'operation_state', 'provider_fact_status',
                  'preparation_id', 'artifact_work_id', 'label_evidence_id', 'event_id', 'source_record_id',
                  'notification_work_id', 'notification_id', 'case_version')
@@ -509,7 +512,7 @@ class Run:
         except ConfigurationError:
             raise Refused('DATABASE_URL_REJECTED') from None
         self.engine = create_engine(raw, hide_parameters=True, echo=False, pool_size=4, max_overflow=4,
-            connect_args={'connect_timeout': 3, 'options': '-c statement_timeout=10000'})
+            connect_args={'connect_timeout': 3, 'options': '-c statement_timeout=10000 -c timezone=UTC'})
         env = dict(python_version=platform.python_version(), python_implementation=platform.python_implementation(),
                    platform=platform.platform(terse=True), expected_schema_revision=EXPECTED_SCHEMA_REVISION,
                    source_trees=source_trees())
@@ -525,6 +528,18 @@ class Run:
             raise Refused('DATABASE_UNAVAILABLE') from None
         if not 170000 <= env['server_version_num'] < 180000:
             raise Refused('POSTGRESQL_17_REQUIRED')
+        try:
+            with self.engine.connect() as connection:
+                before = time.time()
+                database = float(connection.execute(text('SELECT extract(epoch FROM clock_timestamp())')).scalar_one())
+                after = time.time()
+        except SQLAlchemyError:
+            raise Refused('DATABASE_UNAVAILABLE') from None
+        # A database clock behind this host (a container VM after the laptop slept) makes the
+        # approved return look earlier than its approval, and the chain stops at DENIED
+        # create_return. Refuse before writing anything instead (30 October 2026 review).
+        if abs(database - (before + after) / 2) > MAX_DATABASE_CLOCK_SKEW_SECONDS + (after - before) / 2:
+            raise Refused('DATABASE_CLOCK_SKEW')
         try:
             with self.engine.connect() as connection:
                 heads = connection.execute(text('SELECT version_num FROM alembic_version ORDER BY version_num')).scalars().all()
@@ -954,7 +969,13 @@ class Run:
         if self.private is not None:
             def remove():
                 nonlocal removed
-                shutil.rmtree(self.private, ignore_errors=True)
+                # On Windows the API child's log can stay locked for a moment after the child
+                # exits (seen on 30 October 2026); retry briefly before reporting a leftover.
+                for _ in range(20):
+                    shutil.rmtree(self.private, ignore_errors=True)
+                    if not self.private.exists():
+                        break
+                    time.sleep(0.25)
                 removed = not self.private.exists()
             stage('PRIVATE_DIRECTORY_REMOVE_FAILED', remove)
         # C's review of #116: a business PASSED is not an all-clean run, so the CLI line reports these too.

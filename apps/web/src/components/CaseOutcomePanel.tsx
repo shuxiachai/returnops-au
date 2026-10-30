@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AlertTriangle, CheckCircle2, Download, Send } from 'lucide-react';
-import { ApiError, downloadEvidence } from '../api/client';
+import { ApiError, downloadEvidence, formatApiError } from '../api/client';
 import {
   ApprovalRecord,
   CaseView,
@@ -92,7 +92,7 @@ export const CaseOutcomePanel: React.FC<{ caseView: CaseView }> = ({ caseView })
     try {
       await downloadEvidence(evidenceId, `${caseView.case_id}-return-label.pdf`);
     } catch (err: unknown) {
-      const text = err instanceof ApiError ? `[${err.code}] ${err.message}` : 'The label could not be downloaded.';
+      const text = err instanceof ApiError ? formatApiError(err) : 'The label could not be downloaded.';
       setDownloadError(text);
     } finally {
       setDownloading(null);
