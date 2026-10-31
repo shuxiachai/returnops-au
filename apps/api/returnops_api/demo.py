@@ -97,6 +97,33 @@ def provision(directory,*,store,customer_one,customer_two,founder,order_investig
         if founder_manual: grant_founder_manual(engine,store)
     finally: engine.dispose()
 
+def renew_sessions(directory,*,engine=None):
+    """New 899 s access keys for the provisioned people of a kept Railway deployment (31 October
+    2026): the data, the signing key and the passwords stay as they were, so only the sessions in
+    sessions.json are new, as after a fresh provision. A person who no longer exists or is disabled
+    stops the renewal, and the start then begins a fresh demonstration."""
+    from .accounts import _private_replace
+    directory=Path(directory)
+    if not directory.is_absolute(): raise ValueError('Use the absolute private output directory.')
+    auth=json.loads((directory/'auth.json').read_text(encoding='utf-8'))
+    principals=json.loads((directory/'sessions.json').read_text(encoding='utf-8'))['principals']
+    key=base64.b64decode(auth['signing_key_base64'],validate=True)
+    now=int(time.time())
+    sessions=[{'session_id':identifier('session'),'principal_id':p['principal_id'],'issued_at':now-1,'not_before':now-1,'expires_at':now+899,'revoked':False} for p in principals]
+    tokens={row['principal_id']:jwt.encode({'iss':auth['issuer'],'aud':auth['audience'],'sub':row['principal_id'],'jti':row['session_id'],
+        'iat':row['issued_at'],'nbf':row['not_before'],'exp':row['expires_at']},key,algorithm='HS256') for row in sessions}
+    owned=engine is None
+    if owned:
+        settings=Settings.from_environment();require_environment_database(settings.database_url.get_secret_value())
+        engine=build_engine(settings)
+    try:
+        registry=TrustedRegistry(engine)
+        for row in sessions:
+            registry.register_session(row['principal_id'],row['session_id'],row['issued_at'],row['not_before'],row['expires_at'])
+    finally:
+        if owned: engine.dispose()
+    _private_replace(directory/'sessions.json',{'principals':principals,'sessions':sessions,'tokens':tokens})
+
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__);commands=parser.add_subparsers(dest='command',required=True)
     issue=commands.add_parser('provision');issue.add_argument('--private-dir',required=True)
@@ -104,6 +131,7 @@ def main(argv=None):
     issue.add_argument('--order-investigation',action='store_true',help='Explicitly enable synthetic investigation and grant this store read access.')
     issue.add_argument('--fixed-proposal',action='store_true',help='Explicitly grant this synthetic store the fixed no-model PROPOSAL component only.')
     issue.add_argument('--founder-manual',action='store_true',help='Explicitly grant this synthetic store the founder-manual-v1 OUTCOME authority only: MANUAL_HANDLING of an escalated case without a proposal. Never use it for the R.02 driver store.')
+    renew=commands.add_parser('renew-sessions');renew.add_argument('--private-dir',required=True)
     serve=commands.add_parser('serve');serve.add_argument('--auth-file',required=True);serve.add_argument('--port',type=int,default=8000)
     serve.add_argument('--fixed-proposal',action='store_true',help='Enable the synthetic fixed-proposal worker; this does not grant store authority.')
     serve.add_argument('--founder-decisions',action='store_true',help='Register the Founder decision POST (A2.07); authority still comes only from the server-side registry and grants.')
@@ -113,6 +141,9 @@ def main(argv=None):
     if args.command=='provision':
         provision(args.private_dir,store=args.store,customer_one=args.customer_one,customer_two=args.customer_two,founder=args.founder,order_investigation=args.order_investigation,fixed_proposal=args.fixed_proposal,founder_manual=args.founder_manual)
         print('Private synthetic demo registration completed. Credentials are in the explicit private directory; do not share them.')
+    elif args.command=='renew-sessions':
+        renew_sessions(args.private_dir)
+        print('New demo sessions issued into the explicit private directory; do not share them.')
     else:
         if not Path(args.auth_file).is_absolute() or not 1024<=args.port<=65535: parser.error('Use an absolute private auth file and an unprivileged port.')
         os.environ['RETURNOPS_AUTH_FILE']=args.auth_file

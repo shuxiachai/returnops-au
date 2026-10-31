@@ -36,13 +36,15 @@ Actions (from the package root):
            tools\demo\stop-demo.cmd runs stop -RemoveData on a double-click.
 
 Railway (docs/46 section 9, docs/15 PD-03): the Railway service runs
-tools/railway/start.py, and every start of it is a fresh demonstration with new
-899 s sessions. Run `railway login`, then `railway link` once in this folder,
+tools/railway/start.py. Since 31 October 2026 a deployment keeps the previous one's
+data and passwords and issues new 899 s sessions; cloud-fresh starts a fresh
+demonstration. Run `railway login`, then `railway link` once in this folder,
 and register this machine's SSH key once (README, Railway deployment).
   cloud        Deploys this folder (railway up) and copies the new sessions to
                tmp\railway-shop through railway ssh, never showing them.
                tools\demo\cloud-demo.cmd runs it on a double-click.
-  cloud-fresh  Redeploys the running service for new sessions and copies them.
+  cloud-fresh  Clears the kept data (railway ssh), then redeploys: a fresh
+               demonstration with new sessions, copied as for cloud.
   cloud-tokens Copies the current sessions again; warns if they have expired.
   -Url https://... is the service's public address; without it the address is read
                from railway status. The copied customer session is then tried
@@ -867,7 +869,12 @@ function Invoke-CloudFresh {
     Assert-Railway
     $before = Get-CloudSessions
     if (-not $before) { Stop-Script 'railway ssh returned no sessions from the running service; run cloud first, or cloud-tokens to see the reason.' }
-    Show-Step "Redeploying the Railway service $Service for new sessions (railway redeploy)"
+    # A redeploy keeps the data since 31 October 2026, so a fresh demonstration is asked for first.
+    Show-Step "Clearing the kept data of the Railway service $Service (railway ssh), so the redeploy starts fresh"
+    $cleared = Invoke-Quiet { cmd.exe /d /c "railway ssh --service $Service -- python /app/start.py forget-data" }
+    if ($cleared.Code -ne 0) { Stop-Script 'The kept data could not be cleared (railway ssh); nothing was redeployed. Check that the service is running, then run cloud-fresh again.' }
+    Show-Ok 'Kept data cleared; the next start resets the demonstration'
+    Show-Step "Redeploying the Railway service $Service for a fresh demonstration (railway redeploy)"
     Invoke-Checked 'railway redeploy' { railway redeploy --yes --service $Service }
     Save-CloudSessions (Wait-CloudSessions $before.Issued 5)
 }
