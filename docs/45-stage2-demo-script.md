@@ -166,7 +166,7 @@ Evidence: Founder UI; FR-009, FR-011, FR-012, OF-006.
 
 Gloss: the model reads the customer's words and suggests structured facts; it cannot change anything.
 
-On Railway when the Bailian key is set (since 31 October 2026; at most 50 model calls per deployment), or on the local deployment when the course key is present and `serve` runs with `--model-showcase` (PR #94, in `main` since 22 October 2026):
+On Railway when the Bailian key is set (since 31 October 2026; at most 50 model calls per deployment), or on the local deployment when the course key is present and `serve` runs with `--model-showcase` (PR #94, in `main` since 22 October 2026). The model reads one case at a time, about 19 s each on Railway, so lodge only the S2 cases before S4 (a twelve-case test set on 31 October 2026 is in [docs/44](44-coordinator-showcase.md)):
 
 1. Profile 2: open B's case and its Order & Facts tab (named Order & Facts Projection before 31 October 2026). The card "Model extraction (advisory)" (B's #101, 23 October 2026) shows the facts with the line "Advisory only: these facts do not change any proposal, review, decision or execution. The Founder decides." If the card is absent, the model produced no accepted facts for this case; say so and show the `GET /v1/founder/cases/{case_id}` response in the browser's Network tab instead.
 2. Point at the six fields: `issue_category`, `customer_requested_outcome` (must equal what the customer chose), `possible_basis` (always `UNDETERMINED`), `assessment_status` (never `SUPPORTED`), `line_items` (always empty) and `summary` (at most 1000 characters).
