@@ -65,6 +65,8 @@ S5's driver runs only on the local deployment. S4's live model call runs on Rail
 
 ### 2.3 Demo identities, API and frontend (T-5 minutes)
 
+On Railway, a deployment keeps the previous one's cases and accounts since 31 October 2026 (README, Railway deployment); run `tools\demo\demo.ps1 cloud-fresh` about ten minutes before the start for a clean demonstration with new sessions.
+
 The sessions written by `demo.py provision` last 899 s. The segments that use them (S2 to S4) end at about 5:45, so provision no earlier than about five minutes before the start. `tools\demo\demo.ps1 start` runs items 1, 3 and 4 and prints the web address and when the sessions expire (with `-ModelShowcase` after item 2 in the same window); item 5 stays manual. Once the machine has been prepared, a double-click on `tools\demo\start-demo.cmd` (`demo.ps1 fresh`) does it all from a fresh database: Docker Desktop if needed, `stop -RemoveData`, `prepare` and `start` (34 s on 29 October 2026). It is not for the model showcase, whose variables must be set in the window that runs `start`.
 
 1. Provision the demo shop with investigation and the fixed proposal (README step 3):

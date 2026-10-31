@@ -595,12 +595,26 @@ that this file format works until 1 December 2026. The service holds:
 - Caddy on Railway's `PORT`, which serves the web build and proxies `/v1` and
   `/health`, so the browser stays on one origin.
 
-A second service runs PostgreSQL 17 (the image of `compose.yaml`). Every start of the demo service is a fresh
-demonstration, done by `tools/railway/start.py`:
+A second service runs PostgreSQL 17 (the image of `compose.yaml`). The first start of the demo service is a
+fresh demonstration, done by `tools/railway/start.py`:
 1. it drops and creates `returnops_f02`;
 2. it runs `alembic upgrade head`;
 3. it runs step 3's `demo.py provision` into a private folder in the container;
 4. it starts the demo API and Caddy.
+
+Since 31 October 2026 a later start keeps the previous deployment's data: cases, self-registered
+customers and the passwords stay, and anyone signed in stays signed in. The private folder
+(signing key, password hashes, access keys, `passwords.json`) is kept in a small database of its
+own, `returnops_f02_private`, on the same PostgreSQL service, restored at start and saved again
+within five seconds of a change; anyone with that service's credentials can read it, as they can
+read the demonstration data. Such a start migrates `returnops_f02` instead of dropping it and
+issues the three demo people new 899 s access keys (`demo.py renew-sessions`). A fresh
+demonstration comes after `demo.ps1 cloud-fresh`, or on every start with the service variable
+`RETURNOPS_RESET_ON_START=1`; a start that cannot use the kept data (a file missing, the demo
+Founder gone, a failed migration or renewal) is fresh as well, while one that cannot read the
+kept database stops without removing anything, so Railway tries again. A change of
+`RETURNOPS_DEMO_PASSWORD` takes effect only with a fresh demonstration. A customer who registers
+during the minute in which an old and a new deployment both run may lose the account.
 
 Nothing it prints contains a credential.
 
@@ -642,7 +656,7 @@ At the demonstration, in the package folder downloaded from Canvas (after
 | Action | When | What it does |
 |---|---|---|
 | `demo.ps1 cloud` or a double-click on `tools\demo\cloud-demo.cmd` | T-10 minutes | `railway up --ci` builds and deploys this folder. It then waits for the new deployment's sessions and copies them through `railway ssh` to `tmp\railway-shop`, never showing them. It prints when they expire and the clipboard commands of step 4 for that folder. |
-| `demo.ps1 cloud-fresh` | Sessions expired | `railway redeploy`: a fresh database and new sessions, copied the same way. |
+| `demo.ps1 cloud-fresh` | Before the demonstration, or for a clean state | Clears the kept data through `railway ssh` (`start.py forget-data`), then `railway redeploy`: a fresh database and new sessions, copied the same way. Any deployment also renews the sessions, so `cloud` is enough when only they expired. |
 | `demo.ps1 cloud-tokens` | Any time | Copies the current sessions again, with a warning if they have expired. |
 
 After copying, all three read the service's public address from `railway status`
