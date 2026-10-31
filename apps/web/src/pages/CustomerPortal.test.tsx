@@ -63,7 +63,7 @@ describe('CustomerPortal (UC-01 & UC-01E)', () => {
 
     expect(screen.queryByText(/Demo Cases/i)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /case_demo_00/i })).not.toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/Enter your case ID/i)).toHaveValue('');
+    expect(screen.getByLabelText(/case ID/i)).toHaveValue('');
     expect(screen.queryByText(/UC-0/)).not.toBeInTheDocument();
   });
 
@@ -74,7 +74,7 @@ describe('CustomerPortal (UC-01 & UC-01E)', () => {
     fireEvent.click(trackTabBtn);
 
     // Track tab lookup controls should appear
-    expect(screen.getByPlaceholderText(/Enter Case ID/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/case ID/i)).toBeInTheDocument();
 
     // In mock mode, case_demo_001 is loaded on mount when activeSubTab is track
     await waitFor(() => {
@@ -131,7 +131,7 @@ describe('CustomerPortal (UC-01 & UC-01E)', () => {
       expect(screen.getByText('case_demo_001')).toBeInTheDocument();
     });
 
-    const lookupInput = screen.getByPlaceholderText(/Enter Case ID/i);
+    const lookupInput = screen.getByLabelText(/case ID/i);
     fireEvent.change(lookupInput, { target: { value: 'case_does_not_exist_999' } });
 
     const lookupBtn = screen.getByRole('button', { name: /Lookup/i });
@@ -216,7 +216,7 @@ describe('CustomerPortal (UC-01 & UC-01E)', () => {
     fireEvent.click(screen.getByRole('button', { name: /Track & Clarify/i }));
     // The tab first opens the demo case; Lookup is disabled until that read settles.
     await screen.findByText('case_demo_001', { selector: 'span' });
-    fireEvent.change(screen.getByPlaceholderText(/Enter Case ID/i), { target: { value: 'case_demo_005' } });
+    fireEvent.change(screen.getByLabelText(/case ID/i), { target: { value: 'case_demo_005' } });
     fireEvent.click(screen.getByRole('button', { name: /^Lookup$/ }));
 
     expect(await screen.findByText('Completed')).toBeInTheDocument();
