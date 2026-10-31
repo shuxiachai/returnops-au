@@ -105,7 +105,7 @@ describe('CustomerPortal after a lodgement (Live API mode)', () => {
     render(<CustomerPortal />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Track & Clarify' }));
-    fireEvent.change(screen.getByPlaceholderText('Enter your case ID...'), { target: { value: EARLIER_CASE_ID } });
+    fireEvent.change(screen.getByLabelText(/case ID/i), { target: { value: EARLIER_CASE_ID } });
     fireEvent.click(screen.getByRole('button', { name: /Lookup/i }));
     fireEvent.change(await screen.findByPlaceholderText('Your answer...'), { target: { value: 'SYN-1001' } });
     fireEvent.click(screen.getByRole('button', { name: /Submit Answers/i }));
@@ -131,7 +131,7 @@ describe('CustomerPortal after a lodgement (Live API mode)', () => {
     expect(lodgeInput).toHaveFocus();
 
     fireEvent.click(screen.getByRole('button', { name: 'Track & Clarify' }));
-    fireEvent.change(screen.getByPlaceholderText('Enter your case ID...'), { target: { value: EARLIER_CASE_ID } });
+    fireEvent.change(screen.getByLabelText(/case ID/i), { target: { value: EARLIER_CASE_ID } });
     fireEvent.click(screen.getByRole('button', { name: /Lookup/i }));
     await screen.findByPlaceholderText('Your answer...');
     const clarifyInput = document.querySelector<HTMLInputElement>('input[type="file"]')!;
@@ -187,7 +187,7 @@ describe('CustomerPortal edge cases on the forms (Live API mode)', () => {
     vi.mocked(getCustomerCase).mockResolvedValue(caseView(EARLIER_CASE_ID, 'AWAITING_INFORMATION', 2, true));
     render(<CustomerPortal />);
     fireEvent.click(screen.getByRole('button', { name: 'Track & Clarify' }));
-    fireEvent.change(screen.getByPlaceholderText('Enter your case ID...'), { target: { value: EARLIER_CASE_ID } });
+    fireEvent.change(screen.getByLabelText(/case ID/i), { target: { value: EARLIER_CASE_ID } });
     fireEvent.click(screen.getByRole('button', { name: /Lookup/i }));
     await screen.findByPlaceholderText('Your answer...');
 
@@ -216,7 +216,7 @@ describe('CustomerPortal edge cases on the forms (Live API mode)', () => {
     vi.mocked(getCustomerCase).mockReturnValue(new Promise((resolve) => { settle = resolve; }));
     render(<CustomerPortal />);
     fireEvent.click(screen.getByRole('button', { name: 'Track & Clarify' }));
-    const box = screen.getByRole('textbox', { name: 'Case ID' });
+    const box = screen.getByRole('textbox', { name: /case ID/i });
     fireEvent.change(box, { target: { value: ` ${CASE_ID} ` } });
 
     // Enter submits the lookup form, as the Lookup button does.
@@ -236,7 +236,7 @@ describe('CustomerPortal edge cases on the forms (Live API mode)', () => {
     vi.mocked(getCustomerCase).mockRejectedValue(new ApiError(422, 'Request fields are invalid.', 'VALIDATION_ERROR'));
     render(<CustomerPortal />);
     fireEvent.click(screen.getByRole('button', { name: 'Track & Clarify' }));
-    fireEvent.change(screen.getByRole('textbox', { name: 'Case ID' }), { target: { value: 'not a case id!' } });
+    fireEvent.change(screen.getByRole('textbox', { name: /case ID/i }), { target: { value: 'not a case id!' } });
     fireEvent.click(screen.getByRole('button', { name: /Lookup/i }));
 
     expect(

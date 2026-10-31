@@ -109,6 +109,22 @@ describe('My Requests on Track & Clarify', () => {
     expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
   });
 
+  it('reports which requests match the search, and none while no list is shown', async () => {
+    listed.mockResolvedValue({ items: [NEWER, OLDER], limit: 20 });
+    const onMatches = vi.fn();
+    const { rerender } = render(
+      <MyCasesList openCaseId={null} openCase={null} onOpen={vi.fn()} filter="parcel" onMatches={onMatches} />
+    );
+    expect(onMatches).toHaveBeenCalledWith(null);
+    await waitFor(() => expect(onMatches).toHaveBeenLastCalledWith(['case_older']));
+    // Status words and what was asked for match too.
+    rerender(<MyCasesList openCaseId={null} openCase={null} onOpen={vi.fn()} filter="your answer" onMatches={onMatches} />);
+    await waitFor(() => expect(onMatches).toHaveBeenLastCalledWith(['case_newer']));
+    rerender(<MyCasesList openCaseId={null} openCase={null} onOpen={vi.fn()} filter="nothing like it" onMatches={onMatches} />);
+    await waitFor(() => expect(onMatches).toHaveBeenLastCalledWith([]));
+    expect(screen.getByText(/None of your requests matches this/)).toBeInTheDocument();
+  });
+
   it('says when only the most recent requests are shown', async () => {
     const many = Array.from({ length: 20 }, (_, n) => summary(`case_${n}`, { excerpt: `Request ${n}` }));
     listed.mockResolvedValue({ items: many, limit: 20 });

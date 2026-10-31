@@ -129,7 +129,7 @@ async function openPortal(mode: 'lodge' | 'clarify') {
 }
 
 async function lookup(caseId: string) {
-  fireEvent.change(screen.getByPlaceholderText(/Enter Case ID/i), { target: { value: caseId } });
+  fireEvent.change(screen.getByLabelText(/case ID/i), { target: { value: caseId } });
   fireEvent.click(screen.getByRole('button', { name: /^Lookup$/ }));
   await screen.findByText(caseId, { exact: true });
   await waitFor(() => expect(screen.getByRole('button', { name: /^Lookup$/ })).toBeEnabled());

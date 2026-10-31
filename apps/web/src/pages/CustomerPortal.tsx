@@ -153,6 +153,8 @@ export const CustomerPortal: React.FC = () => {
   // ---------------------------------------------------------
   // Demo case IDs exist only in Mock Mode (#111 item 3).
   const [searchCaseId, setSearchCaseId] = useState(() => (isMockMode() ? 'case_demo_001' : ''));
+  // The IDs of My Requests that match the search box, or null while no list is shown.
+  const [listMatches, setListMatches] = useState<string[] | null>(null);
   const [currentCase, setCurrentCase] = useState<CustomerCaseView | null>(null);
   const [isLoadingCase, setIsLoadingCase] = useState(false);
   const [caseError, setCaseError] = useState<string | null>(null);
@@ -925,18 +927,8 @@ export const CustomerPortal: React.FC = () => {
       {/* ========================================================= */}
       {activeSubTab === 'track' && (
         <div className="space-y-6">
-          {/* The signed-in customer's own requests (31 October 2026); a row opens the case
-              as Lookup does, and the list folds away while a case is open. */}
-          <MyCasesList
-            openCaseId={currentCase ? currentCase.case_id : isLoadingCase && searchCaseId.trim() ? searchCaseId.trim() : null}
-            openCase={currentCase}
-            onOpen={(caseId) => {
-              setSearchCaseId(caseId);
-              loadCase(caseId);
-            }}
-          />
-
-          {/* Lookup Bar */}
+          {/* Search and lookup (31 October 2026): above My Requests, typing filters them;
+              Enter opens the one matching request, or looks the text up as a case ID. */}
           {/* Stacked below 1024 px, so Mock Mode's demo buttons never squeeze the case ID box. */}
           <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-3">
             {/* A form, so Enter in the box looks the case up as the button does; while a
@@ -944,7 +936,11 @@ export const CustomerPortal: React.FC = () => {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                if (!isLoadingCase && searchCaseId.trim()) loadCase(searchCaseId);
+                const query = searchCaseId.trim();
+                if (isLoadingCase || !query) return;
+                const target = listMatches && listMatches.length === 1 ? listMatches[0] : query;
+                if (target !== query) setSearchCaseId(target);
+                loadCase(target);
               }}
               className="flex-1 w-full flex items-center space-x-2"
             >
@@ -952,11 +948,15 @@ export const CustomerPortal: React.FC = () => {
                 <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 <input
                   type="text"
-                  aria-label="Case ID"
+                  aria-label="Search your requests or enter a case ID"
                   value={searchCaseId}
                   onChange={(e) => setSearchCaseId(e.target.value)}
-                  placeholder={isMockMode() ? 'Enter Case ID (e.g. case_demo_001)...' : 'Enter your case ID...'}
-                  className="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-500 font-mono"
+                  placeholder={
+                    isMockMode()
+                      ? 'Search your requests, or enter a case ID (e.g. case_demo_001)...'
+                      : 'Search your requests, or enter a case ID...'
+                  }
+                  className="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                 />
               </div>
               <button
@@ -994,6 +994,20 @@ export const CustomerPortal: React.FC = () => {
             </div>
             )}
           </div>
+
+          {/* The signed-in customer's own requests (31 October 2026): a row opens the case as
+              Lookup does, the search box above filters them, and the list folds away while a
+              case is open. */}
+          <MyCasesList
+            openCaseId={currentCase ? currentCase.case_id : isLoadingCase && searchCaseId.trim() ? searchCaseId.trim() : null}
+            openCase={currentCase}
+            onOpen={(caseId) => {
+              setSearchCaseId(caseId);
+              loadCase(caseId);
+            }}
+            filter={searchCaseId}
+            onMatches={setListMatches}
+          />
 
           {caseError && (
             <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-800 text-sm flex items-center space-x-2">

@@ -14,6 +14,22 @@ interface MyCasesListProps {
   // The open case as last read, so its row follows the page's own refreshes.
   openCase: CustomerCaseView | null;
   onOpen: (caseId: string) => void;
+  // The text in the search box above (31 October 2026): rows whose words, status, outcome or
+  // case ID contain it stay; the IDs that match go back through onMatches, null while no
+  // list is shown, so Enter can open the one match.
+  filter?: string;
+  onMatches?: (caseIds: string[] | null) => void;
+}
+
+function rowMatches(item: CustomerCaseSummary, query: string): boolean {
+  const words = [
+    item.case_id,
+    item.excerpt ?? '',
+    formatCustomerStatus(item.status),
+    item.awaiting_answer ? 'Your answer is needed' : '',
+    item.requested_outcome ? formatRequestedOutcome(item.requested_outcome) : '',
+  ];
+  return words.some((word) => word.toLowerCase().includes(query));
 }
 
 type ListState =
@@ -22,7 +38,7 @@ type ListState =
   | { kind: 'failed' }
   | { kind: 'ready'; items: CustomerCaseSummary[]; limit: number };
 
-export const MyCasesList: React.FC<MyCasesListProps> = ({ openCaseId, openCase, onOpen }) => {
+export const MyCasesList: React.FC<MyCasesListProps> = ({ openCaseId, openCase, onOpen, filter = '', onMatches }) => {
   const [state, setState] = useState<ListState>({ kind: 'loading' });
   // "Show" unfolds the list for the case that is open now; opening another folds it again.
   const [shownWhileOpen, setShownWhileOpen] = useState<string | null>(null);
@@ -49,9 +65,7 @@ export const MyCasesList: React.FC<MyCasesListProps> = ({ openCaseId, openCase, 
     };
   }, []);
 
-  if (state.kind === 'hidden') return null;
-
-  const expanded = !openCaseId || shownWhileOpen === openCaseId;
+  const query = filter.trim().toLowerCase();
   const items =
     state.kind === 'ready'
       ? state.items.map((item) =>
@@ -65,13 +79,29 @@ export const MyCasesList: React.FC<MyCasesListProps> = ({ openCaseId, openCase, 
             : item
         )
       : [];
+  const shown = query ? items.filter((item) => rowMatches(item, query)) : items;
+  const shownKey = state.kind === 'ready' ? shown.map((item) => item.case_id).join(' ') : null;
+  useEffect(() => {
+    onMatches?.(shownKey === null ? null : shownKey ? shownKey.split(' ') : []);
+    // shownKey stands for the list of matching IDs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shownKey]);
+
+  if (state.kind === 'hidden') return null;
+
+  // Typing a search shows the matches even while a case is open, unless the box holds that case's ID.
+  const searching = query !== '' && query !== (openCaseId ?? '').toLowerCase();
+  const expanded = !openCaseId || shownWhileOpen === openCaseId || searching;
 
   return (
     <section aria-labelledby="my-requests-heading" className="bg-white rounded-2xl border border-slate-200 shadow-sm">
       <div className="flex items-center justify-between gap-2 px-4 py-3">
         <h2 id="my-requests-heading" className="text-sm font-bold text-slate-900 flex items-center gap-2">
           <ListChecks className="w-4 h-4 text-sky-600" />
-          <span>My Requests{state.kind === 'ready' ? ` (${items.length})` : ''}</span>
+          <span>
+            My Requests
+            {state.kind === 'ready' ? (searching ? ` (${shown.length} of ${items.length})` : ` (${items.length})`) : ''}
+          </span>
         </h2>
         <div className="flex items-center gap-1 text-xs text-slate-500">
           <button
@@ -83,7 +113,7 @@ export const MyCasesList: React.FC<MyCasesListProps> = ({ openCaseId, openCase, 
           >
             <RefreshCw className="w-4 h-4" />
           </button>
-          {openCaseId && (
+          {openCaseId && !searching && (
             <button
               type="button"
               onClick={() => setShownWhileOpen(expanded ? null : openCaseId)}
@@ -110,9 +140,14 @@ export const MyCasesList: React.FC<MyCasesListProps> = ({ openCaseId, openCase, 
               You have not lodged any requests yet. Use Lodge Return to start one.
             </p>
           )}
-          {state.kind === 'ready' && items.length > 0 && (
+          {state.kind === 'ready' && items.length > 0 && shown.length === 0 && (
+            <p className="px-2 py-3 text-sm text-slate-500">
+              None of your requests matches this. Press Enter to look it up as a case ID.
+            </p>
+          )}
+          {state.kind === 'ready' && shown.length > 0 && (
             <ul className="divide-y divide-slate-100">
-              {items.map((item) => (
+              {shown.map((item) => (
                 <li key={item.case_id}>
                   <button
                     type="button"

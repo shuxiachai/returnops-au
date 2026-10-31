@@ -55,7 +55,7 @@ const setVisibility = (state: DocumentVisibilityState) => {
 async function lookUpCase() {
   render(<CustomerPortal />);
   fireEvent.click(screen.getByRole('button', { name: 'Track & Clarify' }));
-  fireEvent.change(screen.getByPlaceholderText('Enter your case ID...'), { target: { value: CASE_ID } });
+  fireEvent.change(screen.getByLabelText(/case ID/i), { target: { value: CASE_ID } });
   fireEvent.click(screen.getByRole('button', { name: /Lookup/i }));
 }
 
@@ -192,7 +192,7 @@ describe('CustomerPortal auto-refresh and stale answers (Live API mode)', () => 
 
     // Another case: the confirmation belonged to the first one.
     vi.mocked(getCustomerCase).mockResolvedValueOnce({ ...view('RISK_REVIEW', 2), case_id: 'case_live_002' });
-    fireEvent.change(screen.getByPlaceholderText('Enter your case ID...'), { target: { value: 'case_live_002' } });
+    fireEvent.change(screen.getByLabelText(/case ID/i), { target: { value: 'case_live_002' } });
     fireEvent.click(screen.getByRole('button', { name: /Lookup/i }));
     expect(await screen.findByText('case_live_002')).toBeInTheDocument();
     expect(screen.queryByText(/Your answers were received/i)).not.toBeInTheDocument();

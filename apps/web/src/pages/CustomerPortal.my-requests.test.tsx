@@ -67,10 +67,48 @@ describe('CustomerPortal: My Requests', () => {
 
     await waitFor(() => expect(getCustomerCase).toHaveBeenCalledWith('case_live_mine'));
     expect(await screen.findByText('case_live_mine')).toBeInTheDocument();
-    expect(screen.getByLabelText('Case ID')).toHaveValue('case_live_mine');
+    expect(screen.getByLabelText(/case ID/i)).toHaveValue('case_live_mine');
     // The list folds away so the case is what the customer reads.
     expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Show list/ })).toBeInTheDocument();
+  });
+
+  it('searches the requests from the box above them and opens the one match with Enter (31 October 2026)', async () => {
+    const summary = (caseId: string, excerpt: string) => ({
+      case_id: caseId,
+      status: 'SUBMITTED' as const,
+      created_at: VIEW.created_at,
+      updated_at: VIEW.updated_at,
+      awaiting_answer: false,
+      excerpt,
+    });
+    vi.mocked(listMyCases).mockResolvedValue({
+      items: [summary('case_live_mine', 'The blender stopped after one use.'), summary('case_live_kettle', 'The kettle leaks.')],
+      limit: 20,
+    });
+    vi.mocked(getCustomerCase).mockResolvedValue(VIEW);
+    render(<CustomerPortal />);
+    fireEvent.click(screen.getByRole('button', { name: 'Track & Clarify' }));
+    await screen.findByRole('button', { name: /The kettle leaks/ });
+
+    // The box sits above the list.
+    const box = screen.getByLabelText(/case ID/i);
+    expect(box.compareDocumentPosition(screen.getByText(/My Requests/)) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    // Words filter the list; Enter opens the only match.
+    fireEvent.change(box, { target: { value: 'BLENDER' } });
+    expect(screen.getByText('My Requests (1 of 2)')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /The kettle leaks/ })).not.toBeInTheDocument();
+    fireEvent.submit(box.closest('form')!);
+    await waitFor(() => expect(getCustomerCase).toHaveBeenCalledWith('case_live_mine'));
+    expect(box).toHaveValue('case_live_mine');
+
+    // Nothing matches: the list says so, and Enter looks the text up as a case ID.
+    vi.mocked(getCustomerCase).mockClear();
+    fireEvent.change(box, { target: { value: 'case_older_one' } });
+    expect(await screen.findByText(/None of your requests matches this/)).toBeInTheDocument();
+    fireEvent.submit(box.closest('form')!);
+    await waitFor(() => expect(getCustomerCase).toHaveBeenCalledWith('case_older_one'));
   });
 
   it('keeps Lookup by case ID where the server offers no list', async () => {
@@ -80,6 +118,6 @@ describe('CustomerPortal: My Requests', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Track & Clarify' }));
     await waitFor(() => expect(listMyCases).toHaveBeenCalled());
     await waitFor(() => expect(screen.queryByText(/My Requests/)).not.toBeInTheDocument());
-    expect(screen.getByLabelText('Case ID')).toBeInTheDocument();
+    expect(screen.getByLabelText(/case ID/i)).toBeInTheDocument();
   });
 });
