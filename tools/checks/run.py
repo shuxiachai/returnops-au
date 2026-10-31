@@ -20,13 +20,22 @@ from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[2]
 LIFECYCLE_GROUPS = {
-    "execution": 13,
+    # The slow groups were split by measured file time on 31 October 2026, so no part
+    # runs much longer than the slowest single file (about 25 minutes).
+    "execution": 6,
+    "execution_2": 7,
     "founder_manual": 6,
-    "founder_revision": 5,
-    "label_artifact": 8,
-    "label_execution_bridge": 8,
+    "founder_revision": 3,
+    "founder_revision_2": 2,
+    "label_artifact": 2,
+    "label_artifact_2": 2,
+    "label_artifact_3": 4,
+    "label_execution_bridge": 3,
+    "label_execution_bridge_2": 3,
+    "label_execution_bridge_3": 2,
     "lifecycle_core": 15,
-    "notification": 13,
+    "notification": 7,
+    "notification_2": 6,
 }
 PARTS = ("foundation", *LIFECYCLE_GROUPS)
 MANIFEST = Path("tools/checks/lifecycle-groups.json")
@@ -146,7 +155,7 @@ def ci_matrix(root: Path | None = None) -> dict:
 
 
 def validate_ci_needs(raw: str, matrix: dict) -> None:
-    """Require all dependency results and the exact eight-part plan."""
+    """Require all dependency results and the exact planned parts."""
     try:
         needs = json.loads(raw, object_pairs_hook=_unique_object)
         required = {"offline-contract-models", "environment-plan", "environment-checks"}
@@ -161,7 +170,7 @@ def validate_ci_needs(raw: str, matrix: dict) -> None:
         if planned != matrix:
             raise ValueError("Unexpected CI matrix.")
     except (ValueError, TypeError, KeyError) as exc:
-        raise ValueError("CI gate requires successful offline, plan and all eight environment parts.") from exc
+        raise ValueError("CI gate requires successful offline, plan and all environment parts.") from exc
 
 
 def build_steps(
@@ -277,7 +286,7 @@ def main(argv: list[str] | None = None) -> int:
                 print(json.dumps(matrix, separators=(",", ":")))
             else:
                 validate_ci_needs(os.environ.get("CI_NEEDS_JSON", ""), matrix)
-                print("PASS offline, plan and all eight environment parts.")
+                print("PASS offline, plan and all environment parts.")
             return 0
         steps = build_steps(args.mode, getattr(args, "baseline_ref", "HEAD"),
                             getattr(args, "skip_baseline", False),

@@ -214,7 +214,7 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
-      - name: Require every dependency and all seven environment parts to succeed
+      - name: Require every dependency and every environment part to succeed
         env:
           CI_NEEDS_JSON: ${{ toJSON(needs) }}
         run: python -B tools/checks/run.py ci-gate
