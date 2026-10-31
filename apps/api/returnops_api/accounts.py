@@ -7,6 +7,12 @@ Password hashes (scrypt) stay in that private file, so the frozen schema is unch
 deployment that resets its database resets the file with it (tools/railway/start.py,
 demo.ps1 fresh). A sign-in issues a new 899 s session the way provision does; the token is
 then verified like any other (security/authentication.py). Neither route is in contract v1.
+
+Hardened the same day after an independent review: a name that exists, or looks like one
+that exists, is refused before any password is written; a name being registered cannot sign
+in; a sign-in must belong to the file's store; inputs are bounded before any work; scrypt
+runs at most two at a time; the limiters hold a bounded number of keys and check and count
+in one step; a registration whose outcome is unknown keeps its password if the account exists.
 """
 from __future__ import annotations
 import base64
@@ -20,18 +26,19 @@ import time
 from pathlib import Path
 import jwt
 from fastapi import Request
-from sqlalchemy import select
 from starlette.concurrency import run_in_threadpool
-from returnops_domain import customer_tables as t
 from returnops_domain.audit import identifier
 from returnops_domain.errors import FlowError
-from returnops_domain.registry import TrustedRegistry
+from returnops_domain.registry import TrustedRegistry, canonical_id
 from returnops_domain.wire import blank, validate
 from .customer_http import _json_body, safe_json
 
 SESSION_SECONDS = 899
 PASSWORD_MIN, PASSWORD_MAX = 8, 128
 _SCRYPT = {'n': 2**14, 'r': 8, 'p': 1}
+# About 16 MiB and 40 ms of CPU each, so no more than this many run at once.
+HASH_SLOTS = 2
+HASH_WAIT_SECONDS = 0.5
 
 
 class AccountError(FlowError):
@@ -103,11 +110,17 @@ class CredentialStore:
             stored = self._read()['accounts'].get(principal_id)
         return stored if isinstance(stored, str) else None
 
+    def taken(self, principal_id):
+        """Whether this name, or one that differs only in letter case, '-' or '_', has a password."""
+        with self._lock:
+            names = self._read()['accounts']
+        return canonical_id(principal_id) in {canonical_id(name) for name in names}
+
     def add(self, principal_id, password_hash):
         with self._lock:
             value = self._read()
-            # Taken in any letter case: `Synthetic_Founder` must not sit beside `synthetic_founder`.
-            if principal_id.lower() in {name.lower() for name in value['accounts']}:
+            # `Synthetic_Founder` or `synthetic-founder` must not sit beside `synthetic_founder`.
+            if canonical_id(principal_id) in {canonical_id(name) for name in value['accounts']}:
                 raise FlowError('INVALID_STATE')
             value['accounts'][principal_id] = password_hash
             _private_replace(self.path, value)
@@ -130,34 +143,47 @@ def new_credentials_file(path, store_id, passwords):
 
 
 class AttemptLimiter:
-    """At most `limit` events per key in a sliding window; in this process only."""
+    """At most `limit` attempts per key in a sliding window, in this process only.
 
-    def __init__(self, limit, window_seconds, clock=time.monotonic):
-        self.limit, self.window, self.clock = limit, window_seconds, clock
+    take() checks and counts in one step, so parallel requests cannot all pass the check
+    before any is counted. At most `max_keys` keys are held; when that many are live, a new
+    key is refused rather than stored, so memory stays bounded.
+    """
+
+    def __init__(self, limit, window_seconds, *, max_keys=10000, clock=time.monotonic):
+        self.limit, self.window, self.max_keys, self.clock = limit, window_seconds, max_keys, clock
         self._events = {}
         self._lock = threading.Lock()
 
-    def _recent(self, key):
-        cutoff = self.clock() - self.window
-        events = [moment for moment in self._events.get(key, []) if moment > cutoff]
+    def _prune(self, key, now):
+        events = [moment for moment in self._events.get(key, ()) if moment > now - self.window]
         if events:
             self._events[key] = events
         else:
             self._events.pop(key, None)
         return events
 
-    def blocked(self, key):
+    def take(self, key):
         with self._lock:
-            return len(self._recent(key)) >= self.limit
-
-    def record(self, key):
-        with self._lock:
-            self._recent(key)
-            self._events.setdefault(key, []).append(self.clock())
+            now = self.clock()
+            events = self._prune(key, now)
+            if len(events) >= self.limit:
+                return False
+            if not events and len(self._events) >= self.max_keys:
+                for other in list(self._events):
+                    self._prune(other, now)
+                if len(self._events) >= self.max_keys:
+                    return False
+            self._events.setdefault(key, []).append(now)
+            return True
 
     def clear(self, key):
         with self._lock:
             self._events.pop(key, None)
+
+    def size(self):
+        with self._lock:
+            return len(self._events)
 
 
 def _credentials(value):
@@ -167,6 +193,22 @@ def _credentials(value):
     if not isinstance(username, str) or not isinstance(password, str):
         raise FlowError('VALIDATION_ERROR')
     return username, password
+
+
+def _valid_username(username):
+    try:
+        validate('Principal', {'principal_id': username, 'role': 'CUSTOMER'})
+    except FlowError:
+        return False
+    return True
+
+
+def _encodable(password):
+    try:
+        password.encode('utf-8')
+    except UnicodeEncodeError:
+        return False
+    return True
 
 
 def _session_times():
@@ -191,58 +233,107 @@ WRONG_CREDENTIALS = 'The username or password is not correct.'
 
 
 def register_account_routes(app, store):
-    sign_ins = AttemptLimiter(5, 300)
-    registrations = AttemptLimiter(30, 600)
+    # Five sign-in attempts per name a minute: the demo passwords are random 16-character
+    # strings, so this mainly slows guessing at customer passwords without locking a name long.
+    sign_ins = AttemptLimiter(5, 60)
+    registrations = AttemptLimiter(120, 600)
+    hash_slots = threading.BoundedSemaphore(HASH_SLOTS)
+    pending = set()
+    pending_lock = threading.Lock()
+    # Exposed for tests and operators; nothing here is a secret.
+    app.state.account_limits = {'sign_ins': sign_ins, 'registrations': registrations, 'hash_slots': hash_slots}
+
+    wrong = lambda: AccountError('UNAUTHENTICATED', WRONG_CREDENTIALS)
+    taken = lambda: AccountError('INVALID_STATE', 'That username is already taken. Choose another one.')
+
+    def with_hash_slot(work):
+        if not hash_slots.acquire(timeout=HASH_WAIT_SECONDS):
+            raise AccountError('INTERNAL_ERROR', 'Sign-in is busy right now. Try again in a moment.', status=503)
+        try:
+            return work()
+        finally:
+            hash_slots.release()
 
     def register(config, engine, username, password):
-        if registrations.blocked('all'):
-            raise AccountError('INVALID_STATE', 'Too many accounts were created just now. Try again in a few minutes.', status=429)
-        try:
-            validate('Principal', {'principal_id': username, 'role': 'CUSTOMER'})
-        except FlowError:
+        if not _valid_username(username):
             raise AccountError('VALIDATION_ERROR', 'Choose a username of 3 to 80 letters, digits, - or _, '
-                               'starting with a letter or digit.') from None
-        if not PASSWORD_MIN <= len(password) <= PASSWORD_MAX or blank(password):
+                               'starting with a letter or digit.')
+        if not PASSWORD_MIN <= len(password) <= PASSWORD_MAX or blank(password) or not _encodable(password):
             raise AccountError('VALIDATION_ERROR', 'Choose a password of 8 to 128 characters.')
-        taken = AccountError('INVALID_STATE', 'That username is already taken. Choose another one.')
+        if not registrations.take('all'):
+            raise AccountError('INVALID_STATE', 'Too many accounts were requested just now. Try again in a few minutes.',
+                               status=429)
+        name = canonical_id(username)
+        with pending_lock:
+            if name in pending:
+                raise taken()
+            pending.add(name)
+        registry = TrustedRegistry(engine)
         try:
-            store.add(username, hash_password(password))
-        except FlowError:
-            raise taken from None
-        session = _session_times()
-        try:
-            TrustedRegistry(engine).register_customer(username, store.store_id, session)
-        except BaseException as error:
-            store.remove(username)
-            if isinstance(error, FlowError) and error.code == 'INVALID_STATE':
-                raise taken from None
-            if isinstance(error, FlowError) and error.code == 'FORBIDDEN':
-                raise AccountError('FORBIDDEN', 'New accounts cannot be created for this shop right now.') from None
-            raise
-        registrations.record('all')
+            # Refused before any password is written: an existing account, or a look-alike of
+            # one, can never be given a password that signs it in.
+            if store.taken(username) or registry.name_taken(username):
+                raise taken()
+            password_hash = with_hash_slot(lambda: hash_password(password))
+            try:
+                store.add(username, password_hash)
+            except FlowError:
+                raise taken() from None
+            session = _session_times()
+            try:
+                registry.register_customer(username, store.store_id, session)
+            except FlowError as error:
+                # A refusal before commit: nothing was written to the database.
+                store.remove(username)
+                if error.code == 'INVALID_STATE':
+                    raise taken() from None
+                if error.code == 'FORBIDDEN':
+                    raise AccountError('FORBIDDEN', 'New accounts cannot be created for this shop right now.') from None
+                raise
+            except BaseException:
+                # The outcome is unknown (a lost commit acknowledgement): keep the password if
+                # the account exists, so it can still sign in; otherwise take it back.
+                try:
+                    exists = registry.name_taken(username)
+                except Exception:
+                    exists = True
+                if not exists:
+                    store.remove(username)
+                raise
+        finally:
+            with pending_lock:
+                pending.discard(name)
         return 201, _signed_in(_token(config, username, session), username, 'CUSTOMER')
 
     def sign_in(config, engine, username, password):
-        key = username.casefold()
-        if sign_ins.blocked(key):
-            raise AccountError('INVALID_STATE', 'Too many sign-in attempts for this username. Wait a few minutes.', status=429)
-        stored = store.hash_for(username) if len(username) <= 80 else None
-        matched = verify_password(password, stored or _UNKNOWN) and stored is not None
+        # Bounded before any work: no hashing, no limiter entry for an impossible name.
+        if not _valid_username(username) or not 1 <= len(password) <= PASSWORD_MAX:
+            raise wrong()
+        name = canonical_id(username)
+        with pending_lock:
+            if name in pending:
+                raise wrong()
+        if not sign_ins.take(name):
+            raise AccountError('INVALID_STATE', 'Too many sign-in attempts for this username. Wait a minute.', status=429)
+        stored = store.hash_for(username)
+        matched = with_hash_slot(lambda: verify_password(password, stored or _UNKNOWN)) and stored is not None
         if not matched:
-            sign_ins.record(key)
-            raise AccountError('UNAUTHENTICATED', WRONG_CREDENTIALS)
+            raise wrong()
+        registry = TrustedRegistry(engine)
+        scope = registry.principal_scope(username)
+        # Only an enabled account of this file's store signs in here.
+        if scope is None or scope[1] != store.store_id or scope[2] is not True:
+            raise wrong()
         session = _session_times()
         try:
-            TrustedRegistry(engine).register_session(username, session['session_id'], session['issued_at'],
-                                                     session['not_before'], session['expires_at'])
+            registry.register_session(username, session['session_id'], session['issued_at'],
+                                      session['not_before'], session['expires_at'])
         except FlowError as error:
             if error.code in {'INVALID_STATE', 'VALIDATION_ERROR'}:
-                raise AccountError('UNAUTHENTICATED', WRONG_CREDENTIALS) from None
+                raise wrong() from None
             raise
-        sign_ins.clear(key)
-        with engine.connect() as connection:
-            role = connection.execute(select(t.principals.c.role).where(t.principals.c.principal_id == username)).scalar_one()
-        return 200, _signed_in(_token(config, username, session), username, role)
+        sign_ins.clear(name)
+        return 200, _signed_in(_token(config, username, session), username, scope[0])
 
     async def respond(request, operation):
         correlation = identifier('corr')

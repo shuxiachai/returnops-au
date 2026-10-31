@@ -31,10 +31,11 @@ def test_credentials_file_adds_once_removes_and_keeps_its_shape(tmp_path):
     with pytest.raises(FlowError):
         store.add('customer_new', accounts.hash_password('other-secret-1'))
     # A name taken in another letter case is taken too: no look-alike of the Founder's ID.
-    for look_alike in ('Customer_New', 'FOUNDER_DEMO', 'Founder_Demo'):
+    for look_alike in ('Customer_New', 'FOUNDER_DEMO', 'Founder_Demo', 'founder-demo', 'founderdemo'):
         with pytest.raises(FlowError):
             store.add(look_alike, accounts.hash_password('other-secret-1'))
     assert accounts.verify_password('customer-secret-1', store.hash_for('customer_new'))
+    assert store.taken('Customer-New') and not store.taken('customer_other')
     store.remove('customer_new')
     assert store.hash_for('customer_new') is None and store.hash_for('nobody') is None
     text = path.read_text(encoding='utf-8')
@@ -56,12 +57,48 @@ def test_credentials_file_must_be_absolute_and_well_formed(tmp_path):
 def test_limiter_counts_per_key_inside_its_window():
     now = [100.0]
     limiter = accounts.AttemptLimiter(2, 60, clock=lambda: now[0])
-    limiter.record('a'); assert not limiter.blocked('a')
-    limiter.record('a'); assert limiter.blocked('a') and not limiter.blocked('b')
+    assert limiter.take('a') and limiter.take('a')
+    assert not limiter.take('a') and limiter.take('b')
     now[0] += 61
-    assert not limiter.blocked('a')
-    limiter.record('a'); limiter.record('a'); limiter.clear('a')
-    assert not limiter.blocked('a')
+    assert limiter.take('a')
+    limiter.clear('a')
+    assert limiter.take('a') and limiter.take('a')
+
+
+# Review of 31 October 2026, finding 2: every failed name used to stay in memory forever.
+def test_limiter_holds_a_bounded_number_of_keys():
+    now = [100.0]
+    limiter = accounts.AttemptLimiter(5, 60, max_keys=3, clock=lambda: now[0])
+    assert all(limiter.take(key) for key in ('a', 'b', 'c'))
+    assert not limiter.take('d') and limiter.size() == 3
+    assert limiter.take('a')  # a live key still counts
+    now[0] += 61
+    assert limiter.take('d') and limiter.size() == 1
+
+
+# Finding 7: parallel requests must not all pass the check before any is counted.
+def test_limiter_checks_and_counts_in_one_step():
+    import threading
+    limiter = accounts.AttemptLimiter(5, 60)
+    passed = []
+    barrier = threading.Barrier(40)
+
+    def attempt():
+        barrier.wait()
+        passed.append(limiter.take('founder'))
+
+    threads = [threading.Thread(target=attempt) for _ in range(40)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    assert passed.count(True) == 5
+
+
+def test_look_alike_names_share_one_canonical_form():
+    from returnops_domain.registry import canonical_id
+    assert canonical_id('Synthetic-Founder') == canonical_id('synthetic_founder') == canonical_id('SYNTHETICFOUNDER')
+    assert canonical_id('synthetic_f0under') != canonical_id('synthetic_founder')
 
 
 def test_routes_exist_only_with_a_credentials_file(tmp_path, monkeypatch):

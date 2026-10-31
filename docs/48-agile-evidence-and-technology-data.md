@@ -138,6 +138,7 @@ Each loop names the reviewer, the comment or review, and the change it produced.
     - [docs/45](45-stage2-demo-script.md), the README, `tools/r02/README.md` and `demo.ps1` describe the new sign-in.
     - a review of the Founder screens for daily use: the cases that wait for the Founder first, statuses in words, filtering tiles, a summary at the top of each case and approvals explained in one paragraph above the exact scope (apps/web README section 9);
     - the lead then asked for customer registration in place of access keys: a follow-up pull request adds password sign-in for the provisioned people and customer self-registration (customers only, never a Founder), with the passwords hashed in the private demo folder so the frozen schema stays unchanged; the access key remains the fallback.
+    - before that pull request was merged, an independent read-only review of the new account code found two high-severity defects (a sign-in racing a refused registration could take over an existing account; failed sign-ins with huge usernames grew memory without bound) and seven smaller ones; all nine were fixed in the same pull request, each with a regression test, and the reviewer's own reproductions no longer succeed.
 
 A sixteenth loop is external: the tutor's Stage 1 interview feedback and the 13 October Canvas clarification ("deploy on site from the Canvas download") produced the "Deploy from zero" README chapter and the clean-machine rehearsal checklist in [docs/47](47-stage2-submission-runbook.md) section 5.
 

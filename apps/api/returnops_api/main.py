@@ -22,10 +22,11 @@ def create_app(*,engine=None,auth_config=None,enable_processor=True,enable_fixed
         accounts_file=os.environ.get('RETURNOPS_ACCOUNTS_FILE') or None
     credentials=None
     if accounts_file is not None:
+        from returnops_domain.errors import FlowError
         from .accounts import CredentialStore
         try:
             credentials=CredentialStore(accounts_file)
-        except (OSError,ValueError,TypeError):
+        except (OSError,ValueError,TypeError,FlowError):
             raise ValueError('Configure the private credentials file written by demo.py provision.') from None
     if enable_fixed_proposal is None:
         flag = os.environ.get('RETURNOPS_FIXED_PROPOSAL_DEMO','0')

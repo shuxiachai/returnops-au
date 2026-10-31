@@ -128,3 +128,114 @@ def test_no_registration_into_a_store_without_an_enabled_founder(flow_engine, id
     assert json.loads(path.read_text(encoding='utf-8'))['accounts'] == {}
     with flow_engine.connect() as connection:
         assert connection.execute(select(t.principals).where(t.principals.c.principal_id == username)).first() is None
+
+
+# Independent review of 31 October 2026 (findings 1 to 9), each as a regression test.
+
+def test_a_database_only_name_never_gets_a_password_written(accounts, identities, monkeypatch):
+    # Finding 1: the password used to be written before the database check, so a sign-in in
+    # that window could take over the existing account.
+    client, path = accounts
+    from returnops_api import accounts as module
+    written = []
+    original = module.CredentialStore.add
+    monkeypatch.setattr(module.CredentialStore, 'add', lambda self, name, value: (written.append(name), original(self, name, value)))
+    target = identities.people['customer_b']['principal_id']
+    for name in (target, target.upper(), target.replace('_', '-')):
+        refused(post(client, 'register', name, 'attacker-password'), 409, 'INVALID_STATE')
+    assert written == []
+    refused(post(client, 'login', target, 'attacker-password'), 401, 'UNAUTHENTICATED')
+
+
+def test_a_name_being_registered_cannot_sign_in(accounts, monkeypatch):
+    # Finding 1: the window between writing the password and creating the account.
+    client, _ = accounts
+    import threading
+    from returnops_domain.registry import TrustedRegistry as Registry
+    username = 'racing_' + uuid4().hex[:8]
+    answers = []
+    original = Registry.register_customer
+
+    def during(self, principal_id, store_id, session):
+        worker = threading.Thread(target=lambda: answers.append(post(client, 'login', principal_id, 'a-long-password').status_code))
+        worker.start()
+        worker.join(timeout=20)
+        return original(self, principal_id, store_id, session)
+
+    monkeypatch.setattr(Registry, 'register_customer', during)
+    assert post(client, 'register', username, 'a-long-password').status_code == 201
+    assert answers == [401]
+    assert post(client, 'login', username, 'a-long-password').status_code == 200
+
+
+def test_a_password_for_another_store_does_not_sign_in(accounts, flow_engine, identities):
+    # Finding 1: a sign-in must belong to the credentials file's store.
+    client, path = accounts
+    import time as clock
+    other = 'other_store_' + uuid4().hex[:8]
+    outsider = 'outsider_' + uuid4().hex[:8]
+    now = int(clock.time())
+    TrustedRegistry(flow_engine).provision(
+        [{'principal_id': outsider, 'role': 'FOUNDER', 'store_id': other, 'enabled': True}],
+        [{'session_id': 'session_' + uuid4().hex, 'principal_id': outsider, 'issued_at': now - 1, 'not_before': now - 1,
+          'expires_at': now + 600, 'revoked': False}])
+    from returnops_api.accounts import CredentialStore, hash_password
+    CredentialStore(path).add(outsider, hash_password('outsider-password'))
+    refused(post(client, 'login', outsider, 'outsider-password'), 401, 'UNAUTHENTICATED')
+
+
+def test_impossible_names_and_passwords_are_refused_before_any_work(accounts):
+    # Findings 2, 3 and 8: no limiter entry and no hashing for a name that cannot exist; a
+    # password that cannot be encoded is a validation error, not a service failure.
+    client, _ = accounts
+    limits = client.app.state.account_limits
+    before = limits['sign_ins'].size()
+    for _ in range(20):
+        refused(post(client, 'login', 'x' * 100000, 'whatever-password'), 401, 'UNAUTHENTICATED')
+    refused(post(client, 'login', 'someone_real', 'p' * 100000), 401, 'UNAUTHENTICATED')
+    assert limits['sign_ins'].size() == before
+    surrogate = client.post('/v1/auth/register', content=b'{"username":"surrogate_user","password":"abcdefgh\ud800"}',
+                            headers={'Content-Type': 'application/json'})
+    refused(surrogate, 422, 'VALIDATION_ERROR', 'Choose a password of 8 to 128 characters.')
+
+
+def test_hashing_waits_for_a_free_slot_and_otherwise_says_busy(accounts, identities):
+    # Finding 3: at most two scrypt computations at a time.
+    client, _ = accounts
+    slots = client.app.state.account_limits['hash_slots']
+    assert slots.acquire() and slots.acquire()
+    try:
+        busy = post(client, 'login', identities.people['founder']['principal_id'], PASSWORDS['founder'])
+        refused(busy, 503, 'INTERNAL_ERROR', 'Sign-in is busy right now. Try again in a moment.')
+    finally:
+        slots.release()
+        slots.release()
+    assert post(client, 'login', identities.people['founder']['principal_id'], PASSWORDS['founder']).status_code == 200
+
+
+def test_an_unknown_registration_outcome_keeps_the_password_of_a_created_account(accounts, monkeypatch):
+    # Finding 5: a lost commit acknowledgement used to delete the password of a created account.
+    client, path = accounts
+    from returnops_domain.errors import AcceptanceOutcomeUnknown
+    from returnops_domain.registry import TrustedRegistry as Registry
+    original = Registry.register_customer
+
+    def committed_but_unacknowledged(self, *args):
+        original(self, *args)
+        raise AcceptanceOutcomeUnknown()
+
+    monkeypatch.setattr(Registry, 'register_customer', committed_but_unacknowledged)
+    username = 'unacknowledged_' + uuid4().hex[:8]
+    assert post(client, 'register', username, 'a-long-password').status_code == 503
+    monkeypatch.setattr(Registry, 'register_customer', original)
+    assert username in json.loads(path.read_text(encoding='utf-8'))['accounts']
+    assert post(client, 'login', username, 'a-long-password').status_code == 200
+
+
+def test_failed_registrations_count_towards_the_registration_limit(accounts, identities):
+    # Finding 6: refused duplicates used to be free, so retries were unlimited.
+    client, _ = accounts
+    limits = client.app.state.account_limits['registrations']
+    before = limits._events.get('all', [])[:]
+    refused(post(client, 'register', identities.people['founder']['principal_id'], 'another-password'), 409, 'INVALID_STATE')
+    assert len(limits._events.get('all', [])) == len(before) + 1
