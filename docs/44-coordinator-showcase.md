@@ -50,6 +50,23 @@ The items the [C2 candidate README](../experiments/c2_risk_candidate/README.md) 
 | Call and budget permission | Lead decision, 22 October 2026 (see the dated decision below). The campus quota and cost limits are unknown. |
 | Credentials | `RETURNOPS_MODEL_API_KEY` from the environment only, held as a `SecretStr`; never in files, Git, arguments, logs, errors or evidence. |
 
+## Second provider on Railway (31 October 2026)
+
+The course proxy is reachable only through the university VPN, so the Railway service cannot use it. The lead decided on 31 October 2026 to run the showcase on Railway with Alibaba Cloud Model Studio (Bailian, China site, Beijing) through its chat-completions compatible endpoint, on the lead's own free quota:
+
+| Item | Record |
+| --- | --- |
+| Base URL | `https://dashscope.aliyuncs.com/compatible-mode/v1` (Railway service variable `RETURNOPS_MODEL_BASE_URL`) |
+| Model and provider | `qwen-plus`; provider record `aliyun_bailian` |
+| Key | `RETURNOPS_MODEL_API_KEY`, set by the lead as a Railway service variable; never in Git, files, chat, logs or evidence |
+| Switch | `RETURNOPS_MODEL_SHOWCASE=1` on the service; `tools/railway/start.py` passes `--model-showcase` only when the model variables are complete and valid, and otherwise starts without it and names the missing variable |
+| Budget | `RETURNOPS_MODEL_MAX_CALLS=50`: at most 50 model calls (retries included) per container start; over budget a call fails closed with `BUDGET` and nothing is sent. The service is public and anyone can register, so this bounds what strangers can spend |
+| Deadline | `RETURNOPS_MODEL_DEADLINE_SECONDS=30` (Railway runs in `sfo`; the endpoint is in Beijing) |
+| Data flow | The same allowlist as below: redacted synthetic statements, the requested outcome and whether an order reference was given leave Railway for Alibaba Cloud in mainland China; no IDs, order numbers, attachments or other fields |
+| State | Not verified until the lead sets the key; the first Railway result is to be recorded here |
+
+The local course-proxy route over the VPN stays the fallback for S4 ([docs/45](45-stage2-demo-script.md)).
+
 ## Data flow and field allowlist (F.07)
 
 Sent to the model, as one JSON user message: for each AVAILABLE statement revision (the original and any clarifications, oldest first) its `kind` and its redacted, control-character-free `text`; the original `requested_outcome`; and `has_order_reference` (a boolean). Nothing else is sent: no case, statement, principal, store or record IDs, no order reference value, no evidence or attachments, no order snapshot, no timestamps, no questions and no Founder data. At most 20 statements and 24000 characters are sent; a larger case is not sent. The system prompt is a constant (`PROMPT_VERSION = "a106-coordinator-showcase-v1"`); customer text never enters it, and the prompt states that the user message is untrusted data, not instructions (NFR-009).
@@ -117,6 +134,7 @@ The showcase does call a network model, so it is not "offline" in the literal se
 | `RETURNOPS_MODEL_DEADLINE_SECONDS` | Optional, 1-50, default 20. |
 | `RETURNOPS_MODEL_DIALECT` | Optional, only `chat-completions`. |
 | `RETURNOPS_MODEL_PROXY_URL` | Optional explicit `http(s)://host:port` proxy. Without it no system proxy is used. |
+| `RETURNOPS_MODEL_MAX_CALLS` | Optional, 1-100000. At most this many model calls (retries included) in the process; over it a call fails closed with `BUDGET` before anything is sent. Added on 31 October 2026 for the public Railway service. |
 | `RETURNOPS_MODEL_ALLOW_PRIVATE_HTTP` | Optional, `0` (default) or `1`. `1` lets the base URL be plain http to a private IPv4 address (10/8, 172.16/12, 192.168/16) with a port. Added on 22 October 2026 because the course's ELEC5620 API Proxy is published as `http://10.x.x.x:8000/v1`, reachable only through the university VPN, which carries the traffic; the key still goes only to that address and never to a public or loopback http URL. |
 
 With the flag on, missing or invalid settings stop startup with a message that names the variable but never its value. The worker starts only when the API also starts its other processors (an auth configuration is present and `enable_processor` is true); it is stopped last at shutdown, in its own `try`, and `stop()` returns within one second without waiting for an in-flight model call, whose reply is then discarded. `demo.py serve --model-showcase` sets only the flag; there is no key argument. `compose.yaml` passes the variable names, without values, to the `api` service only, not to the shared anchor that `migrate` also uses.

@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from ipaddress import IPv4Address, ip_network
 import json
 import ssl
-from threading import Event, Thread
+from threading import Event, Lock, Thread
 from time import monotonic
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
@@ -30,7 +30,7 @@ DIALECT = 'chat-completions'
 USER_AGENT = 'returnops-au-coordinator/1'
 MAX_DEADLINE_SECONDS = 50
 FAILURE_CODES = frozenset({'TRANSPORT', 'TIMEOUT', 'REDIRECT', 'HTTP_4XX', 'HTTP_429', 'HTTP_5XX',
-                           'MALFORMED', 'NO_USAGE', 'TOO_LARGE'})
+                           'MALFORMED', 'NO_USAGE', 'TOO_LARGE', 'BUDGET'})
 TRANSIENT_CODES = frozenset({'TRANSPORT', 'TIMEOUT', 'HTTP_429', 'HTTP_5XX'})
 MAX_RESPONSE_BYTES = 256 * 1024
 MAX_TOKENS_VALUE = 9007199254740991
@@ -269,3 +269,24 @@ class ChatCompletionsTransport:
         if code is not None:
             raise ModelTransportError(code) from None
         return parse_chat_completion(outcome['raw'])
+
+
+class BudgetedTransport:
+    """At most `max_calls` model calls (retries included) in this process (31 October 2026).
+
+    A public deployment must not let strangers spend the key's quota without bound. Over
+    budget, a call fails closed with BUDGET before anything is sent, and BUDGET is not a
+    transient code, so it is not retried.
+    """
+    def __init__(self, inner, max_calls):
+        if type(max_calls) is not int or max_calls < 1:
+            raise ValueError('max_calls must be a positive integer')
+        self.inner, self.remaining = inner, max_calls
+        self._lock = Lock()
+
+    def __call__(self, invocation):
+        with self._lock:
+            if self.remaining <= 0:
+                raise ModelTransportError('BUDGET')
+            self.remaining -= 1
+        return self.inner(invocation)

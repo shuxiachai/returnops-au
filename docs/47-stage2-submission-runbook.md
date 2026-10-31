@@ -165,7 +165,7 @@ Attach this list (updated on the submission day) with the package, for example a
 2. Gate 2 deferred: full A1.06, A1.07, A1.08, the real C2 reviewer, E.09, R.03 and E.12 ([docs/46](46-gate2-roadmap.md)). There are no evaluation results.
 3. A3 (OF-004) unmet: no carrier contract or test account; tutor disposition: **to record** (docs/46, section 5).
 4. C3 (OF-001) not started: depends on R.03; tutor disposition: **to record** (as for A3).
-5. Advisory model showcase: merged (PR #94, #98); first live call recorded on 22 October 2026 ([docs/44](44-coordinator-showcase.md)); results in memory only; no audit event; customers never see it; the Founder card is in since #101.
+5. Advisory model showcase: merged (PR #94, #98); first live call recorded on 22 October 2026 ([docs/44](44-coordinator-showcase.md)); results in memory only; no audit event; customers never see it; the Founder card is in since #101. Since 31 October 2026 it can run on Railway with Alibaba Cloud Bailian `qwen-plus` (the lead's key as a Railway variable; redacted synthetic statements go to Alibaba Cloud in mainland China; at most 50 model calls per deployment, then it fails closed); not verified there until the key is set.
 6. Frontend (state on 28 October 2026): live Founder decisions and live analytics are in the client since #102 (23 October 2026). Issue #104 is closed.
    - Issue #111: items 1-6, required before the rehearsal, are merged (#128, #130), and so are items 9 and 12 (#148). Still open and optional:
      - item 7, no size, count or text-length checks on the customer's uploads and text;
