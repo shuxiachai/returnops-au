@@ -117,3 +117,23 @@ def test_the_assistant_module_imports_no_http_client_and_stays_ascii():
         source = (root / path).read_text(encoding='utf-8')
         assert 'import httpx' not in source and 'import requests' not in source and 'experiments' not in source
         assert source.isascii() and '\r' not in source
+
+
+def test_the_assistant_has_its_own_model_budget(tmp_path, monkeypatch):
+    # Runtime review (31 October 2026): cases lodged by strangers spend the showcase's
+    # calls; they must not use up the Founder's assistant as well.
+    from fastapi.testclient import TestClient
+    from returnops_domain.model_transport import BudgetedTransport
+    for name in ('RETURNOPS_ACCOUNTS_FILE', 'RETURNOPS_AUTH_FILE', 'RETURNOPS_MODEL_SHOWCASE'):
+        monkeypatch.delenv(name, raising=False)
+    for name, value in {**MODEL_ENV, 'RETURNOPS_MODEL_MAX_CALLS': '7'}.items():
+        monkeypatch.setenv(name, value)
+    path = tmp_path / 'credentials.json'
+    accounts.new_credentials_file(path, 'store_demo', {})
+    app = create_app(engine=object(), enable_processor=False, enable_model_showcase=True, accounts_file=str(path.resolve()))
+    with TestClient(app):
+        showcase = app.state.coordinator_showcase.transport
+        assistant_transport = app.state.founder_assistant.transport
+        assert isinstance(showcase, BudgetedTransport) and isinstance(assistant_transport, BudgetedTransport)
+        assert assistant_transport is not showcase and assistant_transport.remaining == showcase.remaining == 7
+

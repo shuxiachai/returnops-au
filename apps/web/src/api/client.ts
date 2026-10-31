@@ -80,6 +80,8 @@ function networkError(err: unknown, fallback: string): ApiError {
 // Storage keys
 const TOKEN_KEY = 'returnops_auth_token';
 const MOCK_MODE_KEY = 'returnops_mock_mode';
+// Shared by every tab of this browser; App follows a change made in another tab.
+export const SHARED_STORAGE_KEYS = { token: TOKEN_KEY, sampleData: MOCK_MODE_KEY } as const;
 const ACTIVE_ROLE_KEY = 'returnops_active_role';
 
 export function getStoredToken(): string {
@@ -661,6 +663,12 @@ export async function submitClarification(
       };
       c.statements.push(newStmt);
       delete c.clarification;
+      // A case that waited for this answer moves on for the Founder too, as both read one
+      // case on the server; a fixture further along keeps its own status.
+      const founderView = MOCK_FOUNDER_CASE_VIEWS[caseId];
+      if (founderView?.status === 'AWAITING_INFORMATION') Object.assign(founderView, { status: c.status, updated_at: c.updated_at });
+      const row = MOCK_FOUNDER_SUMMARIES.find((summary) => summary.case_id === caseId);
+      if (row?.status === 'AWAITING_INFORMATION') Object.assign(row, { status: c.status, updated_at: c.updated_at });
       return { ...c };
     }
     throw new ApiError(404, `Case ${caseId} not found`, 'NOT_FOUND');
@@ -822,6 +830,12 @@ export async function recordFounderDecision(
       else if (req.decision === 'MANUAL_HANDLING') c.status = 'MANUAL_HANDLED';
       c.case_version += 1;
       c.updated_at = decidedAt;
+      // The queue row and the customer's copy follow the decision, as they read one case on
+      // the server (runtime review, 31 October 2026).
+      const row = MOCK_FOUNDER_SUMMARIES.find((summary) => summary.case_id === caseId);
+      if (row) Object.assign(row, { status: c.status, case_version: c.case_version, updated_at: decidedAt });
+      const customerCopy = MOCK_CUSTOMER_CASES[caseId];
+      if (customerCopy) Object.assign(customerCopy, { status: c.status, updated_at: decidedAt });
       // The Outcome tab reads these records, as it does from a live case view.
       const target = Object.fromEntries(
         (['proposal_id', 'proposal_version', 'processing_failure_id', 'order_lookup_block_id'] as const)

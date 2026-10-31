@@ -291,7 +291,11 @@ function Get-Window([string]$Name) {
     if (-not (Test-Path -LiteralPath $path)) { return $null }
     $id, $started = [System.IO.File]::ReadAllText($path).Split(' ')
     $process = Get-Process -Id ([int]$id) -ErrorAction SilentlyContinue
-    if ($process -and $process.StartTime.ToFileTimeUtc() -eq [long]$started) { return $process }
+    # After a restart the ID may belong to a process whose start time cannot be read
+    # (Access denied): that record is stale, not a reason to stop the script.
+    $same = $false
+    if ($process) { try { $same = $process.StartTime.ToFileTimeUtc() -eq [long]$started } catch { $same = $false } }
+    if ($same) { return $process }
     Remove-Item -LiteralPath $path -Force
     return $null
 }
@@ -820,7 +824,9 @@ function Save-CloudSessions($Found) {
     [System.IO.File]::WriteAllText((Join-Path $CloudShop 'sessions.json'), $Found.Text + "`n")
     # The passwords of the same deployment (31 October 2026), read the same way and never shown.
     $passwords = Invoke-Quiet { cmd.exe /d /c "railway ssh --service $Service -- cat /app/private/demo-shop/passwords.json" }
-    if ($passwords.Code -eq 0 -and $passwords.Output) { [System.IO.File]::WriteAllText((Join-Path $CloudShop 'passwords.json'), $passwords.Output + "`n") }
+    $passwordsValid = $false
+    if ($passwords.Code -eq 0 -and $passwords.Output) { try { $null = $passwords.Output | ConvertFrom-Json; $passwordsValid = $true } catch { } }
+    if ($passwordsValid) { [System.IO.File]::WriteAllText((Join-Path $CloudShop 'passwords.json'), $passwords.Output + "`n") }
     else { Show-Warn 'The passwords could not be copied; sign in with the access keys instead (Use an access key instead).' }
     $until = [DateTimeOffset]::FromUnixTimeSeconds([long]$Found.Data.sessions[0].expires_at).LocalDateTime
     if ($until -le (Get-Date)) { Show-Warn "Sessions copied to tmp\railway-shop (not shown), but they expired at $(Format-Time $until); run cloud-fresh for new ones." }
@@ -834,6 +840,7 @@ function Save-CloudSessions($Found) {
         elseif (Wait-CloudSignIn $address $Found 180) { Show-Ok "$address answers ready and accepts the copied sessions" }
         else { Show-Warn "$address does not accept the copied sessions yet (the previous deployment may still be serving); wait a minute and run cloud-tokens." }
     } else {
+        Show-Warn 'The public address is unknown (pass -Url), so it was not checked that the deployment answers and accepts these sessions.'
         $address = 'the Railway address of the service (railway.com, service, Settings, Networking)'
     }
     Show-Step 'Sign in (manual, README step 4)'
@@ -885,6 +892,8 @@ function Invoke-Stop {
     Show-Step "Compose project $Project"
     $containers = @(Get-ComposeContainers)
     if ($RemoveData) {
+        # Without Docker the lookups below come back empty, and the volume would be reported removed.
+        if (-not (Test-DockerEngine)) { Stop-Script 'Docker is not answering, so the containers and the database volume could not be removed. Start Docker Desktop and run stop -RemoveData again.' }
         if (Test-Path -LiteralPath $EnvFile) {
             Invoke-Checked 'docker compose down -v' { docker compose -p $Project down -v --remove-orphans }
         } else {

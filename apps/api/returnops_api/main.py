@@ -77,11 +77,12 @@ def create_app(*,engine=None,auth_config=None,enable_processor=True,enable_fixed
                 from returnops_domain.coordinator_showcase import (CoordinatorAnnotationStore,
                     CoordinatorShowcaseWorker, project_facts)
                 store=CoordinatorAnnotationStore()
-                # One budgeted transport for the showcase and the Founder assistant.
                 transport=model_settings.transport()
                 if credentials is not None:
+                    # Its own budget of RETURNOPS_MODEL_MAX_CALLS: cases lodged by strangers can use
+                    # up the showcase's calls but never the Founder's (runtime review, 31 October 2026).
                     from returnops_domain.founder_assistant import AssistantComposition
-                    app.state.founder_assistant=AssistantComposition(transport,model_settings.provider_id,model_settings.model_id)
+                    app.state.founder_assistant=AssistantComposition(model_settings.transport(),model_settings.provider_id,model_settings.model_id)
                 app.state.coordinator_showcase=CoordinatorShowcaseWorker(actual,transport,store,
                     settings=model_settings.worker_settings())
                 app.state.coordinator_facts=lambda uow,head:project_facts(uow,head,store)

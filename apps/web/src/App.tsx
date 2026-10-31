@@ -13,6 +13,7 @@ import {
   getSession,
   getStoredToken,
   sampleDataChosen,
+  SHARED_STORAGE_KEYS,
   setActiveRole,
   setMockMode,
   setStoredToken,
@@ -29,6 +30,7 @@ type Gate =
   | { kind: 'sample' };
 
 const SESSION_ENDED = 'Your session has ended. Sign in again to continue.';
+const CHANGED_ELSEWHERE = 'You signed in, signed out or opened the sample data in another tab. Sign in again here.';
 
 function startingGate(): Gate {
   if (sampleDataChosen()) return { kind: 'sample' };
@@ -67,6 +69,25 @@ export const App: React.FC = () => {
       cancelled = true;
     };
   }, [gate.kind]);
+
+  // The token and the sample-data choice are shared by every tab of this browser, so a
+  // change made in another tab would otherwise send this tab's requests with someone
+  // else's session or mode (runtime review, 31 October 2026). This tab follows the change.
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      const { token, sampleData } = SHARED_STORAGE_KEYS;
+      if (event.key !== null && event.key !== token && event.key !== sampleData) return;
+      setGate((current) => {
+        const sample = sampleDataChosen();
+        if (event.key === sampleData && sample === (current.kind === 'sample')) return current;
+        clearSessionRejection();
+        if (sample) return { kind: 'sample' };
+        return getStoredToken() ? { kind: 'checking' } : { kind: 'signed-out', notice: CHANGED_ELSEWHERE };
+      });
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
 
   const signOut = (notice?: string) => {
     setStoredToken('');

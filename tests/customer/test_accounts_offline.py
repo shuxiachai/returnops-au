@@ -70,10 +70,15 @@ def test_limiter_holds_a_bounded_number_of_keys():
     now = [100.0]
     limiter = accounts.AttemptLimiter(5, 60, max_keys=3, clock=lambda: now[0])
     assert all(limiter.take(key) for key in ('a', 'b', 'c'))
-    assert not limiter.take('d') and limiter.size() == 3
-    assert limiter.take('a')  # a live key still counts
+    # Runtime review (31 October 2026): a full limiter lets the oldest key give way, so a
+    # flood of made-up names cannot lock out a real one; the size stays bounded.
+    assert limiter.take('d') and limiter.size() == 3
+    assert limiter._events.keys() == {'b', 'c', 'd'}
+    for _ in range(4):
+        assert limiter.take('b')
+    assert not limiter.take('b')  # a live key still counts
     now[0] += 61
-    assert limiter.take('d') and limiter.size() == 1
+    assert limiter.take('e') and limiter.size() == 1
 
 
 # Finding 7: parallel requests must not all pass the check before any is counted.
@@ -197,3 +202,15 @@ def test_an_unacceptable_chosen_password_falls_back_to_generated_ones(tmp_path, 
     (tmp_path / 'again').mkdir()
     generated, _ = _provision_with(tmp_path / 'again', monkeypatch, None)
     assert len(set(generated.values())) == 3
+
+
+def test_a_chosen_password_nobody_could_type_falls_back_to_generated_ones(capsys):
+    # Runtime review (31 October 2026): `"pw" | railway variable set ... --stdin` in Windows
+    # PowerShell stores a trailing line break, and a space at either end is invisible.
+    people = ['founder', 'customer_a']
+    for chosen in ('a-password\r\n', ' a-password', 'a-password ', 'a-pass\tword'):
+        passwords = demo._demo_passwords(people, chosen)
+        assert chosen not in passwords.values() and len(set(passwords.values())) == 2
+    assert 'RETURNOPS_DEMO_PASSWORD' in capsys.readouterr().out
+    assert set(demo._demo_passwords(people, 'a-pass word').values()) == {'a-pass word'}
+

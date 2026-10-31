@@ -13,9 +13,17 @@ that exists, is refused before any password is written; a name being registered 
 in; a sign-in must belong to the file's store; inputs are bounded before any work; scrypt
 runs at most two at a time; the limiters hold a bounded number of keys and check and count
 in one step; a registration whose outcome is unknown keeps its password if the account exists.
+
+Runtime review of the same evening: a body over 4 KiB or slower than 10 s is refused before
+it is decoded; at most four sign-in or registration requests use worker threads at once
+(more are refused at once as busy), so a flood cannot hold the threads the other routes
+need; a name signs in as the account's own spelling, as registration treats `Alice`,
+`alice` and `a-lice` as one name.
 """
 from __future__ import annotations
+import asyncio
 import base64
+import functools
 import hashlib
 import hmac
 import json
@@ -24,14 +32,14 @@ import secrets
 import threading
 import time
 from pathlib import Path
+import anyio
 import jwt
 from fastapi import Request
-from starlette.concurrency import run_in_threadpool
 from returnops_domain.audit import identifier
 from returnops_domain.errors import FlowError
 from returnops_domain.registry import TrustedRegistry, canonical_id
-from returnops_domain.wire import blank, validate
-from .customer_http import _json_body, safe_json
+from returnops_domain.wire import blank, decode_json_document, validate
+from .customer_http import one_header, safe_json
 
 SESSION_SECONDS = 899
 PASSWORD_MIN, PASSWORD_MAX = 8, 128
@@ -39,6 +47,12 @@ _SCRYPT = {'n': 2**14, 'r': 8, 'p': 1}
 # About 16 MiB and 40 ms of CPU each, so no more than this many run at once.
 HASH_SLOTS = 2
 HASH_WAIT_SECONDS = 0.5
+# A name, a password and JSON escapes fit in well under 4 KiB; anything larger is refused unread.
+MAX_AUTH_BODY_BYTES = 4096
+AUTH_BODY_SECONDS = 10
+# Worker threads the auth routes may use at once; the shared pool keeps the rest.
+AUTH_THREADS = 4
+BUSY = 'Sign-in is busy right now. Try again in a moment.'
 
 
 class AccountError(FlowError):
@@ -110,6 +124,16 @@ class CredentialStore:
             stored = self._read()['accounts'].get(principal_id)
         return stored if isinstance(stored, str) else None
 
+    def entry_for(self, principal_id):
+        """(the account's own spelling, its hash) for this name in any letter case, '-' or '_'."""
+        wanted = canonical_id(principal_id)
+        with self._lock:
+            accounts = self._read()['accounts']
+        for name, stored in accounts.items():
+            if canonical_id(name) == wanted and isinstance(stored, str):
+                return name, stored
+        return None, None
+
     def taken(self, principal_id):
         """Whether this name, or one that differs only in letter case, '-' or '_', has a password."""
         with self._lock:
@@ -146,8 +170,10 @@ class AttemptLimiter:
     """At most `limit` attempts per key in a sliding window, in this process only.
 
     take() checks and counts in one step, so parallel requests cannot all pass the check
-    before any is counted. At most `max_keys` keys are held; when that many are live, a new
-    key is refused rather than stored, so memory stays bounded.
+    before any is counted. At most `max_keys` keys are held, so memory stays bounded; when
+    that many are live, the oldest key gives way. Refusing the new key instead let a flood
+    of made-up names lock every real user out (runtime review, 31 October 2026); giving way
+    hands a flooded name back at most `limit` attempts per `max_keys` made-up names.
     """
 
     def __init__(self, limit, window_seconds, *, max_keys=10000, clock=time.monotonic):
@@ -172,8 +198,8 @@ class AttemptLimiter:
             if not events and len(self._events) >= self.max_keys:
                 for other in list(self._events):
                     self._prune(other, now)
-                if len(self._events) >= self.max_keys:
-                    return False
+                while len(self._events) >= self.max_keys:
+                    self._events.pop(next(iter(self._events)))
             self._events.setdefault(key, []).append(now)
             return True
 
@@ -248,7 +274,7 @@ def register_account_routes(app, store):
 
     def with_hash_slot(work):
         if not hash_slots.acquire(timeout=HASH_WAIT_SECONDS):
-            raise AccountError('INTERNAL_ERROR', 'Sign-in is busy right now. Try again in a moment.', status=503)
+            raise AccountError('INTERNAL_ERROR', BUSY, status=503)
         try:
             return work()
         finally:
@@ -315,10 +341,12 @@ def register_account_routes(app, store):
                 raise wrong()
         if not sign_ins.take(name):
             raise AccountError('INVALID_STATE', 'Too many sign-in attempts for this username. Wait a minute.', status=429)
-        stored = store.hash_for(username)
+        # The account's own spelling: `Alice` registered also signs in as `alice`, never as a second name.
+        own, stored = store.entry_for(username)
         matched = with_hash_slot(lambda: verify_password(password, stored or _UNKNOWN)) and stored is not None
         if not matched:
             raise wrong()
+        username = own
         registry = TrustedRegistry(engine)
         scope = registry.principal_scope(username)
         # Only an enabled account of this file's store signs in here.
@@ -335,14 +363,40 @@ def register_account_routes(app, store):
         sign_ins.clear(name)
         return 200, _signed_in(_token(config, username, session), username, scope[0])
 
+    async def read_body(request):
+        content_type = one_header(request, 'content-type', required=True)
+        if content_type.split(';', 1)[0].strip().lower() != 'application/json':
+            raise FlowError('VALIDATION_ERROR')
+        length = request.headers.get('content-length')
+        if length is not None and (not length.strip().isdigit() or int(length) > MAX_AUTH_BODY_BYTES):
+            raise FlowError('VALIDATION_ERROR')
+        body = bytearray()
+        async with asyncio.timeout(AUTH_BODY_SECONDS):
+            async for chunk in request.stream():
+                if len(body) + len(chunk) > MAX_AUTH_BODY_BYTES:
+                    raise FlowError('VALIDATION_ERROR')
+                body.extend(chunk)
+        return decode_json_document(bytes(body))
+
+    def threads(app):
+        # Created on first use, inside the event loop that owns it.
+        limiter = getattr(app.state, 'auth_threads', None)
+        if limiter is None:
+            limiter = app.state.auth_threads = anyio.CapacityLimiter(AUTH_THREADS)
+        return limiter
+
     async def respond(request, operation):
         correlation = identifier('corr')
         try:
             config = request.app.state.auth_config
             if config is None:
                 raise FlowError('INTERNAL_ERROR')
-            username, password = _credentials(await _json_body(request))
-            status, body = await run_in_threadpool(operation, config, request.app.state.engine, username, password)
+            username, password = _credentials(await read_body(request))
+            limiter = threads(request.app)
+            if limiter.borrowed_tokens >= limiter.total_tokens:
+                raise AccountError('INTERNAL_ERROR', BUSY, status=503)
+            status, body = await anyio.to_thread.run_sync(
+                functools.partial(operation, config, request.app.state.engine, username, password), limiter=limiter)
             return safe_json(body, status, correlation=correlation)
         except FlowError as error:
             return safe_json(error.envelope(correlation), error.status, correlation=correlation)

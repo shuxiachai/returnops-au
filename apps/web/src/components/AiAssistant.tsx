@@ -149,6 +149,8 @@ interface AiTriagePanelProps {
 
 export const AiTriagePanel: React.FC<AiTriagePanelProps> = ({ onTriage, activeGroup, onGroup, onInspect }) => {
   const { state, ask } = useAsk<AiTriage>(async () => {
+    // The previous marks and group filter go first, so a failed retry leaves none behind.
+    onTriage(null);
     const answer = await triageQueue();
     onTriage(answer);
     return answer;

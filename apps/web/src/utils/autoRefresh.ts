@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { getSessionState } from '../api/client';
 import { CaseStatus } from '../types/domain';
 
 // Auto-refresh (#111 item 2). A case in one of these statuses will not change
@@ -23,6 +24,8 @@ export function useRefreshOnReturn(onReturn: () => void): void {
   useEffect(() => {
     let lastRun = 0;
     const run = () => {
+      // An ended session sends nothing more until the user signs in again (runtime review).
+      if (getSessionState() === 'rejected') return;
       const now = Date.now();
       if (now - lastRun < RETURN_DEBOUNCE_MS) return;
       lastRun = now;
@@ -52,7 +55,7 @@ export function usePolling(onTick: () => void, active: boolean, intervalMs = AUT
   useEffect(() => {
     if (!active) return;
     const id = window.setInterval(() => {
-      if (document.visibilityState === 'hidden') return;
+      if (document.visibilityState === 'hidden' || getSessionState() === 'rejected') return;
       callback.current();
     }, intervalMs);
     return () => window.clearInterval(id);

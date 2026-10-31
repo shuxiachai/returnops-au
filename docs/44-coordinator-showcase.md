@@ -229,7 +229,7 @@ Rules, each with a test (`tests/founder/test_founder_assistant_offline.py`, `tes
 
 - The routes exist only when both password sign-in (`serve --accounts`) and the model showcase are on, as on Railway; a deployment without them answers 404 or 405 and the panels say the assistant is not switched on.
 - Only the Founder may ask: a customer gets 403, no session 401, and neither reaches the model. Each route authenticates before it takes one of two call slots; a third concurrent request is refused (503) without a model call.
-- The calls share the showcase's transport, so `RETURNOPS_MODEL_MAX_CALLS` caps the showcase and the assistant together.
+- The assistant has its own budget of `RETURNOPS_MODEL_MAX_CALLS` calls, separate from the showcase's (runtime review, 31 October 2026): cases lodged by strangers can use up the showcase's calls but never the Founder's.
 - An answer that is not exactly the accepted shape is discarded with one closed code (`MALFORMED_JSON`, `NOT_OBJECT`, `EXTRA_KEYS`, `SCHEMA`, `LENGTH`, `CONTACT_DETAILS`, `REFS`) and the Founder sees "could not answer just now"; the log line names the kind and the code, never the text.
 - Every model-written text is shown as React text, so markup or links in it are never interpreted; each answer says it is advisory and names the model and time.
 

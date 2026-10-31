@@ -79,6 +79,28 @@ def test_transient_lookup_failure_retries_instead_of_pausing(flow_engine,identit
     assert identities.flow().get_case(original.body['case_id']).body['status']=='POLICY_ASSESSMENT'
     assert rows(flow_engine,t.discarded)==[] and rows(flow_engine,old.processing_failures)==[]
 
+def test_a_database_error_inside_the_order_lookup_retries_instead_of_pausing(flow_engine,identities,enabled,monkeypatch):
+    # Runtime review (31 October 2026): the resolver and the provider turned a lost
+    # connection into CASE_ACCESS_DENIED, which paused the work for good.
+    from returnops_domain.investigation_context import DatabaseOrderResolver
+    original,_=admitted(flow_engine,identities)
+    now=datetime.now(timezone.utc)
+    processor=InvestigationProcessor(flow_engine,clock=lambda:now)
+    real=DatabaseOrderResolver.resolve;calls=[]
+    def flaky(self,case_id,input_version):
+        calls.append(case_id)
+        if len(calls)==2:
+            self.uow.failed=True  # what a lost connection does to the unit of work
+            raise OrderLookupError('CASE_ACCESS_DENIED')
+        return real(self,case_id,input_version)
+    monkeypatch.setattr(DatabaseOrderResolver,'resolve',flaky)
+    assert processor.run_once() is False
+    work=rows(flow_engine,t.work)[0]
+    assert (work['state'],work['safe_reason'],work['failure_count'])==('PENDING','LOOKUP_CONTEXT_UNAVAILABLE',0)
+    monkeypatch.setattr(DatabaseOrderResolver,'resolve',real);now+=timedelta(seconds=2)
+    assert processor.run_once()
+    assert identities.flow().get_case(original.body['case_id']).body['status']=='POLICY_ASSESSMENT'
+
 def test_authority_lookup_failure_still_pauses(flow_engine,identities,enabled):
     admitted(flow_engine,identities)
     processor=InvestigationProcessor(flow_engine)

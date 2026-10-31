@@ -76,16 +76,24 @@ class InvestigationProcessor:
     def lookup(self,claim):
         """The only provider invocation. No writes or exclusive fence upgrade."""
         with self._uow(False) as uow:
-            resolver=DatabaseOrderResolver(uow,claim,self.catalogue.metadata,self.clock)
-            work=uow.execute(select(t.work).where(t.work.c.work_id==claim.work_id)).mappings().one_or_none()
-            if not claimed(work,claim,self.clock()): raise OrderLookupError('STALE_INPUT')
-            # Recheck authority before reading the private candidate reference.
-            resolver.resolve(work['case_id'],claim.input_version)
-            row=uow.execute(select(t.inputs).where(t.inputs.c.work_id==claim.work_id)).mappings().one()
-            request={'case_id':work['case_id'],'input_version':claim.input_version}
-            if row['reference'] is not None: request['order_reference']=bytes(row['reference']).decode('utf-8','surrogatepass')
-            result=MockOrderProvider(resolver,self.catalogue,service_id=SERVICE_ID).lookup(request)
-            resolver.resolve(work['case_id'],claim.input_version)
+            try:
+                resolver=DatabaseOrderResolver(uow,claim,self.catalogue.metadata,self.clock)
+                work=uow.execute(select(t.work).where(t.work.c.work_id==claim.work_id)).mappings().one_or_none()
+                if not claimed(work,claim,self.clock()): raise OrderLookupError('STALE_INPUT')
+                # Recheck authority before reading the private candidate reference.
+                resolver.resolve(work['case_id'],claim.input_version)
+                row=uow.execute(select(t.inputs).where(t.inputs.c.work_id==claim.work_id)).mappings().one()
+                request={'case_id':work['case_id'],'input_version':claim.input_version}
+                if row['reference'] is not None: request['order_reference']=bytes(row['reference']).decode('utf-8','surrogatepass')
+                result=MockOrderProvider(resolver,self.catalogue,service_id=SERVICE_ID).lookup(request)
+                resolver.resolve(work['case_id'],claim.input_version)
+            except OrderLookupError:
+                # The resolver and the provider report a lost connection or a statement
+                # timeout as missing access or context. A failed unit of work says the
+                # database failed, not the case: retry instead of pausing for good
+                # (runtime review, 31 October 2026).
+                if uow.failed: raise FlowError('INTERNAL_ERROR') from None
+                raise
             body={'request':request,'result':result,
                 'catalogue':{key:getattr(self.catalogue.metadata,key) for key in ('format_version','provider_id','dataset_version','provider_version','dataset_sha256')},
                 'service_signature':claim.service_signature,'grant_signature':claim.grant_signature}
