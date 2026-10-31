@@ -179,6 +179,8 @@ If the key or the network is not available, say instead: "The model extraction i
 
 Evidence: `docs/44-coordinator-showcase.md` (PR #94); FR-002, NFR-003, NFR-007, NFR-008, NFR-009.
 
+Optional, only if time allows (each answer takes about 15 s on Railway): the Founder AI assistant ([docs/44](44-coordinator-showcase.md), since 31 October 2026). **Draft a reply** under the facts card drafts a reply in the customer's language with an English version; **Triage the queue** marks each open case High, Medium or Low and groups similar cases; **Summarise** on the analytics page writes a short summary from counts only. Say that none of them sends, decides or changes anything.
+
 ### S5 Approve to outcome with the R.02 driver, demo mode (A, 5:45, 3:00)
 
 Gloss: one complete governed run, from customer case to label and notification, with the bypass attempts refused.
