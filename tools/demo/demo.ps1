@@ -632,7 +632,7 @@ function Invoke-Start {
 
     $since = Get-SavedTime 'demo-shop'
     Show-Step 'Sign in (manual, README step 4)'
-    Show-Info "Open $webUrl in two browser profiles: Auth Tokens -> role -> Mock Data Fallback off -> paste -> Save & Apply."
+    Show-Info "Open $webUrl in two browser profiles: paste the key into Access key -> Sign in (the key decides the page)."
     Show-Info 'Copy a token to the clipboard without showing it (customer, then Founder):'
     Show-Info '  (Get-Content -Raw tmp\demo-shop\sessions.json | ConvertFrom-Json).tokens.synthetic_customer_a | Set-Clipboard'
     Show-Info '  (Get-Content -Raw tmp\demo-shop\sessions.json | ConvertFrom-Json).tokens.synthetic_founder | Set-Clipboard'
@@ -832,7 +832,7 @@ function Save-CloudSessions($Found) {
         $address = 'the Railway address of the service (railway.com, service, Settings, Networking)'
     }
     Show-Step 'Sign in (manual, README step 4)'
-    Show-Info "Open $address in two browser profiles: Auth Tokens -> role -> Mock Data Fallback off -> paste -> Save & Apply."
+    Show-Info "Open $address in two browser profiles: paste the key into Access key -> Sign in (the key decides the page)."
     Show-Info 'Copy a token to the clipboard without showing it (customer, then Founder):'
     Show-Info '  (Get-Content -Raw tmp\railway-shop\sessions.json | ConvertFrom-Json).tokens.synthetic_customer_a | Set-Clipboard'
     Show-Info '  (Get-Content -Raw tmp\railway-shop\sessions.json | ConvertFrom-Json).tokens.synthetic_founder | Set-Clipboard'
@@ -890,7 +890,7 @@ function Invoke-Stop {
             if (Test-Path -LiteralPath $dir) { Remove-Item -LiteralPath $dir -Recurse -Force; Show-Ok "Deleted tmp\$(Split-Path -Leaf $dir)" }
         }
         Show-Info 'Kept: .env, .venv, apps\web\node_modules and the driver receipts in tmp\r02-demo-run-*.'
-        Show-Info 'In both browser profiles, use Clear token in Auth Tokens.'
+        Show-Info 'In both browser profiles, use Sign out.'
     } elseif ($containers.Count -gt 0) {
         Invoke-Checked 'docker compose stop' { docker compose -p $Project stop }
         Show-Ok 'Compose services stopped; the database is kept (prepare starts them again).'

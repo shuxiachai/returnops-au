@@ -81,7 +81,7 @@ Record the build time, the time to ready, and any step where it stops. S5 stays 
 | 9 | `demo.py provision` for `tmp/demo-shop` with `--order-investigation --fixed-proposal --founder-manual` (the last flag only for this store, never for `tmp/demo-cups`) | `Private synthetic demo registration completed. ...` | A | | |
 | 10 | `demo.py serve --auth-file ... --port 8000 --fixed-proposal --founder-decisions` (plus `--model-showcase` only with a key) | `http://127.0.0.1:8000/health/ready` ready | A | | |
 | 11 | `apps/web`: `npm ci --no-audit --no-fund`; `npm run dev`; open `http://localhost:5173` | Page loads; Vite proxies `/v1` to 8000 | B | | |
-| 12 | Token login as customer and as Founder in two browser profiles | **Auth Tokens** shows `Valid: <principal> (<ROLE>)` | B | | |
+| 12 | Sign-in as customer and as Founder in two browser profiles | each profile opens its own page, and the header shows the signed-in account (`Customer <principal>`, `Founder <principal>`) | B | | |
 | 13 | Demo S2: case without order reference, answer `SYN-1001`; a second case with `SYN-CONFLICT` | Question shown; first case reaches `RISK_REVIEW`; second case `ESCALATED` with an order-lookup block | B | | |
 | 14 | Demo S3: case list, detail, audit, analytics; **Manual Takeover** on the `SYN-CONFLICT` case | The block reason is shown; the decision is accepted and the case moves to `NOTIFICATION_PENDING`; **Decision & Outcome** shows the manual takeover and a `PENDING` notice; the customer sees "The shop has decided; a notice is on its way" (pass 0, before `--founder-manual`: `MANUAL_HANDLING` refused with 403 `FORBIDDEN`) | B | | |
 | 15 | Demo S4 (only with a key; PR #94 is in `main`): facts on the case; one rejected reply | Facts shown, or WARNING `outcome=REJECTED`; record tokens and latency from `run_once.py` evidence | A | | |
@@ -90,7 +90,7 @@ Record the build time, the time to ready, and any step where it stops. S5 stays 
 | 18 | Founder UI with `demo_cups_founder`: inspect the driver's case | Status `COMPLETED`; **Decision & Outcome** shows the approval, both operations `SUCCEEDED`, **Download label (PDF)** and the `SENT` notice | B | | |
 | 18a | Demo S6 (C): in Terminal 3 run the C1 pilot summary and the four selected C2 tests (docs/45 S6 item 4); show the evidence bundle pre-generated on macOS or Linux | Pilot: ranked recall 16/22, returned-set recall 20/22, citation outcomes 8 of 8; `4 passed`; the bundle's commit and `content_id` match the R.05.a record | C | | |
 | 19 | Timed run of the whole demo script | Within 12 minutes (the limit since 28 October 2026; planned 11:30, [docs/45](45-stage2-demo-script.md) section 3); note overruns per segment | A, B, C | | |
-| 20 | Clean up: Ctrl+C; delete `tmp/demo-shop`, `tmp/demo-cups`; **Clear token**; unset model variables; `docker compose down -v` (with the same `-p <name>` if one was used), so that the next fresh deployment does not meet this run's volume and password | No private files left; `docker volume ls` lists no `returnops-au-f02_postgres-data` | A | | |
+| 20 | Clean up: Ctrl+C; delete `tmp/demo-shop`, `tmp/demo-cups`; **Sign out**; unset model variables; `docker compose down -v` (with the same `-p <name>` if one was used), so that the next fresh deployment does not meet this run's volume and password | No private files left; `docker volume ls` lists no `returnops-au-f02_postgres-data` | A | | |
 
 ### Pass 0 record (24 October 2026, Sydney)
 

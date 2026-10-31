@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AlertTriangle, KeyRound } from 'lucide-react';
+import { AlertTriangle, LogIn } from 'lucide-react';
 import { getSessionState, subscribeSessionState, SessionState } from '../api/client';
 
 // The current session state, updated whenever a request reports a 401 or succeeds.
@@ -13,12 +13,13 @@ export function useSessionState(): SessionState {
 }
 
 interface SessionBannerProps {
-  onOpenAuth: () => void;
+  onSignInAgain: () => void;
 }
 
-// One on-page banner for an expired or refused token (#111 item 1), instead of a
-// browser alert or an error code on each panel.
-export const SessionBanner: React.FC<SessionBannerProps> = ({ onOpenAuth }) => {
+// One on-page banner for a session that ended while the page was open (#111 item 1),
+// instead of a browser alert or an error code on each panel. The page stays readable
+// under it until the user signs in again.
+export const SessionBanner: React.FC<SessionBannerProps> = ({ onSignInAgain }) => {
   const state = useSessionState();
   if (state !== 'rejected') return null;
 
@@ -27,15 +28,15 @@ export const SessionBanner: React.FC<SessionBannerProps> = ({ onOpenAuth }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <span className="flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
-          <span>Session expired or not valid. Open Auth Tokens and paste a new token.</span>
+          <span>Your session has ended. Sign in again to continue.</span>
         </span>
         <button
           type="button"
-          onClick={onOpenAuth}
+          onClick={onSignInAgain}
           className="self-start sm:self-auto px-3 py-1.5 bg-white hover:bg-rose-100 text-rose-800 border border-rose-300 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors"
         >
-          <KeyRound className="w-3.5 h-3.5" />
-          <span>Open Auth Tokens</span>
+          <LogIn className="w-3.5 h-3.5" />
+          <span>Sign in again</span>
         </button>
       </div>
     </div>

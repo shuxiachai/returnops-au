@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   isMockMode,
+  sampleDataChosen,
   setMockMode,
   getStoredToken,
   setStoredToken,
@@ -33,6 +34,15 @@ describe('client', () => {
   describe('mock mode and authentication preferences', () => {
     it('defaults to mock mode when localStorage is empty', () => {
       expect(isMockMode()).toBe(true);
+    });
+
+    // The app opens the sign-in page unless the sample data was chosen on purpose.
+    it('counts the sample data as chosen only when it was set on purpose', () => {
+      expect(sampleDataChosen()).toBe(false);
+      setMockMode(true);
+      expect(sampleDataChosen()).toBe(true);
+      setMockMode(false);
+      expect(sampleDataChosen()).toBe(false);
     });
 
     it('persists mock mode changes to localStorage', () => {
@@ -792,7 +802,7 @@ describe('client', () => {
       const proxied = await listFounderCases().catch((err) => err);
       expect(proxied).toMatchObject({ status: 502, code: 'HTTP_502' });
       expect(proxied.message).toBe(
-        'HTTP 502: the API server did not answer. Check that it is running, or switch to Mock Mode in the top navbar.'
+        'The service is not answering right now (HTTP 502). Try again in a moment.'
       );
       expect(proxied.message).not.toContain('127.0.0.1');
 

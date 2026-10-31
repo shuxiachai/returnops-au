@@ -254,7 +254,7 @@ removed; delete it yourself after the demo. The output directory must not be,
 contain or lie inside the identities directory.
 
 Seeing the case in the frontend (from `apps/web/README.md`, `vite.config.ts`,
-`src/api/client.ts` and `src/components/AuthModal.tsx`):
+`src/api/client.ts` and `src/components/SignInPage.tsx`):
 
 1. `cd apps/web`, `npm ci`, `npm run dev`, then open `http://localhost:5173`.
    Vite proxies `/v1` and `/health` to `http://127.0.0.1:8000`, which is why the
@@ -266,18 +266,18 @@ Seeing the case in the frontend (from `apps/web/README.md`, `vite.config.ts`,
    for example in PowerShell:
    `(Get-Content -Raw <dir>/sessions.json | ConvertFrom-Json).tokens.demo_cups_founder | Set-Clipboard`.
    Do not paste it into a command line, a chat or a log.
-3. Click **Auth Tokens** in the top bar. Choose **Founder (Merchant)**, switch
-   **Mock Data Fallback** off, paste the token into **Bearer Token (JWT)** and
-   click **Save & Apply** (the page reloads). Reopening **Auth Tokens** calls
-   `GET /v1/session` and should show `Valid: demo_cups_founder (FOUNDER)`. The
-   token, not the persona button, decides the server-side role.
-4. **Founder Console** -> **Case Queue & Review** lists the store's cases
+3. The page opens on **Sign in** (use **Sign out** first if another key is
+   signed in). Paste the token into **Access key** and click **Sign in**. The
+   key is checked with `GET /v1/session`, and the role the server reports opens
+   the page: the header should show `Founder demo_cups_founder` and the Founder
+   Console opens. The key, not anything chosen in the browser, decides the role.
+4. **Case Queue & Review** lists the store's cases
    (`GET /v1/founder/cases`); **Inspect** the driver's case to see status
    `COMPLETED`, the proposal, the review and the audit chain.
-5. Optional customer view: repeat step 3 with **Customer (End-User)** and the
-   customer-one token, then **Customer Portal** -> **Track & Clarify** -> enter
+5. Optional customer view: in a second browser profile, repeat step 3 with the
+   customer-one token; the Customer Portal opens -> **Track & Clarify** -> enter
    the printed case ID -> **Lookup**.
-6. After the demo use **Clear token**: the client keeps the token in the
+6. After the demo use **Sign out**: it removes the key the client keeps in the
    browser's `localStorage` (`returnops_auth_token`).
 
 Demo-mode limitations:
