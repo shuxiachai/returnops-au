@@ -11,6 +11,9 @@ import {
   DecisionReceipt,
   AnalyticsQuery,
   AnalyticsSnapshot,
+  AiReplyDraft,
+  AiTriage,
+  AiWeeklySummary,
   AuditEvent,
   AuditPage,
   HistoryRecord,
@@ -964,4 +967,65 @@ export async function getFounderAnalytics(query: AnalyticsQuery = {}): Promise<A
   if (query.status) params.set('status', query.status);
   const qs = params.toString();
   return request<AnalyticsSnapshot>(`/v1/founder/analytics${qs ? `?${qs}` : ''}`);
+}
+
+// -------------------------------------------------------------
+// Founder AI assistant (31 October 2026), outside contract v1
+// -------------------------------------------------------------
+// Advisory answers on request: a reply draft, a queue triage and a weekly summary. The
+// server offers them only with password sign-in and the model on, and answers 404 or 405
+// otherwise. Nothing is sent to a customer or written to a case.
+
+const MOCK_AI = { model_id: 'sample-data', prompt_version: 'founder-assistant-v1' };
+
+export async function draftCustomerReply(caseId: string): Promise<AiReplyDraft> {
+  if (isMockMode()) {
+    const original = MOCK_CUSTOMER_CASES[caseId]?.statements.find((s) => s.kind === 'ORIGINAL')?.raw_text ?? '';
+    const chinese = /[\u4e00-\u9fff]/.test(original);
+    const english =
+      'Hello, thank you for getting in touch. We have received your request and the shop is looking at it. We will let you know the next step soon.';
+    return {
+      ...MOCK_AI,
+      generated_at: new Date().toISOString(),
+      case_id: caseId,
+      customer_language: chinese ? 'zh' : 'en',
+      reply: chinese ? '您好，感谢您的来信。我们已收到您的请求，店铺正在查看，稍后会告诉您下一步。' : english,
+      reply_english: english,
+    };
+  }
+  return request<AiReplyDraft>(`/v1/founder/cases/${encodeURIComponent(caseId)}/assistant/reply`, { method: 'POST' });
+}
+
+export async function triageQueue(): Promise<AiTriage> {
+  if (isMockMode()) {
+    const open = MOCK_FOUNDER_SUMMARIES.filter((c) => !['COMPLETED', 'REJECTED', 'MANUAL_HANDLED'].includes(c.status));
+    const urgency = (status: string) => (status === 'ESCALATED' ? 'HIGH' : status === 'AWAITING_APPROVAL' ? 'MEDIUM' : 'LOW');
+    return {
+      ...MOCK_AI,
+      generated_at: new Date().toISOString(),
+      considered: open.length,
+      cases: open.map((c) => ({
+        case_id: c.case_id,
+        urgency: urgency(c.status),
+        reason: 'Sample data: urgency follows the case status.',
+      })),
+      groups: open.length >= 2 ? [{ label: 'Sample group', case_ids: open.slice(0, 2).map((c) => c.case_id) }] : [],
+    };
+  }
+  return request<AiTriage>('/v1/founder/assistant/triage', { method: 'POST' });
+}
+
+export async function summariseRecentCases(): Promise<AiWeeklySummary> {
+  if (isMockMode()) {
+    return {
+      ...MOCK_AI,
+      generated_at: new Date().toISOString(),
+      period_days: 7,
+      case_count: MOCK_ANALYTICS.case_count,
+      model_called: true,
+      summary: `Sample data: ${MOCK_ANALYTICS.case_count} cases in the last seven days; read the escalated and waiting cases first.`,
+      highlights: ['Sample data only; no model was called.'],
+    };
+  }
+  return request<AiWeeklySummary>('/v1/founder/assistant/summary', { method: 'POST' });
 }

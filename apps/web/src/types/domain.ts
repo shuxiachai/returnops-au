@@ -179,6 +179,37 @@ export interface CustomerCaseSummaryList {
   limit: number;
 }
 
+// The Founder AI assistant (31 October 2026): advisory answers from POST routes outside
+// contract v1, served only with password sign-in and the model on. Nothing is sent or stored.
+export type AiUrgency = 'HIGH' | 'MEDIUM' | 'LOW';
+
+interface AiAnswer {
+  model_id: string;
+  prompt_version: string;
+  generated_at: string;
+}
+
+export interface AiReplyDraft extends AiAnswer {
+  case_id: string;
+  customer_language: string;
+  reply: string;
+  reply_english: string;
+}
+
+export interface AiTriage extends AiAnswer {
+  considered: number;
+  cases: { case_id: string; urgency: AiUrgency; reason: string }[];
+  groups: { label: string; case_ids: string[] }[];
+}
+
+export interface AiWeeklySummary extends AiAnswer {
+  period_days: number;
+  case_count: number;
+  model_called: boolean;
+  summary: string;
+  highlights: string[];
+}
+
 export interface CreateCaseRequest {
   original_message: string;
   order_reference?: string;

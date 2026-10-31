@@ -35,6 +35,7 @@ import {
   AuditEvent,
   AnalyticsQuery,
   AnalyticsSnapshot,
+  AiTriage,
   FounderDecisionType,
   FounderDecisionRequest,
 } from '../types/domain';
@@ -52,6 +53,13 @@ import {
   formatRequestedOutcome,
 } from '../utils/formatters';
 import { AdvisoryFactsCard } from '../components/AdvisoryFactsCard';
+import {
+  AiReplyDraftPanel,
+  AiTriagePanel,
+  AiWeeklySummaryPanel,
+  URGENCY_CLASS,
+  URGENCY_LABEL,
+} from '../components/AiAssistant';
 import { CaseOutcomePanel } from '../components/CaseOutcomePanel';
 
 const AUDIT_PAGE_LIMIT = 50;
@@ -139,6 +147,9 @@ export const FounderConsole: React.FC = () => {
   const [queueError, setQueueError] = useState<string | null>(null);
   const [searchFilter, setSearchFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  // The Founder AI assistant's triage (31 October 2026): advisory marks and an optional group filter.
+  const [aiTriage, setAiTriage] = useState<AiTriage | null>(null);
+  const [aiGroup, setAiGroup] = useState<{ label: string; caseIds: string[] } | null>(null);
 
   // Selected Case Detail Modal State
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
@@ -523,6 +534,7 @@ export const FounderConsole: React.FC = () => {
   };
 
   const searchText = searchFilter.trim().toLowerCase();
+  const aiUrgency = new Map((aiTriage?.cases ?? []).map((item) => [item.case_id, item]));
   const filteredCases = cases
     .filter((c) => {
       // The status matches by its value and by the words the table shows for it.
@@ -531,7 +543,8 @@ export const FounderConsole: React.FC = () => {
         c.status.toLowerCase().includes(searchText) ||
         formatStatusLabel(c.status).toLowerCase().includes(searchText);
       const matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
-      return matchesSearch && matchesStatus;
+      const matchesGroup = !aiGroup || aiGroup.caseIds.includes(c.case_id);
+      return matchesSearch && matchesStatus && matchesGroup;
     })
     // Cases that wait for the Founder first, then the most recently updated (31 October 2026).
     .map((c, index) => ({ c, index }))
@@ -729,6 +742,13 @@ export const FounderConsole: React.FC = () => {
             </div>
           )}
 
+          <AiTriagePanel
+            onTriage={setAiTriage}
+            activeGroup={aiGroup?.label ?? null}
+            onGroup={(label, caseIds) => setAiGroup(label && caseIds ? { label, caseIds } : null)}
+            onInspect={(caseId) => openCaseDetail(caseId)}
+          />
+
           {/* Cases Table */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             {/* The table scrolls sideways inside the card and the Actions column stays
@@ -786,6 +806,16 @@ export const FounderConsole: React.FC = () => {
                           </span>
                           {NEEDS_FOUNDER.includes(c.status) && (
                             <span className="ml-2 text-[11px] font-semibold text-amber-700">Needs you</span>
+                          )}
+                          {aiUrgency.has(c.case_id) && (
+                            <span
+                              title={`AI triage: ${aiUrgency.get(c.case_id)!.reason}`}
+                              className={`ml-2 px-2 py-0.5 rounded-full border text-[11px] font-semibold ${
+                                URGENCY_CLASS[aiUrgency.get(c.case_id)!.urgency]
+                              }`}
+                            >
+                              AI: {URGENCY_LABEL[aiUrgency.get(c.case_id)!.urgency]}
+                            </span>
                           )}
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap">
@@ -1438,6 +1468,9 @@ export const FounderConsole: React.FC = () => {
                   {caseDetail.facts && (
                     <AdvisoryFactsCard facts={caseDetail.facts} isMock={isMockMode()} />
                   )}
+
+                  {/* A new draft per case: the key resets the panel when another case opens. */}
+                  <AiReplyDraftPanel key={caseDetail.case_id} caseId={caseDetail.case_id} />
                 </div>
               )}
 
@@ -1792,6 +1825,8 @@ export const FounderConsole: React.FC = () => {
       {/* ========================================================= */}
       {activeSubTab === 'analytics' && (
         <div className="space-y-6 animate-fade-in">
+          <AiWeeklySummaryPanel />
+
           {/* Contract query filters: created_from, created_before and one status */}
           <form
             onSubmit={applyAnalyticsFilters}

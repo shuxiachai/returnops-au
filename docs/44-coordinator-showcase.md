@@ -215,4 +215,24 @@ Recorded by the lead on 22 October 2026 (10:51 UTC) on a fresh clone of main `51
 
 Observations: the model did not follow the injected instruction in case 2; it reported the statement as out of scope, which the acceptance chain accepted (no `SUPPORTED`, no line items), so the demo's "fail-closed" segment shows the "model ignored it" branch rather than a REJECTED line. Both replies were accepted as sent (no visible think block or fence problem). The proxy reported exactly 599 output tokens for both calls; this is recorded as observed and not explained. The serving console showed no `coordinator_showcase` lines because `demo.py serve` runs at log level `warning` and both outcomes were RECORDED (INFO), as documented above. The two CLI evidence files (profile `a106-coordinator-showcase-evidence/v1`, no statement text, URL or key) are kept outside the repository with the lead's R.05 evidence.
 
+## Founder AI assistant (31 October 2026)
+
+At the lead's request, the Founder can ask the same model for three more kinds of advisory help. Each is one model call made only when the Founder clicks; nothing is stored, sent to a customer or written to a case (no state transition, audit event, proposal, decision or notification), and no database connection is held while the model is called. Code: `packages/returnops_domain/founder_assistant.py` and `apps/api/returnops_api/founder_assistant_http.py`; frontend `apps/web/src/components/AiAssistant.tsx`.
+
+| Help | Where | Route (outside contract v1) | Model input | Accepted answer |
+|---|---|---|---|---|
+| Reply draft in the customer's language, with an English version | Case window, Order & Facts, **Draft a reply** | `POST /v1/founder/cases/{case_id}/assistant/reply` | the case's statements, redacted as for the showcase, the requested outcome, whether an order reference exists, the case status and whether the shop waits for the customer | exactly `customer_language` (ISO 639-1), `reply` and `reply_english`, each at most 1200 characters, with no link, e-mail address or phone number |
+| Triage of the open queue | Case Queue & Review, **Triage the queue** | `POST /v1/founder/assistant/triage` | up to 20 open cases (not `COMPLETED`, `REJECTED` or `MANUAL_HANDLED`), each as a number, status, requested outcome, waiting flag and the first 600 characters of the redacted original statement; never a case ID | one entry per case, each `HIGH`, `MEDIUM` or `LOW` with a reason of at most 160 characters, and at most 8 groups of at least two cases with a label of at most 60 characters |
+| Summary of the last seven days | Analytics, **Summarise** | `POST /v1/founder/assistant/summary` | counts only: cases by status, requested outcomes, cases waiting for the customer, current risk outcomes, cases without a current review and the median time to a proposal | a summary of at most 700 characters and one to three highlights of at most 140 characters; with no cases in the period no model is asked |
+
+Rules, each with a test (`tests/founder/test_founder_assistant_offline.py`, `tests/founder/test_founder_assistant_postgresql.py`, `AiAssistant.test.tsx`, `FounderConsole.ai.test.tsx`):
+
+- The routes exist only when both password sign-in (`serve --accounts`) and the model showcase are on, as on Railway; a deployment without them answers 404 or 405 and the panels say the assistant is not switched on.
+- Only the Founder may ask: a customer gets 403, no session 401, and neither reaches the model. Each route authenticates before it takes one of two call slots; a third concurrent request is refused (503) without a model call.
+- The calls share the showcase's transport, so `RETURNOPS_MODEL_MAX_CALLS` caps the showcase and the assistant together.
+- An answer that is not exactly the accepted shape is discarded with one closed code (`MALFORMED_JSON`, `NOT_OBJECT`, `EXTRA_KEYS`, `SCHEMA`, `LENGTH`, `CONTACT_DETAILS`, `REFS`) and the Founder sees "could not answer just now"; the log line names the kind and the code, never the text.
+- Every model-written text is shown as React text, so markup or links in it are never interpreted; each answer says it is advisory and names the model and time.
+
+Limitations: the drafts, urgency marks, groups and summaries are not evaluated against labels; the reply prompt forbids promising or refusing an outcome, but only links and contact details are checked mechanically, so the Founder must read a draft before using it. With the thinking model on Railway each answer takes about 15 s (the thinking-mode measurement above). Photo checks of customer evidence were not built: the transport sends text only, and evidence bytes would need a vision model and an approved data flow (R.05 roadmap).
+
 AI-assisted implementation and metadata preparation; author shuxiachai.
