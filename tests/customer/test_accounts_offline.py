@@ -115,6 +115,17 @@ def test_routes_exist_only_with_a_credentials_file(tmp_path, monkeypatch):
         create_app(engine=object(), enable_processor=False, accounts_file=str((tmp_path / 'missing.json').resolve()))
 
 
+def test_the_customer_case_list_is_served_only_with_a_credentials_file(tmp_path, monkeypatch):
+    monkeypatch.delenv('RETURNOPS_ACCOUNTS_FILE', raising=False)
+    monkeypatch.delenv('RETURNOPS_AUTH_FILE', raising=False)
+    def case_list(app):
+        return [route for route in app.routes if getattr(route, 'path', '') == '/v1/cases' and 'GET' in route.methods]
+    assert case_list(create_app(engine=object(), enable_processor=False)) == []
+    path = tmp_path / 'credentials.json'
+    accounts.new_credentials_file(path, 'store_demo', {})
+    assert len(case_list(create_app(engine=object(), enable_processor=False, accounts_file=str(path.resolve())))) == 1
+
+
 def test_provision_writes_private_passwords_and_matching_hashes(tmp_path, monkeypatch):
     class Registry:
         def __init__(self, engine):

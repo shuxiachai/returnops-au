@@ -2,6 +2,8 @@ import {
   CreateCaseRequest,
   ClarificationRequest,
   CustomerCaseView,
+  CustomerCaseSummary,
+  CustomerCaseSummaryList,
   CaseSummary,
   CaseList,
   CaseView,
@@ -564,6 +566,37 @@ export async function getCustomerCase(caseId: string): Promise<CustomerCaseView>
     return { ...c };
   }
   return request<CustomerCaseView>(`/v1/cases/${encodeURIComponent(caseId)}`);
+}
+
+// The signed-in customer's own cases, newest first (31 October 2026; outside contract v1).
+// The server offers it only with password sign-in; without that it answers 404 or 405.
+export const MY_CASES_LIMIT = 20;
+const EXCERPT_CHARACTERS = 120;
+
+export async function listMyCases(): Promise<CustomerCaseSummaryList> {
+  if (isMockMode()) {
+    // The same summary the server builds: the start of the customer's own first words.
+    const items = Object.values(MOCK_CUSTOMER_CASES)
+      .map((c): CustomerCaseSummary => {
+        const original = c.statements.find((s) => s.kind === 'ORIGINAL');
+        const text = original ? original.raw_text.split(/\s+/).filter(Boolean).join(' ') : '';
+        return {
+          case_id: c.case_id,
+          status: c.status,
+          created_at: c.created_at,
+          updated_at: c.updated_at,
+          awaiting_answer: Boolean(c.clarification),
+          ...(original?.requested_outcome ? { requested_outcome: original.requested_outcome } : {}),
+          ...(text
+            ? { excerpt: text.length > EXCERPT_CHARACTERS ? text.slice(0, EXCERPT_CHARACTERS).trimEnd() + '...' : text }
+            : {}),
+        };
+      })
+      .sort((a, b) => (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0))
+      .slice(0, MY_CASES_LIMIT);
+    return { items, limit: MY_CASES_LIMIT };
+  }
+  return request<CustomerCaseSummaryList>('/v1/cases');
 }
 
 export async function listCustomerCaseHistory(

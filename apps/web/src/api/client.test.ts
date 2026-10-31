@@ -7,6 +7,7 @@ import {
   setStoredToken,
   createCase,
   getCustomerCase,
+  listMyCases,
   submitClarification,
   listFounderCases,
   getFounderCase,
@@ -70,6 +71,20 @@ describe('client', () => {
   describe('mock data operations (offline demonstration)', () => {
     beforeEach(() => {
       setMockMode(true);
+    });
+
+    it('lists the sample customer cases newest first, a new one at the top (31 October 2026)', async () => {
+      const long = 'The parcel   arrived crushed. ' + 'x'.repeat(200);
+      const receipt = await createCase({ original_message: long, requested_outcome: 'REFUND', evidence_ids: [] });
+      const list = await listMyCases();
+      expect(list.limit).toBe(20);
+      expect(list.items[0]).toMatchObject({ case_id: receipt.case_id, status: 'SUBMITTED', requested_outcome: 'REFUND' });
+      // Spaces fold and a long statement is cut at 120 characters, as the server does.
+      expect(list.items[0].excerpt).toBe(('The parcel arrived crushed. ' + 'x'.repeat(200)).slice(0, 120) + '...');
+      const created = list.items.map((item) => item.created_at);
+      expect([...created].sort().reverse()).toEqual(created);
+      expect(list.items.length).toBeLessThanOrEqual(20);
+      delete MOCK_CUSTOMER_CASES[receipt.case_id];
     });
 
     it('creates a new customer intake case in mock mode', async () => {
@@ -404,6 +419,27 @@ describe('client', () => {
       vi.unstubAllGlobals();
       vi.restoreAllMocks();
       localStorage.clear();
+    });
+
+    it('reads the own case list with the session and reports a server without it (31 October 2026)', async () => {
+      setStoredToken('customer.bearer.token');
+      const seen: Array<{ url: string; method?: string; headers: Headers }> = [];
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (url: string, init: RequestInit = {}) => {
+          seen.push({ url: String(url), method: init.method, headers: new Headers(init.headers) });
+          return jsonResponse(200, { items: [], limit: 20 });
+        })
+      );
+      await expect(listMyCases()).resolves.toEqual({ items: [], limit: 20 });
+      expect(seen).toHaveLength(1);
+      expect(seen[0].url).toBe('/v1/cases');
+      expect(seen[0].method).toBeUndefined();
+      expect(seen[0].headers.get('Authorization')).toBe('Bearer customer.bearer.token');
+      expect(seen[0].headers.get('Idempotency-Key')).toBeNull();
+
+      vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(405, { detail: 'Method Not Allowed' })));
+      await expect(listMyCases()).rejects.toMatchObject({ status: 405 });
     });
 
     it('sends the caller-supplied idempotency key and reuses it on a lost-response retry', async () => {

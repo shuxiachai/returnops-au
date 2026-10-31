@@ -162,6 +162,23 @@ export interface CustomerCaseView {
   collection_windows?: Record<string, CollectionWindow>;
 }
 
+// The signed-in customer's own cases, newest first: GET /v1/cases, outside contract v1
+// (31 October 2026), served only with password sign-in.
+export interface CustomerCaseSummary {
+  case_id: string;
+  status: CaseStatus;
+  created_at: string;
+  updated_at: string;
+  awaiting_answer: boolean;
+  requested_outcome?: RequestedOutcome;
+  excerpt?: string;
+}
+
+export interface CustomerCaseSummaryList {
+  items: CustomerCaseSummary[];
+  limit: number;
+}
+
 export interface CreateCaseRequest {
   original_message: string;
   order_reference?: string;

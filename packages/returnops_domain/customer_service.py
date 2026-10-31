@@ -2,6 +2,8 @@
 
 Actual file parsing is completed before calling stage. Processing is durable,
 separate from acceptance, and never invoked by GET or idempotent replay.
+list_cases (31 October 2026) is a read outside contract v1, served only with
+password sign-in.
 """
 from __future__ import annotations
 from dataclasses import dataclass, field
@@ -131,6 +133,26 @@ class CustomerFlow:
                 body = case_view(uow,actor,case_id,self.clock(),snapshot_ttl=self.snapshot_ttl)
                 self._same_authority(uow,actor,"getCustomerCase",case_id); uow.commit()
                 return ResponseResult(200,body)
+        except (AcceptanceOutcomeUnknown, StorageError, SQLAlchemyError):
+            failed = True
+        if failed: raise FlowError("INTERNAL_ERROR") from None
+
+    def list_cases(self):
+        """Outside contract v1 (31 October 2026): the signed-in customer's newest cases,
+        each authorised again as a single-case read, so a summary never widens access."""
+        from .customer_case_list import LIST_LIMIT, case_summary, own_case_ids
+        from .lifecycle_schema import ARTIFACT_VERSIONS, version
+        try:
+            with self.uow_factory(self.engine,write=False) as uow:
+                actor = self._authorize(uow,"getSession")
+                if actor.role != "CUSTOMER": raise FlowError("FORBIDDEN")
+                prove = version(uow.connection) in ARTIFACT_VERSIONS
+                items = []
+                for case_id in own_case_ids(uow,actor):
+                    self._same_authority(uow,actor,"getCustomerCase",case_id)
+                    items.append(case_summary(uow,case_id,prove=prove))
+                self._same_authority(uow,actor,"getSession"); uow.commit()
+                return ResponseResult(200,{"items":items,"limit":LIST_LIMIT})
         except (AcceptanceOutcomeUnknown, StorageError, SQLAlchemyError):
             failed = True
         if failed: raise FlowError("INTERNAL_ERROR") from None
