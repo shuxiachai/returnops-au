@@ -4,7 +4,7 @@ ReturnOps AU is the Group 10 project for ELEC5620 Model-Based Software Engineeri
 
 **Start here:** [run it](#run-it-week-13-demonstration) · [what is in the system](#what-is-in-the-system) · [where AI is used](#where-ai-is-used-and-where-it-is-not) · [how we worked](#how-we-worked) · [known gaps](#known-gaps) · [deploy from zero](#deploy-from-zero---22-october-2026-sydney)
 
-## Status (30 October 2026)
+## Status (31 October 2026)
 
 - The Gate 1 scope is delivered on `main`: the governed case lifecycle, the customer and Founder HTTP APIs, exact-scope approval, the simulated return, label, PDF and notification chain, read-only analytics, the web frontend with a live API mode, and an advisory model extraction that is off by default.
 - Since 23 October:
@@ -14,6 +14,14 @@ ReturnOps AU is the Group 10 project for ELEC5620 Model-Based Software Engineeri
   - C fixed the cleanup of interrupted timing exports (#141), rechecked the R.02 child-stop fix of #136 (#140), added the E.01 definitions (#142) and recorded their freeze as definitions only after A's confirmation (#152, 29 October); C's S6 segment fits its 90 seconds (#155);
   - the Week 13 demonstration runs on Railway, with the local deployment as the fallback (#156, #157, 30 October); S4's live model call and S5's driver stay on the local deployment.
 - On 30 October four independent read-only reviews of `main` and a check against the Stage 2 rubric led to the fixes in the pull request that carries this section: a case no longer stays in UNDER_INVESTIGATION after a passing database delay or when a photo is lodged without an order reference; an unmatched reference is asked again with a reason; the Founder queue no longer hides the Inspect column on narrow screens; the Railway upload leaves `.env`, `.venv` and `tmp` behind; the R.02 driver refuses a database clock that is more than 2 s off; and the agile and technology evidence in [docs/48](docs/48-agile-evidence-and-technology-data.md) now runs to 30 October with a burn-down chart of the final iteration.
+- On 31 October the product was reviewed by the lead and finished for the demonstration (#160 to #170):
+  - sign-in with a username and password, customer self-registration, and the Founder's ID `founder`, with one password for the three demo people set as `RETURNOPS_DEMO_PASSWORD` on Railway; the access key remains the fallback;
+  - the customer's own requests ("My Requests") on Track & Clarify, searched from the box above them;
+  - a Founder console for daily use (cases that need the Founder first, statuses in words, summaries) and an advisory Founder AI assistant: a reply draft in the customer's language, a queue triage and a seven-day summary, each on request and never sent or stored ([docs/44](docs/44-coordinator-showcase.md));
+  - the advisory model on Railway with Alibaba Cloud Bailian, and a twelve-case test set recorded in docs/44;
+  - a run-time review in four parts, with every confirmed defect fixed and the ones left by decision listed ([docs/47](docs/47-stage2-submission-runbook.md) section 7, item 19);
+  - the CI matrix split by measured file time, so a run takes about 28 minutes instead of about 77;
+  - a Railway deployment keeps the previous one's data; `demo.ps1 cloud-fresh` starts a fresh demonstration.
 - Every change reaches `main` through a pull request and the full CI matrix: offline contracts and models, fifteen PostgreSQL parts (eight before 31 October 2026), the no-LLM end-to-end driver and the web frontend.
 - Rehearsals: pass 0 from a zip of `main` ran on 24 October. Pass 1 (29 October) was not held as planned; the lead's runs on 27 and 29 October and the Railway trial of 30 October cover part of it. Pass 2 from the Canvas download (1 November) is still to run ([docs/47](docs/47-stage2-submission-runbook.md), section 5).
 - The full three-role LLM orchestration (Gate 2) is deliberately deferred; see [docs/46](docs/46-gate2-roadmap.md).
@@ -430,7 +438,7 @@ token) without showing it:
 
 ```powershell
 (Get-Content -Raw tmp\demo-shop\passwords.json | ConvertFrom-Json).founder | Set-Clipboard
-(Get-Content -Raw tmp\demo-shop\sessions.json | ConvertFrom-Json).tokens.synthetic_founder | Set-Clipboard
+(Get-Content -Raw tmp\demo-shop\sessions.json | ConvertFrom-Json).tokens.founder | Set-Clipboard
 ```
 
 ```bash
