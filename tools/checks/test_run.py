@@ -157,7 +157,7 @@ class GroupingTests(unittest.TestCase):
         foundation = runner.build_steps("environment", part="foundation", root=self.root)
         self.assertEqual([argv for _, argv in foundation], expected[:-1])
 
-    def test_seven_groups_use_each_explicit_file_once_and_preserve_in_group_order(self):
+    def test_lifecycle_groups_use_each_explicit_file_once_and_preserve_in_group_order(self):
         selected = []
         default = runner.build_steps("environment")
         for part, files in self.manifest["groups"].items():
@@ -173,10 +173,10 @@ class GroupingTests(unittest.TestCase):
         self.assertEqual(len(set(selected)), 68)
         self.assertEqual(set(selected), runner._collection_inventory(self.root))
 
-    def test_matrix_is_exactly_eight_includes_and_cli_does_not_spawn(self):
+    def test_matrix_is_exactly_the_planned_parts_and_cli_does_not_spawn(self):
+        # Fifteen parts since 31 October 2026: the slow lifecycle groups were split.
         expected = {"include": [{"part": part} for part in (
-            "foundation", "execution", "founder_manual", "founder_revision",
-            "label_artifact", "label_execution_bridge", "lifecycle_core", "notification")]}
+            "foundation", "execution", "execution_2", "founder_manual", "founder_revision", "founder_revision_2", "label_artifact", "label_artifact_2", "label_artifact_3", "label_execution_bridge", "label_execution_bridge_2", "label_execution_bridge_3", "lifecycle_core", "notification", "notification_2")]}
         self.assertEqual(runner.ci_matrix(self.root), expected)
         output = io.StringIO()
         with patch.object(runner, "ROOT", self.root), patch.object(runner.subprocess, "run") as execute:
