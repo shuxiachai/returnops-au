@@ -61,7 +61,7 @@ The environment runner includes `tests/investigation`, whose TCP test starts and
 For a fresh private synthetic demo, after setting the database privately, use the existing issuer with explicit opt-in. Choose a **new absolute** private directory; the command fails closed on Windows older than Python3.12.4 before creating it. Never print or commit its signing key/session tokens.
 
 ```powershell
-python -B -m returnops_api.demo provision --private-dir <new-absolute-private-directory> --store synthetic_au_store --customer-one synthetic_customer_a --customer-two synthetic_customer_b --founder synthetic_founder --order-investigation
+python -B -m returnops_api.demo provision --private-dir <new-absolute-private-directory> --store synthetic_au_store --customer-one synthetic_customer_a --customer-two synthetic_customer_b --founder founder --order-investigation
 python -B -m returnops_api.demo serve --auth-file <private-directory>/auth.json --port 18081
 ```
 

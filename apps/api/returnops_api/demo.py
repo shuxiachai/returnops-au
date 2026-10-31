@@ -39,6 +39,18 @@ def grant_founder_manual(engine,store):
             uow.execute(life.authorities.insert().values(store_id=store,component_id=COMPONENT,purpose='OUTCOME',revision=1,enabled=True))
         uow.commit()
 
+def _demo_passwords(people_ids,chosen):
+    """One chosen password for every demo person, or a generated one each. A chosen password
+    that a registration would refuse (8 to 128 characters, not blank) falls back to generated
+    ones with a notice naming the variable, never its value, so a deployment still starts."""
+    from returnops_domain.wire import blank
+    if chosen:
+        try: usable=8<=len(chosen)<=128 and not blank(chosen) and bool(chosen.encode('utf-8'))
+        except UnicodeEncodeError: usable=False
+        if usable: return {value:chosen for value in people_ids}
+        print('RETURNOPS_DEMO_PASSWORD is not 8 to 128 visible characters; generated passwords are used instead (passwords.json).')
+    return {value:secrets.token_urlsafe(12) for value in people_ids}
+
 def provision(directory,*,store,customer_one,customer_two,founder,order_investigation=False,fixed_proposal=False,founder_manual=False):
     """Caller explicitly chooses IDs/roles/store; generated credentials stay private."""
     _require_private_output_runtime()
@@ -61,9 +73,10 @@ def provision(directory,*,store,customer_one,customer_two,founder,order_investig
     _private_write(directory/'auth.json',{'issuer':issuer,'audience':audience,'signing_key_base64':base64.b64encode(key).decode('ascii')})
     _private_write(directory/'sessions.json',{'principals':principals,'sessions':sessions,'tokens':tokens})
     # Password sign-in (31 October 2026): a generated password per person, kept private like the
-    # tokens, and its scrypt hash in credentials.json for `serve --accounts`.
+    # tokens, and its scrypt hash in credentials.json for `serve --accounts`. RETURNOPS_DEMO_PASSWORD,
+    # when set and acceptable, is the one password of all three people, so the presenter can type it.
     from .accounts import new_credentials_file
-    passwords={value:secrets.token_urlsafe(12) for value in people_ids}
+    passwords=_demo_passwords(people_ids,os.environ.get('RETURNOPS_DEMO_PASSWORD'))
     _private_write(directory/'passwords.json',passwords)
     new_credentials_file(directory/'credentials.json',store,passwords)
     engine=build_engine(settings)
