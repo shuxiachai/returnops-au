@@ -95,6 +95,12 @@ export function isMockMode(): boolean {
   return item === 'true';
 }
 
+// True only once the sample data was chosen on purpose. The app opens the sign-in
+// page otherwise, including on a first visit with nothing stored (31 October 2026).
+export function sampleDataChosen(): boolean {
+  return localStorage.getItem(MOCK_MODE_KEY) === 'true';
+}
+
 export function setMockMode(enabled: boolean) {
   localStorage.setItem(MOCK_MODE_KEY, enabled ? 'true' : 'false');
 }
@@ -185,7 +191,7 @@ async function request<T>(
         // page's own address. An HTTP/2 reply carries no status text.
         msg =
           response.status >= 500
-            ? `HTTP ${response.status}: the API server did not answer. Check that it is running, or switch to Mock Mode in the top navbar.`
+            ? `The service is not answering right now (HTTP ${response.status}). Try again in a moment.`
             : `HTTP ${response.status}${response.statusText ? `: ${response.statusText}` : ''}`;
       }
       const code = errEnvelope?.error?.code || `HTTP_${response.status}`;

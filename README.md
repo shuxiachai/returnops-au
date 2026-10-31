@@ -393,7 +393,7 @@ Expected provision output: `Private synthetic demo registration completed. Crede
 fixed-proposal workers and the Founder decision POST; check
 `http://127.0.0.1:8000/health/ready`. Ctrl+C stops it.
 
-### 4. Frontend (`apps/web/README.md`, `vite.config.ts`, `src/api/client.ts`, `src/components/AuthModal.tsx`)
+### 4. Frontend (`apps/web/README.md`, `vite.config.ts`, `src/api/client.ts`, `src/components/SignInPage.tsx`)
 
 ```text
 cd apps/web
@@ -406,14 +406,15 @@ npm run dev
 Open `http://localhost:5173`. The dev server proxies `/v1` and `/health` to
 `http://127.0.0.1:8000`. Leave `VITE_API_BASE_URL` unset: the client would use
 it as a direct cross-origin base URL, and the API registers no CORS middleware
-**(not verified in a browser)**. To sign in: **Auth Tokens** -> choose
-**Customer (End-User)** or **Founder (Merchant)** -> switch **Mock Data
-Fallback** off -> paste the matching token from `sessions.json` (`tokens` ->
-principal ID) into **Bearer Token (JWT)** -> **Save & Apply** (the page
-reloads). Reopening **Auth Tokens** calls `GET /v1/session` and shows
-`Valid: <principal> (<ROLE>)`; **Verify** checks the token in the box before it is
-saved, and the header badge shows the role and principal the server reports. The client keeps the token in the browser's
-`localStorage`; use **Clear token** afterwards. Copy a token without showing it
+**(not verified in a browser)**. To sign in: the page opens on **Sign in**;
+paste the matching token from `sessions.json` (`tokens` -> principal ID) into
+**Access key** -> **Sign in**. The key is checked with `GET /v1/session` before
+it is saved, and the role the server reports opens the page: a customer key the
+Customer Portal, a Founder key the Founder Console. Since 31 October 2026 there
+is no page switch while signed in; the header shows the signed-in account. The
+client keeps the key in the browser's `localStorage`; use **Sign out**
+afterwards. **Explore with sample data** on the sign-in page opens the built-in
+sample data (Mock Mode) with no server. Copy a token without showing it
 **(not verified)**:
 
 ```powershell
@@ -647,7 +648,7 @@ from the Canvas zip has no `.git` for `.gitignore` to apply to.
 - **After the demonstration:**
   - remove the app service's deployment on railway.com;
   - run `demo.ps1 stop -RemoveData`, which also deletes `tmp\railway-shop`;
-  - use Clear token in both browser profiles.
+  - use Sign out in both browser profiles.
 - **Tested on 30 October 2026** with Docker on the demonstration machine
   standing in for Railway: a PostgreSQL 17 container, plus this image with
   `DATABASE_URL` and `PORT=8080`.
@@ -747,8 +748,8 @@ from the Canvas zip has no `.git` for `.gitignore` to apply to.
   `INTERNAL_ERROR` (retryable, keep the key); see "If a step fails" in
   `tools/r02/README.md`.
 - **401 in the frontend after about 15 minutes:** the page shows a red
-  "Session expired or not valid" banner and the header badge reads **Signed
-  out**: the 899 s sessions have expired. Provision new principal IDs (the registry refuses existing IDs);
+  "Your session has ended" banner, or the sign-in page says so: the 899 s
+  sessions have expired. Provision new principal IDs (the registry refuses existing IDs);
   the same `--store` keeps the store's cases readable for a new Founder.
 - **Customer or Founder routes return 503 on the Compose API:** expected; it
   has no authentication file. Use `demo.py serve` or the driver's kept API.

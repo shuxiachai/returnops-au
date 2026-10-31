@@ -11,7 +11,7 @@ How to use it in the demo: segment S7 of [docs/45](45-stage2-demo-script.md) ("A
 | "detailed documentation of all iterations" | Section 3 (iteration table from merged pull requests), the dated README chapters, [docs/08](08-delivery-work-packages.md) work packages, [docs/11](11-stage1-readiness.md) planning record |
 | "burn-down charts" | Section 3: the burn-down of the final iteration's dated plan (22 October to 2 November) and the burn-up of adopted pull requests per iteration; the note there says why Jira resolution dates are not used |
 | "user stories" | Section 2: the six Jira epics E1 to E6, the twelve functional requirements FR-001 to FR-012 and the per-member use cases in the Stage 1 report ([docs/00](00-project-definition-v1.md), [docs/12](12-member-a-model-chain.md), [docs/19](19-member-b-model-chain.md), [docs/18](18-member-c-model-chain.md)) |
-| "feedback loops" and "iterative improvements" | Section 4: fourteen recorded review-to-change loops with their pull-request and comment links |
+| "feedback loops" and "iterative improvements" | Section 4: fifteen recorded review-to-change loops with their pull-request and comment links |
 | "team collaboration" | Section 5: the frozen allocation ([docs/07](07-frozen-work-allocation.md)), Owner/Reviewer pairs, the delegated review and adoption flow, Jira board |
 | "advanced technologies (at least 6) ... supported by data" | Section 6: eleven technologies with the measurement each one is tied to |
 
@@ -132,7 +132,12 @@ Each loop names the reviewer, the comment or review, and the change it produced.
     - text made only of invisible characters is refused as blank (statement, answer, order reference, Founder rationale), and a blank order reference is refused instead of being looked up;
     - `demo.ps1` no longer reuses identities whose provision failed (every sign-in gave 401), and Caddy lets the browser keep the content-named bundle files.
 
-A fifteenth loop is external: the tutor's Stage 1 interview feedback and the 13 October Canvas clarification ("deploy on site from the Canvas download") produced the "Deploy from zero" README chapter and the clean-machine rehearsal checklist in [docs/47](47-stage2-submission-runbook.md) section 5.
+15. **Product review of 31 October.** Watching the demonstration run locally, the lead asked why the header could switch to the Founder page when the token alone decides the role, and then for the frontend to look like a product rather than half a product and half a demonstration. Change, in the pull request that follows #160, each with a test:
+    - the app opens on a sign-in page that checks the access key with the server before saving it; the role the server reports opens the matching page, and the page switch stays only in the sample data;
+    - the header shows the signed-in account, a test-environment label and Sign out, in place of the course badge, the Mock Mode switch and the Auth Tokens dialog; an ended session says so in one sentence and leads back to the sign-in page;
+    - [docs/45](45-stage2-demo-script.md), the README, `tools/r02/README.md` and `demo.ps1` describe the new sign-in.
+
+A sixteenth loop is external: the tutor's Stage 1 interview feedback and the 13 October Canvas clarification ("deploy on site from the Canvas download") produced the "Deploy from zero" README chapter and the clean-machine rehearsal checklist in [docs/47](47-stage2-submission-runbook.md) section 5.
 
 ## 5. Team collaboration and the delivery rules
 
