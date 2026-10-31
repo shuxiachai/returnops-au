@@ -653,7 +653,7 @@ accepted: until Railway switches traffic to the new deployment, the old one answ
 and `node_modules` out of the `railway up` upload, because the folder unpacked
 from the Canvas zip has no `.git` for `.gitignore` to apply to.
 
-- **Model showcase on Railway (31 October 2026, docs/44):** the course proxy is on a private VPN address, so the service uses Alibaba Cloud Bailian instead. Service variables: `RETURNOPS_MODEL_SHOWCASE=1`, `RETURNOPS_MODEL_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1`, `RETURNOPS_MODEL_ID=qwen-plus`, `RETURNOPS_MODEL_PROVIDER_ID=aliyun_bailian`, `RETURNOPS_MODEL_DEADLINE_SECONDS=30`, `RETURNOPS_MODEL_MAX_CALLS=50`, and `RETURNOPS_MODEL_API_KEY`, which only the lead sets. Without a complete configuration the service starts without the showcase and its log names the missing variable.
+- **Model showcase on Railway (31 October 2026, docs/44):** the course proxy is on a private VPN address, so the service uses Alibaba Cloud Bailian instead. Service variables: `RETURNOPS_MODEL_SHOWCASE=1`, `RETURNOPS_MODEL_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1`, `RETURNOPS_MODEL_ID=qwen3.5-122b-a10b`, `RETURNOPS_MODEL_PROVIDER_ID=aliyun_bailian`, `RETURNOPS_MODEL_DEADLINE_SECONDS=50`, `RETURNOPS_MODEL_MAX_CALLS=50`, and `RETURNOPS_MODEL_API_KEY`, which only the lead sets. Without a complete configuration the service starts without the showcase and its log names the missing variable.
 - **Not on Railway:**
   - the course proxy route of S4 (private VPN address): the local fallback.
   - S5's driver: it runs on the local deployment.
