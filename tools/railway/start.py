@@ -117,13 +117,18 @@ def run(step, arguments, environment):
         stop(f'{step} failed; see the lines above.')
 
 
+# The readiness check talks to 127.0.0.1 only: never through an HTTP(S)_PROXY from the
+# environment, which would make it fail and the container restart (runtime review).
+LOCAL = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
+
 def wait_ready(process, url, seconds):
     deadline = time.monotonic() + seconds
     while time.monotonic() < deadline:
         if process.poll() is not None or REQUESTED:
             return False
         try:
-            with urllib.request.urlopen(url, timeout=3) as answer:
+            with LOCAL.open(url, timeout=3) as answer:
                 if answer.status == 200 and b'"ready"' in answer.read():
                     return True
         except OSError:

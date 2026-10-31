@@ -41,14 +41,17 @@ def grant_founder_manual(engine,store):
 
 def _demo_passwords(people_ids,chosen):
     """One chosen password for every demo person, or a generated one each. A chosen password
-    that a registration would refuse (8 to 128 characters, not blank) falls back to generated
-    ones with a notice naming the variable, never its value, so a deployment still starts."""
+    that a registration would refuse (8 to 128 characters, not blank), or one with spaces at
+    either end or a control character such as the line break a shell pipe adds, which nobody
+    could type, falls back to generated ones with a notice naming the variable, never its
+    value, so a deployment still starts."""
     from returnops_domain.wire import blank
     if chosen:
-        try: usable=8<=len(chosen)<=128 and not blank(chosen) and bool(chosen.encode('utf-8'))
+        try: usable=(8<=len(chosen)<=128 and not blank(chosen) and chosen==chosen.strip()
+                     and all(c.isprintable() for c in chosen) and bool(chosen.encode('utf-8')))
         except UnicodeEncodeError: usable=False
         if usable: return {value:chosen for value in people_ids}
-        print('RETURNOPS_DEMO_PASSWORD is not 8 to 128 visible characters; generated passwords are used instead (passwords.json).')
+        print('RETURNOPS_DEMO_PASSWORD is not 8 to 128 visible characters without spaces at either end; generated passwords are used instead (passwords.json).')
     return {value:secrets.token_urlsafe(12) for value in people_ids}
 
 def provision(directory,*,store,customer_one,customer_two,founder,order_investigation=False,fixed_proposal=False,founder_manual=False):

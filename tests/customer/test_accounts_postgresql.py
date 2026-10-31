@@ -191,8 +191,11 @@ def test_impossible_names_and_passwords_are_refused_before_any_work(accounts):
     limits = client.app.state.account_limits
     before = limits['sign_ins'].size()
     for _ in range(20):
-        refused(post(client, 'login', 'x' * 100000, 'whatever-password'), 401, 'UNAUTHENTICATED')
-    refused(post(client, 'login', 'someone_real', 'p' * 100000), 401, 'UNAUTHENTICATED')
+        refused(post(client, 'login', 'x' * 200, 'whatever-password'), 401, 'UNAUTHENTICATED')
+    refused(post(client, 'login', 'someone_real', 'p' * 1000), 401, 'UNAUTHENTICATED')
+    # Runtime review (31 October 2026): a body over 4 KiB is refused before it is decoded.
+    refused(post(client, 'login', 'x' * 100000, 'whatever-password'), 422, 'VALIDATION_ERROR')
+    refused(post(client, 'register', 'someone_new', 'p' * 100000), 422, 'VALIDATION_ERROR')
     assert limits['sign_ins'].size() == before
     surrogate = client.post('/v1/auth/register', content=b'{"username":"surrogate_user","password":"abcdefgh\ud800"}',
                             headers={'Content-Type': 'application/json'})
@@ -239,3 +242,33 @@ def test_failed_registrations_count_towards_the_registration_limit(accounts, ide
     before = limits._events.get('all', [])[:]
     refused(post(client, 'register', identities.people['founder']['principal_id'], 'another-password'), 409, 'INVALID_STATE')
     assert len(limits._events.get('all', [])) == len(before) + 1
+
+
+def test_a_name_signs_in_in_any_letter_case_as_the_account_itself(accounts):
+    # Runtime review (31 October 2026): registration treats Alice and alice as one name,
+    # so sign-in does too, and the session is the account's own spelling.
+    client, _ = accounts
+    username = 'Mixed_Case_' + uuid4().hex[:6]
+    assert post(client, 'register', username, 'a-long-password').status_code == 201
+    for typed in (username.lower(), username.upper().replace('_', '-')):
+        signed_in = post(client, 'login', typed, 'a-long-password')
+        assert signed_in.status_code == 200, signed_in.text
+        assert signed_in.json()['principal_id'] == username
+        assert session(client, signed_in.json()).json()['principal_id'] == username
+    refused(post(client, 'login', username.lower(), 'wrong-password-1'), 401, 'UNAUTHENTICATED')
+
+
+def test_busy_auth_threads_refuse_at_once_without_any_work(accounts, identities):
+    # Runtime review (31 October 2026): at most four auth requests hold worker threads; a
+    # flood is refused at once instead of taking the threads every other route needs.
+    from types import SimpleNamespace
+    client, _ = accounts
+    limits = client.app.state.account_limits
+    before = limits['sign_ins'].size()
+    client.app.state.auth_threads = SimpleNamespace(borrowed_tokens=4, total_tokens=4)
+    busy = post(client, 'login', identities.people['founder']['principal_id'], PASSWORDS['founder'])
+    refused(busy, 503, 'INTERNAL_ERROR', 'Sign-in is busy right now. Try again in a moment.')
+    assert limits['sign_ins'].size() == before
+    client.app.state.auth_threads = None
+    assert post(client, 'login', identities.people['founder']['principal_id'], PASSWORDS['founder']).status_code == 200
+

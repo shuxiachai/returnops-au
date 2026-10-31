@@ -150,6 +150,14 @@ export const FounderConsole: React.FC = () => {
   // The Founder AI assistant's triage (31 October 2026): advisory marks and an optional group filter.
   const [aiTriage, setAiTriage] = useState<AiTriage | null>(null);
   const [aiGroup, setAiGroup] = useState<{ label: string; caseIds: string[] } | null>(null);
+  // The triage panel lives on the queue tab; leaving it ends the triage and its group filter,
+  // which would otherwise keep hiding cases with no way to clear it (runtime review).
+  useEffect(() => {
+    if (activeSubTab !== 'queue') {
+      setAiTriage(null);
+      setAiGroup(null);
+    }
+  }, [activeSubTab]);
 
   // Selected Case Detail Modal State
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
@@ -208,18 +216,25 @@ export const FounderConsole: React.FC = () => {
     }
   }, [activeSubTab]);
 
+  // Each queue read is numbered; a reply that a newer read has overtaken is dropped, so an
+  // older list can never replace a newer one (runtime review, 31 October 2026).
+  const queueLoad = useRef(0);
+
   const loadCases = async (limit = 20) => {
+    const load = ++queueLoad.current;
     setIsLoadingCases(true);
     setQueueError(null);
     try {
       const data = await listFounderCases(undefined, limit);
+      if (load !== queueLoad.current) return;
       setCases(data.items);
       setNextCursor(data.next_cursor || null);
       setNextCursorLimit(limit);
     } catch (err: unknown) {
+      if (load !== queueLoad.current) return;
       setQueueError(err instanceof ApiError ? formatApiError(err) : 'Failed to load case queue');
     } finally {
-      setIsLoadingCases(false);
+      if (load === queueLoad.current) setIsLoadingCases(false);
     }
   };
 
@@ -227,8 +242,11 @@ export const FounderConsole: React.FC = () => {
     if (!nextCursor || isLoadingMore) return;
     setIsLoadingMore(true);
     const limit = nextCursorLimit;
+    const load = queueLoad.current;
     try {
       const data = await listFounderCases(nextCursor, limit);
+      // A reload started meanwhile: this page belongs to the old list.
+      if (load !== queueLoad.current) return;
       setCases((prev) => [...prev, ...data.items]);
       setNextCursor(data.next_cursor || null);
       setNextCursorLimit(limit);
@@ -685,7 +703,7 @@ export const FounderConsole: React.FC = () => {
 
               <button
                 onClick={() => loadCases()}
-                disabled={isLoadingCases}
+                disabled={isLoadingCases || isLoadingMore}
                 className="px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors flex items-center space-x-1.5"
                 title="Refresh the queue (it also refreshes when you come back to this window)"
               >
@@ -743,11 +761,29 @@ export const FounderConsole: React.FC = () => {
           )}
 
           <AiTriagePanel
-            onTriage={setAiTriage}
+            onTriage={(triage) => {
+              setAiTriage(triage);
+              setAiGroup(null);
+            }}
             activeGroup={aiGroup?.label ?? null}
             onGroup={(label, caseIds) => setAiGroup(label && caseIds ? { label, caseIds } : null)}
             onInspect={(caseId) => openCaseDetail(caseId)}
           />
+
+          {aiGroup && (
+            <div role="status" className="px-4 py-2 bg-violet-50 border border-violet-200 rounded-xl text-xs text-violet-900 flex flex-wrap items-center justify-between gap-2">
+              <span>
+                Showing only the AI group {aiGroup.label} ({filteredCases.length} of {cases.length} cases).
+              </span>
+              <button
+                type="button"
+                onClick={() => setAiGroup(null)}
+                className="px-2 py-1 font-semibold rounded-lg hover:bg-violet-100"
+              >
+                Show all cases
+              </button>
+            </div>
+          )}
 
           {/* Cases Table */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">

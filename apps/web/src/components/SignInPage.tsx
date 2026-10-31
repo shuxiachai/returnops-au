@@ -324,10 +324,12 @@ export const SignInPage: React.FC<SignInPageProps> = ({ notice, onSignedIn, onEx
             </div>
 
             <div className="mt-6 pt-5 border-t border-slate-100 flex flex-col items-center gap-2 text-center">
+              {/* Not while a sign-in is being checked: its answer would switch the page back. */}
               <button
                 type="button"
                 onClick={onExploreSample}
-                className="text-sm font-medium text-sky-700 hover:text-sky-800 hover:underline"
+                disabled={checking}
+                className="text-sm font-medium text-sky-700 hover:text-sky-800 hover:underline disabled:opacity-50 disabled:no-underline"
               >
                 Explore with sample data
               </button>
