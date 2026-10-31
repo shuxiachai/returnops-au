@@ -1,4 +1,7 @@
-"""The seven frozen customer routes; trusted composition, bounded input, safe JSON."""
+"""The seven frozen customer routes; trusted composition, bounded input, safe JSON.
+
+register_customer_case_list adds GET /v1/cases outside contract v1 (31 October 2026).
+"""
 from __future__ import annotations
 import json
 import asyncio
@@ -118,3 +121,21 @@ def register_customer_routes(app):
     async def history(case_id:str,request:Request): return await dispatch(request,'listCustomerCaseHistory',case_id)
     @app.post('/v1/cases/{case_id}/clarifications')
     async def clarify(case_id:str,request:Request): return await dispatch(request,'submitClarification',case_id)
+
+def register_customer_case_list(app):
+    """GET /v1/cases outside contract v1 (31 October 2026): the signed-in customer's own
+    cases, newest first. main.py adds it only with password sign-in (`serve --accounts`),
+    so without that the frozen route set is unchanged."""
+    @app.get('/v1/cases')
+    async def own_cases(request:Request):
+        correlation=identifier('corr');failure=None
+        try:
+            flow=_flow(request)
+            # Authenticate before looking at the query, as the frozen reads do.
+            await run_in_threadpool(flow.preflight,'getSession')
+            if request.query_params: raise FlowError('VALIDATION_ERROR')
+            result=await run_in_threadpool(flow.list_cases)
+            return safe_json(result.body,result.status,correlation=correlation)
+        except FlowError as error: failure=(error.status,error.envelope(correlation))
+        except Exception: failure=(503,FlowError().envelope(correlation))
+        return safe_json(failure[1],failure[0],correlation=correlation)

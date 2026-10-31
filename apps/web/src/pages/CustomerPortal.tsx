@@ -42,6 +42,7 @@ import {
 } from '../utils/formatters';
 import { generateIdempotencyKey } from '../utils/idempotency';
 import { isFinalStatus, usePolling, useRefreshOnReturn } from '../utils/autoRefresh';
+import { MyCasesList } from '../components/MyCasesList';
 
 // #122 item 7: the lodgement idempotency key and the payload it was minted for are
 // kept for the tab's session. A reload or a tab switch after an uncertain failure
@@ -924,6 +925,17 @@ export const CustomerPortal: React.FC = () => {
       {/* ========================================================= */}
       {activeSubTab === 'track' && (
         <div className="space-y-6">
+          {/* The signed-in customer's own requests (31 October 2026); a row opens the case
+              as Lookup does, and the list folds away while a case is open. */}
+          <MyCasesList
+            openCaseId={currentCase ? currentCase.case_id : isLoadingCase && searchCaseId.trim() ? searchCaseId.trim() : null}
+            openCase={currentCase}
+            onOpen={(caseId) => {
+              setSearchCaseId(caseId);
+              loadCase(caseId);
+            }}
+          />
+
           {/* Lookup Bar */}
           {/* Stacked below 1024 px, so Mock Mode's demo buttons never squeeze the case ID box. */}
           <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-3">

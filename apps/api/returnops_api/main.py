@@ -110,7 +110,10 @@ def create_app(*,engine=None,auth_config=None,enable_processor=True,enable_fixed
     register_founder_routes(app)
     if credentials is not None:
         from .accounts import register_account_routes
+        from .customer_http import register_customer_case_list
         register_account_routes(app,credentials)
+        # The customer's own case list (31 October 2026), outside contract v1 like sign-in.
+        register_customer_case_list(app)
     if enable_founder_decisions:
         # A2.07: the frozen decision POST, composed from trusted app state at
         # request time exactly like the Founder reads; HTTP fields confer nothing.
