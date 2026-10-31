@@ -60,6 +60,12 @@ def provision(directory,*,store,customer_one,customer_two,founder,order_investig
     # not overwrite/reissue credentials. Inspect that outcome with these same IDs.
     _private_write(directory/'auth.json',{'issuer':issuer,'audience':audience,'signing_key_base64':base64.b64encode(key).decode('ascii')})
     _private_write(directory/'sessions.json',{'principals':principals,'sessions':sessions,'tokens':tokens})
+    # Password sign-in (31 October 2026): a generated password per person, kept private like the
+    # tokens, and its scrypt hash in credentials.json for `serve --accounts`.
+    from .accounts import new_credentials_file
+    passwords={value:secrets.token_urlsafe(12) for value in people_ids}
+    _private_write(directory/'passwords.json',passwords)
+    new_credentials_file(directory/'credentials.json',store,passwords)
     engine=build_engine(settings)
     try:
         TrustedRegistry(engine).provision(principals,sessions)
@@ -86,6 +92,7 @@ def main(argv=None):
     serve.add_argument('--fixed-proposal',action='store_true',help='Enable the synthetic fixed-proposal worker; this does not grant store authority.')
     serve.add_argument('--founder-decisions',action='store_true',help='Register the Founder decision POST (A2.07); authority still comes only from the server-side registry and grants.')
     serve.add_argument('--model-showcase',action='store_true',help='Enable the advisory A1.06 Coordinator showcase (docs/44); model settings and the key come only from RETURNOPS_MODEL_* environment variables.')
+    serve.add_argument('--accounts',action='store_true',help='Enable customer self-registration and password sign-in with the credentials.json beside the auth file; registration creates customers of that store only.')
     args=parser.parse_args(argv)
     if args.command=='provision':
         provision(args.private_dir,store=args.store,customer_one=args.customer_one,customer_two=args.customer_two,founder=args.founder,order_investigation=args.order_investigation,fixed_proposal=args.fixed_proposal,founder_manual=args.founder_manual)
@@ -96,6 +103,8 @@ def main(argv=None):
         os.environ['RETURNOPS_FIXED_PROPOSAL_DEMO']='1' if args.fixed_proposal else '0'
         os.environ['RETURNOPS_FOUNDER_DECISIONS']='1' if args.founder_decisions else '0'
         os.environ['RETURNOPS_MODEL_SHOWCASE']='1' if args.model_showcase else '0'
+        if args.accounts: os.environ['RETURNOPS_ACCOUNTS_FILE']=str(Path(args.auth_file).parent/'credentials.json')
+        else: os.environ.pop('RETURNOPS_ACCOUNTS_FILE',None)
         import uvicorn
         uvicorn.run('returnops_api.main:create_app',factory=True,host='127.0.0.1',port=args.port,access_log=False,log_level='warning')
 

@@ -13,9 +13,20 @@ from .customer_http import register_customer_routes
 from .founder_http import register_founder_routes
 
 def create_app(*,engine=None,auth_config=None,enable_processor=True,enable_fixed_proposal=None,
-               enable_founder_decisions=None,enable_model_showcase=None):
+               enable_founder_decisions=None,enable_model_showcase=None,accounts_file=None):
     # Keyword injection is trusted Python composition for tests, never HTTP input.
     configured=auth_config if auth_config is not None else load_private_auth_config()
+    # Customer self-registration and password sign-in (31 October 2026): off unless
+    # `demo.py serve --accounts` names the private credentials file.
+    if accounts_file is None:
+        accounts_file=os.environ.get('RETURNOPS_ACCOUNTS_FILE') or None
+    credentials=None
+    if accounts_file is not None:
+        from .accounts import CredentialStore
+        try:
+            credentials=CredentialStore(accounts_file)
+        except (OSError,ValueError,TypeError):
+            raise ValueError('Configure the private credentials file written by demo.py provision.') from None
     if enable_fixed_proposal is None:
         flag = os.environ.get('RETURNOPS_FIXED_PROPOSAL_DEMO','0')
         if flag not in {'0','1'}:
@@ -96,6 +107,9 @@ def create_app(*,engine=None,auth_config=None,enable_processor=True,enable_fixed
         return JSONResponse({'status':'ready' if healthy else 'not_ready'},status_code=200 if healthy else 503)
     register_customer_routes(app)
     register_founder_routes(app)
+    if credentials is not None:
+        from .accounts import register_account_routes
+        register_account_routes(app,credentials)
     if enable_founder_decisions:
         # A2.07: the frozen decision POST, composed from trusted app state at
         # request time exactly like the Founder reads; HTTP fields confer nothing.

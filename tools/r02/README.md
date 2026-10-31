@@ -266,8 +266,9 @@ Seeing the case in the frontend (from `apps/web/README.md`, `vite.config.ts`,
    for example in PowerShell:
    `(Get-Content -Raw <dir>/sessions.json | ConvertFrom-Json).tokens.demo_cups_founder | Set-Clipboard`.
    Do not paste it into a command line, a chat or a log.
-3. The page opens on **Sign in** (use **Sign out** first if another key is
-   signed in). Paste the token into **Access key** and click **Sign in**. The
+3. The page opens on **Sign in** (use **Sign out** first if another account is
+   signed in). The driver's API has no password sign-in, so click **Use an access
+   key instead**, paste the token into **Access key** and click **Sign in**. The
    key is checked with `GET /v1/session`, and the role the server reports opens
    the page: the header should show `Founder demo_cups_founder` and the Founder
    Console opens. The key, not anything chosen in the browser, decides the role.

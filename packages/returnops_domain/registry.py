@@ -1,6 +1,7 @@
-"""Explicit trusted local registry maintenance; no public identity-issuance API."""
+"""Explicit trusted local registry maintenance. The only public identity issuance is customer
+self-registration (register_customer, 31 October 2026), which creates CUSTOMER principals only."""
 from datetime import datetime, timezone
-from sqlalchemy import or_, select, update
+from sqlalchemy import func, or_, select, update
 from . import customer_tables as t
 from .audit import identifier
 from .customer_uow import CustomerUnitOfWork
@@ -9,6 +10,7 @@ from .scope_audit import append_scope_event
 from .wire import validate
 
 _SERVICE = {"kind": "SERVICE", "component_id": "local_demo_registry"}
+_REGISTRATION = {"kind": "SERVICE", "component_id": "customer_self_registration"}
 
 class TrustedRegistry:
     def __init__(self, engine, *, clock=lambda: datetime.now(timezone.utc)):
@@ -34,6 +36,27 @@ class TrustedRegistry:
                 append_scope_event(uow,"PRINCIPAL",item["principal_id"],item["principal_id"],item["store_id"],
                     action="PRINCIPAL_PROVISIONED",actor=_SERVICE,payload={"role":item["role"],"enabled":item["enabled"]},correlation_id=identifier("corr"),now=self.clock())
             for item in sessions: uow.execute(t.sessions.insert().values(**item))
+            uow.commit()
+
+    def register_customer(self, principal_id, store_id, session):
+        """Customer self-registration (31 October 2026): one enabled CUSTOMER of a store that
+        already has a Founder, with its first session. Never a Founder; an existing ID is refused,
+        also in another letter case, so no one can register a look-alike of the Founder's ID."""
+        validate("Principal", {"principal_id": principal_id, "role": "CUSTOMER"}); validate("Id", store_id)
+        if set(session) != {"session_id", "issued_at", "not_before", "expires_at"}: raise FlowError("VALIDATION_ERROR")
+        validate("Id", session["session_id"])
+        times = [session[x] for x in ("issued_at", "not_before", "expires_at")]
+        if any(type(x) is not int for x in times) or not 0 <= times[0] <= times[1] < times[2] <= 9007199254740991 or times[2] - times[0] > 900:
+            raise FlowError("VALIDATION_ERROR")
+        with CustomerUnitOfWork(self.engine, write=True) as uow:
+            # IDs are ASCII (the Id pattern), so lower() compares them without regard to case.
+            if uow.execute(select(t.principals.c.principal_id).where(func.lower(t.principals.c.principal_id)==principal_id.lower())).first(): raise FlowError("INVALID_STATE")
+            founder = select(t.principals.c.principal_id).where(t.principals.c.store_id==store_id, t.principals.c.role=="FOUNDER", t.principals.c.enabled.is_(True))
+            if not uow.execute(founder).first(): raise FlowError("FORBIDDEN")
+            uow.execute(t.principals.insert().values(principal_id=principal_id, store_id=store_id, role="CUSTOMER", enabled=True))
+            append_scope_event(uow,"PRINCIPAL",principal_id,principal_id,store_id,action="PRINCIPAL_SELF_REGISTERED",actor=_REGISTRATION,
+                payload={"role":"CUSTOMER","enabled":True},correlation_id=identifier("corr"),now=self.clock())
+            uow.execute(t.sessions.insert().values(principal_id=principal_id, revoked=False, **session))
             uow.commit()
 
     def register_session(self, principal_id, session_id, issued_at, not_before, expires_at):

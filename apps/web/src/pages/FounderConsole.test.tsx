@@ -25,7 +25,7 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
   it('renders Founder Console heading, quick metric cards, and case queue table', async () => {
     render(<FounderConsole />);
 
-    expect(screen.getByText('Founder Console & Governance')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Founder Console' })).toBeInTheDocument();
     expect(screen.getByText(/Review cases, record decisions/i)).toBeInTheDocument();
 
     // Table rows should load from mock data
@@ -98,21 +98,24 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
       expect(screen.getByText('case_demo_001')).toBeInTheDocument();
     });
 
-    // Click inspect on case_demo_001 (first case in table)
-    const inspectButtons = screen.getAllByRole('button', { name: /Inspect/i });
-    fireEvent.click(inspectButtons[0]);
+    // Inspect case_demo_001. The queue lists cases waiting for the Founder first, so
+    // the row is found by its case ID, not by its position.
+    fireEvent.click(
+      within(screen.getByText('case_demo_001').closest('tr') as HTMLElement).getByRole('button', { name: /Inspect/i })
+    );
 
     await waitFor(() => {
-      expect(screen.getByRole('tab', { name: /Order & Facts Projection/i })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /Order & Facts/i })).toBeInTheDocument();
     });
 
     // Check Order & Facts tab
-    const orderTabBtn = screen.getByRole('tab', { name: /Order & Facts Projection/i });
+    const orderTabBtn = screen.getByRole('tab', { name: /Order & Facts/i });
     fireEvent.click(orderTabBtn);
 
     await waitFor(() => {
       expect(screen.getByText('ord_9042')).toBeInTheDocument();
-      expect(screen.getByText(/Navy Blue Cashmere Crewneck/i)).toBeInTheDocument();
+      // Also quoted in the case window's summary of the customer's words.
+      expect(screen.getAllByText(/Navy Blue Cashmere Crewneck/i).length).toBeGreaterThan(0);
     });
 
     // Check Statements tab
@@ -120,13 +123,14 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
     fireEvent.click(statementsTabBtn);
 
     await waitFor(() => {
+      // The tab and the case window's summary both show the customer's words.
       expect(
-        screen.getByText(/received the wrong item in my delivery yesterday/i)
-      ).toBeInTheDocument();
+        screen.getAllByText(/received the wrong item in my delivery yesterday/i).length
+      ).toBe(2);
     });
 
     // Check Tamper-Evident Audit Chain tab
-    const auditTabBtn = screen.getByRole('tab', { name: /Tamper-Evident Audit Chain/i });
+    const auditTabBtn = screen.getByRole('tab', { name: /Audit History/i });
     fireEvent.click(auditTabBtn);
 
     await waitFor(() => {
@@ -144,11 +148,11 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
       expect(screen.getByText('case_demo_001')).toBeInTheDocument();
     });
 
-    fireEvent.change(screen.getByPlaceholderText(/Filter by Case ID or Category/i), {
+    fireEvent.change(screen.getByPlaceholderText(/Search by case ID/i), {
       target: { value: 'case_demo_001' },
     });
     fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
-    fireEvent.click(await screen.findByRole('tab', { name: /Order & Facts Projection/i }));
+    fireEvent.click(await screen.findByRole('tab', { name: /Order & Facts/i }));
 
     const card = await screen.findByRole('region', { name: 'Model extraction (advisory)' });
     expect(within(card).getByText('Mock data: not a model result')).toBeInTheDocument();
@@ -163,11 +167,11 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
       expect(screen.getByText('case_demo_002')).toBeInTheDocument();
     });
 
-    fireEvent.change(screen.getByPlaceholderText(/Filter by Case ID or Category/i), {
+    fireEvent.change(screen.getByPlaceholderText(/Search by case ID/i), {
       target: { value: 'case_demo_002' },
     });
     fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
-    fireEvent.click(await screen.findByRole('tab', { name: /Order & Facts Projection/i }));
+    fireEvent.click(await screen.findByRole('tab', { name: /Order & Facts/i }));
 
     expect(await screen.findByText('ord_8819')).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Model extraction (advisory)' })).not.toBeInTheDocument();
@@ -180,9 +184,10 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
       expect(screen.getByText('case_demo_003')).toBeInTheDocument();
     });
 
-    // Inspect case_demo_003 (third case in table)
-    const inspectButtons = screen.getAllByRole('button', { name: /Inspect/i });
-    fireEvent.click(inspectButtons[2]);
+    // Inspect case_demo_003, found by its case ID.
+    fireEvent.click(
+      within(screen.getByText('case_demo_003').closest('tr') as HTMLElement).getByRole('button', { name: /Inspect/i })
+    );
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /Approve Return/i })).toBeInTheDocument();
@@ -193,12 +198,12 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
     fireEvent.click(approveBtn);
 
     await waitFor(() => {
-      expect(screen.getByText(/Confirm Founder Decision: APPROVE/i)).toBeInTheDocument();
+      expect(screen.getByText(/Confirm: Approve return/i)).toBeInTheDocument();
     });
 
     // The confirmation shows what the approval authorises (FR-012).
-    const dialog = screen.getByRole('dialog', { name: /Confirm Founder Decision: APPROVE/i });
-    expect(within(dialog).getByText('Approval scope: this is all the approval authorises')).toBeInTheDocument();
+    const dialog = screen.getByRole('dialog', { name: /Confirm: Approve return/i });
+    expect(within(dialog).getByText('What this approval allows')).toBeInTheDocument();
     expect(within(dialog).getByText('prev_demo_003')).toBeInTheDocument();
     expect(within(dialog).getByText(MOCK_DEMO_003_SCOPE_FINGERPRINT)).toBeInTheDocument();
     expect(within(dialog).getByText('CREATE_RETURN')).toBeInTheDocument();
@@ -206,7 +211,7 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
     expect(within(dialog).getByText('$0.00 AUD')).toBeInTheDocument();
 
     // Fill mandatory rationale
-    const rationaleInput = screen.getByPlaceholderText(/Record justification for statutory audit/i);
+    const rationaleInput = screen.getByPlaceholderText(/Why are you making this decision/i);
     fireEvent.change(rationaleInput, {
       target: { value: 'Approved under store 30-day change of mind policy.' },
     });
@@ -216,7 +221,7 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
 
     // Modal should close upon successful admission
     await waitFor(() => {
-      expect(screen.queryByText(/Confirm Founder Decision: APPROVE/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Confirm: Approve return/i)).not.toBeInTheDocument();
     });
 
     // The reopened case lands on what the decision produced (#122 item 4): the
@@ -233,7 +238,7 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
     await waitFor(() => {
       expect(screen.getByText('case_demo_001')).toBeInTheDocument();
     });
-    fireEvent.change(screen.getByPlaceholderText(/Filter by Case ID or Category/i), {
+    fireEvent.change(screen.getByPlaceholderText(/Search by case ID/i), {
       target: { value: 'case_demo_005' },
     });
     fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
@@ -261,19 +266,19 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
     fireEvent.click(analyticsTabBtn);
 
     await waitFor(() => {
-      expect(screen.getByText('Total Case Volume')).toBeInTheDocument();
+      expect(screen.getByText('Total cases')).toBeInTheDocument();
       expect(screen.getByText('128')).toBeInTheDocument();
-      expect(screen.getByText('Unreviewed Cases')).toBeInTheDocument();
+      expect(screen.getByText('Not yet risk-reviewed')).toBeInTheDocument();
       expect(screen.getByText('58')).toBeInTheDocument();
-      expect(screen.getByText('p50 Median Latency')).toBeInTheDocument();
+      expect(screen.getByText('Typical time to proposal')).toBeInTheDocument();
       expect(screen.getByText('11.20s')).toBeInTheDocument();
-      expect(screen.getByText('p95 Latency')).toBeInTheDocument();
+      expect(screen.getByText('Slow cases (95th percentile)')).toBeInTheDocument();
       expect(screen.getByText('46.50s')).toBeInTheDocument();
     });
 
     // Status breakdown chart should be displayed
-    expect(screen.getByText('Case Status Distribution')).toBeInTheDocument();
-    expect(screen.getByText('Risk Review Outcome Distribution')).toBeInTheDocument();
+    expect(screen.getByText('Cases by status')).toBeInTheDocument();
+    expect(screen.getByText('Cases by risk review outcome')).toBeInTheDocument();
 
     // The latency counts sit next to the tiles and add up to the case total
     // (70 + 2 + 56 = 128), as the contract requires.
@@ -297,14 +302,14 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
     // The first page holds 20 of the 25 synthetic cases.
     expect(screen.queryByText('case_demo_021')).not.toBeInTheDocument();
 
-    const nextPageBtn = screen.getByRole('button', { name: /Load Next Page \(Next Cursor\)/i });
+    const nextPageBtn = screen.getByRole('button', { name: /Load more cases/i });
     fireEvent.click(nextPageBtn);
 
     await waitFor(() => {
       expect(screen.getByText('case_demo_021')).toBeInTheDocument();
     });
     // The cursor is exhausted once the final page is loaded.
-    expect(screen.queryByRole('button', { name: /Load Next Page \(Next Cursor\)/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Load more cases/i })).not.toBeInTheDocument();
   });
 
   it('makes all four Founder decision confirmations reachable (Finding 3)', async () => {
@@ -315,16 +320,16 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
     });
 
     // Narrow the queue to the awaiting-approval case so the decision controls are live.
-    fireEvent.change(screen.getByPlaceholderText(/Filter by Case ID or Category/i), {
+    fireEvent.change(screen.getByPlaceholderText(/Search by case ID/i), {
       target: { value: 'case_demo_003' },
     });
     fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
 
     const decisions: Array<[RegExp, string]> = [
-      [/Approve Return/i, 'APPROVE'],
-      [/^Request Revision$/i, 'REQUEST_REVISION'],
-      [/^Reject$/i, 'REJECT'],
-      [/^Manual Takeover$/i, 'MANUAL_HANDLING'],
+      [/Approve Return/i, 'Approve return'],
+      [/^Request Revision$/i, 'Request revision'],
+      [/^Reject$/i, 'Reject'],
+      [/^Manual Takeover$/i, 'Manual takeover'],
     ];
 
     for (const [buttonName, decision] of decisions) {
@@ -333,9 +338,9 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
       fireEvent.click(control);
 
       // The confirmation overlay and its rationale/confirm controls must be reachable.
-      expect(await screen.findByText(`Confirm Founder Decision: ${decision}`)).toBeInTheDocument();
+      expect(await screen.findByText(`Confirm: ${decision}`)).toBeInTheDocument();
       const confirm = screen.getByRole('button', { name: /Record decision/i });
-      const rationale = screen.getByPlaceholderText(/Record justification for statutory audit/i);
+      const rationale = screen.getByPlaceholderText(/Why are you making this decision/i);
       expect(rationale).toBeInTheDocument();
 
       // Rationale is mandatory: an empty justification cannot confirm a decision.
@@ -345,7 +350,7 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
 
       fireEvent.click(screen.getByRole('button', { name: /^Cancel$/i }));
       await waitFor(() => {
-        expect(screen.queryByText(`Confirm Founder Decision: ${decision}`)).not.toBeInTheDocument();
+        expect(screen.queryByText(`Confirm: ${decision}`)).not.toBeInTheDocument();
       });
     }
   });
@@ -357,7 +362,7 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
       expect(screen.getByText('case_demo_003')).toBeInTheDocument();
     });
 
-    fireEvent.change(screen.getByPlaceholderText(/Filter by Case ID or Category/i), {
+    fireEvent.change(screen.getByPlaceholderText(/Search by case ID/i), {
       target: { value: 'case_demo_003' },
     });
     fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
@@ -368,10 +373,10 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
 
     // Even a forced click must leave the confirmation open and record nothing.
     fireEvent.click(confirm);
-    expect(screen.getByText(/Confirm Founder Decision: APPROVE/i)).toBeInTheDocument();
+    expect(screen.getByText(/Confirm: Approve return/i)).toBeInTheDocument();
 
     // A blank or whitespace-only justification is not a rationale.
-    fireEvent.change(screen.getByPlaceholderText(/Record justification for statutory audit/i), {
+    fireEvent.change(screen.getByPlaceholderText(/Why are you making this decision/i), {
       target: { value: '   ' },
     });
     expect(confirm).toBeDisabled();
@@ -385,7 +390,7 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
     });
 
     // Narrow the queue so the escalated summary row is the only inspectable case.
-    fireEvent.change(screen.getByPlaceholderText(/Filter by Case ID or Category/i), {
+    fireEvent.change(screen.getByPlaceholderText(/Search by case ID/i), {
       target: { value: 'case_demo_004' },
     });
     fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
@@ -393,7 +398,7 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
     // The advertised escalated case must resolve to a real detail view, not a 404.
     // The text names the decisions the server accepts for an escalated case.
     expect(
-      await screen.findByText(/Escalated Case: Direct approval blocked\. Manual takeover or revision required\./i)
+      await screen.findByText(/Escalated: approval is not possible\. Take the case over, or request a revision\./i)
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Approve Return/i })).toBeDisabled();
 
@@ -410,13 +415,13 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
       expect(screen.getByText('case_demo_001')).toBeInTheDocument();
     });
 
-    fireEvent.change(screen.getByPlaceholderText(/Filter by Case ID or Category/i), {
+    fireEvent.change(screen.getByPlaceholderText(/Search by case ID/i), {
       target: { value: 'case_demo_005' },
     });
     fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
 
     fireEvent.click(
-      await screen.findByRole('tab', { name: /Tamper-Evident Audit Chain/i })
+      await screen.findByRole('tab', { name: /Audit History/i })
     );
 
     expect(
@@ -440,7 +445,7 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
       expect(screen.getByText('case_demo_006')).toBeInTheDocument();
     });
 
-    fireEvent.change(screen.getByPlaceholderText(/Filter by Case ID or Category/i), {
+    fireEvent.change(screen.getByPlaceholderText(/Search by case ID/i), {
       target: { value: 'case_demo_006' },
     });
     fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
@@ -453,7 +458,7 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
 
   it('exposes the case views as tabs and keeps the window usable on a phone', async () => {
     render(<FounderConsole />);
-    fireEvent.change(await screen.findByPlaceholderText(/Filter by Case ID or Category/i), {
+    fireEvent.change(await screen.findByPlaceholderText(/Search by case ID/i), {
       target: { value: 'case_demo_004' },
     });
     fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
@@ -474,7 +479,10 @@ describe('FounderConsole (UC-03, UC-04, UC-05 & OF-006)', () => {
     expect(screen.getByRole('button', { name: /^Manual Takeover$/ }).parentElement).toHaveClass('flex-wrap');
 
     // The customer's words break inside their card and follow their own script direction.
-    const words = screen.getByText(/Purchased 50 espresso units/);
+    // The case window's summary quotes the start of the same words; this is the statement itself.
+    const words = screen
+      .getAllByText(/Purchased 50 espresso units/)
+      .find((element) => element.classList.contains('break-words')) as HTMLElement;
     expect(words).toHaveClass('break-words');
     expect(words).toHaveAttribute('dir', 'auto');
   });

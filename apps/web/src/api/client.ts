@@ -252,6 +252,41 @@ export async function verifySessionToken(token: string): Promise<SessionPrincipa
   );
 }
 
+// Customer self-registration and password sign-in (31 October 2026). Served only by an
+// API started with `demo.py serve --accounts`; neither route is in contract v1, and the
+// access key stays the fallback. The answer carries a new session token; nothing is
+// stored here, and a refusal does not change the current session state.
+export interface PasswordSession {
+  access_token: string;
+  token_type: 'Bearer';
+  expires_in: number;
+  principal_id: string;
+  role: SessionPrincipal['role'];
+}
+
+function postCredentials(path: string, username: string, password: string): Promise<PasswordSession> {
+  return request<PasswordSession>(
+    path,
+    {
+      method: 'POST',
+      // An explicit empty value keeps a saved token from being sent along.
+      headers: { 'Content-Type': 'application/json', Authorization: '' },
+      body: JSON.stringify({ username, password }),
+    },
+    false,
+    undefined,
+    false
+  );
+}
+
+export function signInWithPassword(username: string, password: string): Promise<PasswordSession> {
+  return postCredentials('/v1/auth/login', username, password);
+}
+
+export function registerCustomerAccount(username: string, password: string): Promise<PasswordSession> {
+  return postCredentials('/v1/auth/register', username, password);
+}
+
 export async function stageEvidence(
   file: File,
   description?: string,

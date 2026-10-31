@@ -25,6 +25,13 @@ function stubServer(options: { endFounderSession?: boolean } = {}) {
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const auth = new Headers(init?.headers).get('Authorization');
     const url = String(input);
+    if (url.endsWith('/v1/auth/login')) {
+      const { username, password } = JSON.parse(String(init?.body));
+      if (username === 'founder_live' && password === 'founder-pass-1234') {
+        return jsonResponse(200, { access_token: FOUNDER_KEY, token_type: 'Bearer', expires_in: 899, principal_id: 'founder_live', role: 'FOUNDER' });
+      }
+      return jsonResponse(401, { error: { code: 'UNAUTHENTICATED', message: 'The username or password is not correct.', retryable: false } });
+    }
     if (auth === `Bearer ${FOUNDER_KEY}`) {
       if (url.endsWith('/v1/session')) {
         return jsonResponse(200, { principal_id: 'founder_live', role: 'FOUNDER', enabled: true, session_id: 's_f' });
@@ -77,16 +84,17 @@ describe('sign-in and sessions (#111 item 1; 31 October 2026)', () => {
     expect(screen.getByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
   });
 
-  it('signs a Founder in to the Founder Console only, with no page switch', async () => {
+  it('signs a Founder in with a password to the Founder Console only, with no page switch', async () => {
     stubServer();
     setMockMode(false);
     setActiveRole('CUSTOMER');
     render(<App />);
 
-    fireEvent.change(screen.getByLabelText('Access key'), { target: { value: FOUNDER_KEY } });
+    fireEvent.change(screen.getByLabelText('Username'), { target: { value: 'founder_live' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'founder-pass-1234' } });
     fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
 
-    expect(await screen.findByText('Founder Console & Governance')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Founder Console' })).toBeInTheDocument();
     expect(screen.getByLabelText('Signed in as founder_live (Founder)')).toBeInTheDocument();
     expect(getStoredToken()).toBe(FOUNDER_KEY);
     expect(screen.queryByRole('button', { name: /Customer Portal/ })).not.toBeInTheDocument();
@@ -102,7 +110,7 @@ describe('sign-in and sessions (#111 item 1; 31 October 2026)', () => {
 
     expect(await screen.findByText('Customer Service Portal')).toBeInTheDocument();
     expect(screen.getByLabelText('Signed in as customer_live (Customer)')).toBeInTheDocument();
-    expect(screen.queryByText('Founder Console & Governance')).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Founder Console' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Founder Console/ })).not.toBeInTheDocument();
   });
 
@@ -126,7 +134,7 @@ describe('sign-in and sessions (#111 item 1; 31 October 2026)', () => {
     // The queue read is refused after the session check passed; the page stays,
     // with the banner above it.
     expect(await screen.findByText(SESSION_ENDED)).toBeInTheDocument();
-    expect(screen.getByText('Founder Console & Governance')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Founder Console' })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Sign in again' }));
     expect(screen.getByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
@@ -157,6 +165,6 @@ describe('sign-in and sessions (#111 item 1; 31 October 2026)', () => {
     expect(getStoredToken()).toBe(FOUNDER_KEY);
 
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
-    await waitFor(() => expect(screen.getByText('Founder Console & Governance')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Founder Console' })).toBeInTheDocument());
   });
 });

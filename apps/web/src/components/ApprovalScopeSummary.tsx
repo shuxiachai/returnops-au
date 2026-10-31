@@ -72,3 +72,48 @@ export const ApprovalScopeSummary: React.FC<{ preview: ActionPreview }> = ({ pre
     </dl>
   );
 };
+
+/**
+ * What an approval allows, in one paragraph for the Founder (31 October 2026), with the
+ * exact scope one click away and unchanged: the scope is what the server checks.
+ */
+export function describeApproval(preview: ActionPreview): string {
+  const scope = preview.scope;
+  const commands = Array.isArray(scope.commands) ? scope.commands : [];
+  const createReturn = commands.find((command) => command.type === 'CREATE_RETURN');
+  const label = commands.find((command) => command.type === 'GENERATE_LABEL');
+  const parameters = createReturn?.parameters ?? {};
+  const orderId = typeof parameters.order_id === 'string' ? parameters.order_id : null;
+  const lines = Array.isArray(parameters.line_items) ? parameters.line_items : [];
+  const items = lines.reduce<number>((total, line) => {
+    const quantity = (line as { quantity?: unknown } | null)?.quantity;
+    return total + (typeof quantity === 'number' && quantity > 0 ? quantity : 1);
+  }, 0);
+  const kind = scope.environment === 'SANDBOX' ? 'sandbox' : 'simulated';
+  const steps: string[] = [];
+  if (createReturn) {
+    steps.push(
+      `register one ${kind} return${orderId ? ` for order ${orderId}` : ''}${
+        items ? ` (${items} item${items === 1 ? '' : 's'})` : ''
+      }`
+    );
+  }
+  if (label) steps.push('create its return label');
+  const money =
+    scope.amount_ceiling_minor === 0
+      ? 'No payment is authorised'
+      : `Payments are capped at ${formatCurrency(scope.amount_ceiling_minor)} ${scope.currency}`;
+  return `This approval allows the shop to ${steps.length ? steps.join(' and ') : 'do nothing'}. ${money}. It can be used until ${formatDate(scope.expires_at)}; nothing else is authorised.`;
+}
+
+export const ApprovalScopeExplained: React.FC<{ preview: ActionPreview }> = ({ preview }) => (
+  <div className="space-y-2">
+    <p className="text-sm text-slate-800">{describeApproval(preview)}</p>
+    <details className="text-xs">
+      <summary className="cursor-pointer font-semibold text-sky-800">Exact scope (technical details)</summary>
+      <div className="mt-2">
+        <ApprovalScopeSummary preview={preview} />
+      </div>
+    </details>
+  </div>
+);

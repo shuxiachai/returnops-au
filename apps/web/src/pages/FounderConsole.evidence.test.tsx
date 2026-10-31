@@ -140,7 +140,7 @@ const EXPIRED_VIEW: CaseView = {
 async function openCase() {
   render(<FounderConsole />);
   await waitFor(() => expect(screen.getByText('case_contract_05')).toBeInTheDocument());
-  fireEvent.change(screen.getByPlaceholderText(/Filter by Case ID or Category/i), {
+  fireEvent.change(screen.getByPlaceholderText(/Search by case ID/i), {
     target: { value: 'case_contract_05' },
   });
   fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
@@ -229,13 +229,13 @@ describe('a preview that expired while the dialog is open (review round 2, findi
     // The case window is itself a dialog, so the confirmation is found by its name.
     fireEvent.click(screen.getByRole('button', { name: /Approve Return/i }));
     await waitFor(() =>
-      expect(screen.queryByRole('dialog', { name: /Confirm Founder Decision/i })).not.toBeInTheDocument()
+      expect(screen.queryByRole('dialog', { name: /Confirm:/i })).not.toBeInTheDocument()
     );
 
     // Reject does not depend on a preview, so the same case still allows it.
     fireEvent.click(screen.getByRole('button', { name: /^Reject$/i }));
-    const rejectDialog = await screen.findByRole('dialog', { name: /Confirm Founder Decision: REJECT/i });
-    fireEvent.change(screen.getByPlaceholderText(/Record justification for statutory audit/i), {
+    const rejectDialog = await screen.findByRole('dialog', { name: /Confirm: Reject/i });
+    fireEvent.change(screen.getByPlaceholderText(/Why are you making this decision/i), {
       target: { value: 'Rejected after looking at the case.' },
     });
     expect(rejectDialog).toBeInTheDocument();

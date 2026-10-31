@@ -131,7 +131,8 @@ def main():
     finish_if_requested()
 
     api = subprocess.Popen([sys.executable, '-m', 'returnops_api.demo', 'serve', '--auth-file', str(SHOP / 'auth.json'),
-                            '--port', '8000', '--fixed-proposal', '--founder-decisions'], env=environment, cwd='/app')
+                            '--port', '8000', '--fixed-proposal', '--founder-decisions', '--accounts'],
+                           env=environment, cwd='/app')
     CHILDREN.append(api)
     if not wait_ready(api, 'http://127.0.0.1:8000/health/ready', 60):
         finish_if_requested()
