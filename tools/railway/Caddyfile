@@ -18,10 +18,12 @@
 	}
 	# Vite names every file under /assets after its content, so a browser may keep it
 	# for a year; the page itself is checked again on each load, so a new deployment
-	# shows at once (31 October 2026).
+	# shows at once (31 October 2026). Only a file that exists gets the long cache: a
+	# 404 for a new name, met while a deployment switches, must not be kept for a year.
 	handle /assets/* {
 		root * /app/web
-		header Cache-Control "public, max-age=31536000, immutable"
+		@asset file
+		header @asset Cache-Control "public, max-age=31536000, immutable"
 		file_server
 	}
 	handle {
