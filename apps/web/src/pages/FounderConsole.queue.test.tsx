@@ -76,7 +76,7 @@ describe('FounderConsole queue (Live API mode)', () => {
     render(<FounderConsole />);
     await screen.findByText(ROWS[0].case_id);
 
-    fireEvent.click(screen.getByRole('button', { name: /Load Next Page/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Load more cases/i }));
     await screen.findByText(ROWS[39].case_id);
 
     // Coming back to the window reloads the 40 loaded rows in one page of 40.
@@ -84,9 +84,9 @@ describe('FounderConsole queue (Live API mode)', () => {
       window.dispatchEvent(new Event('focus'));
     });
     await waitFor(() => expect(listFounderCases).toHaveBeenCalledWith(undefined, 40));
-    await waitFor(() => expect(screen.getByRole('button', { name: /Load Next Page/i })).toBeEnabled());
+    await waitFor(() => expect(screen.getByRole('button', { name: /Load more cases/i })).toBeEnabled());
 
-    fireEvent.click(screen.getByRole('button', { name: /Load Next Page/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Load more cases/i }));
     expect(await screen.findByText(ROWS[44].case_id)).toBeInTheDocument();
     expect(vi.mocked(listFounderCases).mock.calls).toEqual([
       [undefined, 20],
@@ -110,23 +110,28 @@ describe('FounderConsole queue (Live API mode)', () => {
     expect(screen.queryByText(/undefined/)).not.toBeInTheDocument();
   });
 
-  it('shows the Gate 1 placeholder category as not yet classified', async () => {
+  // 31 October 2026: every Gate 1 case carries the placeholder category, and the
+  // versions mean nothing to the Founder, so the queue shows neither column.
+  it('shows statuses in words and no category or version column', async () => {
     serveQueue();
     render(<FounderConsole />);
     await screen.findByText(ROWS[0].case_id);
 
-    expect(screen.getAllByText('Not yet classified')).toHaveLength(20);
-    expect(screen.queryByText('Unclear Statement')).not.toBeInTheDocument();
+    expect(screen.getAllByTitle('RISK_REVIEW')[0]).toHaveTextContent('Risk Review');
+    expect(screen.queryByText('RISK_REVIEW')).not.toBeInTheDocument();
+    expect(screen.queryByText('Not yet classified')).not.toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: /Category|Version/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/^v\d+ \/ in\d+$/)).not.toBeInTheDocument();
   });
 
-  it('finds rows by the category words on screen and says when the store has no case yet', async () => {
+  it('finds rows by the status words on screen and says when the store has no case yet', async () => {
     serveQueue();
     const view = render(<FounderConsole />);
     await screen.findByText(ROWS[0].case_id);
-    const search = screen.getByPlaceholderText(/Filter by Case ID or Category/i);
+    const search = screen.getByPlaceholderText(/Search by case ID/i);
 
-    // The table shows "Not yet classified", so that is what the Founder types.
-    fireEvent.change(search, { target: { value: ' not yet ' } });
+    // The table shows the status in words, so that is what the Founder types.
+    fireEvent.change(search, { target: { value: ' risk review ' } });
     expect(screen.getAllByRole('button', { name: /Inspect/i })).toHaveLength(20);
     fireEvent.change(search, { target: { value: 'zzzz' } });
     expect(screen.getByText('No matching cases found.')).toBeInTheDocument();

@@ -27,7 +27,7 @@ import {
   formatApiError,
 } from '../api/client';
 import { selectDecisionTarget, describeDecisionError } from '../api/founderDecision';
-import { ApprovalScopeSummary } from '../components/ApprovalScopeSummary';
+import { ApprovalScopeExplained } from '../components/ApprovalScopeSummary';
 import {
   CaseSummary,
   CaseView,
@@ -45,11 +45,11 @@ import {
   formatCurrency,
   getStatusBadgeClass,
   getRiskBadgeClass,
-  formatCategory,
   formatActor,
   formatStatusLabel,
   formatRecommendation,
   describeProposalSource,
+  formatRequestedOutcome,
 } from '../utils/formatters';
 import { AdvisoryFactsCard } from '../components/AdvisoryFactsCard';
 import { CaseOutcomePanel } from '../components/CaseOutcomePanel';
@@ -78,6 +78,50 @@ const CASE_STATUSES: CaseStatus[] = [
   'REJECTED',
   'MANUAL_HANDLED',
 ];
+
+// The words a decision goes by on screen (31 October 2026); the wire value stays the code.
+const DECISION_LABEL: Record<FounderDecisionType, string> = {
+  APPROVE: 'Approve return',
+  REJECT: 'Reject',
+  REQUEST_REVISION: 'Request revision',
+  MANUAL_HANDLING: 'Manual takeover',
+};
+
+// The two states that wait for the Founder: the queue lists them first and marks them.
+const NEEDS_FOUNDER: CaseStatus[] = ['AWAITING_APPROVAL', 'ESCALATED'];
+
+// Who the case is waiting on, in one sentence at the top of the case window.
+function nextStep(status: CaseStatus): string {
+  switch (status) {
+    case 'AWAITING_APPROVAL':
+      return 'Your decision is needed.';
+    case 'ESCALATED':
+      return 'Your decision is needed: nothing automatic may decide this case.';
+    case 'AWAITING_INFORMATION':
+      return "Waiting for the customer's answers.";
+    case 'SUBMITTED':
+    case 'UNDER_INVESTIGATION':
+    case 'POLICY_ASSESSMENT':
+    case 'RISK_REVIEW':
+      return 'The system is preparing the case; nothing is needed from you yet.';
+    case 'APPROVED':
+    case 'ACTION_IN_PROGRESS':
+    case 'RECONCILING':
+      return 'Your decision is being carried out.';
+    case 'NOTIFICATION_PENDING':
+      return 'The customer is being notified.';
+    case 'ACTION_FAILED':
+    case 'NOTIFICATION_FAILED':
+      return 'A step after the decision failed; see Decision & Outcome.';
+    default:
+      return 'Closed.';
+  }
+}
+
+function excerpt(text: string, limit = 160): string {
+  const flat = text.replace(/\s+/g, ' ').trim();
+  return flat.length > limit ? `${flat.slice(0, limit - 1)}…` : flat;
+}
 
 export const FounderConsole: React.FC = () => {
   const [activeSubTab, setActiveSubTab] = useState<'queue' | 'analytics'>('queue');
@@ -479,16 +523,48 @@ export const FounderConsole: React.FC = () => {
   };
 
   const searchText = searchFilter.trim().toLowerCase();
-  const filteredCases = cases.filter((c) => {
-    // The category matches by its value and by the words the table shows for it.
-    const matchesSearch =
-      c.case_id.toLowerCase().includes(searchText) ||
-      (c.issue_category &&
-        (c.issue_category.toLowerCase().includes(searchText) ||
-          formatCategory(c.issue_category).toLowerCase().includes(searchText)));
-    const matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const filteredCases = cases
+    .filter((c) => {
+      // The status matches by its value and by the words the table shows for it.
+      const matchesSearch =
+        c.case_id.toLowerCase().includes(searchText) ||
+        c.status.toLowerCase().includes(searchText) ||
+        formatStatusLabel(c.status).toLowerCase().includes(searchText);
+      const matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    })
+    // Cases that wait for the Founder first, then the most recently updated (31 October 2026).
+    .map((c, index) => ({ c, index }))
+    .sort((a, b) => {
+      const waiting = Number(NEEDS_FOUNDER.includes(b.c.status)) - Number(NEEDS_FOUNDER.includes(a.c.status));
+      if (waiting !== 0) return waiting;
+      const updated = Date.parse(b.c.updated_at) - Date.parse(a.c.updated_at);
+      return Number.isNaN(updated) || updated === 0 ? a.index - b.index : updated;
+    })
+    .map(({ c }) => c);
+
+  // The four tiles filter the queue; each shows how many loaded cases it holds.
+  const tiles: { label: string; filter: string; count: number; tone: string }[] = [
+    { label: 'All cases', filter: 'ALL', count: cases.length, tone: 'border-slate-200 text-slate-500 text-slate-900' },
+    {
+      label: 'Needs your approval',
+      filter: 'AWAITING_APPROVAL',
+      count: cases.filter((c) => c.status === 'AWAITING_APPROVAL').length,
+      tone: 'border-purple-200 text-purple-700 text-purple-900',
+    },
+    {
+      label: 'In risk review',
+      filter: 'RISK_REVIEW',
+      count: cases.filter((c) => c.status === 'RISK_REVIEW').length,
+      tone: 'border-indigo-200 text-indigo-700 text-indigo-900',
+    },
+    {
+      label: 'Escalated',
+      filter: 'ESCALATED',
+      count: cases.filter((c) => c.status === 'ESCALATED').length,
+      tone: 'border-rose-200 text-rose-700 text-rose-900',
+    },
+  ];
 
   return (
     <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-6">
@@ -496,10 +572,10 @@ export const FounderConsole: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 pb-4 gap-4">
         <div>
           <div className="flex items-center space-x-2">
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Founder Console & Governance</h1>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Founder Console</h1>
             {isMockMode() && (
               <span className="bg-sky-100 text-sky-800 text-xs px-2.5 py-0.5 rounded-full font-semibold">
-                Store: store_demo (mock data)
+                Sample store
               </span>
             )}
           </div>
@@ -540,28 +616,27 @@ export const FounderConsole: React.FC = () => {
         <div className="space-y-6">
           {/* Quick Metrics Bar */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Cases Loaded</div>
-              <div className="text-2xl font-bold text-slate-900 mt-1">{cases.length}</div>
-            </div>
-            <div className="bg-white p-4 rounded-2xl border border-purple-200 shadow-sm">
-              <div className="text-xs font-semibold text-purple-700 uppercase tracking-wider">Awaiting Approval</div>
-              <div className="text-2xl font-bold text-purple-900 mt-1">
-                {cases.filter((c) => c.status === 'AWAITING_APPROVAL').length}
-              </div>
-            </div>
-            <div className="bg-white p-4 rounded-2xl border border-indigo-200 shadow-sm">
-              <div className="text-xs font-semibold text-indigo-700 uppercase tracking-wider">Risk Review</div>
-              <div className="text-2xl font-bold text-indigo-900 mt-1">
-                {cases.filter((c) => c.status === 'RISK_REVIEW').length}
-              </div>
-            </div>
-            <div className="bg-white p-4 rounded-2xl border border-rose-200 shadow-sm">
-              <div className="text-xs font-semibold text-rose-700 uppercase tracking-wider">Escalated / Blocked</div>
-              <div className="text-2xl font-bold text-rose-900 mt-1">
-                {cases.filter((c) => c.status === 'ESCALATED').length}
-              </div>
-            </div>
+            {tiles.map((tile) => {
+              const [border, labelColour, countColour] = tile.tone.split(' ');
+              const active = statusFilter === tile.filter;
+              return (
+                <button
+                  key={tile.filter}
+                  type="button"
+                  onClick={() => handleStatusFilterChange(tile.filter)}
+                  aria-pressed={active}
+                  className={`text-left bg-white p-4 rounded-2xl border shadow-sm transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-sky-500 ${border} ${
+                    active ? 'ring-2 ring-sky-500' : ''
+                  }`}
+                >
+                  <div className={`text-xs font-semibold uppercase tracking-wider ${labelColour}`}>{tile.label}</div>
+                  <div className={`text-2xl font-bold mt-1 ${countColour}`}>
+                    {tile.count}
+                    {tile.filter === 'ALL' && nextCursor ? '+' : ''}
+                  </div>
+                </button>
+              );
+            })}
           </div>
 
           {/* Filter Bar */}
@@ -572,8 +647,9 @@ export const FounderConsole: React.FC = () => {
                 type="text"
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
-                placeholder="Filter by Case ID or Category..."
-                className="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500 font-mono"
+                placeholder="Search by case ID or status..."
+                aria-label="Search the queue by case ID or status"
+                className="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500"
               />
             </div>
 
@@ -663,9 +739,7 @@ export const FounderConsole: React.FC = () => {
                   <tr>
                     <th className="px-6 py-3.5">Case ID</th>
                     <th className="px-4 py-3.5">Status</th>
-                    <th className="px-4 py-3.5">Category</th>
                     <th className="px-4 py-3.5">Risk Outcome</th>
-                    <th className="px-4 py-3.5">Version</th>
                     <th className="px-4 py-3.5">Updated</th>
                     <th className="px-6 py-3.5 text-right sticky right-0 bg-slate-50">Actions</th>
                   </tr>
@@ -673,7 +747,7 @@ export const FounderConsole: React.FC = () => {
                 <tbody className="divide-y divide-slate-100 bg-white">
                   {filteredCases.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-6 py-8 text-center text-slate-400">
+                      <td colSpan={5} className="px-6 py-8 text-center text-slate-400">
                         {isLoadingCases
                           ? 'Loading case queue...'
                           : cases.length > 0
@@ -685,8 +759,17 @@ export const FounderConsole: React.FC = () => {
                     </tr>
                   ) : (
                     filteredCases.map((c) => (
-                      <tr key={c.case_id} className="group hover:bg-slate-50/80 transition-colors">
-                        <td className="px-6 py-4 font-mono font-bold text-slate-900 whitespace-nowrap">
+                      <tr
+                        key={c.case_id}
+                        className={`group transition-colors ${
+                          NEEDS_FOUNDER.includes(c.status) ? 'bg-amber-50/60 hover:bg-amber-50' : 'hover:bg-slate-50/80'
+                        }`}
+                      >
+                        <td
+                          className={`px-6 py-4 font-mono font-bold text-slate-900 whitespace-nowrap border-l-4 ${
+                            NEEDS_FOUNDER.includes(c.status) ? 'border-amber-400' : 'border-transparent'
+                          }`}
+                        >
                           {/* A server case ID is 37 characters; the full ID is on hover and in the case window. */}
                           <span className="block max-w-[12rem] truncate" title={c.case_id}>
                             {c.case_id}
@@ -694,15 +777,16 @@ export const FounderConsole: React.FC = () => {
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap">
                           <span
+                            title={c.status}
                             className={`px-2.5 py-0.5 rounded-full font-semibold border ${getStatusBadgeClass(
                               c.status
                             )}`}
                           >
-                            {c.status}
+                            {formatStatusLabel(c.status)}
                           </span>
-                        </td>
-                        <td className="px-4 py-4 text-slate-700 whitespace-nowrap font-medium">
-                          {formatCategory(c.issue_category)}
+                          {NEEDS_FOUNDER.includes(c.status) && (
+                            <span className="ml-2 text-[11px] font-semibold text-amber-700">Needs you</span>
+                          )}
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap">
                           {c.current_risk_outcome ? (
@@ -717,11 +801,12 @@ export const FounderConsole: React.FC = () => {
                             <span className="text-slate-400">—</span>
                           )}
                         </td>
-                        <td className="px-4 py-4 font-mono text-slate-500">
-                          v{c.case_version} / in{c.input_version}
-                        </td>
                         <td className="px-4 py-4 text-slate-500 whitespace-nowrap">{formatDate(c.updated_at)}</td>
-                        <td className="px-6 py-4 text-right whitespace-nowrap sticky right-0 bg-white group-hover:bg-slate-50">
+                        <td
+                          className={`px-6 py-4 text-right whitespace-nowrap sticky right-0 ${
+                            NEEDS_FOUNDER.includes(c.status) ? 'bg-amber-50 group-hover:bg-amber-50' : 'bg-white group-hover:bg-slate-50'
+                          }`}
+                        >
                           <button
                             onClick={() => openCaseDetail(c.case_id)}
                             className="px-3.5 py-1.5 bg-sky-50 hover:bg-sky-100 text-sky-700 font-semibold rounded-lg border border-sky-200 transition-colors flex items-center space-x-1 ml-auto"
@@ -755,7 +840,7 @@ export const FounderConsole: React.FC = () => {
                   className="px-4 py-1.5 bg-white hover:bg-slate-100 disabled:opacity-50 text-sky-700 font-semibold border border-slate-300 rounded-lg flex items-center space-x-1.5 transition-colors shadow-sm"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${isLoadingMore ? 'animate-spin' : ''}`} />
-                  <span>{isLoadingMore ? 'Loading Next Page...' : 'Load Next Page (Next Cursor)'}</span>
+                  <span>{isLoadingMore ? 'Loading more cases...' : 'Load more cases'}</span>
                 </button>
               )}
             </div>
@@ -786,15 +871,19 @@ export const FounderConsole: React.FC = () => {
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
                 <span className="font-mono text-lg font-bold text-slate-900 break-all">{caseDetail.case_id}</span>
                 <span
+                  title={caseDetail.status}
                   className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getStatusBadgeClass(
                     caseDetail.status
                   )}`}
                 >
-                  {caseDetail.status}
+                  {formatStatusLabel(caseDetail.status)}
                 </span>
-                <span className="text-xs text-slate-500 font-mono">v{caseDetail.case_version}</span>
                 {pollingOpenCase && (
-                  <span className="text-[11px] text-slate-400">Updates every 5 seconds</span>
+                  <span className="flex items-center gap-1 text-[11px] text-emerald-700" title="Updates every 5 seconds">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+                    <span aria-hidden="true">Live</span>
+                    <span className="sr-only">Updates every 5 seconds</span>
+                  </span>
                 )}
               </div>
               <button
@@ -806,6 +895,33 @@ export const FounderConsole: React.FC = () => {
               >
                 <X className="w-5 h-5" />
               </button>
+            </div>
+
+            {/* What the case is and who it waits on, before any tab (31 October 2026). */}
+            <div className="px-6 py-3 border-b border-slate-100 bg-white text-sm space-y-1 flex-shrink-0">
+              <p className="text-slate-800">
+                <span className="font-semibold">Next step:</span> {nextStep(caseDetail.status)}
+              </p>
+              {(() => {
+                const original = caseDetail.statements.find((s) => s.kind === 'ORIGINAL');
+                if (!original) return null;
+                const wants = original.requested_outcome && original.requested_outcome !== 'UNSPECIFIED'
+                  ? formatRequestedOutcome(original.requested_outcome)
+                  : null;
+                return (
+                  <p className="text-slate-600 break-words" dir="auto">
+                    <span className="font-semibold text-slate-700">Customer wrote:</span>{' '}
+                    <span>{`“${excerpt(original.raw_text)}”`}</span>
+                    {wants && <span className="text-slate-500">{` · wants ${wants.toLowerCase()}`}</span>}
+                  </p>
+                );
+              })()}
+              {caseDetail.order_snapshot && (
+                <p className="text-slate-600">
+                  <span className="font-semibold text-slate-700">Order:</span>
+                  {` ${caseDetail.order_snapshot.order_id}, bought ${formatDate(caseDetail.order_snapshot.purchased_at)}`}
+                </p>
+              )}
             </div>
 
             {/* Modal Nav Tabs: a tablist that scrolls sideways when it is wider than the screen. */}
@@ -840,7 +956,7 @@ export const FounderConsole: React.FC = () => {
                 }`}
               >
                 <Package className="w-4 h-4" />
-                <span>Order & Facts Projection</span>
+                <span>Order & Facts</span>
               </button>
               <button
                 type="button"
@@ -882,7 +998,7 @@ export const FounderConsole: React.FC = () => {
                 }`}
               >
                 <Lock className="w-4 h-4" />
-                <span>Tamper-Evident Audit Chain</span>
+                <span>Audit History</span>
               </button>
             </div>
 
@@ -1217,12 +1333,10 @@ export const FounderConsole: React.FC = () => {
                     <div className="bg-sky-50 rounded-2xl p-5 border border-sky-200 space-y-3">
                       <div className="flex items-center space-x-2">
                         <Package className="w-5 h-5 text-sky-600" />
-                        <h4 className="font-bold text-sky-950 text-sm">
-                          Execution Preview (Operations Service)
-                        </h4>
+                        <h4 className="font-bold text-sky-950 text-sm">What an approval would allow</h4>
                       </div>
                       <div className="bg-white p-3.5 rounded-xl border border-sky-200">
-                        <ApprovalScopeSummary preview={caseDetail.action_preview} />
+                        <ApprovalScopeExplained preview={caseDetail.action_preview} />
                       </div>
                       {/* Demo-only extension fields: shown only when a fixture carries them */}
                       {(caseDetail.action_preview.operation_type !== undefined ||
@@ -1469,21 +1583,19 @@ export const FounderConsole: React.FC = () => {
                   <span className="text-rose-600 font-semibold">
                     {/* The server accepts only REQUEST_REVISION (on the current proposal)
                         and MANUAL_HANDLING for an escalated case. */}
-                    Escalated Case: Direct approval blocked.{' '}
+                    Escalated: approval is not possible.{' '}
                     {caseDetail.current_proposal
-                      ? 'Manual takeover or revision required.'
-                      : 'Manual takeover required.'}
+                      ? 'Take the case over, or request a revision.'
+                      : 'Take the case over.'}
                   </span>
-                ) : decisionUnavailable('APPROVE') ? (
+                ) : caseDetail.status === 'AWAITING_APPROVAL' && decisionUnavailable('APPROVE') ? (
                   <span className="text-amber-700 font-semibold">{decisionUnavailable('APPROVE')}</span>
-                ) : (
-                  <span>Governed Decision Controls · Approval Guard Active</span>
-                )}
-                {!isMockMode() && (
-                  <div>
-                    Live Mode: decisions are sent to the server, which applies its own guards and may refuse them.
-                  </div>
-                )}
+                ) : (['APPROVE', 'REQUEST_REVISION', 'REJECT', 'MANUAL_HANDLING'] as FounderDecisionType[]).every(
+                    (decision) => decisionUnavailable(decision) !== null
+                  ) ? (
+                  <span>No decision is open on this case in its current state.</span>
+                ) : null}
+                {!isMockMode() && <div>The server checks every decision again and may refuse it.</div>}
               </div>
 
               <div className="flex flex-wrap items-center justify-end gap-2">
@@ -1556,7 +1668,7 @@ export const FounderConsole: React.FC = () => {
           >
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
               <h4 id="decision-dialog-title" className="font-bold text-slate-900 text-sm">
-                Confirm Founder Decision: {pendingDecision}
+                Confirm: {DECISION_LABEL[pendingDecision]}
               </h4>
               <button
                 onClick={() => setDecisionModalOpen(false)}
@@ -1582,12 +1694,13 @@ export const FounderConsole: React.FC = () => {
 
               <div className="text-xs text-slate-600 space-y-1">
                 <div>
-                  Case Target:{' '}
-                  <strong className="font-mono text-slate-900 break-all">{caseDetail.case_id}</strong> (v{caseDetail.case_version})
+                  Case:{' '}
+                  <strong className="font-mono text-slate-900 break-all">{caseDetail.case_id}</strong> (version{' '}
+                  {caseDetail.case_version})
                 </div>
                 {caseDetail.current_proposal && (
                   <div>
-                    Bound Proposal:{' '}
+                    Proposal:{' '}
                     <strong className="font-mono text-slate-900 break-all">
                       {caseDetail.current_proposal.proposal_id}
                     </strong>
@@ -1596,13 +1709,13 @@ export const FounderConsole: React.FC = () => {
                 {/* Same precedence as selectDecisionTarget: failure, then order-lookup block. */}
                 {!caseDetail.current_proposal && caseDetail.processing_failure && (
                   <div>
-                    Bound processing failure:{' '}
+                    Processing failure:{' '}
                     <strong className="font-mono text-slate-900 break-all">{caseDetail.processing_failure.failure_id}</strong>
                   </div>
                 )}
                 {!caseDetail.current_proposal && !caseDetail.processing_failure && caseDetail.order_lookup_block && (
                   <div>
-                    Bound order-lookup block:{' '}
+                    Order lookup problem:{' '}
                     <strong className="font-mono text-slate-900 break-all">{caseDetail.order_lookup_block.block_id}</strong>
                   </div>
                 )}
@@ -1610,24 +1723,24 @@ export const FounderConsole: React.FC = () => {
 
               {pendingDecision === 'APPROVE' && caseDetail.action_preview && (
                 <div className="p-3.5 bg-sky-50 border border-sky-200 rounded-xl space-y-2">
-                  <div className="text-xs font-bold uppercase tracking-wider text-sky-900">
-                    Approval scope: this is all the approval authorises
-                  </div>
-                  <ApprovalScopeSummary preview={caseDetail.action_preview} />
+                  <div className="text-xs font-bold uppercase tracking-wider text-sky-900">What this approval allows</div>
+                  <ApprovalScopeExplained preview={caseDetail.action_preview} />
                 </div>
               )}
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                  Mandatory Governance Rationale <span className="text-rose-500">*</span>
+                <label htmlFor="decision-reason" className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                  Reason <span className="text-rose-500">*</span>
                 </label>
+                <p className="text-[11px] text-slate-500 mb-1.5">Required. It is kept with the decision in the case history.</p>
                 <textarea
+                  id="decision-reason"
                   rows={3}
                   required
                   maxLength={2000}
                   value={decisionReason}
                   onChange={(e) => setDecisionReason(e.target.value)}
-                  placeholder="Record justification for statutory audit and customer notification..."
+                  placeholder="Why are you making this decision?"
                   disabled={isSubmittingDecision}
                   // The rationale is the first thing to type, so focus starts here.
                   autoFocus
@@ -1685,7 +1798,7 @@ export const FounderConsole: React.FC = () => {
             className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-end gap-3 text-xs"
           >
             <label className="flex flex-col gap-1 font-semibold text-slate-600">
-              Created from (UTC, inclusive)
+              Created from (UTC date)
               <input
                 type="date"
                 value={filterFrom}
@@ -1695,7 +1808,7 @@ export const FounderConsole: React.FC = () => {
               />
             </label>
             <label className="flex flex-col gap-1 font-semibold text-slate-600">
-              Created before (UTC, exclusive)
+              Created before (UTC date, not included)
               <input
                 type="date"
                 value={filterBefore}
@@ -1715,7 +1828,7 @@ export const FounderConsole: React.FC = () => {
                 <option value="">All statuses</option>
                 {CASE_STATUSES.map((status) => (
                   <option key={status} value={status}>
-                    {status}
+                    {formatStatusLabel(status)}
                   </option>
                 ))}
               </select>
@@ -1741,7 +1854,7 @@ export const FounderConsole: React.FC = () => {
 
           {isMockMode() && (
             <p className="text-xs text-slate-500">
-              Mock Mode shows one fixed synthetic snapshot, so the filters are disabled; the live server applies them.
+              The sample data is one fixed snapshot, so the filters are off here.
             </p>
           )}
 
@@ -1762,7 +1875,7 @@ export const FounderConsole: React.FC = () => {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                   <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Total Case Volume
+                    Total cases
                   </div>
                   <div className="text-3xl font-extrabold text-slate-900 mt-2">
                     {analytics.case_count}
@@ -1771,7 +1884,7 @@ export const FounderConsole: React.FC = () => {
 
                 <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                   <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Unreviewed Cases
+                    Not yet risk-reviewed
                   </div>
                   <div className="text-3xl font-extrabold text-amber-600 mt-2">
                     {analytics.cases_without_current_review}
@@ -1780,7 +1893,7 @@ export const FounderConsole: React.FC = () => {
 
                 <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                   <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    p50 Median Latency
+                    Typical time to proposal
                   </div>
                   <div className="text-3xl font-extrabold text-indigo-600 mt-2">
                     {analytics.proposal_latency.p50_ms !== undefined
@@ -1797,7 +1910,7 @@ export const FounderConsole: React.FC = () => {
                 <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                   <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     {/* A measured percentile only: no service level is promised. */}
-                    p95 Latency
+                    Slow cases (95th percentile)
                   </div>
                   <div className="text-3xl font-extrabold text-purple-600 mt-2">
                     {analytics.proposal_latency.p95_ms !== undefined
@@ -1845,7 +1958,7 @@ export const FounderConsole: React.FC = () => {
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center space-x-2">
                   <TrendingUp className="w-4 h-4 text-sky-600" />
-                  <span>Case Status Distribution</span>
+                  <span>Cases by status</span>
                 </h3>
 
                 <div className="space-y-3">
@@ -1857,7 +1970,9 @@ export const FounderConsole: React.FC = () => {
                     return (
                       <div key={status} className="space-y-1">
                         <div className="flex items-center justify-between text-xs">
-                          <span className="font-medium text-slate-700">{status}</span>
+                          <span className="font-medium text-slate-700" title={status}>
+                            {formatStatusLabel(status)}
+                          </span>
                           <span className="font-mono text-slate-500">
                             {count} ({pct.toFixed(0)}%)
                           </span>
@@ -1879,7 +1994,7 @@ export const FounderConsole: React.FC = () => {
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center space-x-2">
                   <ShieldCheck className="w-4 h-4 text-purple-600" />
-                  <span>Risk Review Outcome Distribution</span>
+                  <span>Cases by risk review outcome</span>
                 </h3>
 
                 {analytics.current_risk_counts.length === 0 && (

@@ -31,6 +31,26 @@ REQUESTED = []
 CHILDREN = []
 
 
+def serve_arguments(environ):
+    """The demo API's command. The advisory model showcase (docs/44) runs only when the service
+    variable RETURNOPS_MODEL_SHOWCASE is 1 and the model variables are complete and valid;
+    otherwise the demonstration starts without it rather than not at all (31 October 2026).
+    The messages name variables only, never their values."""
+    arguments = [sys.executable, '-m', 'returnops_api.demo', 'serve', '--auth-file', str(SHOP / 'auth.json'),
+                 '--port', '8000', '--fixed-proposal', '--founder-decisions', '--accounts']
+    if environ.get('RETURNOPS_MODEL_SHOWCASE') != '1':
+        return arguments
+    from returnops_api.model_settings import ModelSettings
+    from returnops_api.settings import ConfigurationError
+    try:
+        ModelSettings.from_environment(environ)
+    except ConfigurationError as error:
+        say(f'model showcase requested but not configured ({error}); starting without it')
+        return arguments
+    say('model showcase on: advisory facts for the Founder; the key is not printed')
+    return arguments + ['--model-showcase']
+
+
 def say(text):
     print(f'[demo start] {text}', flush=True)
 
@@ -130,8 +150,7 @@ def main():
     run('demo provision', [sys.executable, '-m', 'returnops_api.demo', 'provision', '--private-dir', str(SHOP), *PROVISION], environment)
     finish_if_requested()
 
-    api = subprocess.Popen([sys.executable, '-m', 'returnops_api.demo', 'serve', '--auth-file', str(SHOP / 'auth.json'),
-                            '--port', '8000', '--fixed-proposal', '--founder-decisions'], env=environment, cwd='/app')
+    api = subprocess.Popen(serve_arguments(environment), env=environment, cwd='/app')
     CHILDREN.append(api)
     if not wait_ready(api, 'http://127.0.0.1:8000/health/ready', 60):
         finish_if_requested()

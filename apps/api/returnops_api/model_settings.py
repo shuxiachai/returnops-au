@@ -9,8 +9,8 @@ from pydantic import BaseModel, ConfigDict, SecretStr
 
 from returnops_domain.coordinator_showcase import ShowcaseSettings
 from returnops_domain.errors import FlowError
-from returnops_domain.model_transport import (DIALECT, MAX_DEADLINE_SECONDS, ChatCompletionsTransport,
-    validate_base_url, validate_proxy_url)
+from returnops_domain.model_transport import (DIALECT, MAX_DEADLINE_SECONDS, BudgetedTransport,
+    ChatCompletionsTransport, validate_base_url, validate_proxy_url)
 from returnops_domain.wire import validate
 
 from .settings import ConfigurationError
@@ -32,6 +32,8 @@ class ModelSettings(BaseModel):
     dialect: str = DIALECT
     proxy_url: str | None = None
     allow_private_http: bool = False
+    # Optional cap on model calls in this process; Railway sets it (31 October 2026).
+    max_calls: int | None = None
 
     @classmethod
     def from_environment(cls, environ=None) -> "ModelSettings":
@@ -78,14 +80,18 @@ class ModelSettings(BaseModel):
                 failed = True
             if failed:
                 _fail("Set RETURNOPS_MODEL_PROXY_URL to http(s)://host:port without credentials.")
+        max_calls = env.get("RETURNOPS_MODEL_MAX_CALLS") or None
+        if max_calls is not None and not (max_calls.isascii() and max_calls.isdigit() and 1 <= int(max_calls) <= 100000):
+            _fail("Set RETURNOPS_MODEL_MAX_CALLS to a whole number from 1 to 100000, or leave it unset.")
         return cls(base_url=base_url, api_key=SecretStr(key), model_id=model_id, provider_id=provider_id,
                    deadline_seconds=int(deadline), dialect=dialect, proxy_url=proxy,
-                   allow_private_http=private_http == "1")
+                   allow_private_http=private_http == "1", max_calls=None if max_calls is None else int(max_calls))
 
-    def transport(self) -> ChatCompletionsTransport:
-        return ChatCompletionsTransport(self.base_url, self.api_key, self.model_id,
-                                   deadline_seconds=self.deadline_seconds, proxy_url=self.proxy_url,
-                                   allow_private_http=self.allow_private_http)
+    def transport(self):
+        transport = ChatCompletionsTransport(self.base_url, self.api_key, self.model_id,
+                                             deadline_seconds=self.deadline_seconds, proxy_url=self.proxy_url,
+                                             allow_private_http=self.allow_private_http)
+        return transport if self.max_calls is None else BudgetedTransport(transport, self.max_calls)
 
     def worker_settings(self) -> ShowcaseSettings:
         return ShowcaseSettings(provider_id=self.provider_id, model_id=self.model_id)

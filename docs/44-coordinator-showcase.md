@@ -50,6 +50,23 @@ The items the [C2 candidate README](../experiments/c2_risk_candidate/README.md) 
 | Call and budget permission | Lead decision, 22 October 2026 (see the dated decision below). The campus quota and cost limits are unknown. |
 | Credentials | `RETURNOPS_MODEL_API_KEY` from the environment only, held as a `SecretStr`; never in files, Git, arguments, logs, errors or evidence. |
 
+## Second provider on Railway (31 October 2026)
+
+The course proxy is reachable only through the university VPN, so the Railway service cannot use it. The lead decided on 31 October 2026 to run the showcase on Railway with Alibaba Cloud Model Studio (Bailian, China site, Beijing) through its chat-completions compatible endpoint, on the lead's own free quota:
+
+| Item | Record |
+| --- | --- |
+| Base URL | `https://dashscope.aliyuncs.com/compatible-mode/v1` (Railway service variable `RETURNOPS_MODEL_BASE_URL`) |
+| Model and provider | `qwen-plus`; provider record `aliyun_bailian` |
+| Key | `RETURNOPS_MODEL_API_KEY`, set by the lead as a Railway service variable; never in Git, files, chat, logs or evidence |
+| Switch | `RETURNOPS_MODEL_SHOWCASE=1` on the service; `tools/railway/start.py` passes `--model-showcase` only when the model variables are complete and valid, and otherwise starts without it and names the missing variable |
+| Budget | `RETURNOPS_MODEL_MAX_CALLS=50`: at most 50 model calls (retries included) per container start; over budget a call fails closed with `BUDGET` and nothing is sent. The service is public and anyone can register, so this bounds what strangers can spend |
+| Deadline | `RETURNOPS_MODEL_DEADLINE_SECONDS=30` (Railway runs in `sfo`; the endpoint is in Beijing) |
+| Data flow | The same allowlist as below: redacted synthetic statements, the requested outcome and whether an order reference was given leave Railway for Alibaba Cloud in mainland China; no IDs, order numbers, attachments or other fields |
+| State | Not verified until the lead sets the key; the first Railway result is to be recorded here |
+
+The local course-proxy route over the VPN stays the fallback for S4 ([docs/45](45-stage2-demo-script.md)).
+
 ## Data flow and field allowlist (F.07)
 
 Sent to the model, as one JSON user message: for each AVAILABLE statement revision (the original and any clarifications, oldest first) its `kind` and its redacted, control-character-free `text`; the original `requested_outcome`; and `has_order_reference` (a boolean). Nothing else is sent: no case, statement, principal, store or record IDs, no order reference value, no evidence or attachments, no order snapshot, no timestamps, no questions and no Founder data. At most 20 statements and 24000 characters are sent; a larger case is not sent. The system prompt is a constant (`PROMPT_VERSION = "a106-coordinator-showcase-v1"`); customer text never enters it, and the prompt states that the user message is untrusted data, not instructions (NFR-009).
@@ -117,6 +134,7 @@ The showcase does call a network model, so it is not "offline" in the literal se
 | `RETURNOPS_MODEL_DEADLINE_SECONDS` | Optional, 1-50, default 20. |
 | `RETURNOPS_MODEL_DIALECT` | Optional, only `chat-completions`. |
 | `RETURNOPS_MODEL_PROXY_URL` | Optional explicit `http(s)://host:port` proxy. Without it no system proxy is used. |
+| `RETURNOPS_MODEL_MAX_CALLS` | Optional, 1-100000. At most this many model calls (retries included) in the process; over it a call fails closed with `BUDGET` before anything is sent. Added on 31 October 2026 for the public Railway service. |
 | `RETURNOPS_MODEL_ALLOW_PRIVATE_HTTP` | Optional, `0` (default) or `1`. `1` lets the base URL be plain http to a private IPv4 address (10/8, 172.16/12, 192.168/16) with a port. Added on 22 October 2026 because the course's ELEC5620 API Proxy is published as `http://10.x.x.x:8000/v1`, reachable only through the university VPN, which carries the traffic; the key still goes only to that address and never to a public or loopback http URL. |
 
 With the flag on, missing or invalid settings stop startup with a message that names the variable but never its value. The worker starts only when the API also starts its other processors (an auth configuration is present and `enable_processor` is true); it is stopped last at shutdown, in its own `try`, and `stop()` returns within one second without waiting for an in-flight model call, whose reply is then discarded. `demo.py serve --model-showcase` sets only the flag; there is no key argument. `compose.yaml` passes the variable names, without values, to the `api` service only, not to the shared anchor that `migrate` also uses.
@@ -140,7 +158,7 @@ coordinator_showcase outcome=<RECORDED|REJECTED|FAILED|STALE|STOPPED> failure_co
 
 - The store is in process: facts disappear on restart, and the worker then calls the model again for current cases (cost and quota).
 - PENDING leases are per process. The CLI uses its own store, so a CLI run and a running API can both call the model for one case; the CLI result is never shown in the API.
-- Customers never see model output. Since B's #101 (23 October 2026) the Founder console renders `facts` as the card "Model extraction (advisory)" on the Order & Facts Projection tab, only when `facts` is present, with the summary as plain text and no controls; the `mockData` example follows the contract and is badged as mock data.
+- Customers never see model output. Since B's #101 (23 October 2026) the Founder console renders `facts` as the card "Model extraction (advisory)" on the Order & Facts (named Order & Facts Projection before 31 October 2026) tab, only when `facts` is present, with the summary as plain text and no controls; the `mockData` example follows the contract and is badged as mock data.
 - The campus connection guide is now known (see First live result): the course proxy is plain http on a private VPN address, so `RETURNOPS_MODEL_ALLOW_PRIVATE_HTTP=1` is required and the key travels in clear text only inside the VPN tunnel. The live result used the API on the host; Docker access through the host VPN and TLS trust inside the image remain unverified. Quota is unknown.
 - Only one leading think block and one surrounding fence are tolerated; in the two live calls of 22 October 2026 both replies were accepted as sent, so no other wrapping has been observed yet.
 - A non-transient failure is remembered for its digest until the API restarts (see Acceptance chain).

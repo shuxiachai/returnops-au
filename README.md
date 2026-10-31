@@ -360,7 +360,14 @@ without printing it **(not verified)**:
 
 `demo.py provision` needs a new absolute directory whose parent exists
 (`tmp/` is git-ignored) and writes `auth.json` and `sessions.json` there; the
-sessions last 899 s. The builtin synthetic orders
+sessions last 899 s. Since 31 October 2026 it also writes `passwords.json` (a
+generated password for each of the three people, private like the tokens) and
+`credentials.json` (their scrypt hashes and the store). `serve --accounts` reads
+`credentials.json` and adds password sign-in (`POST /v1/auth/login`, a new 899 s
+session each time) and customer self-registration (`POST /v1/auth/register`,
+which creates only CUSTOMER principals of that store and refuses an ID taken
+in any letter case; a Founder is never created there). Both routes are outside contract v1 and off without the flag.
+The builtin synthetic orders
 (`packages/returnops_domain/order_data/synthetic_orders_v1.json`) belong to
 store `synthetic_au_store` and customers `synthetic_customer_a` /
 `synthetic_customer_b` (references `SYN-1001` to `SYN-1003`), so these IDs make
@@ -379,13 +386,13 @@ store that already holds lifecycle authorities (`STORE_AUTHORITIES_EXIST`).
 ```powershell
 New-Item -ItemType Directory -Force tmp | Out-Null
 .\.venv\Scripts\python.exe -B tools/environment/local.py run python -m returnops_api.demo provision --private-dir "$PWD\tmp\demo-shop" --store synthetic_au_store --customer-one synthetic_customer_a --customer-two synthetic_customer_b --founder synthetic_founder --order-investigation --fixed-proposal --founder-manual
-.\.venv\Scripts\python.exe -B tools/environment/local.py run python -m returnops_api.demo serve --auth-file "$PWD\tmp\demo-shop\auth.json" --port 8000 --fixed-proposal --founder-decisions
+.\.venv\Scripts\python.exe -B tools/environment/local.py run python -m returnops_api.demo serve --auth-file "$PWD\tmp\demo-shop\auth.json" --port 8000 --fixed-proposal --founder-decisions --accounts
 ```
 
 ```bash
 mkdir -p tmp
 .venv/bin/python -B tools/environment/local.py run python -m returnops_api.demo provision --private-dir "$PWD/tmp/demo-shop" --store synthetic_au_store --customer-one synthetic_customer_a --customer-two synthetic_customer_b --founder synthetic_founder --order-investigation --fixed-proposal --founder-manual
-.venv/bin/python -B tools/environment/local.py run python -m returnops_api.demo serve --auth-file "$PWD/tmp/demo-shop/auth.json" --port 8000 --fixed-proposal --founder-decisions
+.venv/bin/python -B tools/environment/local.py run python -m returnops_api.demo serve --auth-file "$PWD/tmp/demo-shop/auth.json" --port 8000 --fixed-proposal --founder-decisions --accounts
 ```
 
 Expected provision output: `Private synthetic demo registration completed. Credentials are in the explicit private directory; do not share them.`
@@ -407,22 +414,26 @@ Open `http://localhost:5173`. The dev server proxies `/v1` and `/health` to
 `http://127.0.0.1:8000`. Leave `VITE_API_BASE_URL` unset: the client would use
 it as a direct cross-origin base URL, and the API registers no CORS middleware
 **(not verified in a browser)**. To sign in: the page opens on **Sign in**;
-paste the matching token from `sessions.json` (`tokens` -> principal ID) into
-**Access key** -> **Sign in**. The key is checked with `GET /v1/session` before
-it is saved, and the role the server reports opens the page: a customer key the
-Customer Portal, a Founder key the Founder Console. Since 31 October 2026 there
-is no page switch while signed in; the header shows the signed-in account. The
-client keeps the key in the browser's `localStorage`; use **Sign out**
-afterwards. **Explore with sample data** on the sign-in page opens the built-in
-sample data (Mock Mode) with no server. Copy a token without showing it
-**(not verified)**:
+enter the principal ID as **Username** and its password from `passwords.json`
+-> **Sign in**. A new customer can use **Create an account** instead (customers
+only). The new session is checked with `GET /v1/session` before it is saved,
+and the role the server reports opens the page: a customer the Customer Portal,
+the Founder the Founder Console. Since 31 October 2026 there is no page switch
+while signed in; the header shows the signed-in account. **Use an access key
+instead** keeps the earlier route: paste a token from `sessions.json` (`tokens`
+-> principal ID), for example for the step 5 driver's API, which has no
+password sign-in. The client keeps the session in the browser's
+`localStorage`; use **Sign out** afterwards. **Explore with sample data** opens
+the built-in sample data (Mock Mode) with no server. Copy a password (or a
+token) without showing it:
 
 ```powershell
+(Get-Content -Raw tmp\demo-shop\passwords.json | ConvertFrom-Json).synthetic_founder | Set-Clipboard
 (Get-Content -Raw tmp\demo-shop\sessions.json | ConvertFrom-Json).tokens.synthetic_founder | Set-Clipboard
 ```
 
 ```bash
-.venv/bin/python -c 'import json,sys; print(json.load(open(sys.argv[1]))["tokens"][sys.argv[2]], end="")' tmp/demo-shop/sessions.json synthetic_founder | pbcopy   # Linux: xclip -selection clipboard
+.venv/bin/python -c 'import json,sys; print(json.load(open(sys.argv[1]))[sys.argv[2]], end="")' tmp/demo-shop/passwords.json synthetic_founder | pbcopy   # Linux: xclip -selection clipboard
 ```
 
 Since 23 October 2026 (B's #102) the client sends Founder decisions to
@@ -642,8 +653,9 @@ accepted: until Railway switches traffic to the new deployment, the old one answ
 and `node_modules` out of the `railway up` upload, because the folder unpacked
 from the Canvas zip has no `.git` for `.gitignore` to apply to.
 
+- **Model showcase on Railway (31 October 2026, docs/44):** the course proxy is on a private VPN address, so the service uses Alibaba Cloud Bailian instead. Service variables: `RETURNOPS_MODEL_SHOWCASE=1`, `RETURNOPS_MODEL_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1`, `RETURNOPS_MODEL_ID=qwen-plus`, `RETURNOPS_MODEL_PROVIDER_ID=aliyun_bailian`, `RETURNOPS_MODEL_DEADLINE_SECONDS=30`, `RETURNOPS_MODEL_MAX_CALLS=50`, and `RETURNOPS_MODEL_API_KEY`, which only the lead sets. Without a complete configuration the service starts without the showcase and its log names the missing variable.
 - **Not on Railway:**
-  - S4's live model showcase: the course proxy is on a private VPN address.
+  - the course proxy route of S4 (private VPN address): the local fallback.
   - S5's driver: it runs on the local deployment.
 - **After the demonstration:**
   - remove the app service's deployment on railway.com;

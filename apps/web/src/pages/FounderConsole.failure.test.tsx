@@ -225,7 +225,7 @@ describe('FounderConsole failure and live-mode paths', () => {
 
     // The contract-shaped Action Preview renders its real scope, and shows no
     // empty demo-only "Operation Type:" / "Parameters:" rows.
-    expect(screen.getByText(/Execution Preview \(Operations Service\)/)).toBeInTheDocument();
+    expect(screen.getByText('What an approval would allow')).toBeInTheDocument();
     expect(screen.getByText('prev_contract')).toBeInTheDocument();
     expect(screen.getByText(CONTRACT_FINGERPRINT)).toBeInTheDocument();
     expect(screen.getByText('CREATE_RETURN')).toBeInTheDocument();
@@ -235,7 +235,7 @@ describe('FounderConsole failure and live-mode paths', () => {
     expect(screen.queryByText(/GENERATE_RETURN_CONSIGNMENT/)).not.toBeInTheDocument();
 
     // Order uses line_items / unit_price_minor and computes the total.
-    fireEvent.click(screen.getByRole('tab', { name: /Order & Facts Projection/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /Order & Facts/i }));
     expect(await screen.findByText('ord_contract_1')).toBeInTheDocument();
     expect(screen.getByText('Contract Shaped Widget')).toBeInTheDocument();
     expect(screen.getByText(/Total:\s*\$25\.00/)).toBeInTheDocument();
@@ -250,7 +250,7 @@ describe('FounderConsole failure and live-mode paths', () => {
 
     render(<FounderConsole />);
     fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
-    fireEvent.click(await screen.findByRole('tab', { name: /Tamper-Evident Audit Chain/i }));
+    fireEvent.click(await screen.findByRole('tab', { name: /Audit History/i }));
 
     expect(await screen.findByText(/Audit chain retrieval failed/i)).toBeInTheDocument();
     expect(screen.queryByText(/Recorded Audit Events:/i)).not.toBeInTheDocument();
@@ -270,12 +270,12 @@ describe('FounderConsole failure and live-mode paths', () => {
 
     render(<FounderConsole />);
     fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
-    expect(await screen.findByText(/Live Mode: decisions are sent to the server/i)).toBeInTheDocument();
+    expect(await screen.findByText(/The server checks every decision again/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /Approve Return/i }));
 
     // Before confirming, the dialog shows the preview identity and the exact scope.
-    const dialog = await screen.findByRole('dialog', { name: /Confirm Founder Decision: APPROVE/i });
+    const dialog = await screen.findByRole('dialog', { name: /Confirm: Approve return/i });
     const field = (label: string) => {
       const value = within(dialog).getByText(label).nextElementSibling;
       if (!value) throw new Error(`no value for ${label}`);
@@ -299,7 +299,7 @@ describe('FounderConsole failure and live-mode paths', () => {
     expect(field('Expires')).toHaveAttribute('title', CONTRACT_SHAPED_VIEW.action_preview!.scope.expires_at);
     expect(field('Environment')).toHaveTextContent('SIMULATED · allowlist allowlist-contract-v1');
 
-    fireEvent.change(within(dialog).getByPlaceholderText(/Record justification for statutory audit/i), {
+    fireEvent.change(within(dialog).getByPlaceholderText(/Why are you making this decision/i), {
       target: { value: '  Exact scope reviewed.  ' },
     });
     fireEvent.click(within(dialog).getByRole('button', { name: /Record decision/i }));
@@ -319,7 +319,7 @@ describe('FounderConsole failure and live-mode paths', () => {
     });
     expect(key).toMatch(/^[A-Za-z0-9._:-]{8,128}$/);
     await waitFor(() => {
-      expect(screen.queryByText(/Confirm Founder Decision: APPROVE/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Confirm: Approve return/i)).not.toBeInTheDocument();
     });
   });
 
@@ -345,7 +345,7 @@ describe('FounderConsole failure and live-mode paths', () => {
     render(<FounderConsole />);
     fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
     fireEvent.click(await screen.findByRole('button', { name: /^Reject$/i }));
-    fireEvent.change(await screen.findByPlaceholderText(/Record justification for statutory audit/i), {
+    fireEvent.change(await screen.findByPlaceholderText(/Why are you making this decision/i), {
       target: { value: 'Outside the policy window.' },
     });
     fireEvent.click(screen.getByRole('button', { name: /Record decision/i }));
@@ -353,7 +353,7 @@ describe('FounderConsole failure and live-mode paths', () => {
     expect(
       await screen.findByText('[INVALID_STATE] The request is not available in the current state.')
     ).toBeInTheDocument();
-    expect(screen.getByText(/Confirm Founder Decision: REJECT/i)).toBeInTheDocument();
+    expect(screen.getByText(/Confirm: Reject/i)).toBeInTheDocument();
     expect(vi.mocked(recordFounderDecision).mock.calls[0][1]).toStrictEqual({
       expected_case_version: 1,
       decision: 'REJECT',
@@ -383,7 +383,7 @@ describe('FounderConsole failure and live-mode paths', () => {
     render(<FounderConsole />);
     fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
     fireEvent.click(await screen.findByRole('button', { name: /^Reject$/i }));
-    fireEvent.change(await screen.findByPlaceholderText(/Record justification for statutory audit/i), {
+    fireEvent.change(await screen.findByPlaceholderText(/Why are you making this decision/i), {
       target: { value: 'Outside the policy window.' },
     });
     fireEvent.click(screen.getByRole('button', { name: /Record decision/i }));
@@ -394,10 +394,10 @@ describe('FounderConsole failure and live-mode paths', () => {
         '[STALE_CASE_VERSION] The case version has changed. The case changed; the view was reloaded. Check it and decide again.'
       )
     ).toBeInTheDocument();
-    const dialog = screen.getByRole('dialog', { name: /Confirm Founder Decision: REJECT/i });
+    const dialog = screen.getByRole('dialog', { name: /Confirm: Reject/i });
     expect(getFounderCase).toHaveBeenCalledTimes(2);
     expect(listFounderCaseAuditPage).toHaveBeenCalledTimes(2);
-    expect(within(dialog).getByText(/\(v2\)/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/\(version 2\)/)).toBeInTheDocument();
     expect(vi.mocked(recordFounderDecision).mock.calls[0][1]).toMatchObject({ expected_case_version: 1 });
 
     // Deciding again sends the reloaded version under a new request key.
@@ -516,9 +516,9 @@ describe('FounderConsole failure and live-mode paths', () => {
       expect(screen.getByRole('button', { name: /^Request Revision$/i })).toBeDisabled();
 
       fireEvent.click(screen.getByRole('button', { name: /^Manual Takeover$/i }));
-      const dialog = await screen.findByRole('dialog', { name: /Confirm Founder Decision: MANUAL_HANDLING/i });
+      const dialog = await screen.findByRole('dialog', { name: /Confirm: Manual takeover/i });
       expect(within(dialog).getByText('block_conflict')).toBeInTheDocument();
-      fireEvent.change(within(dialog).getByPlaceholderText(/Record justification for statutory audit/i), {
+      fireEvent.change(within(dialog).getByPlaceholderText(/Why are you making this decision/i), {
         target: { value: 'The order reference is ambiguous; I will contact the customer.' },
       });
       fireEvent.click(within(dialog).getByRole('button', { name: /Record decision/i }));
@@ -535,7 +535,7 @@ describe('FounderConsole failure and live-mode paths', () => {
 
       // The reloaded case opens on what the decision produced (#122 item 4): the
       // manual takeover on the block and the queued notice, not yet sent.
-      expect(await screen.findByText('NOTIFICATION_PENDING')).toBeInTheDocument();
+      expect(await screen.findByTitle('NOTIFICATION_PENDING')).toHaveTextContent('Notification Pending');
       expect(screen.getByText('Manual takeover')).toBeInTheDocument();
       expect(screen.getByText(/on order-lookup block block_conflict/)).toBeInTheDocument();
       expect(screen.getByText('Handled manually')).toBeInTheDocument();
@@ -579,7 +579,7 @@ describe('FounderConsole failure and live-mode paths', () => {
       fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
       fireEvent.click(await screen.findByRole('button', { name: /^Manual Takeover$/i }));
 
-      const dialog = await screen.findByRole('dialog', { name: /Confirm Founder Decision: MANUAL_HANDLING/i });
+      const dialog = await screen.findByRole('dialog', { name: /Confirm: Manual takeover/i });
       expect(dialog).toHaveClass('min-w-0');
       expect(within(dialog).getByText('block_conflict')).toHaveClass('break-all');
       expect(within(dialog).getByText('case_contract_shape')).toHaveClass('break-all');
@@ -604,8 +604,8 @@ describe('FounderConsole failure and live-mode paths', () => {
       render(<FounderConsole />);
       fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
       fireEvent.click(await screen.findByRole('button', { name: /^Manual Takeover$/i }));
-      const dialog = await screen.findByRole('dialog', { name: /Confirm Founder Decision: MANUAL_HANDLING/i });
-      fireEvent.change(within(dialog).getByPlaceholderText(/Record justification for statutory audit/i), {
+      const dialog = await screen.findByRole('dialog', { name: /Confirm: Manual takeover/i });
+      fireEvent.change(within(dialog).getByPlaceholderText(/Why are you making this decision/i), {
         target: { value: 'The order reference is ambiguous; I will contact the customer.' },
       });
       fireEvent.click(within(dialog).getByRole('button', { name: /Record decision/i }));
@@ -659,7 +659,7 @@ describe('FounderConsole failure and live-mode paths', () => {
 
       // Nothing is read while the Founder confirms a decision.
       fireEvent.click(screen.getByRole('button', { name: /^Reject$/i }));
-      expect(await screen.findByText(/Confirm Founder Decision: REJECT/i)).toBeInTheDocument();
+      expect(await screen.findByText(/Confirm: Reject/i)).toBeInTheDocument();
       act(() => {
         vi.advanceTimersByTime(15000);
       });
@@ -684,7 +684,7 @@ describe('FounderConsole failure and live-mode paths', () => {
       await waitFor(() => expect(getFounderCase).toHaveBeenCalledTimes(3));
 
       // The third read is COMPLETED, a final status, so polling stops.
-      expect(await screen.findByText('COMPLETED')).toBeInTheDocument();
+      expect(await screen.findByTitle('COMPLETED')).toHaveTextContent('Completed');
       expect(screen.queryByText('Updates every 5 seconds')).not.toBeInTheDocument();
       act(() => {
         vi.advanceTimersByTime(30000);
@@ -724,8 +724,8 @@ describe('FounderConsole failure and live-mode paths', () => {
 
       // ... while the Founder opens the confirmation for the version on screen.
       fireEvent.click(screen.getByRole('button', { name: /^Reject$/i }));
-      const dialog = await screen.findByRole('dialog', { name: /Confirm Founder Decision: REJECT/i });
-      fireEvent.change(within(dialog).getByPlaceholderText(/Record justification for statutory audit/i), {
+      const dialog = await screen.findByRole('dialog', { name: /Confirm: Reject/i });
+      fireEvent.change(within(dialog).getByPlaceholderText(/Why are you making this decision/i), {
         target: { value: 'Reviewed the version on screen.' },
       });
 
@@ -733,7 +733,7 @@ describe('FounderConsole failure and live-mode paths', () => {
       await act(async () => {
         answerRead(newer);
       });
-      expect(within(dialog).getByText(/\(v1\)/)).toBeInTheDocument();
+      expect(within(dialog).getByText(/\(version 1\)/)).toBeInTheDocument();
       expect(within(dialog).getByText('prop_contract')).toBeInTheDocument();
       expect(screen.queryByText('prop_newer')).not.toBeInTheDocument();
 
@@ -777,7 +777,7 @@ describe('FounderConsole failure and live-mode paths', () => {
     render(<FounderConsole />);
     fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
     fireEvent.click(await screen.findByRole('button', { name: /^Reject$/i }));
-    const rationale = await screen.findByPlaceholderText(/Record justification for statutory audit/i);
+    const rationale = await screen.findByPlaceholderText(/Why are you making this decision/i);
     const confirm = screen.getByRole('button', { name: /Record decision/i });
 
     fireEvent.change(rationale, { target: { value: 'First rationale.' } });
@@ -859,13 +859,13 @@ describe('FounderConsole failure and live-mode paths', () => {
       render(<FounderConsole />);
       fireEvent.click(screen.getByRole('button', { name: /Analytics Dashboard/i }));
 
-      expect(await screen.findByText('Total Case Volume')).toBeInTheDocument();
+      expect(await screen.findByText('Total cases')).toBeInTheDocument();
       expect(getFounderAnalytics).toHaveBeenCalledWith({});
 
-      expect(holder('p50 Median Latency')).toHaveTextContent('—');
-      expect(holder('p50 Median Latency')).toHaveTextContent('Not measured (no samples)');
-      expect(holder('p95 Latency')).toHaveTextContent('—');
-      expect(holder('p95 Latency')).toHaveTextContent('Not measured (no samples)');
+      expect(holder('Typical time to proposal')).toHaveTextContent('—');
+      expect(holder('Typical time to proposal')).toHaveTextContent('Not measured (no samples)');
+      expect(holder('Slow cases (95th percentile)')).toHaveTextContent('—');
+      expect(holder('Slow cases (95th percentile)')).toHaveTextContent('Not measured (no samples)');
 
       expect(holder('Measured:')).toHaveTextContent('Measured: 0');
       expect(holder('Failed:')).toHaveTextContent('Failed: 1');
@@ -874,13 +874,13 @@ describe('FounderConsole failure and live-mode paths', () => {
       expect(holder('Filters applied:')).toHaveTextContent('Filters applied: none');
 
       // Only the buckets the server sent are drawn, in the order it sent them.
-      const statusPanel = panel('Case Status Distribution');
-      expect(within(statusPanel).getAllByText(/^[A-Z_]+$/).map((el) => el.textContent)).toEqual([
-        'SUBMITTED',
-        'REJECTED',
-      ]);
+      const statusPanel = panel('Cases by status');
+      // Shown in words, with the contract value as the title (31 October 2026).
+      const buckets = within(statusPanel).getAllByTitle(/^[A-Z_]+$/);
+      expect(buckets.map((el) => el.getAttribute('title'))).toEqual(['SUBMITTED', 'REJECTED']);
+      expect(buckets.map((el) => el.textContent?.trim())).toEqual(['Submitted', 'Rejected']);
       expect(within(statusPanel).getByText('2 (67%)')).toBeInTheDocument();
-      const riskPanel = panel('Risk Review Outcome Distribution');
+      const riskPanel = panel('Cases by risk review outcome');
       expect(within(riskPanel).getAllByText(/^[A-Z_]+$/).map((el) => el.textContent)).toEqual(['PASS']);
 
       expect(document.body.textContent).not.toMatch(/NaN/);
@@ -895,7 +895,7 @@ describe('FounderConsole failure and live-mode paths', () => {
 
       render(<FounderConsole />);
       fireEvent.click(screen.getByRole('button', { name: /Analytics Dashboard/i }));
-      expect(await screen.findByText('Total Case Volume')).toBeInTheDocument();
+      expect(await screen.findByText('Total cases')).toBeInTheDocument();
 
       fireEvent.change(screen.getByLabelText(/Created from/i), { target: { value: '2026-10-01' } });
       fireEvent.change(screen.getByLabelText(/Created before/i), { target: { value: '2026-10-08' } });
@@ -942,7 +942,7 @@ describe('FounderConsole audit paging and the in-flight decision dialog', () => 
   const openAudit = async () => {
     render(<FounderConsole />);
     fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
-    fireEvent.click(await screen.findByRole('tab', { name: /Tamper-Evident Audit Chain/i }));
+    fireEvent.click(await screen.findByRole('tab', { name: /Audit History/i }));
   };
 
   beforeEach(() => {
@@ -1015,7 +1015,7 @@ describe('FounderConsole audit paging and the in-flight decision dialog', () => 
     render(<FounderConsole />);
     fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
     fireEvent.click(await screen.findByRole('button', { name: /^Reject$/i }));
-    const reason = await screen.findByPlaceholderText(/Record justification for statutory audit/i);
+    const reason = await screen.findByPlaceholderText(/Why are you making this decision/i);
     fireEvent.change(reason, { target: { value: 'Outside the policy window.' } });
     fireEvent.click(screen.getByRole('button', { name: /Record decision/i }));
 
@@ -1043,13 +1043,13 @@ describe('FounderConsole audit paging and the in-flight decision dialog', () => 
     expect(await screen.findByRole('button', { name: 'Close case' })).toHaveFocus();
 
     fireEvent.click(screen.getByRole('button', { name: /^Reject$/i }));
-    const confirmation = await screen.findByRole('dialog', { name: /Confirm Founder Decision: REJECT/i });
+    const confirmation = await screen.findByRole('dialog', { name: /Confirm: Reject/i });
     expect(confirmation).toHaveAttribute('aria-modal', 'true');
-    expect(within(confirmation).getByPlaceholderText(/Record justification for statutory audit/i)).toHaveFocus();
+    expect(within(confirmation).getByPlaceholderText(/Why are you making this decision/i)).toHaveFocus();
 
     fireEvent.keyDown(document, { key: 'Escape' });
     await waitFor(() =>
-      expect(screen.queryByRole('dialog', { name: /Confirm Founder Decision/i })).not.toBeInTheDocument()
+      expect(screen.queryByRole('dialog', { name: /Confirm:/i })).not.toBeInTheDocument()
     );
     expect(screen.getByRole('dialog', { name: 'Case case_contract_shape' })).toBeInTheDocument();
 
@@ -1070,7 +1070,7 @@ describe('FounderConsole audit paging and the in-flight decision dialog', () => 
     render(<FounderConsole />);
     fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
     fireEvent.click(await screen.findByRole('button', { name: /^Reject$/i }));
-    fireEvent.change(await screen.findByPlaceholderText(/Record justification for statutory audit/i), {
+    fireEvent.change(await screen.findByPlaceholderText(/Why are you making this decision/i), {
       target: { value: 'Outside the policy window.' },
     });
     fireEvent.click(screen.getByRole('button', { name: /Record decision/i }));
@@ -1078,7 +1078,7 @@ describe('FounderConsole audit paging and the in-flight decision dialog', () => 
 
     // Closing now would hide whether the server accepted the decision.
     fireEvent.keyDown(document, { key: 'Escape' });
-    expect(screen.getByRole('dialog', { name: /Confirm Founder Decision: REJECT/i })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: /Confirm: Reject/i })).toBeInTheDocument();
     expect(screen.getByRole('dialog', { name: 'Case case_contract_shape' })).toBeInTheDocument();
 
     await act(async () => {
@@ -1087,7 +1087,7 @@ describe('FounderConsole audit paging and the in-flight decision dialog', () => 
     await waitFor(() => expect(screen.getByRole('button', { name: /^Cancel$/i })).toBeEnabled());
     fireEvent.keyDown(document, { key: 'Escape' });
     await waitFor(() =>
-      expect(screen.queryByRole('dialog', { name: /Confirm Founder Decision/i })).not.toBeInTheDocument()
+      expect(screen.queryByRole('dialog', { name: /Confirm:/i })).not.toBeInTheDocument()
     );
   });
 });

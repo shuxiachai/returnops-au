@@ -410,3 +410,7 @@ MA-0.3 / CS-0.2 / AD-0.2 将 provider 原始成功观测与公开 OperationResul
 下一步是 **B/C 确认这份交接约定**。期间 A 可继续无开始依赖的 F.02 准备；A1.01 的正式对齐应等 F.01 验收。不是重新讨论九功能分工，也不是立刻把 LLM 接进执行路径。
 
 规范依据：[OpenAPI 3.1.0](https://spec.openapis.org/oas/v3.1.0.html)、[JSON Schema 对象与额外字段](https://json-schema.org/understanding-json-schema/reference/object)。项目的权限、审批、免费模拟和贡献边界来自 docs/00 与 docs/07，而非这些通用规范。
+
+## 15. 合同外的演示部署接口（2026-10-31）
+
+`POST /v1/auth/register` 与 `POST /v1/auth/login` 只在 `demo.py serve --accounts` 时注册，不属于合同 v1，不写入 `contracts/v1/openapi.json`，也不改变已冻结的操作和 DTO。注册只创建该私有凭据文件所属商店的 CUSTOMER；店主账号仍只能由 `demo.py provision` 预置。请求体为 `{"username", "password"}`；成功返回 `access_token`、`token_type`（`Bearer`）、`expires_in`（899）、`principal_id`、`role`，令牌与预置会话一样由 `GET /v1/session` 和现有校验接受；错误沿用 `ErrorEnvelope`。实现见 `apps/api/returnops_api/accounts.py`，限制见 [docs/47](47-stage2-submission-runbook.md) 第 7 节第 18 项。

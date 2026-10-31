@@ -600,7 +600,7 @@ function Invoke-Start {
             Save-Time 'demo-shop'
         }
         $serve = '& ' + (Format-Literal $Py) + ' -B tools/environment/local.py run python -m returnops_api.demo serve --auth-file ' +
-            (Format-Literal (Join-Path $Shop 'auth.json')) + ' --port 8000 --fixed-proposal --founder-decisions'
+            (Format-Literal (Join-Path $Shop 'auth.json')) + ' --port 8000 --fixed-proposal --founder-decisions --accounts'
         if ($ModelShowcase) { $serve += ' --model-showcase'; Show-Info 'With --model-showcase; the RETURNOPS_MODEL_* variables pass on unread.' }
         $window = Start-Window 'serve' 'ReturnOps demo API (port 8000) - Ctrl+C stops it' $serve
         $state = Wait-WindowReady $window 'http://127.0.0.1:8000/health/ready' '"ready"' 60
@@ -632,14 +632,15 @@ function Invoke-Start {
 
     $since = Get-SavedTime 'demo-shop'
     Show-Step 'Sign in (manual, README step 4)'
-    Show-Info "Open $webUrl in two browser profiles: paste the key into Access key -> Sign in (the key decides the page)."
-    Show-Info 'Copy a token to the clipboard without showing it (customer, then Founder):'
-    Show-Info '  (Get-Content -Raw tmp\demo-shop\sessions.json | ConvertFrom-Json).tokens.synthetic_customer_a | Set-Clipboard'
-    Show-Info '  (Get-Content -Raw tmp\demo-shop\sessions.json | ConvertFrom-Json).tokens.synthetic_founder | Set-Clipboard'
+    Show-Info "Open $webUrl in two browser profiles: sign in with the username and its password (the account decides the page); a new customer can use Create account."
+    Show-Info 'Copy a password to the clipboard without showing it (customer synthetic_customer_a, then Founder synthetic_founder):'
+    Show-Info '  (Get-Content -Raw tmp\demo-shop\passwords.json | ConvertFrom-Json).synthetic_customer_a | Set-Clipboard'
+    Show-Info '  (Get-Content -Raw tmp\demo-shop\passwords.json | ConvertFrom-Json).synthetic_founder | Set-Clipboard'
+    Show-Info 'Each sign-in starts a new 15-minute session, so signing in again renews it.'
     if ($since) {
         $until = $since.AddSeconds($SessionSeconds)
-        if ($until -gt (Get-Date)) { Show-Info "The sessions were provisioned at $(Format-Time $since) and expire at $(Format-Time $until)." }
-        else { Show-Warn "The sessions expired at $(Format-Time $until). New ones need a fresh database: stop -RemoveData, prepare, start." }
+        if ($until -gt (Get-Date)) { Show-Info "The access keys in sessions.json (the fallback) were provisioned at $(Format-Time $since) and expire at $(Format-Time $until)." }
+        else { Show-Info "The access keys in sessions.json (the fallback) expired at $(Format-Time $until); passwords still work." }
     }
     Show-Info 'S5 later: tools\demo\demo.ps1 s5    After the demonstration: tools\demo\demo.ps1 stop -RemoveData (or tools\demo\stop-demo.cmd)'
 }
@@ -738,7 +739,7 @@ function Invoke-S5 {
     else { Show-Warn 'Port 8000 does not answer ready; read the driver window.' }
 
     Show-Step 'Show the case (manual, README step 5)'
-    Show-Info 'Sign in as Founder with the demo_cups_founder token, then Founder Console -> Case Queue & Review -> Inspect.'
+    Show-Info 'The driver API has no password sign-in: Sign out, Use an access key instead, the demo_cups_founder key, then Case Queue & Review -> Inspect.'
     Show-Info '  (Get-Content -Raw tmp\demo-cups\sessions.json | ConvertFrom-Json).tokens.demo_cups_founder | Set-Clipboard'
 }
 
@@ -817,6 +818,10 @@ function Save-CloudSessions($Found) {
     if (Test-Path -LiteralPath $CloudShop) { Remove-Item -LiteralPath $CloudShop -Recurse -Force }
     New-Item -ItemType Directory -Path $CloudShop | Out-Null
     [System.IO.File]::WriteAllText((Join-Path $CloudShop 'sessions.json'), $Found.Text + "`n")
+    # The passwords of the same deployment (31 October 2026), read the same way and never shown.
+    $passwords = Invoke-Quiet { cmd.exe /d /c "railway ssh --service $Service -- cat /app/private/demo-shop/passwords.json" }
+    if ($passwords.Code -eq 0 -and $passwords.Output) { [System.IO.File]::WriteAllText((Join-Path $CloudShop 'passwords.json'), $passwords.Output + "`n") }
+    else { Show-Warn 'The passwords could not be copied; sign in with the access keys instead (Use an access key instead).' }
     $until = [DateTimeOffset]::FromUnixTimeSeconds([long]$Found.Data.sessions[0].expires_at).LocalDateTime
     if ($until -le (Get-Date)) { Show-Warn "Sessions copied to tmp\railway-shop (not shown), but they expired at $(Format-Time $until); run cloud-fresh for new ones." }
     else { Show-Ok "Sessions copied to tmp\railway-shop (not shown); they expire at $(Format-Time $until)." }
@@ -832,10 +837,11 @@ function Save-CloudSessions($Found) {
         $address = 'the Railway address of the service (railway.com, service, Settings, Networking)'
     }
     Show-Step 'Sign in (manual, README step 4)'
-    Show-Info "Open $address in two browser profiles: paste the key into Access key -> Sign in (the key decides the page)."
-    Show-Info 'Copy a token to the clipboard without showing it (customer, then Founder):'
-    Show-Info '  (Get-Content -Raw tmp\railway-shop\sessions.json | ConvertFrom-Json).tokens.synthetic_customer_a | Set-Clipboard'
-    Show-Info '  (Get-Content -Raw tmp\railway-shop\sessions.json | ConvertFrom-Json).tokens.synthetic_founder | Set-Clipboard'
+    Show-Info "Open $address in two browser profiles: sign in with the username and its password (the account decides the page); a new customer can use Create account."
+    Show-Info 'Copy a password to the clipboard without showing it (customer synthetic_customer_a, then Founder synthetic_founder):'
+    Show-Info '  (Get-Content -Raw tmp\railway-shop\passwords.json | ConvertFrom-Json).synthetic_customer_a | Set-Clipboard'
+    Show-Info '  (Get-Content -Raw tmp\railway-shop\passwords.json | ConvertFrom-Json).synthetic_founder | Set-Clipboard'
+    Show-Info 'Each sign-in starts a new 15-minute session. Fallback: the access keys in tmp\railway-shop\sessions.json.'
     Show-Info 'New sessions: tools\demo\demo.ps1 cloud-fresh. After the demonstration: stop the Railway service and run stop -RemoveData here.'
 }
 

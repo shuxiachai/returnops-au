@@ -104,7 +104,7 @@ const SUMMARY_ROW = {
 async function openOrderTab() {
   render(<FounderConsole />);
   fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
-  fireEvent.click(await screen.findByRole('tab', { name: /Order & Facts Projection/i }));
+  fireEvent.click(await screen.findByRole('tab', { name: /Order & Facts/i }));
   await screen.findByText(/No order snapshot projected for this case/i);
 }
 
@@ -127,7 +127,7 @@ async function decideWithCardShown(button: RegExp, decision: FounderDecisionType
   expect(factsCard()).toBeInTheDocument();
 
   fireEvent.click(screen.getByRole('button', { name: button }));
-  fireEvent.change(screen.getByPlaceholderText(/Record justification for statutory audit/i), {
+  fireEvent.change(screen.getByPlaceholderText(/Why are you making this decision/i), {
     target: { value: 'Founder rationale.' },
   });
   fireEvent.click(screen.getByRole('button', { name: /Record decision/i }));
