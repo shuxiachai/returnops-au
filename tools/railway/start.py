@@ -25,7 +25,7 @@ from psycopg import sql
 DATABASE = 'returnops_f02'
 SHOP = Path('/app/private/demo-shop')
 PROVISION = ['--store', 'synthetic_au_store', '--customer-one', 'synthetic_customer_a',
-             '--customer-two', 'synthetic_customer_b', '--founder', 'synthetic_founder',
+             '--customer-two', 'synthetic_customer_b', '--founder', 'founder',
              '--order-investigation', '--fixed-proposal', '--founder-manual']
 REQUESTED = []
 CHILDREN = []

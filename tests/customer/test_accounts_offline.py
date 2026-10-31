@@ -149,3 +149,40 @@ def test_serve_names_the_credentials_file_only_with_accounts(monkeypatch, tmp_pa
     assert seen['accounts'] == str((tmp_path / 'shop' / 'credentials.json').resolve())
     demo.main(['serve', '--auth-file', auth])
     assert seen['accounts'] is None
+
+
+def _provision_with(tmp_path, monkeypatch, chosen):
+    class Registry:
+        def __init__(self, engine):
+            pass
+
+        def provision(self, principals, sessions):
+            pass
+
+    monkeypatch.setenv('DATABASE_URL', 'postgresql+psycopg://demo:demo-distinct-pw@localhost/returnops_f02_accounts')
+    if chosen is None:
+        monkeypatch.delenv('RETURNOPS_DEMO_PASSWORD', raising=False)
+    else:
+        monkeypatch.setenv('RETURNOPS_DEMO_PASSWORD', chosen)
+    monkeypatch.setattr(demo, 'build_engine', lambda settings: SimpleNamespace(dispose=lambda: None))
+    monkeypatch.setattr(demo, 'TrustedRegistry', Registry)
+    directory = tmp_path / 'shop'
+    demo.provision(directory, store='store_demo', customer_one='customer_one', customer_two='customer_two', founder='founder')
+    return json.loads((directory / 'passwords.json').read_text(encoding='utf-8')), accounts.CredentialStore(directory / 'credentials.json')
+
+
+# 31 October 2026: the presenter types one password the lead chose, set only as a service variable.
+def test_a_chosen_demo_password_is_the_password_of_all_three_people(tmp_path, monkeypatch):
+    passwords, store = _provision_with(tmp_path, monkeypatch, 'Shop-Demo-2026')
+    assert set(passwords.values()) == {'Shop-Demo-2026'}
+    assert all(accounts.verify_password('Shop-Demo-2026', store.hash_for(name)) for name in passwords)
+
+
+def test_an_unacceptable_chosen_password_falls_back_to_generated_ones(tmp_path, monkeypatch, capsys):
+    passwords, _ = _provision_with(tmp_path, monkeypatch, 'short')
+    assert len(set(passwords.values())) == 3 and 'short' not in passwords.values()
+    out = capsys.readouterr().out
+    assert 'RETURNOPS_DEMO_PASSWORD' in out and 'short' not in out.replace('RETURNOPS_DEMO_PASSWORD', '')
+    (tmp_path / 'again').mkdir()
+    generated, _ = _provision_with(tmp_path / 'again', monkeypatch, None)
+    assert len(set(generated.values())) == 3

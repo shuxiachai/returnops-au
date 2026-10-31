@@ -42,3 +42,11 @@ def test_an_incomplete_model_configuration_starts_without_the_showcase(change, c
     assert '--model-showcase' not in arguments and '--accounts' in arguments
     out = capsys.readouterr().out
     assert 'starting without it' in out and SECRET not in out
+
+
+def test_the_railway_founder_signs_in_as_founder():
+    # 31 October 2026: a short Founder ID for the presenter to type; the customers keep the IDs
+    # the synthetic orders belong to.
+    provision = start.PROVISION
+    assert provision[provision.index('--founder') + 1] == 'founder'
+    assert provision[provision.index('--customer-one') + 1] == 'synthetic_customer_a'

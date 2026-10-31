@@ -595,7 +595,7 @@ function Invoke-Start {
             Invoke-Checked 'demo.py provision (demo-shop)' {
                 & $Py -B tools/environment/local.py run python -m returnops_api.demo provision --private-dir $Shop `
                     --store synthetic_au_store --customer-one synthetic_customer_a --customer-two synthetic_customer_b `
-                    --founder synthetic_founder --order-investigation --fixed-proposal --founder-manual
+                    --founder founder --order-investigation --fixed-proposal --founder-manual
             }
             Save-Time 'demo-shop'
         }
@@ -633,9 +633,9 @@ function Invoke-Start {
     $since = Get-SavedTime 'demo-shop'
     Show-Step 'Sign in (manual, README step 4)'
     Show-Info "Open $webUrl in two browser profiles: sign in with the username and its password (the account decides the page); a new customer can use Create account."
-    Show-Info 'Copy a password to the clipboard without showing it (customer synthetic_customer_a, then Founder synthetic_founder):'
+    Show-Info 'Copy a password to the clipboard without showing it (customer synthetic_customer_a, then Founder founder):'
     Show-Info '  (Get-Content -Raw tmp\demo-shop\passwords.json | ConvertFrom-Json).synthetic_customer_a | Set-Clipboard'
-    Show-Info '  (Get-Content -Raw tmp\demo-shop\passwords.json | ConvertFrom-Json).synthetic_founder | Set-Clipboard'
+    Show-Info '  (Get-Content -Raw tmp\demo-shop\passwords.json | ConvertFrom-Json).founder | Set-Clipboard'
     Show-Info 'Each sign-in starts a new 15-minute session, so signing in again renews it.'
     if ($since) {
         $until = $since.AddSeconds($SessionSeconds)
@@ -838,9 +838,9 @@ function Save-CloudSessions($Found) {
     }
     Show-Step 'Sign in (manual, README step 4)'
     Show-Info "Open $address in two browser profiles: sign in with the username and its password (the account decides the page); a new customer can use Create account."
-    Show-Info 'Copy a password to the clipboard without showing it (customer synthetic_customer_a, then Founder synthetic_founder):'
+    Show-Info 'Copy a password to the clipboard without showing it (customer synthetic_customer_a, then Founder founder):'
     Show-Info '  (Get-Content -Raw tmp\railway-shop\passwords.json | ConvertFrom-Json).synthetic_customer_a | Set-Clipboard'
-    Show-Info '  (Get-Content -Raw tmp\railway-shop\passwords.json | ConvertFrom-Json).synthetic_founder | Set-Clipboard'
+    Show-Info '  (Get-Content -Raw tmp\railway-shop\passwords.json | ConvertFrom-Json).founder | Set-Clipboard'
     Show-Info 'Each sign-in starts a new 15-minute session. Fallback: the access keys in tmp\railway-shop\sessions.json.'
     Show-Info 'New sessions: tools\demo\demo.ps1 cloud-fresh. After the demonstration: stop the Railway service and run stop -RemoveData here.'
 }

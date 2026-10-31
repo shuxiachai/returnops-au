@@ -362,7 +362,8 @@ without printing it **(not verified)**:
 (`tmp/` is git-ignored) and writes `auth.json` and `sessions.json` there; the
 sessions last 899 s. Since 31 October 2026 it also writes `passwords.json` (a
 generated password for each of the three people, private like the tokens) and
-`credentials.json` (their scrypt hashes and the store). `serve --accounts` reads
+`credentials.json` (their scrypt hashes and the store); with `RETURNOPS_DEMO_PASSWORD` set
+(8 to 128 characters) all three get that password instead (31 October 2026). `serve --accounts` reads
 `credentials.json` and adds password sign-in (`POST /v1/auth/login`, a new 899 s
 session each time) and customer self-registration (`POST /v1/auth/register`,
 which creates only CUSTOMER principals of that store and refuses an ID taken
@@ -385,13 +386,13 @@ store that already holds lifecycle authorities (`STORE_AUTHORITIES_EXIST`).
 
 ```powershell
 New-Item -ItemType Directory -Force tmp | Out-Null
-.\.venv\Scripts\python.exe -B tools/environment/local.py run python -m returnops_api.demo provision --private-dir "$PWD\tmp\demo-shop" --store synthetic_au_store --customer-one synthetic_customer_a --customer-two synthetic_customer_b --founder synthetic_founder --order-investigation --fixed-proposal --founder-manual
+.\.venv\Scripts\python.exe -B tools/environment/local.py run python -m returnops_api.demo provision --private-dir "$PWD\tmp\demo-shop" --store synthetic_au_store --customer-one synthetic_customer_a --customer-two synthetic_customer_b --founder founder --order-investigation --fixed-proposal --founder-manual
 .\.venv\Scripts\python.exe -B tools/environment/local.py run python -m returnops_api.demo serve --auth-file "$PWD\tmp\demo-shop\auth.json" --port 8000 --fixed-proposal --founder-decisions --accounts
 ```
 
 ```bash
 mkdir -p tmp
-.venv/bin/python -B tools/environment/local.py run python -m returnops_api.demo provision --private-dir "$PWD/tmp/demo-shop" --store synthetic_au_store --customer-one synthetic_customer_a --customer-two synthetic_customer_b --founder synthetic_founder --order-investigation --fixed-proposal --founder-manual
+.venv/bin/python -B tools/environment/local.py run python -m returnops_api.demo provision --private-dir "$PWD/tmp/demo-shop" --store synthetic_au_store --customer-one synthetic_customer_a --customer-two synthetic_customer_b --founder founder --order-investigation --fixed-proposal --founder-manual
 .venv/bin/python -B tools/environment/local.py run python -m returnops_api.demo serve --auth-file "$PWD/tmp/demo-shop/auth.json" --port 8000 --fixed-proposal --founder-decisions --accounts
 ```
 
@@ -428,12 +429,12 @@ the built-in sample data (Mock Mode) with no server. Copy a password (or a
 token) without showing it:
 
 ```powershell
-(Get-Content -Raw tmp\demo-shop\passwords.json | ConvertFrom-Json).synthetic_founder | Set-Clipboard
+(Get-Content -Raw tmp\demo-shop\passwords.json | ConvertFrom-Json).founder | Set-Clipboard
 (Get-Content -Raw tmp\demo-shop\sessions.json | ConvertFrom-Json).tokens.synthetic_founder | Set-Clipboard
 ```
 
 ```bash
-.venv/bin/python -c 'import json,sys; print(json.load(open(sys.argv[1]))[sys.argv[2]], end="")' tmp/demo-shop/passwords.json synthetic_founder | pbcopy   # Linux: xclip -selection clipboard
+.venv/bin/python -c 'import json,sys; print(json.load(open(sys.argv[1]))[sys.argv[2]], end="")' tmp/demo-shop/passwords.json founder | pbcopy   # Linux: xclip -selection clipboard
 ```
 
 Since 23 October 2026 (B's #102) the client sends Founder decisions to
@@ -653,7 +654,7 @@ accepted: until Railway switches traffic to the new deployment, the old one answ
 and `node_modules` out of the `railway up` upload, because the folder unpacked
 from the Canvas zip has no `.git` for `.gitignore` to apply to.
 
-- **Model showcase on Railway (31 October 2026, docs/44):** the course proxy is on a private VPN address, so the service uses Alibaba Cloud Bailian instead. Service variables: `RETURNOPS_MODEL_SHOWCASE=1`, `RETURNOPS_MODEL_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1`, `RETURNOPS_MODEL_ID=qwen3.5-122b-a10b`, `RETURNOPS_MODEL_PROVIDER_ID=aliyun_bailian`, `RETURNOPS_MODEL_DEADLINE_SECONDS=50`, `RETURNOPS_MODEL_MAX_CALLS=50`, and `RETURNOPS_MODEL_API_KEY`, which only the lead sets. Without a complete configuration the service starts without the showcase and its log names the missing variable.
+- **Model showcase on Railway (31 October 2026, docs/44):** the course proxy is on a private VPN address, so the service uses Alibaba Cloud Bailian instead. Service variables: `RETURNOPS_MODEL_SHOWCASE=1`, `RETURNOPS_MODEL_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1`, `RETURNOPS_MODEL_ID=qwen3.5-122b-a10b`, `RETURNOPS_MODEL_PROVIDER_ID=aliyun_bailian`, `RETURNOPS_MODEL_DEADLINE_SECONDS=50`, `RETURNOPS_MODEL_MAX_CALLS=50`, and `RETURNOPS_MODEL_API_KEY`, which only the lead sets. Sign-in: the Founder is `founder`, the customers `synthetic_customer_a` and `synthetic_customer_b`; `RETURNOPS_DEMO_PASSWORD` (set only by the lead, 8 to 128 characters) is then the password of all three, otherwise each gets a generated one in `passwords.json`. Without a complete configuration the service starts without the showcase and its log names the missing variable.
 - **Not on Railway:**
   - the course proxy route of S4 (private VPN address): the local fallback.
   - S5's driver: it runs on the local deployment.
