@@ -28,6 +28,8 @@ Consequences for this roadmap:
 
 ## 3. What Gate 2 would add
 
+Update of 1 November 2026: the design change that keeps the AI roles advisory in Stage 2, the ordered Gate 2 plan and a first development check are in [docs/50](50-design-change-and-gate2-plan.md).
+
 The Gate 2 row of docs/08: after Gate 1, connect the three roles, validate them in an independent pilot, then freeze the formal evaluation version; C3's image work starts after the text path is stable.
 
 | Work package | Owner / Reviewer | What it adds | S / F in docs/08 |
