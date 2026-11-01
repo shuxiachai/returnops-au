@@ -104,6 +104,7 @@ def test_the_routes_exist_only_with_password_sign_in_and_the_model(tmp_path, mon
     def assistant_paths(app):
         return sorted(route.path for route in app.routes if 'assistant' in getattr(route, 'path', ''))
     expected = ['/v1/founder/assistant/summary', '/v1/founder/assistant/triage',
+                '/v1/founder/cases/{case_id}/assistant/assessment',
                 '/v1/founder/cases/{case_id}/assistant/image-observations', '/v1/founder/cases/{case_id}/assistant/reply',
                 '/v1/founder/cases/{case_id}/assistant/risk-review']
     assert assistant_paths(create_app(engine=object(), enable_processor=False)) == []

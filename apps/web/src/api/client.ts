@@ -11,6 +11,7 @@ import {
   DecisionReceipt,
   AnalyticsQuery,
   AnalyticsSnapshot,
+  AiAssessment,
   AiImageObservations,
   AiReplyDraft,
   AiRiskReview,
@@ -1106,6 +1107,34 @@ export async function reviewCaseRisk(caseId: string): Promise<AiRiskReview> {
     };
   }
   return request<AiRiskReview>(`/v1/founder/cases/${encodeURIComponent(caseId)}/assistant/risk-review`, { method: 'POST' });
+}
+
+// The A1 Returns Assessment role's advisory draft of one case (1 November 2026), same rules.
+export async function draftCaseAssessment(caseId: string): Promise<AiAssessment> {
+  if (isMockMode()) {
+    return {
+      ...MOCK_AI,
+      prompt_version: 'a1-returns-assessment-advisory-v1',
+      generated_at: new Date().toISOString(),
+      case_id: caseId,
+      case_version: 1,
+      case_status: MOCK_FOUNDER_SUMMARIES.find((c) => c.case_id === caseId)?.status ?? 'RISK_REVIEW',
+      recorded: false,
+      inputs_used: { coordinator_facts: false, photo_observations: false },
+      policy_version: 'synthetic-store-policy-v1',
+      recommended_action: 'REFER_FOR_MANUAL_HANDLING',
+      issue_category: 'UNCLEAR',
+      possible_basis: 'UNDETERMINED',
+      assessment_status: 'UNCERTAIN',
+      covered_lines: [],
+      rationale: 'Sample data: no model was called.',
+      conditions: [],
+      unresolved_questions: [],
+      citations: [],
+      confidence: 0,
+    };
+  }
+  return request<AiAssessment>(`/v1/founder/cases/${encodeURIComponent(caseId)}/assistant/assessment`, { method: 'POST' });
 }
 
 // C3 observations of the case's photos (1 November 2026), same rules; a server without a

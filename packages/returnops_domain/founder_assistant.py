@@ -6,7 +6,9 @@ open queue (urgency and groups of similar cases), and a plain-English summary of
 store's last seven days. A fourth, added on 1 November 2026, asks the C2 Risk Reviewer
 for an advisory review of one case (risk_reviewer.py), under the same rules. A fifth,
 the same day, asks a vision model for C3 observations of the case's photos
-(image_observer.py); it runs only when a vision model is configured.
+(image_observer.py); it runs only when a vision model is configured. A sixth, that
+evening, asks the A1 Returns Assessment role for an advisory draft recommendation that
+cites the synthetic store policy (returns_assessor.py).
 Input is allow-listed and redacted exactly as for the A1.06
 Coordinator showcase (docs/44); the summary sees counts only. A reply is accepted only
 through a strict schema, otherwise it is discarded with one closed code. Nothing is
@@ -247,12 +249,13 @@ class AssistantComposition:
 
 class FounderAssistant:
     def __init__(self, engine, authority, composition, *, clock=lambda: datetime.now(timezone.utc),
-                 uow_factory=CustomerUnitOfWork, facts_provider=None, observations=None):
+                 uow_factory=CustomerUnitOfWork, facts_provider=None, observations=None, drafts=None):
         self.engine, self.authority, self.composition = engine, authority, composition
         self.clock, self.uow_factory = clock, uow_factory
         # Other roles' advisory output for the C2 review (1 November 2026): the
-        # Coordinator's facts card and the latest photo check (image_observer.py).
-        self.facts_provider, self.observations = facts_provider, observations
+        # Coordinator's facts card, the latest photo check (image_observer.py) and the
+        # latest assessment draft (returns_assessor.py).
+        self.facts_provider, self.observations, self.drafts = facts_provider, observations, drafts
 
     def _authorize(self, uow, operation, case_id=None):
         actor = self.authority(uow.connection, 'getSession')
@@ -333,8 +336,10 @@ class FounderAssistant:
         # The latest photo check counts only for the case's current photos.
         chosen, _ = select_images(view)
         photos = None if self.observations is None or not chosen else self.observations.get(case_id, photo_key(chosen))
-        payload = review_input(view, photos)
-        has_proposal = payload['proposal'] is not None
+        # The latest assessment draft counts only for the case version it was drafted on.
+        draft = None if self.drafts is None else self.drafts.get(case_id, view['case_version'])
+        payload = review_input(view, photos, draft)
+        has_proposal = payload['proposal'] is not None or draft is not None
         result = self._ask('risk_review', RISK_PROMPT, payload, lambda text: parse_risk_review(text, has_proposal),
                            version=RISK_VERSION)
         self._confirm(actor, 'getFounderCase', case_id)
@@ -345,8 +350,38 @@ class FounderAssistant:
                                                 'case_status': view['status'], 'reviewed_proposal': reviewed,
                                                 'recorded': False, 'inputs_used': {
                                                     'coordinator_facts': payload['coordinator_facts'] is not None,
-                                                    'photo_observations': photos is not None},
+                                                    'photo_observations': photos is not None,
+                                                    'assessment_draft': draft is not None},
                                                 **result}, version=RISK_VERSION))
+
+    def assessment(self, case_id):
+        # A1 Returns Assessment (returns_assessor.py): the same Founder view, facts card and
+        # latest photo check as the C2 review, plus the synthetic store policy; its read ends
+        # before the call.
+        from .image_observer import photo_key, select_images
+        from .returns_assessor import (ASSESSMENT_PROMPT, POLICY_VERSION, PROMPT_VERSION as ASSESSMENT_VERSION,
+                                       assessment_input, cited_passages, for_review, parse_assessment)
+        actor = self.preflight('getFounderCase', case_id)
+        view = FounderQueries(self.engine, self.authority, clock=self.clock, uow_factory=self.uow_factory,
+                              facts_provider=self.facts_provider).read('getFounderCase', case_id, {}).body
+        chosen, _ = select_images(view)
+        photos = None if self.observations is None or not chosen else self.observations.get(case_id, photo_key(chosen))
+        payload = assessment_input(view, photos)
+        order_lines = [] if payload['order'] is None else payload['order']['line_items']
+        result = self._ask('assessment', ASSESSMENT_PROMPT, payload, lambda text: parse_assessment(text, len(order_lines)),
+                           version=ASSESSMENT_VERSION)
+        self._confirm(actor, 'getFounderCase', case_id)
+        if self.drafts is not None:
+            # Kept in memory for the next C2 review of the same case version; never in the database.
+            self.drafts.put(case_id, view['case_version'], for_review(result))
+        covered = [{key: order_lines[line - 1][key] for key in ('line', 'description', 'quantity')}
+                   for line in result['covered_lines']]
+        return ResponseResult(200, self._stamp({
+            'case_id': case_id, 'case_version': view['case_version'], 'case_status': view['status'], 'recorded': False,
+            'inputs_used': {'coordinator_facts': payload['coordinator_facts'] is not None,
+                            'photo_observations': photos is not None},
+            'policy_version': POLICY_VERSION, **result, 'covered_lines': covered,
+            'citations': cited_passages(result['citations'])}, version=ASSESSMENT_VERSION))
 
     def image_observations(self, case_id):
         # C3 (image_observer.py): the frozen Founder query lists the case's files; their

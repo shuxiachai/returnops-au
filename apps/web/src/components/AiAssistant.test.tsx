@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import {
+  AiAssessmentPanel,
   AiImageObservationsPanel,
   AiReplyDraftPanel,
   AiRiskReviewPanel,
@@ -20,11 +21,13 @@ vi.mock('../api/client', async (importOriginal) => {
     summariseRecentCases: vi.fn(),
     reviewCaseRisk: vi.fn(),
     observeCaseImages: vi.fn(),
+    draftCaseAssessment: vi.fn(),
   };
 });
 
 import {
   ApiError,
+  draftCaseAssessment,
   draftCustomerReply,
   observeCaseImages,
   reviewCaseRisk,
@@ -206,6 +209,66 @@ describe('Founder AI assistant panels', () => {
     expect(screen.getByText('Cover only the two chipped cups.')).toBeInTheDocument();
   });
 
+  it('shows the A1 assessment draft on request, with its cited policy, and says it is not the proposal', async () => {
+    const draft = {
+      ...STAMP,
+      prompt_version: 'a1-returns-assessment-advisory-v1',
+      case_id: 'case_one',
+      case_version: 3,
+      case_status: 'RISK_REVIEW',
+      recorded: false as const,
+      inputs_used: { coordinator_facts: true, photo_observations: true },
+      policy_version: 'synthetic-store-policy-v1',
+      recommended_action: 'PROPOSE_REPLACEMENT' as const,
+      issue_category: 'FAULTY_OR_QUALITY_ISSUE',
+      possible_basis: 'STORE_POLICY' as const,
+      assessment_status: 'SUPPORTED',
+      covered_lines: [{ line: 2, description: 'White cups', quantity: 2 }],
+      rationale: 'The photos show a chipped cup on line 2. <i>not markup</i>',
+      conditions: ['The report came within 30 days of delivery.'],
+      unresolved_questions: [],
+      citations: [
+        {
+          passage_id: 'SP-DAMAGED',
+          title: 'Damaged or faulty on arrival',
+          text: 'The shop offers a replacement or a refund.',
+          policy_version: 'synthetic-store-policy-v1',
+          content_sha256: 'a'.repeat(64),
+        },
+      ],
+      confidence: 70,
+    };
+    vi.mocked(draftCaseAssessment).mockResolvedValueOnce(draft);
+    render(<AiAssessmentPanel caseId="case_one" />);
+    expect(draftCaseAssessment).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Draft assessment (AI)' }));
+    expect(await screen.findByText('Replace the item')).toBeInTheDocument();
+    expect(draftCaseAssessment).toHaveBeenCalledWith('case_one');
+    expect(screen.getByText('The photos show a chipped cup on line 2. <i>not markup</i>')).toBeInTheDocument();
+    expect(screen.getByText('Line 2: White cups (quantity 2)')).toBeInTheDocument();
+    expect(screen.getByText('The report came within 30 days of delivery.')).toBeInTheDocument();
+    expect(screen.getByText('Damaged or faulty on arrival')).toBeInTheDocument();
+    expect(screen.getByText(/Also read: the Coordinator's facts card and the photo check/)).toBeInTheDocument();
+    expect(screen.getByText(/not this case's proposal and is not recorded/)).toBeInTheDocument();
+
+    vi.mocked(draftCaseAssessment).mockResolvedValueOnce({
+      ...draft,
+      recommended_action: 'REQUEST_INFORMATION',
+      possible_basis: 'UNDETERMINED',
+      assessment_status: 'MISSING_INFORMATION',
+      covered_lines: [],
+      conditions: [],
+      unresolved_questions: ['What is your order reference?'],
+      citations: [],
+      confidence: 40,
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Draft again' }));
+    expect(await screen.findByText('Ask the customer for information')).toBeInTheDocument();
+    expect(screen.getByText('What is your order reference?')).toBeInTheDocument();
+    expect(screen.getByText(/No store policy passage cited/)).toBeInTheDocument();
+  });
+
   it('says when the deployment has no risk reviewer, and when it could not answer', async () => {
     vi.mocked(reviewCaseRisk).mockRejectedValueOnce(new ApiError(404, 'Not Found', 'HTTP_404'));
     const { unmount } = render(<AiRiskReviewPanel caseId="case_one" />);
@@ -231,6 +294,10 @@ describe('Founder AI assistant panels', () => {
       "Also read: the Coordinator's facts card. If the case has photos, run Analyse photos under Customer evidence first to include them."
     );
     expect(describeReviewInputs({ coordinator_facts: false, photo_observations: false })).toMatch(/^Read the case only\./);
+    // The three roles in the order of docs/00: the review also reads the A1 assessment draft.
+    expect(describeReviewInputs({ coordinator_facts: true, photo_observations: true, assessment_draft: true })).toBe(
+      "Also read: the Coordinator's facts card, the assessment draft (A1) and the photo check (C3)."
+    );
     vi.mocked(reviewCaseRisk).mockResolvedValueOnce({
       model_id: 'qwen-plus',
       prompt_version: 'c2-risk-review-advisory-v2',

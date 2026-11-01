@@ -24,7 +24,8 @@ def register_founder_assistant_routes(app):
             assistant = FounderAssistant(request.app.state.engine,
                                          CurrentRequestAuthority(config, one_header(request, 'authorization')), composition,
                                          facts_provider=getattr(request.app.state, 'coordinator_facts', None),
-                                         observations=getattr(request.app.state, 'photo_observations', None))
+                                         observations=getattr(request.app.state, 'photo_observations', None),
+                                         drafts=getattr(request.app.state, 'assessment_drafts', None))
             await run_in_threadpool(assistant.preflight, operation, case_id)
             if request.query_params:
                 raise FlowError('VALIDATION_ERROR')
@@ -50,6 +51,11 @@ def register_founder_assistant_routes(app):
     @app.post('/v1/founder/cases/{case_id}/assistant/risk-review')
     async def risk_review(case_id: str, request: Request):
         return await run(request, 'getFounderCase', 'risk_review', case_id)
+
+    # A1 Returns Assessment, advisory (1 November 2026): one case's draft, never recorded.
+    @app.post('/v1/founder/cases/{case_id}/assistant/assessment')
+    async def assessment(case_id: str, request: Request):
+        return await run(request, 'getFounderCase', 'assessment', case_id)
 
     # C3 image evidence observations, advisory (1 November 2026): never recorded.
     @app.post('/v1/founder/cases/{case_id}/assistant/image-observations')

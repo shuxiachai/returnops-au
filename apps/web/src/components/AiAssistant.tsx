@@ -1,10 +1,20 @@
 import React, { useState } from 'react';
 import { Copy, Sparkles } from 'lucide-react';
-import { ApiError, draftCustomerReply, observeCaseImages, reviewCaseRisk, summariseRecentCases, triageQueue } from '../api/client';
+import {
+  ApiError,
+  draftCaseAssessment,
+  draftCustomerReply,
+  observeCaseImages,
+  reviewCaseRisk,
+  summariseRecentCases,
+  triageQueue,
+} from '../api/client';
 import type {
+  AiAssessment,
   AiImageCondition,
   AiImageConsistency,
   AiImageObservations,
+  AiRecommendation,
   AiReplyDraft,
   AiRiskOutcome,
   AiRiskReview,
@@ -330,11 +340,18 @@ const SEVERITY_CLASS: Record<string, string> = {
 };
 
 // Which other roles' advisory output the review read: one AI's answer is the next one's input.
-export function describeReviewInputs(used: { coordinator_facts: boolean; photo_observations: boolean }): string {
-  const read = [used.coordinator_facts && "the Coordinator's facts card", used.photo_observations && 'the photo check (C3)'].filter(
-    Boolean
-  );
-  const first = read.length > 0 ? `Also read: ${read.join(' and ')}.` : 'Read the case only.';
+export function describeReviewInputs(used: {
+  coordinator_facts: boolean;
+  photo_observations: boolean;
+  assessment_draft?: boolean;
+}): string {
+  const read = [
+    used.coordinator_facts && "the Coordinator's facts card",
+    used.assessment_draft && 'the assessment draft (A1)',
+    used.photo_observations && 'the photo check (C3)',
+  ].filter(Boolean) as string[];
+  const listed = read.length > 2 ? `${read.slice(0, -1).join(', ')} and ${read[read.length - 1]}` : read.join(' and ');
+  const first = read.length > 0 ? `Also read: ${listed}.` : 'Read the case only.';
   return used.photo_observations
     ? first
     : `${first} If the case has photos, run Analyse photos under Customer evidence first to include them.`;
@@ -416,6 +433,117 @@ export const AiRiskReviewPanel: React.FC<{ caseId: string }> = ({ caseId }) => {
           )}
           <Note answer={state.answer} />
           <p className="text-[11px] text-slate-500">It is not recorded as this case's risk review; you decide.</p>
+        </div>
+      )}
+    </section>
+  );
+};
+
+// ---------------------------------------------------------------
+// The A1 Returns Assessment role's draft (1 November 2026): a recommendation that cites the
+// shop's synthetic store policy, with the conditions to check first. Advisory; never the
+// case's proposal and never recorded. FR-004, FR-007; NFR-009; UC-02.
+// ---------------------------------------------------------------
+export const RECOMMENDATION_LABEL: Record<AiRecommendation, string> = {
+  PROPOSE_RETURN: 'Return the item',
+  PROPOSE_REFUND: 'Refund',
+  PROPOSE_REPLACEMENT: 'Replace the item',
+  PROPOSE_REPAIR: 'Repair the item',
+  REQUEST_INFORMATION: 'Ask the customer for information',
+  REFER_FOR_MANUAL_HANDLING: 'Refer for manual handling',
+  PROPOSE_REJECTION: 'Decline under the store policy',
+};
+
+export const AiAssessmentPanel: React.FC<{ caseId: string }> = ({ caseId }) => {
+  const { state, ask } = useAsk<AiAssessment>(() => draftCaseAssessment(caseId));
+  return (
+    <section
+      aria-labelledby="ai-assessment-title"
+      className="rounded-2xl p-5 border border-dashed border-violet-300 bg-violet-50/40 space-y-3"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h4 id="ai-assessment-title" className="font-bold text-slate-900 text-sm flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-violet-600" />
+            AI assessment draft (Returns Assessment)
+          </h4>
+          <p className="text-xs text-slate-600">
+            Drafts a recommendation from the customer's words, the order, the facts card and the photo check, and cites
+            the shop's store policy.
+          </p>
+        </div>
+        {state.kind !== 'off' && (
+          <AskButton
+            label={state.kind === 'ready' ? 'Draft again' : 'Draft assessment (AI)'}
+            busyLabel="Drafting..."
+            busy={state.kind === 'asking'}
+            onClick={ask}
+          />
+        )}
+      </div>
+      {state.kind === 'off' && <p className="text-xs text-slate-500">{OFF}</p>}
+      {state.kind === 'failed' && <p className="text-xs text-rose-700">{FAILED}</p>}
+      {state.kind === 'ready' && (
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="px-2.5 py-1 rounded-full border text-xs font-bold bg-violet-100 text-violet-800 border-violet-200">
+              {RECOMMENDATION_LABEL[state.answer.recommended_action]}
+            </span>
+            <span className="text-[11px] text-slate-500">
+              {state.answer.issue_category}, {state.answer.assessment_status}, confidence {state.answer.confidence}%
+            </span>
+          </div>
+          <p className="text-[11px] text-violet-800">{describeReviewInputs(state.answer.inputs_used)}</p>
+          <p className="text-sm text-slate-900 whitespace-pre-wrap break-words">{state.answer.rationale}</p>
+          {state.answer.covered_lines.length > 0 && (
+            <div className="text-xs text-slate-800 space-y-1">
+              <div className="font-semibold">Order lines it covers:</div>
+              <ul className="list-disc pl-5 space-y-0.5">
+                {state.answer.covered_lines.map((line) => (
+                  <li key={line.line}>
+                    Line {line.line}: {line.description} (quantity {line.quantity})
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {state.answer.conditions.length > 0 && (
+            <div className="text-xs text-slate-800 space-y-1">
+              <div className="font-semibold">Check before acting:</div>
+              <ul className="list-disc pl-5 space-y-0.5">
+                {state.answer.conditions.map((condition, index) => (
+                  <li key={index}>{condition}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {state.answer.unresolved_questions.length > 0 && (
+            <div className="text-xs text-slate-800 space-y-1">
+              <div className="font-semibold">Questions for the customer:</div>
+              <ul className="list-disc pl-5 space-y-0.5">
+                {state.answer.unresolved_questions.map((question, index) => (
+                  <li key={index}>{question}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {state.answer.citations.length > 0 ? (
+            <div className="text-xs text-slate-800 space-y-1">
+              <div className="font-semibold">Store policy cited ({state.answer.policy_version}, synthetic):</div>
+              <ul className="list-disc pl-5 space-y-1">
+                {state.answer.citations.map((passage) => (
+                  <li key={passage.passage_id}>
+                    <span className="font-semibold">{passage.title}</span> ({passage.passage_id}):{' '}
+                    <span className="break-words">{passage.text}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="text-xs text-slate-600">No store policy passage cited: the basis is undetermined.</p>
+          )}
+          <Note answer={state.answer} />
+          <p className="text-[11px] text-slate-500">It is not this case's proposal and is not recorded; you decide.</p>
         </div>
       )}
     </section>

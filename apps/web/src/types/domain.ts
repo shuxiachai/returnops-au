@@ -227,12 +227,50 @@ export interface AiRiskReview extends AiAnswer {
   reviewed_proposal: { proposal_id: string; proposal_version: number } | null;
   recorded: false;
   // Other roles' advisory output the review also read (1 November 2026).
-  inputs_used?: { coordinator_facts: boolean; photo_observations: boolean };
+  inputs_used?: { coordinator_facts: boolean; photo_observations: boolean; assessment_draft?: boolean };
   outcome: AiRiskOutcome;
   summary: string;
   findings: AiRiskFinding[];
   questions: string[];
   revision_requests: string[];
+}
+
+// The A1 Returns Assessment role's advisory draft (1 November 2026): a recommendation that
+// cites the shop's synthetic store policy; never the case's proposal and never recorded.
+export type AiRecommendation =
+  | 'PROPOSE_RETURN'
+  | 'PROPOSE_REFUND'
+  | 'PROPOSE_REPLACEMENT'
+  | 'PROPOSE_REPAIR'
+  | 'REQUEST_INFORMATION'
+  | 'REFER_FOR_MANUAL_HANDLING'
+  | 'PROPOSE_REJECTION';
+
+export interface AiPolicyPassage {
+  passage_id: string;
+  title: string;
+  text: string;
+  policy_version: string;
+  content_sha256: string;
+}
+
+export interface AiAssessment extends AiAnswer {
+  case_id: string;
+  case_version: number;
+  case_status: string;
+  recorded: false;
+  inputs_used: { coordinator_facts: boolean; photo_observations: boolean };
+  policy_version: string;
+  recommended_action: AiRecommendation;
+  issue_category: string;
+  possible_basis: 'STORE_POLICY' | 'UNDETERMINED';
+  assessment_status: string;
+  covered_lines: { line: number; description: string; quantity: number }[];
+  rationale: string;
+  conditions: string[];
+  unresolved_questions: string[];
+  citations: AiPolicyPassage[];
+  confidence: number;
 }
 
 // C3 image evidence observations (1 November 2026): what the customer's photos show, in
