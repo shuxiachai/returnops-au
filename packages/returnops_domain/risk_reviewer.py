@@ -22,7 +22,7 @@ from __future__ import annotations
 from .coordinator_showcase import _printable, redact
 from .founder_assistant import AssistantRejected, _draft_reason, _exact, _object
 
-PROMPT_VERSION = 'c2-risk-review-advisory-v4'
+PROMPT_VERSION = 'c2-risk-review-advisory-v5'
 OUTCOMES = ('PASS', 'PASS_WITH_WARNING', 'REVISE', 'NEEDS_INFORMATION', 'ESCALATE')
 CATEGORIES = frozenset({'CITATION', 'SUPPORT', 'CONFLICT', 'MISSING_INFORMATION', 'SCOPE',
                         'LOW_CONFIDENCE', 'INJECTION', 'AUTHORITY'})
@@ -70,8 +70,10 @@ guidance_citations count, or the store policy passages an assessment_draft cites
 proposal that relies on a legal or policy basis for which it cites nothing needs at least
 a WARNING (category CITATION); a cited source that supports it needs none. Do not resolve
 source priority silently: when sources the proposal relies on materially conflict and
-nothing supplied says which one controls, that conflict blocks. Do not make a final legal
-determination and do not promise any outcome.
+nothing supplied says which one controls, that conflict blocks. An order_lookup_block with
+status CONFLICT (the reference matches more than one order) is conflicting order data:
+give a CONFLICT finding of severity BLOCK and ESCALATE; do not only ask the customer. Do
+not make a final legal determination and do not promise any outcome.
 Outcomes (an assessment_draft counts as a proposal here):
 - PASS: a proposal exists and nothing needs a warning; no questions or revisions.
 - PASS_WITH_WARNING: at least one WARNING finding, no BLOCK, no questions or revisions.
@@ -160,6 +162,37 @@ def review_input(view, photo_observations=None, assessment_draft=None):
     }
 
 
+def _misfit(outcome, has_proposal, severities, questions, revisions):
+    """The first of C2's outcome conditions a discarded answer broke, and the rule text for the retry.
+
+    The text names only outcomes, severities and counts, never the discarded answer's words.
+    """
+    if 'BLOCK' in severities and outcome != 'ESCALATE':
+        return 'BLOCK', (f'The outcome was {outcome} with a BLOCK finding, and a BLOCK finding is allowed only with '
+                         'ESCALATE: use ESCALATE, or make that finding a WARNING.')
+    if outcome in ('PASS', 'REVISE') and not has_proposal:
+        return 'NO_PROPOSAL', (f'The outcome was {outcome}, but there is no proposal to pass or revise: use '
+                               'PASS_WITH_WARNING with a WARNING that says so, NEEDS_INFORMATION or ESCALATE.')
+    if outcome in ('PASS', 'PASS_WITH_WARNING') and questions:
+        return 'QUESTIONS', (f'The outcome was {outcome} with {len(questions)} question(s) for the customer, and '
+                             f'{outcome} allows none: use NEEDS_INFORMATION when the customer must answer, or '
+                             'leave the questions out.')
+    if outcome in ('PASS', 'PASS_WITH_WARNING') and revisions:
+        return 'REVISIONS', (f'The outcome was {outcome} with {len(revisions)} revision request(s), and {outcome} '
+                             'allows none: use REVISE when the proposal must change, or leave them out.')
+    if outcome == 'PASS':
+        return 'WARNING', 'The outcome was PASS with a WARNING finding: use PASS_WITH_WARNING, or make it INFO.'
+    if outcome == 'PASS_WITH_WARNING':
+        return 'NO_WARNING', 'The outcome was PASS_WITH_WARNING without a WARNING finding: add it, or use PASS.'
+    if outcome == 'REVISE':
+        return 'NO_REVISION', 'The outcome was REVISE without a revision request: add one, or choose another outcome.'
+    if outcome == 'NEEDS_INFORMATION':
+        return 'NO_QUESTION', ('The outcome was NEEDS_INFORMATION without a question for the customer: add one, '
+                               'or choose another outcome.')
+    return 'NO_BLOCK', ('The outcome was ESCALATE without a BLOCK finding: mark the finding that needs the Founder '
+                        'personally as BLOCK, or choose another outcome.')
+
+
 def parse_risk_review(text, has_proposal):
     """Accept a review only in the exact shape and with C2's outcome conditions."""
     value = _object(text, {'outcome', 'summary', 'findings', 'questions', 'revision_requests'})
@@ -187,6 +220,6 @@ def parse_risk_review(text, has_proposal):
         'ESCALATE': 'BLOCK' in severities,
     }[outcome]
     if not allowed:
-        raise AssistantRejected('OUTCOME')
+        raise AssistantRejected('OUTCOME', *_misfit(outcome, has_proposal, severities, questions, revisions))
     return {'outcome': outcome, 'summary': _draft_reason(value['summary'], MAX_SUMMARY_CHARS),
             'findings': checked, 'questions': questions, 'revision_requests': revisions}

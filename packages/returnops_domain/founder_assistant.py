@@ -125,8 +125,10 @@ exactly these two keys:
 
 
 class AssistantRejected(Exception):
-    def __init__(self, code):
+    def __init__(self, code, detail=None, rule=None):
         self.code = code if code in REJECT_CODES else 'SCHEMA'
+        # Which condition broke and the retry's rule text, built only from allowed values and counts.
+        self.detail, self.rule = detail, rule
         super().__init__(self.code)
 
 
@@ -306,10 +308,11 @@ class FounderAssistant:
             try:
                 result = parse(reply.content)
             except AssistantRejected as error:
-                LOGGER.warning('founder_assistant kind=%s outcome=REJECTED failure_code=%s attempt=%s', kind, error.code, attempt)
+                LOGGER.warning('founder_assistant kind=%s outcome=REJECTED failure_code=%s attempt=%s detail=%s',
+                               kind, error.code, attempt, error.detail or '-')
                 # Asked once more with the same input, told only which rule the discarded answer broke.
                 payload = {**payload, 'previous_answer_rejected': {
-                    'code': error.code, 'rule': RETRY_RULES.get(error.code, RETRY_DEFAULT)}}
+                    'code': error.code, 'rule': error.rule or RETRY_RULES.get(error.code, RETRY_DEFAULT)}}
                 continue
             LOGGER.info('founder_assistant kind=%s outcome=ACCEPTED attempt=%s input_tokens=%s output_tokens=%s',
                         kind, attempt, reply.input_tokens, reply.output_tokens)
