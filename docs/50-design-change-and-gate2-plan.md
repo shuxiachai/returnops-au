@@ -35,7 +35,7 @@ Each later role reads the earlier roles' latest output: the review reads the fac
 
 1. **The design's own acceptance asks for evidence first.** The design lets a model output gate a decision only after measured evidence, and none exists yet:
    - E.01's definitions are frozen;
-   - the 12-case pilot is planned but has not run;
+   - the 12-case pilot is planned; A's first runs of it, with A's design intents rather than labels, came after this decision ([docs/51](51-gate2-pilot.md));
    - the 30 Gold cases are not labelled, and labelling them needs the three members, sealed before any model answers.
 2. **Connecting a model changes the reviewed core.** The governed chain re-verifies the review's provenance at every step: approval, execution preparation, label and notification (`pass_review_sources.py` and its callers). Connecting a model is a reviewed change to that core, covered by hundreds of PostgreSQL tests in the fifteen CI parts. It could not be made safely before the 23:59 source deadline of 1 November 2026, the evening before the demonstration.
 3. **The first measurement says the reviewer is not ready** (section 5).
@@ -50,6 +50,8 @@ Each later role reads the earlier roles' latest output: the review reads the fac
 | 4 | Shadow mode: record each AI draft and review next to the Founder's decision, non-authoritative, with model and prompt versions in the audit | A | Needs the withheld model audit event design ([docs/46](46-gate2-roadmap.md), section 4) |
 | 5 | Connect, only when step 3 meets the thresholds (detail below) | A, C reviews | The Founder stays the only approver; no model path to a provider |
 | 6 | C1 retrieval and citation checks in the runtime, and the C1.04 excerpt check | C, A reviews | As in docs/46, section 3 |
+
+Step 2 had its first runs by A on the evening of 1 November 2026, before and after one fix to the reviewer: [docs/51](51-gate2-pilot.md). C's review of those cases is still to come.
 
 Step 5, connecting, means three changes:
 
@@ -131,6 +133,6 @@ Run on 1 November 2026 at 21:31 Sydney, three times. It ran inside the Railway s
 ## 6. Records
 
 - Jira: KAN-39 (the 22 October 2026 deferral) and KAN-44 (the A1 assessment draft).
-- [docs/46](46-gate2-roadmap.md) remains the roadmap. This page records the 1 November 2026 decision and the first measurement.
+- [docs/46](46-gate2-roadmap.md) remains the roadmap. This page records the 1 November 2026 decision and the first measurement; [docs/51](51-gate2-pilot.md) records the first pilot runs.
 
 AI-assisted implementation and metadata preparation; author shuxiachai.
