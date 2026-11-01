@@ -439,6 +439,22 @@ describe('FounderConsole failure and live-mode paths', () => {
     expect(badge.className).not.toMatch(/emerald/);
   });
 
+  it('labels the controlled PASS review as fixed, not a model (1 November 2026)', async () => {
+    vi.mocked(getFounderCase).mockResolvedValue({
+      ...CONTRACT_SHAPED_VIEW,
+      current_review: {
+        ...CONTRACT_SHAPED_VIEW.current_review!,
+        model_run: { provider_id: 'fixture-no-live-model', model_id: 'controlled-synthetic-pass', prompt_version: 'controlled-pass-v1' },
+      },
+    } as unknown as CaseView);
+
+    render(<FounderConsole />);
+    fireEvent.click(await screen.findByRole('button', { name: /Inspect/i }));
+
+    expect(await screen.findByText('Reviewed by')).toBeInTheDocument();
+    expect(screen.getByText('Controlled review (fixed, no model)')).toBeInTheDocument();
+  });
+
   describe('escalated case without a proposal (S3 live manual handling)', () => {
     // A SYN-CONFLICT case after order investigation: contract OrderLookupBlock, no proposal.
     const BLOCKED_VIEW: CaseView = {

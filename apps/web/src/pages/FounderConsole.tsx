@@ -50,6 +50,7 @@ import {
   formatStatusLabel,
   formatRecommendation,
   describeProposalSource,
+  describeReviewSource,
   formatRequestedOutcome,
 } from '../utils/formatters';
 import { AdvisoryFactsCard } from '../components/AdvisoryFactsCard';
@@ -1326,6 +1327,14 @@ export const FounderConsole: React.FC = () => {
                             {formatDate(caseDetail.current_review.reviewed_at || '')}
                           </div>
                         </div>
+                        {caseDetail.current_review.model_run && (
+                          <div>
+                            <div className="text-slate-400 font-semibold uppercase">Reviewed by</div>
+                            <div className="text-xs font-bold text-slate-900 mt-1 break-words">
+                              {describeReviewSource(caseDetail.current_review.model_run)}
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {caseDetail.current_review.summary && (

@@ -368,6 +368,8 @@ export interface RiskReviewDetail {
   reviewed_at?: string;
   revision_requests?: string[];
   questions?: ClarificationQuestion[];
+  // Contract v1 ModelRun of the review: who produced it (the controlled PASS review is fixed).
+  model_run?: { provider_id?: string; model_id?: string; prompt_version?: string };
   // Frontend-only demo extensions: the v1 RiskReview contract carries none of
   // these, so a live response leaves them undefined, the risk-score tile shows
   // "N/A", and the summary/citation blocks do not render at all. The contract's
