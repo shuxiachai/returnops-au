@@ -87,13 +87,13 @@ api/migrate 内的 localhost 指该容器自身，不能把主机 5433 当 Postg
 
 | 部署位置 | 制品与连接 | 边界 |
 |---|---|---|
-| 演示电脑 | 两个浏览器 profile；Railway CLI 与 `tools/demo/demo.ps1 cloud / cloud-fresh / cloud-tokens` | 会话文件经 `railway ssh` 读入变量后写到 `tmp/railway-shop`，不显示；演示后删除 |
+| 演示电脑 | 两个浏览器 profile；Railway CLI 与 `tools/demo/demo.ps1 cloud / cloud-fresh / cloud-tokens / cloud-s5 / cloud-s5-end` | 会话文件、S5 的 `demo_cups_founder` 访问密钥与回执经 `railway ssh` 读入变量后写到 `tmp/railway-shop`，不显示；演示后删除 |
 | Railway edge | 服务的公开 HTTPS 地址 → 容器 `PORT` | TLS 由平台终止；容器内不签证书 |
-| 演示服务容器（`tools/railway/Dockerfile`，UID 10001） | `start.py`：重建 `returnops_f02`、`alembic upgrade head`、`demo.py provision`；Caddy 在 `PORT` 提供网页构建，并把 `/v1`、`/health` 代理到 `127.0.0.1:8000`；`demo.py serve --fixed-proposal --founder-decisions` | 演示 API 仍只监听 loopback，浏览器与它同源，不需要 CORS；Caddy 不写访问日志；任一进程退出则容器以 1 退出，Railway 按 `railway.json` 重启为新的演示 |
-| PostgreSQL 17 服务（与 `compose.yaml` 同一镜像摘要，挂 Railway 数据卷） | 平台引用变量拼出的 `DATABASE_URL`（`postgresql://`，私网主机名）；应用使用同一服务器上的 `returnops_f02` 库 | 每次启动删除并重建该库（与 PD-02 的 `fresh` 相同），只放合成数据；密码只在平台变量里 |
-| 不在 PD-03 | S4 模型展示（课程代理在私有 VPN 地址，平台访问不到）；S5 R.02 驱动（在 PD-02 上运行） | 两者都按 docs/45 的备用方案处理 |
+| 演示服务容器（`tools/railway/Dockerfile`，UID 10001） | `start.py`：重建 `returnops_f02`、`alembic upgrade head`、`demo.py provision`（2026-10-31 起保留上次部署的数据时改为迁移并更新会话）；Caddy 在 `PORT` 提供网页构建，并把 `/v1`、`/health` 代理到 `127.0.0.1:8000`；`demo.py serve --fixed-proposal --founder-decisions`。2026-11-01 起 `start.py s5` 在容器内以演示模式运行 R.02 驱动（镜像带 `tools/r02` 与 `tools/railway/r02-requirements.lock` 补的三个包），收到 PASSED 回执后 Caddy 改为代理到驱动 API 的 loopback 端口（8100 或其后第一个空闲端口），`s5-end`、密钥会话到期或驱动退出时改回 8000 | 演示 API 仍只监听 loopback，浏览器与它同源，不需要 CORS；Caddy 不写访问日志；S5 不停止演示 API；失败的 S5 不改变公开地址；任一进程退出则容器以 1 退出，Railway 按 `railway.json` 重启 |
+| PostgreSQL 17 服务（与 `compose.yaml` 同一镜像摘要，挂 Railway 数据卷） | 平台引用变量拼出的 `DATABASE_URL`（`postgresql://`，私网主机名）；应用使用同一服务器上的 `returnops_f02` 库；保留的私有文件在 `returnops_f02_private`；S5 每次运行另建 `returnops_f02_s5` | 2026-10-31 起部署保留数据，`cloud-fresh` 才重建 `returnops_f02`；S5 库每次运行删除并重建，不碰演示数据；只放合成数据；密码只在平台变量里 |
+| 不在 PD-03 | 经课程代理的 S4（课程代理在私有 VPN 地址，平台访问不到；Railway 上的 S4 自 2026-10-31 起用阿里云百炼） | 按 docs/45 的备用方案处理；S5 自 2026-11-01 起在 PD-03 上运行，PD-02 的 `s5` 留作备用 |
 
-需求对应：R.05.b 演示；NFR-003（只用合成数据，私有文件不进日志和镜像）；NFR-009（不显示凭据，公开地址只在演示期间运行）。2026-10-30 在本机用 Docker 模拟 Railway（PostgreSQL 容器加本镜像，`PORT=8080`）跑通：启动约 6 秒，`/health/ready`、网页、顾客提交与追问、店主队列和详情都经同一地址工作；在真实 Railway 上的记录见 README 的 Railway 一节。
+需求对应：R.05.b 演示；NFR-003（只用合成数据，私有文件不进日志和镜像）；NFR-009（不显示凭据，公开地址只在演示期间运行）。2026-10-30 在本机用 Docker 模拟 Railway（PostgreSQL 容器加本镜像，`PORT=8080`）跑通：启动约 6 秒，`/health/ready`、网页、顾客提交与追问、店主队列和详情都经同一地址工作；在真实 Railway 上的记录见 README 的 Railway 一节。2026-11-01 以同样方式模拟（Railway CLI 换成 `docker exec`）跑通 S5：`start.py s5` 约 70 秒 PASSED，经公开端口用 `demo_cups_founder` 密钥读到 COMPLETED 案件、APPROVE 决定、面单 PDF 与 28 条相连的审计事件，期间演示 API 一直就绪；`s5-end` 后顾客会话重新可用，紧接着的第二次运行换用下一个空闲端口也通过（FR-009 至 FR-012、NFR-001）。
 
 ## 5. 需求 → 包/接口 → 部署 → 验证
 

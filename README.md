@@ -4,7 +4,7 @@ ReturnOps AU is the Group 10 project for ELEC5620 Model-Based Software Engineeri
 
 **Start here:** [run it](#run-it-week-13-demonstration) · [what is in the system](#what-is-in-the-system) · [where AI is used](#where-ai-is-used-and-where-it-is-not) · [how we worked](#how-we-worked) · [known gaps](#known-gaps) · [deploy from zero](#deploy-from-zero---22-october-2026-sydney)
 
-## Status (31 October 2026)
+## Status (1 November 2026)
 
 - The Gate 1 scope is delivered on `main`: the governed case lifecycle, the customer and Founder HTTP APIs, exact-scope approval, the simulated return, label, PDF and notification chain, read-only analytics, the web frontend with a live API mode, and an advisory model extraction that is off by default.
 - Since 23 October:
@@ -12,7 +12,7 @@ ReturnOps AU is the Group 10 project for ELEC5620 Model-Based Software Engineeri
   - on a `demo.py serve` deployment the Founder can take over an escalated case (#132, `--founder-manual`);
   - `tools/demo/demo.ps1` runs the deployment steps on the Windows demonstration machine (#146), and since 29 October `tools/demo/start-demo.cmd` starts the demo on a double-click (#154);
   - C fixed the cleanup of interrupted timing exports (#141), rechecked the R.02 child-stop fix of #136 (#140), added the E.01 definitions (#142) and recorded their freeze as definitions only after A's confirmation (#152, 29 October); C's S6 segment fits its 90 seconds (#155);
-  - the Week 13 demonstration runs on Railway, with the local deployment as the fallback (#156, #157, 30 October); S4's live model call and S5's driver stay on the local deployment.
+  - the Week 13 demonstration runs on Railway, with the local deployment as the fallback (#156, #157, 30 October); S4's live model call runs there since 31 October and S5's driver since 1 November (below).
 - On 30 October four independent read-only reviews of `main` and a check against the Stage 2 rubric led to the fixes in the pull request that carries this section: a case no longer stays in UNDER_INVESTIGATION after a passing database delay or when a photo is lodged without an order reference; an unmatched reference is asked again with a reason; the Founder queue no longer hides the Inspect column on narrow screens; the Railway upload leaves `.env`, `.venv` and `tmp` behind; the R.02 driver refuses a database clock that is more than 2 s off; and the agile and technology evidence in [docs/48](docs/48-agile-evidence-and-technology-data.md) now runs to 30 October with a burn-down chart of the final iteration.
 - On 31 October the product was reviewed by the lead and finished for the demonstration (#160 to #170):
   - sign-in with a username and password, customer self-registration, and the Founder's ID `founder`, with one password for the three demo people set as `RETURNOPS_DEMO_PASSWORD` on Railway; the access key remains the fallback;
@@ -22,6 +22,7 @@ ReturnOps AU is the Group 10 project for ELEC5620 Model-Based Software Engineeri
   - a run-time review in four parts, with every confirmed defect fixed and the ones left by decision listed ([docs/47](docs/47-stage2-submission-runbook.md) section 7, item 19);
   - the CI matrix split by measured file time, so a run takes about 28 minutes instead of about 77;
   - a Railway deployment keeps the previous one's data; `demo.ps1 cloud-fresh` starts a fresh demonstration.
+- On 1 November S5 moved to Railway as well: `demo.ps1 cloud-s5` runs the R.02 driver inside the service against a database of its own, and the public address then shows the completed case to the `demo_cups_founder` key until `demo.ps1 cloud-s5-end` ([Railway deployment](#railway-deployment-since-30-october-2026)); the local `s5` stays the fallback.
 - Every change reaches `main` through a pull request and the full CI matrix: offline contracts and models, fifteen PostgreSQL parts (eight before 31 October 2026), the no-LLM end-to-end driver and the web frontend.
 - Rehearsals: pass 0 from a zip of `main` ran on 24 October. Pass 1 (29 October) was not held as planned; the lead's runs on 27 and 29 October and the Railway trial of 30 October cover part of it. Pass 2 from the Canvas download (1 November) is still to run ([docs/47](docs/47-stage2-submission-runbook.md), section 5).
 - The full three-role LLM orchestration (Gate 2) is deliberately deferred; see [docs/46](docs/46-gate2-roadmap.md).
@@ -666,6 +667,8 @@ At the demonstration, in the package folder downloaded from Canvas (after
 | `demo.ps1 cloud` or a double-click on `tools\demo\cloud-demo.cmd` | T-10 minutes | `railway up --ci` builds and deploys this folder. It then waits for the new deployment's sessions and copies them through `railway ssh` to `tmp\railway-shop`, never showing them. It prints when they expire and the clipboard commands of step 4 for that folder. |
 | `demo.ps1 cloud-fresh` | Before the demonstration, or for a clean state | Clears the kept data through `railway ssh` (`start.py forget-data`), then `railway redeploy`: a fresh database and new sessions, copied the same way. Any deployment also renews the sessions, so `cloud` is enough when only they expired. |
 | `demo.ps1 cloud-tokens` | Any time | Copies the current sessions again, with a warning if they have expired. |
+| `demo.ps1 cloud-s5` | S5 ([docs/45](docs/45-stage2-demo-script.md)) | Since 1 November 2026. `start.py s5` (through `railway ssh`) runs the R.02 driver in demo mode inside the service, against `returnops_f02_s5`, a database created fresh for each run; the demo API keeps serving `returnops_f02` meanwhile. Once the receipt says PASSED, Caddy proxies to the driver's API, so the public address shows the COMPLETED case to the `demo_cups_founder` key, which the script copies to `tmp\railway-shop\s5-sessions.json` with the receipt, never showing the key. A failed run never reaches the public address. Run it again to copy the same run once more. |
+| `demo.ps1 cloud-s5-end` | After S5 | The public address shows the demonstration again; it also does by itself 60 s after the key's 899 s session, or when the driver ends. Sign in again with the passwords. |
 
 After copying, all three read the service's public address from `railway status`
 (or take `-Url https://<the domain>`; a domain without `https://` is accepted), check
@@ -677,9 +680,12 @@ and `node_modules` out of the `railway up` upload, because the folder unpacked
 from the Canvas zip has no `.git` for `.gitignore` to apply to.
 
 - **Model showcase on Railway (31 October 2026, docs/44):** the course proxy is on a private VPN address, so the service uses Alibaba Cloud Bailian instead. Service variables: `RETURNOPS_MODEL_SHOWCASE=1`, `RETURNOPS_MODEL_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1`, `RETURNOPS_MODEL_ID=qwen3.5-122b-a10b`, `RETURNOPS_MODEL_PROVIDER_ID=aliyun_bailian`, `RETURNOPS_MODEL_DEADLINE_SECONDS=50`, `RETURNOPS_MODEL_MAX_CALLS=50`, and `RETURNOPS_MODEL_API_KEY`, which only the lead sets. Sign-in: the Founder is `founder`, the customers `synthetic_customer_a` and `synthetic_customer_b`; `RETURNOPS_DEMO_PASSWORD` (set only by the lead, 8 to 128 characters, no spaces at either end; set it in the Railway dashboard, since a PowerShell pipe adds a line break) is then the password of all three, otherwise each gets a generated one in `passwords.json`. Without a complete configuration the service starts without the showcase and its log names the missing variable. With the showcase and password sign-in on, the Founder also gets the AI assistant (a reply draft, a queue triage and a weekly summary, each on request; docs/44), with its own budget of `RETURNOPS_MODEL_MAX_CALLS` calls.
-- **Not on Railway:**
-  - the course proxy route of S4 (private VPN address): the local fallback.
-  - S5's driver: it runs on the local deployment.
+- **Not on Railway:** the course proxy route of S4 (private VPN address): the local fallback. S5's driver runs on Railway since 1 November 2026 (`cloud-s5`); the local `s5` stays its fallback.
+- **S5 on Railway, tested on 1 November 2026** with Docker on the demonstration machine standing in for Railway (a PostgreSQL 17 container and this image), the Railway CLI replaced by `docker exec`:
+  - `start.py s5` passed in about 70 s; through the public port the `demo_cups_founder` key read the COMPLETED case, the APPROVE decision, the label PDF (200, `application/pdf`) and an audit chain of 28 linked events, while the demo API kept answering ready on 8000;
+  - a second `s5` while the first was shown answered "already active"; `s5-end` switched back, the customer's session of the demonstration was accepted again, and a second run right after passed on the next free port (the first one's port was still in TIME_WAIT);
+  - after S5, the end-to-end check of the demonstration passed everything except the two model steps, as the stand-in has no model configured;
+  - `demo.ps1 cloud-s5` and `cloud-s5-end` ran against that stand-in.
 - **After the demonstration:**
   - remove the app service's deployment on railway.com;
   - run `demo.ps1 stop -RemoveData`, which also deletes `tmp\railway-shop`;

@@ -39,5 +39,9 @@
 !tools/railway/
 !tools/railway/Caddyfile
 !tools/railway/start.py
+# S5 on Railway (1 November 2026): the R.02 driver and the three packages it adds.
+!tools/railway/r02-requirements.lock
+!tools/r02/
+!tools/r02/*.py
 apps/web/node_modules
 apps/web/dist

@@ -61,7 +61,7 @@ For the fallback, keep the local deployment prepared:
 - items 2 to 6 above, or `demo.ps1 prepare`;
 - if Railway or the venue network fails, double-click `tools\demo\start-demo.cmd`.
 
-S5's driver runs only on the local deployment. S4's live model call runs on Railway once the lead has set the Bailian key (docs/44, "Second provider on Railway", 31 October 2026), so the cases lodged in S2 get facts there; the course proxy over the VPN on the local deployment is the fallback, and then S4's cases must be lodged on the local deployment before the start.
+Since 1 November 2026 S5's driver runs on Railway as well (`tools\demo\demo.ps1 cloud-s5`, S5 below), with the local driver as its fallback. S4's live model call runs on Railway once the lead has set the Bailian key (docs/44, "Second provider on Railway", 31 October 2026), so the cases lodged in S2 get facts there; the course proxy over the VPN on the local deployment is the fallback, and then S4's cases must be lodged on the local deployment before the start.
 
 ### 2.3 Demo identities, API and frontend (T-5 minutes)
 
@@ -189,7 +189,9 @@ Gloss: one complete governed run, from customer case to label and notification, 
 
 Actions ([README step 5](../README.md#deploy-from-zero---22-october-2026-sydney); [tools/r02 README](../tools/r02/README.md#demo-mode-live-demo-only)):
 
-With the script, `tools\demo\demo.ps1 s5` runs items 1 to 3 and reports the receipt's result and case ID; then continue at item 4.
+On Railway (since 1 November 2026; [README, Railway deployment](../README.md#railway-deployment-since-30-october-2026)): `tools\demo\demo.ps1 cloud-s5` replaces items 1 to 3. The driver runs inside the service against a database of its own, so the cases of S2 to S4 stay as they are, and about 70 s later the script reports PASSED, the case ID and that the Railway address now shows the driver's API; it copies the `demo_cups_founder` key and the receipt to `tmp\railway-shop` without showing the key. Narrate items 4 and 5 meanwhile, then do item 6 on the Railway address (copy the key with the clipboard command the script prints) and walk `tmp\railway-shop\s5-run-receipt.json` for item 7. Afterwards `demo.ps1 cloud-s5-end` shows the demonstration again (it also comes back by itself when the key's 15-minute session ends); sign in again with the passwords. If `cloud-s5` reports a failure, the demonstration itself is unchanged: say so and use the local steps below.
+
+Locally, with the script, `tools\demo\demo.ps1 s5` runs items 1 to 3 and reports the receipt's result and case ID; then continue at item 4.
 
 1. Terminal 1: Ctrl+C stops `demo.py serve` (its workers must not run during the driver, and port 8000 must be free). Any in-memory model facts are discarded.
 2. Terminal 2: provision a dedicated new store without `--order-investigation`, `--fixed-proposal` and `--founder-manual`: `demo.py provision --private-dir <abs>/tmp/demo-cups --store demo_cups_store --customer-one demo_cups_customer_one --customer-two demo_cups_customer_two --founder demo_cups_founder`.

@@ -46,6 +46,13 @@ and register this machine's SSH key once (README, Railway deployment).
   cloud-fresh  Clears the kept data (railway ssh), then redeploys: a fresh
                demonstration with new sessions, copied as for cloud.
   cloud-tokens Copies the current sessions again; warns if they have expired.
+  cloud-s5     S5 on Railway (1 November 2026): start.py runs the R.02 driver in the
+               service (railway ssh; about two minutes) against a database of its own.
+               After PASSED the public address shows the driver's API, and the
+               demo_cups_founder key and the receipt are copied to tmp\railway-shop;
+               the key is never shown. Run again to copy them from the same run.
+  cloud-s5-end The public address shows the demonstration again (it also does by itself
+               when the key's 899 s session ends). Sign in again with the passwords.
   -Url https://... is the service's public address; without it the address is read
                from railway status. The copied customer session is then tried
                there until the new deployment accepts it.
@@ -63,7 +70,7 @@ is displayed). AI-assisted implementation; author shuxiachai.
 #>
 param(
     [Parameter(Mandatory = $true, Position = 0)]
-    [ValidateSet('check', 'prepare', 'start', 'fresh', 's5', 'stop', 'cloud', 'cloud-fresh', 'cloud-tokens')]
+    [ValidateSet('check', 'prepare', 'start', 'fresh', 's5', 'stop', 'cloud', 'cloud-fresh', 'cloud-tokens', 'cloud-s5', 'cloud-s5-end')]
     [string]$Action,
     [switch]$ModelShowcase,
     [switch]$RemoveData,
@@ -886,6 +893,66 @@ function Invoke-CloudTokens {
     Save-CloudSessions $found
 }
 
+# S5 on Railway (1 November 2026): tools/railway/start.py runs the R.02 driver inside the
+# service against its own database and prints states and codes only. The demo_cups_founder
+# key is read through railway ssh into a variable and written to tmp\railway-shop, never shown.
+function Invoke-CloudS5 {
+    Assert-Railway
+    Show-Step "S5 on Railway: the R.02 driver in the service $Service (railway ssh; about two minutes)"
+    cmd.exe /d /c "railway ssh --service $Service -- python /app/start.py s5"
+    if ($LASTEXITCODE -ne 0) { Stop-Script 'S5 did not pass on Railway (the lines above, and the deployment log on railway.com); the demonstration itself was not changed. The local s5 stays the fallback.' }
+    $answer = Invoke-Quiet { cmd.exe /d /c "railway ssh --service $Service -- cat /app/private/s5/run/identities/sessions.json" }
+    $data = $null
+    if ($answer.Code -eq 0 -and $answer.Output) { try { $data = $answer.Output | ConvertFrom-Json } catch { $data = $null } }
+    if (-not ($data -and $data.PSObject.Properties['tokens'] -and $data.tokens.PSObject.Properties['demo_cups_founder'] -and $data.PSObject.Properties['sessions'])) {
+        Stop-Script 'The demo_cups_founder key could not be copied (railway ssh); run cloud-s5 again, which copies it from the same run.'
+    }
+    if (-not (Test-Path -LiteralPath $CloudShop)) { New-Item -ItemType Directory -Path $CloudShop | Out-Null }
+    [System.IO.File]::WriteAllText((Join-Path $CloudShop 's5-sessions.json'), $answer.Output + "`n")
+    $until = [DateTimeOffset]::FromUnixTimeSeconds([long]$data.sessions[0].expires_at).LocalDateTime
+    Show-Ok "Key copied to tmp\railway-shop\s5-sessions.json (not shown); it works until $(Format-Time $until)."
+    $receipt = Invoke-Quiet { cmd.exe /d /c "railway ssh --service $Service -- cat /app/private/s5/run/output/run-receipt.json" }
+    $case = $null
+    if ($receipt.Code -eq 0 -and $receipt.Output) {
+        try { $case = ($receipt.Output | ConvertFrom-Json).case_id } catch { $case = $null }
+        if ($case) { [System.IO.File]::WriteAllText((Join-Path $CloudShop 's5-run-receipt.json'), $receipt.Output + "`n") }
+    }
+    if ($case) { Show-Ok "Receipt copied to tmp\railway-shop\s5-run-receipt.json; case $case" }
+    else { Show-Warn 'The receipt could not be copied; the deployment log on railway.com shows the result.' }
+    $address = $Url
+    if (-not $address) { $address = Get-CloudAddress }
+    if ($address) {
+        $address = $address.TrimEnd('/')
+        $token = [string]$data.tokens.demo_cups_founder
+        $accepted = $false
+        $deadline = (Get-Date).AddSeconds(60)
+        while (-not $accepted -and (Get-Date) -lt $deadline) {
+            $check = Get-Http "$address/v1/session" $token
+            if ($check -and $check.Status -eq 200) { $accepted = $true } else { Start-Sleep -Seconds 3 }
+        }
+        if ($accepted) { Show-Ok "$address shows the S5 case to the demo_cups_founder key" }
+        else { Show-Warn "$address does not accept the key yet; wait a moment and run cloud-s5 again (it copies the same run)." }
+    } else {
+        Show-Warn 'The public address is unknown (pass -Url), so it was not checked that it accepts the key.'
+        $address = 'the Railway address of the service'
+    }
+    Show-Step 'Show the case (manual, docs/45 S5)'
+    Show-Info "In the Founder's browser profile on $($address): Sign out, Use an access key instead, paste the key, Sign in, then Case Queue & Review -> Inspect."
+    Show-Info 'Copy the key to the clipboard without showing it:'
+    Show-Info '  (Get-Content -Raw tmp\railway-shop\s5-sessions.json | ConvertFrom-Json).tokens.demo_cups_founder | Set-Clipboard'
+    Show-Info "Afterwards: tools\demo\demo.ps1 cloud-s5-end (it also ends by itself after $(Format-Time $until)), then sign in again with the passwords."
+}
+
+function Invoke-CloudS5End {
+    Assert-Railway
+    Show-Step "Ending S5 on Railway (railway ssh): the public address shows the demonstration again"
+    cmd.exe /d /c "railway ssh --service $Service -- python /app/start.py s5-end"
+    if ($LASTEXITCODE -ne 0) { Stop-Script 'No answer from the service (railway ssh); S5 also ends by itself when the key expires. See the deployment log on railway.com.' }
+    $copy = Join-Path $CloudShop 's5-sessions.json'
+    if (Test-Path -LiteralPath $copy) { Remove-Item -LiteralPath $copy -Force; Show-Ok 'Deleted tmp\railway-shop\s5-sessions.json (the key no longer works)' }
+    Show-Info 'Sign in again in both browser profiles with the usernames and passwords.'
+}
+
 function Invoke-Stop {
     Show-Step 'Stopping the windows this script started'
     $webPort = Get-WebPort
@@ -937,5 +1004,7 @@ switch ($Action) {
     'cloud' { Invoke-Cloud }
     'cloud-fresh' { Invoke-CloudFresh }
     'cloud-tokens' { Invoke-CloudTokens }
+    'cloud-s5' { Invoke-CloudS5 }
+    'cloud-s5-end' { Invoke-CloudS5End }
 }
 exit 0
