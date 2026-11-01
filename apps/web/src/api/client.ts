@@ -1097,6 +1097,7 @@ export async function reviewCaseRisk(caseId: string): Promise<AiRiskReview> {
       case_status: MOCK_FOUNDER_SUMMARIES.find((c) => c.case_id === caseId)?.status ?? 'RISK_REVIEW',
       reviewed_proposal: null,
       recorded: false,
+      inputs_used: { coordinator_facts: false, photo_observations: false },
       outcome: 'PASS_WITH_WARNING',
       summary: 'Sample data: no model was called.',
       findings: [{ category: 'MISSING_INFORMATION', severity: 'WARNING', message: 'Sample data only.' }],

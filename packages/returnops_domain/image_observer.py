@@ -13,6 +13,8 @@ JPEG and PNG files bound to the case are sent, at most MAX_IMAGES, each at most
 MAX_IMAGE_BYTES. FR-005, FR-012; NFR-002, NFR-003, NFR-009.
 """
 from __future__ import annotations
+from collections import OrderedDict
+from threading import Lock
 from .coordinator_showcase import _printable, redact
 from .errors import FlowError
 from .founder_assistant import AssistantRejected, _draft_reason, _exact, _object
@@ -143,3 +145,42 @@ def contract_result(view, chosen, parsed):
     if next(_validator('ImageObservationResult').iter_errors(result), None) is not None:
         raise FlowError('INTERNAL_ERROR')
     return result
+
+
+# The C2 review reads the latest photo check (1 November 2026): one role's output is the
+# next role's input, still as advice. FR-005, FR-008.
+
+def photo_key(chosen):
+    """The photos an observation was made of: their IDs and hashes, in order."""
+    return tuple((item['evidence_id'], item['sha256']) for item in chosen)
+
+
+def for_review(parsed):
+    """What the C2 review reads of a photo check: by photo number, without IDs."""
+    return {'consistency': parsed['consistency'], 'summary': parsed['summary'],
+            'photos': [{'photo': index + 1, 'condition': item['condition'], 'text_in_image': item['text_in_image'],
+                        'confidence_percent': round(item['confidence'] * 100),
+                        'visible_observations': item['visible_observations'], 'limitations': item['limitations']}
+                       for index, item in enumerate(parsed['images'])]}
+
+
+class ObservationCache:
+    """The latest photo check of each case, in this process's memory only.
+
+    An entry counts only for the same photos (IDs and hashes, in order); nothing is
+    written to the database and a restart forgets every entry.
+    """
+    def __init__(self, max_cases=500):
+        self._entries, self._lock, self.max_cases = OrderedDict(), Lock(), max_cases
+
+    def put(self, case_id, key, value):
+        with self._lock:
+            self._entries.pop(case_id, None)
+            self._entries[case_id] = (key, value)
+            while len(self._entries) > self.max_cases:
+                self._entries.popitem(last=False)
+
+    def get(self, case_id, key):
+        with self._lock:
+            entry = self._entries.get(case_id)
+        return None if entry is None or entry[0] != key else entry[1]

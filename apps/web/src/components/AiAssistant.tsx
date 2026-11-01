@@ -329,6 +329,17 @@ const SEVERITY_CLASS: Record<string, string> = {
   BLOCK: 'text-rose-700',
 };
 
+// Which other roles' advisory output the review read: one AI's answer is the next one's input.
+export function describeReviewInputs(used: { coordinator_facts: boolean; photo_observations: boolean }): string {
+  const read = [used.coordinator_facts && "the Coordinator's facts card", used.photo_observations && 'the photo check (C3)'].filter(
+    Boolean
+  );
+  const first = read.length > 0 ? `Also read: ${read.join(' and ')}.` : 'Read the case only.';
+  return used.photo_observations
+    ? first
+    : `${first} If the case has photos, run Analyse photos under Customer evidence first to include them.`;
+}
+
 export const AiRiskReviewPanel: React.FC<{ caseId: string }> = ({ caseId }) => {
   const { state, ask } = useAsk<AiRiskReview>(() => reviewCaseRisk(caseId));
   return (
@@ -367,6 +378,9 @@ export const AiRiskReviewPanel: React.FC<{ caseId: string }> = ({ caseId }) => {
                 : 'No proposal yet: the request itself was reviewed'}
             </span>
           </div>
+          {state.answer.inputs_used && (
+            <p className="text-[11px] text-violet-800">{describeReviewInputs(state.answer.inputs_used)}</p>
+          )}
           <p className="text-sm text-slate-900 whitespace-pre-wrap break-words">{state.answer.summary}</p>
           {state.answer.findings.length > 0 && (
             <ul className="space-y-1 text-xs">
