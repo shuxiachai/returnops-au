@@ -69,6 +69,8 @@ conversion from the older Project Description's final-week wording.
 
 AI agent capabilities evidence (22 October 2026): the advisory, default-off A1.06 Coordinator showcase and its provider record, data flow and fail-closed paths are in [docs/44](44-coordinator-showcase.md); its first live result is pending, and it is not three-role or Gate 2 evidence.
 
+Update, 1 November 2026: four live advisory roles are on the Railway demonstration, each answer carrying its model, prompt version and inputs: the Coordinator's facts card, the A1 assessment draft, the C2 risk review and the C3 photo check ([docs/44](44-coordinator-showcase.md)). The design change, a development check and the first pilot runs are in [docs/50](50-design-change-and-gate2-plan.md) and [docs/51](51-gate2-pilot.md). None of them is recorded in the governed chain (Gate 2).
+
 The rubric page2 requires names/student IDs, each member's percentage under each
 of these four criteria, and specific completed tasks/deliverables. Each criterion
 row must total100%; unused member columns stay blank. The frozen45/27/28 planned
