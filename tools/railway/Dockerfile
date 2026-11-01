@@ -32,8 +32,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 WORKDIR /app
 
-COPY requirements.lock ./
-RUN python -m pip install --no-cache-dir --require-hashes -r requirements.lock \
+# r02-requirements.lock: the three packages the R.02 driver needs beyond the runtime lock, for
+# S5 on Railway (1 November 2026; start.py s5).
+COPY requirements.lock tools/railway/r02-requirements.lock ./
+RUN python -m pip install --no-cache-dir --require-hashes -r requirements.lock -r r02-requirements.lock \
     && useradd --create-home --uid 10001 appuser \
     && mkdir -m 700 /app/private \
     && chown 10001 /app/private
@@ -45,6 +47,8 @@ COPY alembic/ ./alembic/
 COPY --from=caddy /usr/bin/caddy /usr/local/bin/caddy
 COPY --from=web-build /web/dist/ ./web/
 COPY tools/railway/Caddyfile tools/railway/start.py ./
+# The R.02 driver's six modules; start.py runs it for S5 against its own database.
+COPY tools/r02/*.py ./tools/r02/
 USER 10001
 EXPOSE 8080
 CMD ["python", "/app/start.py"]

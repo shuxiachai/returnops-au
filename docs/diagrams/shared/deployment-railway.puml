@@ -1,5 +1,5 @@
 @startuml
-title PD-03 / Railway deployment for the Week 13 demonstration\nadded 30 October 2026; PD-02 (local) stays the fallback
+title PD-03 / Railway deployment for the Week 13 demonstration\nadded 30 October 2026, S5 since 1 November 2026; PD-02 (local) stays the fallback
 !pragma layout smetana
 top to bottom direction
 skinparam defaultFontName SansSerif
@@ -14,40 +14,50 @@ skinparam ranksep 55
 
 node "Presenter laptop\n(the demo machine)" as Laptop {
   node "Browser, two profiles\ncustomer and Founder" as Browser <<executionEnvironment>> #E4F2EB
-  node "Railway CLI + tools/demo/demo.ps1\ncloud / cloud-fresh / cloud-tokens" as Cli <<executionEnvironment>> #E4F2EB {
-    artifact "tmp/railway-shop/sessions.json\ncopy of the 899 s sessions\nnever shown; deleted after use" as LocalSessions #E8EEF7
+  node "Railway CLI + tools/demo/demo.ps1\ncloud / cloud-fresh / cloud-tokens\ncloud-s5 / cloud-s5-end" as Cli <<executionEnvironment>> #E4F2EB {
+    artifact "tmp/railway-shop\nsessions, passwords, S5 key and receipt\nnever shown; deleted after use" as LocalSessions #E8EEF7
   }
 }
 
 cloud "Railway project" as Railway {
   node "Railway edge\npublic HTTPS address" as Edge <<executionEnvironment>> #E4F2EB
   node "Service: demo container\ntools/railway/Dockerfile\nnon-root UID 10001" as Service <<executionEnvironment>> #E4F2EB {
-    artifact "start.py\nreset returnops_f02, alembic upgrade head,\ndemo.py provision, then supervise" as Start #E4F2EB
-    artifact "Caddy on PORT\nweb build /app/web\n/v1 and /health -> 127.0.0.1:8000" as Caddy #E4F2EB
-    artifact "demo.py serve 127.0.0.1:8000\nfixed proposal and Founder decisions on" as Api #E4F2EB
-    artifact "/app/private/demo-shop\nauth.json, sessions.json" as Private #E8EEF7
+    artifact "start.py\nkeep or reset returnops_f02, alembic upgrade head,\nprovision or renew sessions, then supervise;\nS5 on request (start.py s5 / s5-end)" as Start #E4F2EB
+    artifact "Caddy on PORT\nweb build /app/web\n/v1 and /health -> 127.0.0.1:8000,\nor to the driver's API while S5 is shown" as Caddy #E4F2EB
+    artifact "demo.py serve 127.0.0.1:8000\nfixed proposal, Founder decisions,\naccounts, advisory model (Bailian)" as Api #E4F2EB
+    artifact "R.02 driver, demo mode (S5)\ntools/r02; its API child on\n127.0.0.1:8100 or the next free port" as Driver #E4F2EB
+    artifact "/app/private\ndemo-shop: auth.json, sessions.json\ns5: demo-cups identities, receipt" as Private #E8EEF7
   }
   node "Service: PostgreSQL 17\nsame image as compose.yaml, Railway volume\nprivate network only for the app" as Postgres <<executionEnvironment>> #E4F2EB {
-    database "returnops_f02\ndropped and created on every start" as Database #E8EEF7
+    database "returnops_f02\nkept across deployments\n(cloud-fresh resets it)" as Database #E8EEF7
+    database "returnops_f02_s5\ncreated fresh for each S5 run" as S5Database #E8EEF7
+    database "returnops_f02_private\nthe kept private files" as PrivateStore #E8EEF7
   }
 }
 
-node "Not deployed here\nS4 model showcase: course proxy on a private VPN address\nS5 R.02 driver: runs on PD-02" as Elsewhere <<external>> #FFF3D6
+node "Not deployed here\nS4 over the course proxy (a private VPN address);\non Railway S4 uses Alibaba Cloud Bailian" as Elsewhere <<external>> #FFF3D6
 
 Browser --> Edge : HTTPS, bearer token\nper browser profile
 Edge --> Caddy : PORT
 Caddy --> Api : loopback proxy
+Caddy --> Driver : loopback proxy\nwhile S5 is shown
 Start --> Private : writes
+Start --> Driver : starts on s5,\nSIGINT on s5-end
 Api --> Private : reads auth.json
-Start --> Database : reset + migrate + provision
+Start --> Database : migrate (+ reset, provision)
+Start --> S5Database : drop, create, migrate, provision
+Start --> PrivateStore : restore + keep
 Api --> Database : SQLAlchemy + psycopg
+Driver --> S5Database : one cups case,\napproved and executed
 Cli --> Service : railway up / redeploy\n(build from this folder)
-Cli --> Private : railway ssh -- cat sessions.json\n(stdout captured, not shown)
+Cli --> Private : railway ssh -- cat\n(stdout captured, not shown)
+Cli --> Start : railway ssh --\nstart.py s5 / s5-end
 Cli --> LocalSessions : writes
 
 note bottom of Service
-Every start is a fresh synthetic demonstration
-(the same as demo.ps1 fresh on PD-02). No credential is
-printed; logs carry no tokens; Caddy keeps no access log.
+A deployment keeps the previous one's data (31 October 2026);
+cloud-fresh starts a fresh synthetic demonstration. S5 never
+stops the demo API. No credential is printed; logs carry no
+tokens; Caddy keeps no access log.
 end note
 @enduml

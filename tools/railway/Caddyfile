@@ -1,20 +1,24 @@
 # Railway entry for the demonstration (tools/railway/Dockerfile): the web build on
 # Railway's PORT, with /v1 and /health proxied to the demo API on 127.0.0.1:8000,
 # so the browser stays on one origin. No access log: requests carry bearer tokens.
+# While S5 is shown (start.py, 1 November 2026) start.py restarts Caddy with
+# RETURNOPS_API_PORT set to the R.02 driver's API port (8100 or the next free one);
+# the grace period bounds that restart.
 {
 	admin off
 	auto_https off
 	persist_config off
+	grace_period 5s
 }
 
 :{$PORT:8080} {
 	encode gzip
 
 	handle /v1/* {
-		reverse_proxy 127.0.0.1:8000
+		reverse_proxy 127.0.0.1:{$RETURNOPS_API_PORT:8000}
 	}
 	handle /health/* {
-		reverse_proxy 127.0.0.1:8000
+		reverse_proxy 127.0.0.1:{$RETURNOPS_API_PORT:8000}
 	}
 	# Vite names every file under /assets after its content, so a browser may keep it
 	# for a year; the page itself is checked again on each load, so a new deployment
