@@ -12,11 +12,13 @@ import {
   getActiveRole,
   getSession,
   getStoredToken,
+  renewPasswordSession,
   sampleDataChosen,
   SHARED_STORAGE_KEYS,
   setActiveRole,
   setMockMode,
   setStoredToken,
+  tokenExpiry,
 } from './api/client';
 import { SessionPrincipal } from './types/domain';
 
@@ -31,6 +33,8 @@ type Gate =
 
 const SESSION_ENDED = 'Your session has ended. Sign in again to continue.';
 const CHANGED_ELSEWHERE = 'You signed in, signed out or opened the sample data in another tab. Sign in again here.';
+// The next key of a password sign-in is asked for this long before the current one ends.
+const RENEW_LEAD_SECONDS = 120;
 
 function startingGate(): Gate {
   if (sampleDataChosen()) return { kind: 'sample' };
@@ -44,6 +48,7 @@ export const App: React.FC = () => {
   const [sampleTab, setSampleTab] = useState<'customer' | 'founder'>(
     getActiveRole() === 'FOUNDER' ? 'founder' : 'customer'
   );
+  const [renewals, setRenewals] = useState(0);
 
   // A saved key is checked with the server before any page opens.
   useEffect(() => {
@@ -88,6 +93,32 @@ export const App: React.FC = () => {
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
   }, []);
+
+  // A password sign-in stays signed in for an hour (1 November 2026). Each key lasts at most
+  // 15 minutes, so shortly before it ends this tab asks for the next one; a refusal (an access
+  // key, the hour has passed, a server without accounts) leaves the key to end as before.
+  useEffect(() => {
+    if (gate.kind !== 'signed-in') return;
+    const token = getStoredToken();
+    const ends = tokenExpiry(token);
+    if (ends === null) return;
+    let cancelled = false;
+    const wait = Math.max(5, ends - RENEW_LEAD_SECONDS - Date.now() / 1000) * 1000;
+    const timer = window.setTimeout(() => {
+      renewPasswordSession(token)
+        .then((next) => {
+          // A sign-out, or a key from another tab, wins over this renewal.
+          if (cancelled || getStoredToken() !== token) return;
+          setStoredToken(next.access_token);
+          setRenewals((count) => count + 1);
+        })
+        .catch(() => undefined);
+    }, wait);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [gate, renewals]);
 
   const signOut = (notice?: string) => {
     setStoredToken('');

@@ -294,6 +294,33 @@ export function registerCustomerAccount(username: string, password: string): Pro
   return postCredentials('/v1/auth/register', username, password);
 }
 
+// A password sign-in stays signed in for an hour (1 November 2026): each key still lasts at
+// most 15 minutes, and the page asks for the next one shortly before it ends. Served only
+// with `serve --accounts`; not in contract v1. A refusal leaves the current key as it is.
+export function renewPasswordSession(token: string): Promise<PasswordSession> {
+  return request<PasswordSession>(
+    '/v1/auth/renew',
+    { method: 'POST', headers: { Authorization: `Bearer ${token}` } },
+    false,
+    undefined,
+    false
+  );
+}
+
+// When a key ends (Unix seconds), read from its own claims, or null for anything that is
+// not a readable token. Only for timing the renewal; the server decides validity.
+export function tokenExpiry(token: string): number | null {
+  const part = token.split('.')[1];
+  if (!part) return null;
+  try {
+    const base64 = part.replace(/-/g, '+').replace(/_/g, '/');
+    const claims = JSON.parse(atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, '=')));
+    return typeof claims.exp === 'number' && Number.isFinite(claims.exp) ? claims.exp : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function stageEvidence(
   file: File,
   description?: string,

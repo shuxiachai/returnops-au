@@ -19,6 +19,13 @@ it is decoded; at most four sign-in or registration requests use worker threads 
 (more are refused at once as busy), so a flood cannot hold the threads the other routes
 need; a name signs in as the account's own spelling, as registration treats `Alice`,
 `alice` and `a-lice` as one name.
+
+1 November 2026 (the lead: fifteen minutes is too short): a password sign-in stays signed in
+for an hour. Every key still lasts at most 899 s, the most the verifier and the frozen schema
+accept (docs/18), so `POST /v1/auth/renew` hands out the next key: only for a key that a
+password sign-in or a renewal of one issued in this process, only in the last five minutes of
+that key, and never past one hour after the sign-in. An access key from `demo.py provision` is
+not renewed. Not in contract v1.
 """
 from __future__ import annotations
 import asyncio
@@ -39,9 +46,16 @@ from returnops_domain.audit import identifier
 from returnops_domain.errors import FlowError
 from returnops_domain.registry import TrustedRegistry, canonical_id
 from returnops_domain.wire import blank, decode_json_document, validate
+from .customer_authority import SameConnectionIdentities
 from .customer_http import one_header, safe_json
+from .security.authentication import Authenticator
+from .security.errors import SecurityError
 
 SESSION_SECONDS = 899
+# A password sign-in is renewed for this long, in the last RENEW_BEFORE_SECONDS of each key.
+RENEW_WINDOW_SECONDS = 3600
+RENEW_BEFORE_SECONDS = 300
+RENEWABLE_MAX_KEYS = 10000
 PASSWORD_MIN, PASSWORD_MAX = 8, 128
 _SCRYPT = {'n': 2**14, 'r': 8, 'p': 1}
 # About 16 MiB and 40 ms of CPU each, so no more than this many run at once.
@@ -250,8 +264,8 @@ def _token(config, principal_id, session):
     return jwt.encode(claims, config.signing_key, algorithm='HS256')
 
 
-def _signed_in(token, principal_id, role):
-    return {'access_token': token, 'token_type': 'Bearer', 'expires_in': SESSION_SECONDS,
+def _signed_in(token, principal_id, role, expires_in=SESSION_SECONDS):
+    return {'access_token': token, 'token_type': 'Bearer', 'expires_in': expires_in,
             'principal_id': principal_id, 'role': role}
 
 
@@ -266,11 +280,24 @@ def register_account_routes(app, store):
     hash_slots = threading.BoundedSemaphore(HASH_SLOTS)
     pending = set()
     pending_lock = threading.Lock()
+    # Session ID -> when its password sign-in happened (Unix seconds), for the keys this
+    # process issued by sign-in, registration or renewal; a restart forgets them, and the
+    # next key then needs a new sign-in. Bounded like the limiters.
+    renewable = {}
+    renewable_lock = threading.Lock()
     # Exposed for tests and operators; nothing here is a secret.
     app.state.account_limits = {'sign_ins': sign_ins, 'registrations': registrations, 'hash_slots': hash_slots}
+    app.state.account_renewals = {'keys': renewable, 'window': RENEW_WINDOW_SECONDS, 'before': RENEW_BEFORE_SECONDS}
 
     wrong = lambda: AccountError('UNAUTHENTICATED', WRONG_CREDENTIALS)
     taken = lambda: AccountError('INVALID_STATE', 'That username is already taken. Choose another one.')
+    not_renewable = lambda: AccountError('INVALID_STATE', 'This sign-in cannot be renewed. Sign in again.')
+
+    def remember(session_id, signed_in_at):
+        with renewable_lock:
+            renewable[session_id] = signed_in_at
+            while len(renewable) > RENEWABLE_MAX_KEYS:
+                renewable.pop(next(iter(renewable)))
 
     def with_hash_slot(work):
         if not hash_slots.acquire(timeout=HASH_WAIT_SECONDS):
@@ -329,6 +356,7 @@ def register_account_routes(app, store):
         finally:
             with pending_lock:
                 pending.discard(name)
+        remember(session['session_id'], session['not_before'] + 1)
         return 201, _signed_in(_token(config, username, session), username, 'CUSTOMER')
 
     def sign_in(config, engine, username, password):
@@ -361,7 +389,42 @@ def register_account_routes(app, store):
                 raise wrong() from None
             raise
         sign_ins.clear(name)
+        remember(session['session_id'], session['not_before'] + 1)
         return 200, _signed_in(_token(config, username, session), username, scope[0])
+
+    def renew(config, engine, authorization):
+        """The next key of a password sign-in (1 November 2026); every check of a request first."""
+        with engine.connect() as connection:
+            try:
+                verified = Authenticator(config, SameConnectionIdentities(connection)).authenticate(authorization)
+            except SecurityError as error:
+                raise FlowError(error.code, status=error.status_code) from None
+        with renewable_lock:
+            signed_in_at = renewable.get(verified.session_id)
+        rules = app.state.account_renewals
+        if signed_in_at is None or verified.store_id != store.store_id:
+            raise not_renewable()
+        now = int(time.time())
+        ends = signed_in_at + rules['window']
+        # Verified above, so the claims are this key's own.
+        current_ends = int(jwt.decode(authorization.split()[1], options={'verify_signature': False})['exp'])
+        if current_ends - now > rules['before']:
+            raise AccountError('INVALID_STATE', 'This key is renewed in its last five minutes.')
+        if ends - now < 2:
+            raise AccountError('INVALID_STATE', 'The hour since sign-in has passed. Sign in again.')
+        session = {'session_id': identifier('session'), 'issued_at': now - 1, 'not_before': now - 1,
+                   'expires_at': min(now + SESSION_SECONDS, ends)}
+        principal_id = verified.principal_id
+        try:
+            TrustedRegistry(engine).register_session(principal_id, session['session_id'], session['issued_at'],
+                                                     session['not_before'], session['expires_at'])
+        except FlowError as error:
+            if error.code in {'INVALID_STATE', 'VALIDATION_ERROR'}:
+                raise not_renewable() from None
+            raise
+        remember(session['session_id'], signed_in_at)
+        return 200, _signed_in(_token(config, principal_id, session), principal_id, verified.role.value,
+                               expires_in=session['expires_at'] - now)
 
     async def read_body(request):
         content_type = one_header(request, 'content-type', required=True)
@@ -410,3 +473,23 @@ def register_account_routes(app, store):
     @app.post('/v1/auth/login')
     async def login_route(request: Request):
         return await respond(request, sign_in)
+
+    @app.post('/v1/auth/renew')
+    async def renew_route(request: Request):
+        correlation = identifier('corr')
+        try:
+            config = request.app.state.auth_config
+            if config is None:
+                raise FlowError('INTERNAL_ERROR')
+            # No body: the bearer key is the whole request.
+            authorization = one_header(request, 'authorization')
+            limiter = threads(request.app)
+            if limiter.borrowed_tokens >= limiter.total_tokens:
+                raise AccountError('INTERNAL_ERROR', BUSY, status=503)
+            status, body = await anyio.to_thread.run_sync(
+                functools.partial(renew, config, request.app.state.engine, authorization), limiter=limiter)
+            return safe_json(body, status, correlation=correlation)
+        except FlowError as error:
+            return safe_json(error.envelope(correlation), error.status, correlation=correlation)
+        except Exception:
+            return safe_json(FlowError().envelope(correlation), 503, correlation=correlation)

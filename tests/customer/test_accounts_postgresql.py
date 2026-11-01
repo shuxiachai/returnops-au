@@ -5,6 +5,7 @@ credentials file's store; a sign-in issues a session the existing verifier accep
 """
 import json
 from uuid import uuid4
+import jwt
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
@@ -272,3 +273,72 @@ def test_busy_auth_threads_refuse_at_once_without_any_work(accounts, identities)
     client.app.state.auth_threads = None
     assert post(client, 'login', identities.people['founder']['principal_id'], PASSWORDS['founder']).status_code == 200
 
+
+
+def renew(client, token):
+    return client.post('/v1/auth/renew', headers={'Authorization': 'Bearer ' + token})
+
+
+def key_id(body):
+    return jwt.decode(body['access_token'], options={'verify_signature': False})['jti']
+
+
+def test_a_password_sign_in_is_renewed_for_one_hour_and_each_key_stays_short(accounts, identities):
+    # 1 November 2026: every key still lasts at most 899 s; the next one is handed out only in
+    # the last five minutes of the current key, and never past an hour after the sign-in.
+    client, _ = accounts
+    rules = client.app.state.account_renewals
+    founder = identities.people['founder']['principal_id']
+    signed = post(client, 'login', founder, PASSWORDS['founder']).json()
+    refused(renew(client, signed['access_token']), 409, 'INVALID_STATE', 'This key is renewed in its last five minutes.')
+    rules['before'] = 900  # stands in for waiting ten minutes
+    renewed = renew(client, signed['access_token'])
+    assert renewed.status_code == 200, renewed.text
+    assert renewed.headers['Cache-Control'] == 'no-store'
+    body = renewed.json()
+    assert (body['principal_id'], body['role'], body['token_type']) == (founder, 'FOUNDER', 'Bearer')
+    assert 897 <= body['expires_in'] <= 899 and body['access_token'] != signed['access_token']
+    claims = jwt.decode(body['access_token'], options={'verify_signature': False})
+    assert claims['exp'] - claims['iat'] <= 900
+    assert session(client, body).json()['role'] == 'FOUNDER'
+    assert session(client, signed).status_code == 200  # the earlier key ends on its own
+    # A renewal keeps the time of the sign-in: fifty minutes after it, the last key ends at the hour.
+    rules['keys'][key_id(body)] -= 3000
+    last = renew(client, body['access_token'])
+    assert last.status_code == 200 and 595 <= last.json()['expires_in'] <= 601, last.text
+    assert session(client, last.json()).status_code == 200
+    rules['keys'][key_id(last.json())] -= 600
+    refused(renew(client, last.json()['access_token']), 409, 'INVALID_STATE', 'The hour since sign-in has passed. Sign in again.')
+
+
+def test_only_a_valid_key_of_a_password_sign_in_is_renewed(accounts, flow_engine, identities):
+    client, _ = accounts
+    client.app.state.account_renewals['before'] = 900
+    not_renewable = 'This sign-in cannot be renewed. Sign in again.'
+    # An access key from provision, a missing key and a forged one.
+    refused(renew(client, identities.tokens['founder']), 409, 'INVALID_STATE', not_renewable)
+    refused(client.post('/v1/auth/renew'), 401, 'UNAUTHENTICATED')
+    refused(renew(client, 'not.a.key'), 401, 'UNAUTHENTICATED')
+    # A customer who registered is renewed like one who signed in; a disabled one is not.
+    username = 'renew_customer_' + uuid4().hex[:8]
+    created = post(client, 'register', username, 'a-long-password').json()
+    renewed = renew(client, created['access_token'])
+    assert renewed.status_code == 200 and renewed.json()['role'] == 'CUSTOMER', renewed.text
+    customer = identities.people['customer_a']['principal_id']
+    signed = post(client, 'login', customer, PASSWORDS['customer_a']).json()
+    TrustedRegistry(flow_engine).change_principal(customer, enabled=False)
+    assert renew(client, signed['access_token']).status_code in (401, 403)
+    # A restart forgets which keys came from a password sign-in.
+    client.app.state.account_renewals['keys'].clear()
+    refused(renew(client, renewed.json()['access_token']), 409, 'INVALID_STATE', not_renewable)
+
+
+def test_busy_auth_threads_refuse_a_renewal_at_once(accounts, identities):
+    from types import SimpleNamespace
+    client, _ = accounts
+    client.app.state.account_renewals['before'] = 900
+    signed = post(client, 'login', identities.people['founder']['principal_id'], PASSWORDS['founder']).json()
+    client.app.state.auth_threads = SimpleNamespace(borrowed_tokens=4, total_tokens=4)
+    refused(renew(client, signed['access_token']), 503, 'INTERNAL_ERROR', 'Sign-in is busy right now. Try again in a moment.')
+    client.app.state.auth_threads = None
+    assert renew(client, signed['access_token']).status_code == 200

@@ -376,7 +376,11 @@ generated password for each of the three people, private like the tokens) and
 `credentials.json` and adds password sign-in (`POST /v1/auth/login`, a new 899 s
 session each time) and customer self-registration (`POST /v1/auth/register`,
 which creates only CUSTOMER principals of that store and refuses an ID taken
-in any letter case; a Founder is never created there). Both routes are outside contract v1 and off without the flag.
+in any letter case; a Founder is never created there). Since 1 November 2026 a
+password sign-in stays signed in for an hour: every key still lasts 899 s, and
+the page asks `POST /v1/auth/renew` for the next one two minutes before it ends
+(only in the last five minutes of a key, never past the hour, and never for an
+access key from provision). The routes are outside contract v1 and off without the flag.
 The builtin synthetic orders
 (`packages/returnops_domain/order_data/synthetic_orders_v1.json`) belong to
 store `synthetic_au_store` and customers `synthetic_customer_a` /
@@ -791,7 +795,9 @@ from the Canvas zip has no `.git` for `.gitignore` to apply to.
 - **401 in the frontend after about 15 minutes:** the page shows a red
   "Your session has ended" banner, or the sign-in page says so: the 899 s
   sessions have expired. Provision new principal IDs (the registry refuses existing IDs);
-  the same `--store` keeps the store's cases readable for a new Founder.
+  the same `--store` keeps the store's cases readable for a new Founder. With
+  `serve --accounts`, sign in with the password instead: that sign-in is renewed
+  for an hour (since 1 November 2026), then asks for the password again.
 - **Customer or Founder routes return 503 on the Compose API:** expected; it
   has no authentication file. Use `demo.py serve` or the driver's kept API.
 - **Wrong Docker context on Windows:** add `--context desktop-linux` to the

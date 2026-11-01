@@ -115,7 +115,7 @@ def test_routes_exist_only_with_a_credentials_file(tmp_path, monkeypatch):
     path = tmp_path / 'credentials.json'
     accounts.new_credentials_file(path, 'store_demo', {})
     app = create_app(engine=object(), enable_processor=False, accounts_file=str(path.resolve()))
-    assert auth_paths(app) == ['/v1/auth/login', '/v1/auth/register']
+    assert auth_paths(app) == ['/v1/auth/login', '/v1/auth/register', '/v1/auth/renew']
     with pytest.raises(ValueError, match='credentials file'):
         create_app(engine=object(), enable_processor=False, accounts_file=str((tmp_path / 'missing.json').resolve()))
 
