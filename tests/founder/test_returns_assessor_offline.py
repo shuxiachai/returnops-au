@@ -49,6 +49,11 @@ def test_a_draft_is_accepted_in_the_exact_shape_with_cited_policy():
     referred = {**ASK, 'recommended_action': 'REFER_FOR_MANUAL_HANDLING', 'assessment_status': 'CONFLICTING',
                 'possible_basis': 'STORE_POLICY', 'citations': ['SP-MANUAL'], 'unresolved_questions': []}
     assert parse_assessment(json.dumps(referred), 0)['recommended_action'] == 'REFER_FOR_MANUAL_HANDLING'
+    # Shapes of real answers (Railway, 1 November 2026): a question about an order that does not
+    # show the item, a procedural passage cited without a basis, and a remedy with a condition.
+    assert parse_assessment(json.dumps({**ASK, 'assessment_status': 'CONFLICTING'}), 1)['assessment_status'] == 'CONFLICTING'
+    assert parse_assessment(json.dumps({**ASK, 'citations': ['SP-INFORMATION']}), 0)['citations'] == ['SP-INFORMATION']
+    assert parse_assessment(json.dumps({**DRAFT, 'assessment_status': 'UNCERTAIN'}), 2)['assessment_status'] == 'UNCERTAIN'
 
 
 def test_a_draft_must_cite_only_the_policy_it_was_given_and_real_order_lines():
@@ -60,17 +65,20 @@ def test_a_draft_must_cite_only_the_policy_it_was_given_and_real_order_lines():
 
 
 def test_a_recommendation_must_fit_what_the_draft_states():
-    # A remedy needs an order line, a cited passage and a SUPPORTED status.
+    # A remedy needs an order line, a cited policy basis, and SUPPORTED or UNCERTAIN with a condition.
     assert code(json.dumps({**DRAFT, 'covered_lines': []})) == 'OUTCOME'
     assert code(json.dumps({**DRAFT, 'covered_lines': []}), 0) == 'OUTCOME'
-    assert code(json.dumps({**DRAFT, 'assessment_status': 'UNCERTAIN'})) == 'OUTCOME'
+    assert code(json.dumps({**DRAFT, 'assessment_status': 'UNCERTAIN', 'conditions': []})) == 'OUTCOME'
+    assert code(json.dumps({**DRAFT, 'assessment_status': 'CONFLICTING'})) == 'OUTCOME'
     assert code(json.dumps({**DRAFT, 'citations': [], 'possible_basis': 'UNDETERMINED'})) == 'OUTCOME'
-    # The basis says whether a passage is cited, and SUPPORTED needs one.
     assert code(json.dumps({**DRAFT, 'possible_basis': 'UNDETERMINED'})) == 'OUTCOME'
+    # A STORE_POLICY basis or a SUPPORTED status needs a cited passage.
     assert code(json.dumps({**ASK, 'possible_basis': 'STORE_POLICY'}), 0) == 'OUTCOME'
+    assert code(json.dumps({**ASK, 'recommended_action': 'REFER_FOR_MANUAL_HANDLING', 'assessment_status': 'SUPPORTED'}),
+                0) == 'OUTCOME'
     # A request for information asks something; a rejection cites the passage that excludes it.
     assert code(json.dumps({**ASK, 'unresolved_questions': []}), 0) == 'OUTCOME'
-    assert code(json.dumps({**ASK, 'assessment_status': 'UNCERTAIN'}), 0) == 'OUTCOME'
+    assert code(json.dumps({**ASK, 'assessment_status': 'OUT_OF_SCOPE'}), 0) == 'OUTCOME'
     assert code(json.dumps({**ASK, 'recommended_action': 'PROPOSE_REJECTION', 'assessment_status': 'OUT_OF_SCOPE',
                             'unresolved_questions': []}), 0) == 'OUTCOME'
 
