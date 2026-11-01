@@ -1,9 +1,9 @@
 """S5 on Railway: tools/railway/start.py runs the R.02 driver inside the service (1 November 2026).
 
 `start.py s5` runs the driver in demo mode against its own fresh database while the demo API
-keeps serving; only a PASSED receipt and a ready driver API move the public address to the
-driver's API, and s5-end, the end of the demo_cups_founder session or the driver ending move
-it back. A failure never reaches the public address, no status or log line carries a token,
+keeps serving; a PASSED receipt and a ready driver API make the run "ready", and only
+`start.py s5-show` (new keys first) moves the public address to the driver's API; s5-end, the
+end of the shown demo_cups_founder session or the driver ending move it back. A failure never reaches the public address, no status or log line carries a token,
 and the image carries exactly what the driver imports. docs/45 S5; FR-009 to FR-012, NFR-001,
 NFR-009.
 """
@@ -67,6 +67,10 @@ def mode(tmp_path, monkeypatch):
             folder.mkdir(mode=0o700)
             (folder / 'sessions.json').write_text(json.dumps({'tokens': {'demo_cups_founder': TOKEN},
                                                               'sessions': [{'issued_at': 1000, 'expires_at': 1899}]}))
+        if 'renew-sessions' in arguments:  # new keys at show time
+            folder = Path(arguments[arguments.index('--private-dir') + 1])
+            (folder / 'sessions.json').write_text(json.dumps({'tokens': {'demo_cups_founder': TOKEN},
+                                                              'sessions': [{'issued_at': int(clock[0]), 'expires_at': int(clock[0]) + 899}]}))
         return subprocess.CompletedProcess(arguments, 0)
 
     def popen(arguments, **kwargs):
@@ -123,9 +127,26 @@ def test_a_passed_run_uses_its_own_database_and_is_shown_until_s5_end(mode, caps
     assert mode.switches == []
     receipt(mode.root, result='PASSED', case_id='case_1')
     mode.step()
+    # Ready, not shown: the run is made before the demonstration (1 November 2026).
+    ready = status(mode.root)
+    assert mode.switches == [] and (ready['state'], ready['result'], ready['case_id']) == ('ready', 'PASSED', 'case_1')
+    mode.clock[0] = 5000  # a ready run waits however long the demonstration takes to reach S5
+    mode.step()
+    assert status(mode.root)['state'] == 'ready' and driver.signals == []
+
+    ask_for(mode.root, 's5-show', 'show1')
+    mode.step()
+    renew = mode.runs[-1]
+    assert renew[0][-3:] == ['renew-sessions', '--private-dir', str(run_dir / 'identities')]
+    assert renew[1]['env']['DATABASE_URL'].endswith('/returnops_f02_s5')
+    assert not any(name.startswith('RETURNOPS_') for name in renew[1]['env'])
     assert mode.switches == [8100]
     shown = status(mode.root)
-    assert (shown['state'], shown['result'], shown['case_id'], shown['expires_at']) == ('passed', 'PASSED', 'case_1', 1899)
+    assert (shown['state'], shown['case_id'], shown['expires_at'], shown['answered']['show1']) == ('passed', 'case_1', 5899, 'shown')
+
+    ask_for(mode.root, 's5-show', 'show2')  # shown again: the keys are copied once more
+    mode.step()
+    assert status(mode.root)['answered']['show2'] == 'shown' and mode.switches == [8100]
 
     ask_for(mode.root, 's5', 'def456')  # a second run waits for this one
     mode.step()
@@ -180,7 +201,9 @@ def test_the_driver_ending_or_its_key_expiring_shows_the_demonstration_again(mod
     mode.step()
     receipt(mode.root, result='PASSED', case_id='case_2')
     mode.step()
-    mode.clock[0] = 1899 + start.S5_GRACE_SECONDS  # the key's session has just ended
+    ask_for(mode.root, 's5-show', 'show')
+    mode.step()
+    mode.clock[0] = 1899 + start.S5_GRACE_SECONDS  # the shown key's session has just ended
     mode.step()
     assert mode.switches == [8100] and status(mode.root)['state'] == 'passed'
     mode.clock[0] += 1
@@ -191,9 +214,38 @@ def test_the_driver_ending_or_its_key_expiring_shows_the_demonstration_again(mod
     mode.step()
     receipt(mode.root, result='PASSED', case_id='case_3')
     mode.step()
-    mode.drivers[2].code = 0  # the driver ended while shown
+    mode.drivers[2].code = 0  # the driver ended while ready: nothing was shown
+    mode.step()
+    assert mode.switches == [8100, 8000] and status(mode.root)['state'] == 'ended'
+
+    ask_for(mode.root, 's5', 'r4')
+    mode.step()
+    receipt(mode.root, result='PASSED', case_id='case_4')
+    mode.step()
+    ask_for(mode.root, 's5-show', 'show4')
+    mode.step()
+    mode.drivers[3].code = 0  # the driver ended while shown
     mode.step()
     assert mode.switches == [8100, 8000, 8100, 8000] and status(mode.root)['state'] == 'ended'
+
+
+def test_only_a_ready_run_is_shown_and_a_failed_renewal_shows_nothing(mode):
+    ask_for(mode.root, 's5-show', 'none')
+    mode.step()
+    assert status(mode.root)['answered']['none'] == 'idle' and mode.switches == []
+    ask_for(mode.root, 's5', 'r1')
+    mode.step()
+    ask_for(mode.root, 's5-show', 'early')  # still running
+    mode.step()
+    assert status(mode.root)['answered']['early'] == 'not-ready' and mode.switches == []
+    receipt(mode.root, result='PASSED', case_id='case_1')
+    mode.step()
+    mode.s5.run = lambda arguments, **kwargs: subprocess.CompletedProcess(arguments, 1)
+    ask_for(mode.root, 's5-show', 'broken')
+    mode.step()
+    failed = status(mode.root)
+    assert (failed['state'], failed['code'], failed['answered']['broken']) == ('failed', 'S5_RENEW', 'failed')
+    assert mode.switches == [] and mode.drivers[0].signals == [signal.SIGINT]
 
 
 @pytest.mark.parametrize('failing, code', [('alembic', 'S5_MIGRATION'), ('provision', 'S5_PROVISION')])
@@ -260,6 +312,8 @@ def test_a_switch_that_fails_half_way_is_switched_back(mode):
     mode.s5.step(switch)
     receipt(mode.root, result='PASSED', case_id='case_1')
     mode.s5.step(switch)
+    ask_for(mode.root, 's5-show', 'show')
+    mode.s5.step(switch)
     assert mode.switches == [8100, 8000] and status(mode.root)['code'] == 'S5_INTERNAL'
 
 
@@ -286,11 +340,18 @@ def test_the_client_follows_its_own_request_and_exits_with_the_result(tmp_path, 
     assert 'does not answer S5 requests' in capsys.readouterr().out
     root.mkdir()
     start.write_small(root / 'status.json', json.dumps({'state': 'idle'}))
-    passed = [lambda i: {'request': i, 'state': 'starting'}, lambda i: {'request': i, 'state': 'running'},
-              lambda i: {'request': i, 'state': 'passed', 'case_id': 'case_1', 'expires_at': 1899}]
-    assert client(root, 's5', passed) == 0
+    ready = [lambda i: {'request': i, 'state': 'starting'}, lambda i: {'request': i, 'state': 'running'},
+             lambda i: {'request': i, 'state': 'ready', 'case_id': 'case_1'}]
+    assert client(root, 's5', ready) == 0
     out = capsys.readouterr().out
-    assert 'driver result PASSED, case case_1' in out and 'running in demo mode' in out
+    assert 'driver result PASSED, case case_1; ready' in out and 'running in demo mode' in out
+    shown = [lambda i: {'request': 'first', 'state': 'passed', 'case_id': 'case_1', 'expires_at': 1899, 'answered': {i: 'shown'}}]
+    assert client(root, 's5-show', shown) == 0 and 'shows the S5 case case_1' in capsys.readouterr().out
+    for answer in ('not-ready', 'idle', 'failed'):
+        refused_show = [lambda i, answer=answer: {'request': 'first', 'state': 'running', 'answered': {i: answer}}]
+        assert client(root, 's5-show', refused_show) == 1
+    busy_ready = [lambda i: {'request': 'first', 'state': 'ready', 'case_id': 'case_1', 'answered': {i: 'busy'}}]
+    assert client(root, 's5', busy_ready) == 0 and 'already ready (case case_1)' in capsys.readouterr().out
     refused = [lambda i: {'request': i, 'state': 'failed', 'result': 'REFUSED', 'code': 'STORE_HAS_CASES'}]
     assert client(root, 's5', refused) == 1 and 'REFUSED (STORE_HAS_CASES)' in capsys.readouterr().out
     busy_passed = [lambda i: {'request': 'first', 'state': 'passed', 'case_id': 'case_1', 'answered': {i: 'busy'}}]
@@ -298,7 +359,7 @@ def test_the_client_follows_its_own_request_and_exits_with_the_result(tmp_path, 
     # A run already under way (its own window closed) is followed to its result.
     busy_running = [lambda i: {'request': 'first', 'state': 'running', 'answered': {i: 'busy'}},
                     lambda i: {'request': 'first', 'state': 'running', 'answered': {i: 'busy'}},
-                    lambda i: {'request': 'first', 'state': 'passed', 'case_id': 'case_9', 'answered': {i: 'busy'}}]
+                    lambda i: {'request': 'first', 'state': 'ready', 'case_id': 'case_9', 'answered': {i: 'busy'}}]
     assert client(root, 's5', busy_running) == 0
     out = capsys.readouterr().out
     assert 'under way; following it' in out and 'PASSED, case case_9' in out
@@ -311,7 +372,7 @@ def test_the_client_follows_its_own_request_and_exits_with_the_result(tmp_path, 
     assert client(root, 's5', silent) == 1 and 'no answer within 50 s' in capsys.readouterr().out
     # A long run still prints now and then, so an idle railway ssh session stays open.
     long_run = itertools.chain([lambda i: {'request': i, 'state': 'running'}] * 20,
-                               [lambda i: {'request': i, 'state': 'passed', 'case_id': 'case_2'}])
+                               [lambda i: {'request': i, 'state': 'ready', 'case_id': 'case_2'}])
     assert client(root, 's5', long_run) == 0 and 'still running' in capsys.readouterr().out
     requests = sorted(root.glob('request-*'))
     words = requests[0].read_text(encoding='ascii').split()
@@ -321,10 +382,10 @@ def test_the_client_follows_its_own_request_and_exits_with_the_result(tmp_path, 
         assert (root / 'status.json').stat().st_mode & 0o777 == 0o600
 
 
-def test_the_command_line_accepts_s5_and_s5_end_only():
+def test_the_command_line_accepts_s5_s5_show_and_s5_end_only():
     environment = {**os.environ, 'PYTHONDONTWRITEBYTECODE': '1'}
     script = str(ROOT / 'tools' / 'railway' / 'start.py')
-    for kind in ('s5', 's5-end'):  # no /app/private/s5 outside the image
+    for kind in ('s5', 's5-show', 's5-end'):  # no /app/private/s5 outside the image
         answer = subprocess.run([sys.executable, '-B', script, kind], capture_output=True, text=True, timeout=60, env=environment)
         assert answer.returncode == 1 and 'does not answer S5 requests' in answer.stdout
     unknown = subprocess.run([sys.executable, '-B', script, 's5', 'now'], capture_output=True, text=True, timeout=60, env=environment)
