@@ -26,7 +26,7 @@ from hashlib import sha256
 from .founder_assistant import AssistantRejected, _draft_reason, _object
 from .risk_reviewer import review_input
 
-PROMPT_VERSION = 'a1-returns-assessment-advisory-v2'
+PROMPT_VERSION = 'a1-returns-assessment-advisory-v3'
 POLICY_VERSION = 'synthetic-store-policy-v1'
 RECOMMENDATIONS = ('PROPOSE_RETURN', 'PROPOSE_REFUND', 'PROPOSE_REPLACEMENT', 'PROPOSE_REPAIR', 'REQUEST_INFORMATION',
                    'REFER_FOR_MANUAL_HANDLING', 'PROPOSE_REJECTION')
@@ -93,6 +93,8 @@ legal determination and promise nothing. Recommend:
 When photos or other models' output contradict the customer's words or the order, say so
 and do not use SUPPORTED. Write conditions the Founder should check before acting (for
 example that the request came within the policy's time limit).
+When the input has previous_answer_rejected, your previous answer was discarded for the
+rule it names: answer again and follow every rule.
 Return exactly one JSON object and nothing else (no markdown, no code fences) with exactly
 these ten keys:
 - recommended_action: PROPOSE_RETURN, PROPOSE_REFUND, PROPOSE_REPLACEMENT, PROPOSE_REPAIR,

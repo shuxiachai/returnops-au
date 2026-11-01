@@ -107,6 +107,27 @@ Run on 1 November 2026 at 21:10 Sydney.
 - Ten visible examples with proposed labels, one run, and adapted inputs.
 - Not E.12, not Gold, and not evidence for or against acceptance.
 
+### After prompt v4 and one corrective retry
+
+Run on 1 November 2026 at 21:31 Sydney, three times. It ran inside the Railway service with `qwen-plus`, the reviewer prompt `c2-risk-review-advisory-v4` and the retry of `founder_assistant._ask`, both carried in the script before they were deployed. Inputs were adapted as above, and the service's unchanged `parse_risk_review` judged every answer. The v3 columns are the first check above (21:10) and a read-only diagnosis run of the same inputs (21:27).
+
+| Reviewer measure | v3, 21:10 | v3, 21:27 | v4 with retry, runs 1 / 2 / 3 |
+|---|---|---|---|
+| Acceptable outcome (of 10) | 2 | 4 | 4 / 4 / 4 |
+| Answers kept (of 10) | 5 | 9 | 9 / 10 / 10 |
+| Of those, kept only after the retry | | | 1 / 1 / 3 |
+| Expected escalations found (of 3) | 2 | 2 | 3 / 3 / 3 |
+| Non-escalation cases kept below ESCALATE (of 7) | 3 | 6 | 6 / 6 / 6 |
+| Slowest answer, retry included | 11.1 s | not timed | 20.0 s / 19.1 s / 19.3 s |
+
+**What it shows**
+
+- Escalation now holds on these examples: every expected escalation was found in every run, including DEV-E01-06, the unresolved source conflict, which v3 missed twice.
+- The retry turns most discarded answers into kept ones. It costs one more call (up to about 20 s), and a second discarded answer is still a 503.
+- The acceptable rate did not move. Cases C labels PASS or NEEDS_INFORMATION mostly came back REVISE. The adapted input gives each proposal only as C's one-line sketch of it, so asking for a revision is a reasonable reading. A fair test of the reviewer needs the runtime's own structured proposals, which is what the pilot (step 2) is for.
+- One new false escalation: DEV-E01-05, an unclear request that C labels NEEDS_INFORMATION, was escalated in two of the three runs. DEV-E01-10 came back PASS each time where C labels PASS_WITH_WARNING.
+- The same limits apply: ten visible examples with C's proposed labels, adapted inputs; not Gold, not E.12.
+
 ## 6. Records
 
 - Jira: KAN-39 (the 22 October 2026 deferral) and KAN-44 (the A1 assessment draft).
