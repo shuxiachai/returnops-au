@@ -412,7 +412,6 @@ def test_the_risk_review_reads_the_latest_assessment_draft(assistant, flow_engin
 # review is asked again once, told only the rule it broke; two discarded answers are a 503 as
 # before. FR-008; NFR-009.
 def test_a_discarded_review_is_asked_once_more_with_only_the_rule_it_broke(assistant, flow_engine, identities):
-    from returnops_domain.founder_assistant import RETRY_RULES
     case_id = lodge(identities, 'My mug is cracked.', 'assist-retry-1', outcome='REFUND')
     broken = {**RISK, 'outcome': 'PASS'}  # a BLOCK finding allows only ESCALATE
     answers = iter([broken, RISK])
@@ -425,7 +424,10 @@ def test_a_discarded_review_is_asked_once_more_with_only_the_rule_it_broke(assis
     assert response.json()['outcome'] == 'ESCALATE'
     first, second = transport.calls
     assert 'previous_answer_rejected' not in json.loads(first.input_json)
-    assert json.loads(second.input_json)['previous_answer_rejected'] == {'code': 'OUTCOME', 'rule': RETRY_RULES['OUTCOME']}
+    # Since the pilot of docs/51 the rule names the condition the answer broke, not the answer's words.
+    assert json.loads(second.input_json)['previous_answer_rejected'] == {'code': 'OUTCOME', 'rule': (
+        'The outcome was PASS with a BLOCK finding, and a BLOCK finding is allowed only with ESCALATE: '
+        'use ESCALATE, or make that finding a WARNING.')}
     assert RISK['summary'] not in second.input_json  # the discarded text is never sent back
     assert {key: value for key, value in json.loads(second.input_json).items() if key != 'previous_answer_rejected'} == \
         json.loads(first.input_json)

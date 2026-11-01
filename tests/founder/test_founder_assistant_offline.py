@@ -181,6 +181,38 @@ def test_a_risk_review_is_accepted_only_under_c2s_outcome_conditions():
         assert code(lambda: parse_risk_review(json.dumps(blocked), True)) == 'OUTCOME'
 
 
+# The corrective retry names the outcome condition the discarded answer broke (1 November 2026,
+# after the Gate 2 pilot of docs/51): every refused combination gets its own rule, which names
+# only outcomes, severities and counts, never the answer's words. FR-008; NFR-009.
+def test_a_refused_outcome_names_the_condition_it_broke_and_nothing_the_model_wrote():
+    def refused(answer, has_proposal=True):
+        with pytest.raises(AssistantRejected) as rejected:
+            parse_risk_review(json.dumps(answer), has_proposal)
+        assert rejected.value.code == 'OUTCOME'
+        rule = rejected.value.rule
+        assert rule.isascii() and answer['outcome'] in rule
+        assert all(text not in rule for text in (answer['summary'], 'No photo of the damage', 'Which order', 'Cover only'))
+        return rejected.value.detail
+    asked = {**WARNED, 'questions': ['Which order is this about?']}
+    assert refused(asked) == 'QUESTIONS'
+    assert refused({**WARNED, 'revision_requests': ['Cover only line 1.']}) == 'REVISIONS'
+    assert refused({**WARNED, 'findings': [finding('INFO')]}) == 'NO_WARNING'
+    assert refused({**WARNED, 'outcome': 'PASS'}) == 'WARNING'
+    assert refused({**WARNED, 'outcome': 'PASS', 'findings': [finding('INFO')]}, False) == 'NO_PROPOSAL'
+    assert refused({**WARNED, 'outcome': 'REVISE'}) == 'NO_REVISION'
+    assert refused({**WARNED, 'outcome': 'NEEDS_INFORMATION'}) == 'NO_QUESTION'
+    assert refused({**WARNED, 'outcome': 'ESCALATE'}) == 'NO_BLOCK'
+    assert refused({**asked, 'outcome': 'NEEDS_INFORMATION', 'findings': [finding('BLOCK', 'CONFLICT')]}) == 'BLOCK'
+    # The rule tells the model what would fit.
+    with pytest.raises(AssistantRejected) as rejected:
+        parse_risk_review(json.dumps(asked), True)
+    assert rejected.value.rule == ('The outcome was PASS_WITH_WARNING with 1 question(s) for the customer, and '
+                                   'PASS_WITH_WARNING allows none: use NEEDS_INFORMATION when the customer must answer, '
+                                   'or leave the questions out.')
+    # Other refusals keep the general rule of the retry.
+    assert AssistantRejected('LENGTH').rule is None and AssistantRejected('LENGTH').detail is None
+
+
 def test_a_risk_review_in_any_other_shape_is_discarded():
     one = finding('WARNING')
     assert code(lambda: parse_risk_review('not json', True)) == 'MALFORMED_JSON'
