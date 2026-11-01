@@ -1,5 +1,7 @@
 # Stage 2 submission runbook (R.05.a and R.05.b)
 
+> Updated 1 November 2026: the demonstration, including S5, runs on Railway (section 5). The tables below keep their dated entries.
+
 Owner: A Jingbo Chai (integrates and submits). Reviewer: C Yuwei Tao. Work package R.05 and its two course sub-checks, R.05.a source submission and R.05.b final-week demo, in the unchanged [work packages](08-delivery-work-packages.md). This runbook turns the open items of the [submission checklist](28-stage2-submission-checklist.md) into steps with owners and dates. As of 24 October 2026 (Sydney) only an early rehearsal from a zip of `main` has been run (section 5, pass 0); no tag, submission package, upload or contribution statement exists yet. A course submission receipt is not R.05 acceptance (docs/08, R.05).
 
 Companion documents: [demo script](45-stage2-demo-script.md), [Gate 2 roadmap](46-gate2-roadmap.md).
@@ -66,7 +68,7 @@ Since 30 October 2026 the Week 13 demonstration runs on Railway, and the local s
 3. S2 to S4 on the service's Railway address;
 4. `demo.ps1 cloud-fresh` once, to check that new sessions arrive.
 
-Record the build time, the time to ready, and any step where it stops. S5 stays on the local deployment.
+Record the build time, the time to ready, and any step where it stops. Since 1 November 2026 S5 runs on Railway as well: `demo.ps1 cloud-s5` after `cloud-fresh` and before the start, `cloud-s5-show` in S5 and `cloud-s5-end` after it ([README, Railway deployment](../README.md#railway-deployment-since-30-october-2026)).
 
 | # | Step | Expected output | Who | Date | Result |
 |---|---|---|---|---|---|
