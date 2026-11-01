@@ -4,7 +4,9 @@ Outside contract v1. Three calls, each made only when the Founder asks for it:
 a reply draft in the customer's language with an English version, a triage of the
 open queue (urgency and groups of similar cases), and a plain-English summary of the
 store's last seven days. A fourth, added on 1 November 2026, asks the C2 Risk Reviewer
-for an advisory review of one case (risk_reviewer.py), under the same rules.
+for an advisory review of one case (risk_reviewer.py), under the same rules. A fifth,
+the same day, asks a vision model for C3 observations of the case's photos
+(image_observer.py); it runs only when a vision model is configured.
 Input is allow-listed and redacted exactly as for the A1.06
 Coordinator showcase (docs/44); the summary sees counts only. A reply is accepted only
 through a strict schema, otherwise it is discarded with one closed code. Nothing is
@@ -15,6 +17,7 @@ FR-002, FR-012; NFR-002, NFR-003, NFR-007, NFR-009.
 from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from hashlib import sha256
 import json
 import logging
 import re
@@ -211,12 +214,35 @@ def _redacted(text):
     return redact(_printable(text))[0]
 
 
+def _image_bytes(uow, authority, actor, case_id, chosen):
+    """Each photo as the customer stored it: the Founder's download right, then size and hash."""
+    images = []
+    for item in chosen:
+        if authority(uow.connection, 'getEvidenceContent', item['evidence_id']) != actor:
+            raise FlowError('UNAUTHENTICATED')
+        meta = uow.execute(select(t.evidence).where(t.evidence.c.evidence_id == item['evidence_id'])).mappings().one_or_none()
+        raw = uow.execute(select(t.evidence_contents.c.body)
+                          .where(t.evidence_contents.c.evidence_id == item['evidence_id'])).scalar_one_or_none()
+        if (meta is None or raw is None or meta['case_id'] != case_id or meta['media_type'] != item['media_type']
+                or meta['sha256'] != item['sha256'] or len(raw) != meta['size_bytes']
+                or sha256(bytes(raw)).hexdigest() != meta['sha256']):
+            raise FlowError('INTERNAL_ERROR')
+        images.append((item['media_type'], bytes(raw)))
+    return tuple(images)
+
+
 @dataclass(frozen=True, repr=False)
 class AssistantComposition:
-    """Trusted app state: the shared (budgeted) transport and the model identity."""
+    """Trusted app state: the shared (budgeted) transport and the model identity.
+
+    The vision transport and model (C3) are optional; without them the photo
+    observations answer 404, as for a server without the assistant.
+    """
     transport: object
     provider_id: str
     model_id: str
+    vision_transport: object = None
+    vision_model_id: str | None = None
 
 
 class FounderAssistant:
@@ -250,12 +276,14 @@ class FounderAssistant:
     def preflight(self, operation, case_id=None):
         return self._read(operation, case_id, lambda uow, actor: None)[0]
 
-    def _ask(self, kind, prompt, payload, parse, version=PROMPT_VERSION):
+    def _ask(self, kind, prompt, payload, parse, version=PROMPT_VERSION, images=()):
         composition = self.composition
+        transport, model_id = ((composition.vision_transport, composition.vision_model_id) if images
+                               else (composition.transport, composition.model_id))
         invocation = ModelInvocation(prompt, json.dumps(payload, ensure_ascii=True, sort_keys=True), version,
-                                     composition.provider_id, composition.model_id)
+                                     composition.provider_id, model_id, images)
         try:
-            reply = composition.transport(invocation)
+            reply = transport(invocation)
         except ModelTransportError as error:
             LOGGER.warning('founder_assistant kind=%s outcome=FAILED failure_code=%s', kind, error.code)
             raise FlowError() from None
@@ -273,8 +301,8 @@ class FounderAssistant:
         if self.preflight(operation, case_id) != actor:
             raise FlowError('UNAUTHENTICATED')
 
-    def _stamp(self, body, version=PROMPT_VERSION):
-        return {**body, 'model_id': self.composition.model_id, 'prompt_version': version,
+    def _stamp(self, body, version=PROMPT_VERSION, model_id=None):
+        return {**body, 'model_id': model_id or self.composition.model_id, 'prompt_version': version,
                 'generated_at': timestamp(self.clock())}
 
     def reply(self, case_id):
@@ -309,6 +337,35 @@ class FounderAssistant:
         return ResponseResult(200, self._stamp({'case_id': case_id, 'case_version': view['case_version'],
                                                 'case_status': view['status'], 'reviewed_proposal': reviewed,
                                                 'recorded': False, **result}, version=RISK_VERSION))
+
+    def image_observations(self, case_id):
+        # C3 (image_observer.py): the frozen Founder query lists the case's files; their
+        # bytes are read and re-verified in one short read, which ends before the call.
+        from .image_observer import (PROMPT_VERSION as IMAGE_VERSION, IMAGE_PROMPT, contract_result,
+                                     observation_input, parse_observations, select_images)
+        composition = self.composition
+        if composition.vision_transport is None or composition.vision_model_id is None:
+            raise FlowError('NOT_FOUND')
+        actor = self.preflight('getFounderCase', case_id)
+        view = FounderQueries(self.engine, self.authority, clock=self.clock,
+                              uow_factory=self.uow_factory).read('getFounderCase', case_id, {}).body
+        chosen, skipped = select_images(view)
+        body = {'case_id': case_id, 'case_version': view['case_version'], 'recorded': False, 'skipped': skipped}
+        if not chosen:
+            return ResponseResult(200, self._stamp({**body, 'model_called': False, 'result': None, 'details': [],
+                'consistency': None, 'summary': 'No photo (JPEG or PNG) is attached to this case.'},
+                version=IMAGE_VERSION, model_id=composition.vision_model_id))
+        images = self._read('getFounderCase', case_id,
+                            lambda uow, actor: _image_bytes(uow, self.authority, actor, case_id, chosen))[1]
+        parsed = self._ask('image_observations', IMAGE_PROMPT, observation_input(view, chosen),
+                           lambda text: parse_observations(text, len(chosen)), version=IMAGE_VERSION, images=images)
+        self._confirm(actor, 'getFounderCase', case_id)
+        details = [{'evidence_id': item['evidence_id'], 'condition': observed['condition'],
+                    'text_in_image': observed['text_in_image']} for item, observed in zip(chosen, parsed['images'])]
+        return ResponseResult(200, self._stamp({**body, 'model_called': True, 'result': contract_result(view, chosen, parsed),
+                                                'details': details, 'consistency': parsed['consistency'],
+                                                'summary': parsed['summary']},
+                                               version=IMAGE_VERSION, model_id=composition.vision_model_id))
 
     def triage(self):
         def collect(uow, actor):

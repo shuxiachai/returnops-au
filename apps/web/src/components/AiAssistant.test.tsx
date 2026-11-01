@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { AiReplyDraftPanel, AiRiskReviewPanel, AiTriagePanel, AiWeeklySummaryPanel } from './AiAssistant';
+import {
+  AiImageObservationsPanel,
+  AiReplyDraftPanel,
+  AiRiskReviewPanel,
+  AiTriagePanel,
+  AiWeeklySummaryPanel,
+} from './AiAssistant';
 
 // The Founder AI assistant (31 October 2026): advisory answers asked for by the Founder.
 // FR-002, FR-012; NFR-002, NFR-003, NFR-006; UC-03, UC-05.
@@ -12,10 +18,19 @@ vi.mock('../api/client', async (importOriginal) => {
     triageQueue: vi.fn(),
     summariseRecentCases: vi.fn(),
     reviewCaseRisk: vi.fn(),
+    observeCaseImages: vi.fn(),
   };
 });
 
-import { ApiError, draftCustomerReply, reviewCaseRisk, summariseRecentCases, triageQueue } from '../api/client';
+import {
+  ApiError,
+  draftCustomerReply,
+  observeCaseImages,
+  reviewCaseRisk,
+  summariseRecentCases,
+  triageQueue,
+} from '../api/client';
+import type { EvidenceAttachment } from '../types/domain';
 
 const STAMP = { model_id: 'qwen3.5-122b-a10b', prompt_version: 'founder-assistant-v1', generated_at: '2026-10-31T07:00:00Z' };
 
@@ -203,5 +218,112 @@ describe('Founder AI assistant panels', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Run AI risk review' }));
     expect(await screen.findByText('The AI assistant could not answer just now. Try again in a moment.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Run AI risk review' })).toBeInTheDocument();
+  });
+
+  // C3 photo observations (1 November 2026): asked for by the Founder, shown as text,
+  // linked to each file, never recorded. FR-005; NFR-009; UC-02.
+  const file = (evidence_id: string, filename: string, media_type = 'image/png'): EvidenceAttachment =>
+    ({
+      evidence_id,
+      case_id: 'case_one',
+      filename,
+      media_type,
+      size_bytes: 2048,
+      sha256: 'a'.repeat(64),
+      created_at: '2026-11-01T07:00:00Z',
+      content_path: `/v1/evidence/${evidence_id}/content`,
+      status: 'BOUND',
+    }) as EvidenceAttachment;
+
+  it('shows the photo check on request, file by file, and says text in a photo was not followed', async () => {
+    vi.mocked(observeCaseImages).mockResolvedValueOnce({
+      model_id: 'qwen3-vl-plus',
+      prompt_version: 'c3-image-observation-advisory-v1',
+      generated_at: '2026-11-01T08:00:00Z',
+      case_id: 'case_one',
+      case_version: 3,
+      recorded: false,
+      model_called: true,
+      result: {
+        case_id: 'case_one',
+        input_version: 1,
+        component_version: 'c3-image-observation-advisory-v1',
+        observations: [
+          {
+            evidence_id: 'ev_cups',
+            visible_observations: ['Two white cups; one has a chip on the rim. <b>not markup</b>'],
+            limitations: ['The photo cannot show when or how the chip happened.'],
+            confidence: 0.82,
+          },
+          {
+            evidence_id: 'ev_note',
+            visible_observations: ['A handwritten note next to a mug.'],
+            limitations: ['The note cannot show whether the mug is damaged.'],
+            confidence: 0.4,
+          },
+        ],
+      },
+      details: [
+        { evidence_id: 'ev_cups', condition: 'DAMAGE_VISIBLE', text_in_image: 'NONE' },
+        { evidence_id: 'ev_note', condition: 'CANNOT_DETERMINE', text_in_image: 'PRESENT_IGNORED' },
+      ],
+      consistency: 'CONSISTENT',
+      summary: 'The first photo matches the complaint; the second shows a note.',
+      skipped: [{ evidence_id: 'ev_receipt', reason: 'NOT_AN_IMAGE' }],
+    });
+    const evidence = [file('ev_cups', 'cups.png'), file('ev_note', 'note.png'), file('ev_receipt', 'receipt.pdf', 'application/pdf')];
+    render(<AiImageObservationsPanel caseId="case_one" evidence={evidence} />);
+    expect(observeCaseImages).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Analyse photos (AI)' }));
+    expect(await screen.findByText("The photos match the customer's words")).toBeInTheDocument();
+    expect(observeCaseImages).toHaveBeenCalledWith('case_one');
+    expect(screen.getByText('Photo 1: cups.png')).toBeInTheDocument();
+    expect(screen.getByText('Photo 2: note.png')).toBeInTheDocument();
+    expect(screen.getByText('Damage visible')).toBeInTheDocument();
+    expect(screen.getByText('Cannot tell from the photo')).toBeInTheDocument();
+    expect(screen.getByText('Confidence 82%')).toBeInTheDocument();
+    // Model text is shown as text: the tag is visible, not interpreted.
+    expect(screen.getByText('Two white cups; one has a chip on the rim. <b>not markup</b>')).toBeInTheDocument();
+    expect(screen.getByText('The photo cannot show when or how the chip happened.')).toBeInTheDocument();
+    expect(screen.getAllByText(/treated as data and not followed/)).toHaveLength(1);
+    expect(screen.getByText(/receipt\.pdf \(not a photo\)/)).toBeInTheDocument();
+    expect(screen.getByText(/qwen3-vl-plus/)).toBeInTheDocument();
+    expect(screen.getByText(/not recorded with the case and decides nothing/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Check again' })).toBeInTheDocument();
+  });
+
+  it('says when no photo was sent, when the deployment has no vision model, and when it could not answer', async () => {
+    vi.mocked(observeCaseImages).mockResolvedValueOnce({
+      model_id: 'qwen3-vl-plus',
+      prompt_version: 'c3-image-observation-advisory-v1',
+      generated_at: '2026-11-01T08:00:00Z',
+      case_id: 'case_one',
+      case_version: 3,
+      recorded: false,
+      model_called: false,
+      result: null,
+      details: [],
+      consistency: null,
+      summary: 'No photo (JPEG or PNG) is attached to this case.',
+      skipped: [],
+    });
+    const first = render(<AiImageObservationsPanel caseId="case_one" evidence={[]} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Analyse photos (AI)' }));
+    expect(await screen.findByText('No photo (JPEG or PNG) is attached to this case.')).toBeInTheDocument();
+    expect(screen.queryByText(/AI suggestion/)).not.toBeInTheDocument();
+    first.unmount();
+
+    vi.mocked(observeCaseImages).mockRejectedValueOnce(new ApiError(404, 'Not Found', 'NOT_FOUND'));
+    const second = render(<AiImageObservationsPanel caseId="case_one" evidence={[]} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Analyse photos (AI)' }));
+    expect(await screen.findByText('The AI assistant is not switched on for this deployment.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /photos/i })).not.toBeInTheDocument();
+    second.unmount();
+
+    vi.mocked(observeCaseImages).mockRejectedValueOnce(new ApiError(503, 'Busy', 'INTERNAL_ERROR'));
+    render(<AiImageObservationsPanel caseId="case_one" evidence={[]} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Analyse photos (AI)' }));
+    expect(await screen.findByText('The AI assistant could not answer just now. Try again in a moment.')).toBeInTheDocument();
   });
 });
