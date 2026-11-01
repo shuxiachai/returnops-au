@@ -86,7 +86,7 @@ def mode(tmp_path, monkeypatch):
 
 
 def ask_for(root, kind, ident):
-    (root / 'request').write_text(f'{kind} {ident}\n', encoding='ascii')
+    (root / f'request-{ident}').write_text(f'{kind} {ident}\n', encoding='ascii')
 
 
 def status(root):
@@ -230,11 +230,37 @@ def test_an_unexpected_error_stops_s5_and_the_demonstration_keeps_running(mode, 
 
 
 def test_a_malformed_request_is_dropped(mode):
-    for text in ('s5', 'wipe abc', 's5 ../x', 's5 ' + 'a' * 33, 's5 a b'):
-        (mode.root / 'request').write_text(text, encoding='ascii')
+    for name, text in (('request-abc', 's5'), ('request-abc', 'wipe abc'), ('request-x', 's5 ../x'),
+                       ('request-' + 'a' * 33, 's5 ' + 'a' * 33), ('request-a', 's5 a b'), ('request-other', 's5 abc')):
+        (mode.root / name).write_text(text, encoding='ascii')
         mode.step()
-        assert not (mode.root / 'request').exists()
+        assert not (mode.root / name).exists()
     assert mode.drivers == [] and status(mode.root)['state'] == 'idle'
+
+
+def test_requests_made_while_the_loop_is_busy_are_all_answered_in_order(mode):
+    # Each client writes its own file (S5 review, 1 November 2026): an end asked for while a
+    # start waits is not lost.
+    ask_for(mode.root, 's5-end', 'first')
+    ask_for(mode.root, 's5', 'second')
+    os.utime(mode.root / 'request-first', (1, 1))
+    mode.step()
+    assert status(mode.root)['answered']['first'] == 'idle' and mode.drivers == []
+    mode.step()
+    assert status(mode.root)['request'] == 'second' and len(mode.drivers) == 1
+    assert list(mode.root.glob('request-*')) == []
+
+
+def test_a_switch_that_fails_half_way_is_switched_back(mode):
+    def switch(port):
+        mode.switches.append(port)
+        if port != 8000:
+            raise OSError('caddy did not start')
+    ask_for(mode.root, 's5', 'r1')
+    mode.s5.step(switch)
+    receipt(mode.root, result='PASSED', case_id='case_1')
+    mode.s5.step(switch)
+    assert mode.switches == [8100, 8000] and status(mode.root)['code'] == 'S5_INTERNAL'
 
 
 def client(root, kind, answers):
@@ -243,7 +269,8 @@ def client(root, kind, answers):
     now = [0.0]
 
     def sleep(_):
-        ident = (root / 'request').read_text(encoding='ascii').split()[1]
+        newest = max(root.glob('request-*'), key=lambda path: path.stat().st_mtime_ns)
+        ident = newest.read_text(encoding='ascii').split()[1]
         start.write_small(root / 'status.json', json.dumps(next(calls)(ident)))
 
     def clock():
@@ -267,17 +294,30 @@ def test_the_client_follows_its_own_request_and_exits_with_the_result(tmp_path, 
     refused = [lambda i: {'request': i, 'state': 'failed', 'result': 'REFUSED', 'code': 'STORE_HAS_CASES'}]
     assert client(root, 's5', refused) == 1 and 'REFUSED (STORE_HAS_CASES)' in capsys.readouterr().out
     busy_passed = [lambda i: {'request': 'first', 'state': 'passed', 'case_id': 'case_1', 'answered': {i: 'busy'}}]
-    assert client(root, 's5', busy_passed) == 0 and 'already active (passed' in capsys.readouterr().out
-    busy_running = [lambda i: {'request': 'first', 'state': 'running', 'answered': {i: 'busy'}}]
-    assert client(root, 's5', busy_running) == 1
+    assert client(root, 's5', busy_passed) == 0 and 'already shown (case case_1)' in capsys.readouterr().out
+    # A run already under way (its own window closed) is followed to its result.
+    busy_running = [lambda i: {'request': 'first', 'state': 'running', 'answered': {i: 'busy'}},
+                    lambda i: {'request': 'first', 'state': 'running', 'answered': {i: 'busy'}},
+                    lambda i: {'request': 'first', 'state': 'passed', 'case_id': 'case_9', 'answered': {i: 'busy'}}]
+    assert client(root, 's5', busy_running) == 0
+    out = capsys.readouterr().out
+    assert 'under way; following it' in out and 'PASSED, case case_9' in out
+    busy_failing = [lambda i: {'request': 'first', 'state': 'running', 'answered': {i: 'busy'}},
+                    lambda i: {'request': 'first', 'state': 'failed', 'result': 'FAILED', 'code': 'X', 'answered': {i: 'busy'}}]
+    assert client(root, 's5', busy_failing) == 1
     ended = [lambda i: {'request': 'first', 'state': 'ended', 'answered': {i: 'ended'}}]
     assert client(root, 's5-end', ended) == 0 and 'shows the demonstration again' in capsys.readouterr().out
     silent = itertools.repeat(lambda i: {'request': 'first', 'state': 'running'})
     assert client(root, 's5', silent) == 1 and 'no answer within 50 s' in capsys.readouterr().out
-    words = (root / 'request').read_text(encoding='ascii').split()
-    assert words[0] == 's5' and words[1].isalnum()
-    if os.name == 'posix':  # readable by the container's user whichever user railway ssh runs as
-        assert (root / 'request').stat().st_mode & 0o777 == 0o644
+    # A long run still prints now and then, so an idle railway ssh session stays open.
+    long_run = itertools.chain([lambda i: {'request': i, 'state': 'running'}] * 20,
+                               [lambda i: {'request': i, 'state': 'passed', 'case_id': 'case_2'}])
+    assert client(root, 's5', long_run) == 0 and 'still running' in capsys.readouterr().out
+    requests = sorted(root.glob('request-*'))
+    words = requests[0].read_text(encoding='ascii').split()
+    assert words[0] == 's5' and words[1].isalnum() and requests[0].name == 'request-' + words[1]
+    if os.name == 'posix':  # railway ssh runs as root: the container's user must read the file
+        assert requests[0].stat().st_mode & 0o777 == 0o644
         assert (root / 'status.json').stat().st_mode & 0o777 == 0o600
 
 

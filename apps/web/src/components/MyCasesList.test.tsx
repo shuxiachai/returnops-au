@@ -109,6 +109,18 @@ describe('My Requests on Track & Clarify', () => {
     expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
   });
 
+  it("lists every request when the box holds the open case's own ID (1 November 2026)", async () => {
+    // Opening a case puts its ID into the box; "Show list" then lists all requests, as the
+    // heading says, not just the open one.
+    listed.mockResolvedValue({ items: [NEWER, OLDER], limit: 20 });
+    const onMatches = vi.fn();
+    render(<MyCasesList openCaseId="case_newer" openCase={null} onOpen={vi.fn()} filter="case_newer" onMatches={onMatches} />);
+    expect(await screen.findByText('My Requests (2)')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Show list/ }));
+    expect(screen.getAllByRole('listitem')).toHaveLength(2);
+    await waitFor(() => expect(onMatches).toHaveBeenLastCalledWith(['case_newer', 'case_older']));
+  });
+
   it('reports which requests match the search, and none while no list is shown', async () => {
     listed.mockResolvedValue({ items: [NEWER, OLDER], limit: 20 });
     const onMatches = vi.fn();

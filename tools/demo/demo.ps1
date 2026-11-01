@@ -649,7 +649,7 @@ function Invoke-Start {
     Show-Info 'Copy a password to the clipboard without showing it (customer synthetic_customer_a, then Founder founder):'
     Show-Info '  (Get-Content -Raw tmp\demo-shop\passwords.json | ConvertFrom-Json).synthetic_customer_a | Set-Clipboard'
     Show-Info '  (Get-Content -Raw tmp\demo-shop\passwords.json | ConvertFrom-Json).founder | Set-Clipboard'
-    Show-Info 'Each sign-in starts a new 15-minute session, so signing in again renews it.'
+    Show-Info 'A password sign-in lasts an hour (the page renews its 15-minute key); then sign in again.'
     if ($since) {
         $until = $since.AddSeconds($SessionSeconds)
         if ($until -gt (Get-Date)) { Show-Info "The access keys in sessions.json (the fallback) were provisioned at $(Format-Time $since) and expire at $(Format-Time $until)." }
@@ -857,7 +857,7 @@ function Save-CloudSessions($Found) {
     Show-Info 'Copy a password to the clipboard without showing it (customer synthetic_customer_a, then Founder founder):'
     Show-Info '  (Get-Content -Raw tmp\railway-shop\passwords.json | ConvertFrom-Json).synthetic_customer_a | Set-Clipboard'
     Show-Info '  (Get-Content -Raw tmp\railway-shop\passwords.json | ConvertFrom-Json).founder | Set-Clipboard'
-    Show-Info 'Each sign-in starts a new 15-minute session. Fallback: the access keys in tmp\railway-shop\sessions.json.'
+    Show-Info 'A password sign-in lasts an hour (the page renews its 15-minute key). Fallback: the access keys in tmp\railway-shop\sessions.json (15 minutes each).'
     Show-Info 'New sessions: tools\demo\demo.ps1 cloud-fresh. After the demonstration: stop the Railway service and run stop -RemoveData here.'
 }
 

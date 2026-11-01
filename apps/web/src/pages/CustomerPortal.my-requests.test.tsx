@@ -111,6 +111,43 @@ describe('CustomerPortal: My Requests', () => {
     await waitFor(() => expect(getCustomerCase).toHaveBeenCalledWith('case_older_one'));
   });
 
+  it('keeps the open case when Enter meets several matches, and a search word is no case ID (1 November 2026)', async () => {
+    const summary = (caseId: string, excerpt: string) => ({
+      case_id: caseId,
+      status: 'SUBMITTED' as const,
+      created_at: VIEW.created_at,
+      updated_at: VIEW.updated_at,
+      awaiting_answer: false,
+      excerpt,
+    });
+    vi.mocked(listMyCases).mockResolvedValue({
+      items: [summary('case_live_mine', 'The blender stopped after one use.'), summary('case_live_kettle', 'The kettle stopped heating.')],
+      limit: 20,
+    });
+    vi.mocked(getCustomerCase).mockResolvedValue(VIEW);
+    render(<CustomerPortal />);
+    fireEvent.click(screen.getByRole('button', { name: 'Track & Clarify' }));
+    fireEvent.click(await screen.findByRole('button', { name: /The blender stopped/ }));
+    await waitFor(() => expect(getCustomerCase).toHaveBeenCalledWith('case_live_mine'));
+    expect(await screen.findByText('The blender stopped after one use.', { selector: 'p' })).toBeInTheDocument();
+
+    // Two requests match "stopped": Enter keeps them listed and the open case stays open.
+    vi.mocked(getCustomerCase).mockClear();
+    const box = screen.getByLabelText(/case ID/i);
+    fireEvent.change(box, { target: { value: 'stopped' } });
+    expect(screen.getByText('My Requests (2 of 2)')).toBeInTheDocument();
+    fireEvent.submit(box.closest('form')!);
+    expect(getCustomerCase).not.toHaveBeenCalled();
+    expect(screen.getByText('The blender stopped after one use.', { selector: 'p' })).toBeInTheDocument();
+
+    // Back to Track & Clarify with the word still in the box: it stays a search.
+    fireEvent.click(screen.getByRole('button', { name: 'Lodge Return' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Track & Clarify' }));
+    await screen.findByRole('button', { name: /The kettle stopped heating/ });
+    expect(getCustomerCase).not.toHaveBeenCalled();
+    expect(screen.queryByText(/No case with this ID/i)).not.toBeInTheDocument();
+  });
+
   it('keeps Lookup by case ID where the server offers no list', async () => {
     vi.mocked(listMyCases).mockRejectedValue(new ApiError(405, 'Method Not Allowed', 'HTTP_405'));
     render(<CustomerPortal />);

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Database, RefreshCw, WifiOff } from 'lucide-react';
 import { Navbar } from './components/Navbar';
 import { CustomerPortal } from './pages/CustomerPortal';
@@ -12,11 +12,14 @@ import {
   getActiveRole,
   getSession,
   getStoredToken,
+  renewPasswordSession,
   sampleDataChosen,
   SHARED_STORAGE_KEYS,
   setActiveRole,
   setMockMode,
   setStoredToken,
+  tokenExpiry,
+  tokenSubject,
 } from './api/client';
 import { SessionPrincipal } from './types/domain';
 
@@ -31,6 +34,19 @@ type Gate =
 
 const SESSION_ENDED = 'Your session has ended. Sign in again to continue.';
 const CHANGED_ELSEWHERE = 'You signed in, signed out or opened the sample data in another tab. Sign in again here.';
+// The next key of a password sign-in is asked for from this long before the current one
+// ends (the server renews in a key's last 300 s), and again this often after a failure.
+const RENEW_START_SECONDS = 280;
+const RENEW_RETRY_SECONDS = 25;
+
+// Whether a failed renewal is tried again: not after a refusal for good. The server marks
+// "too early" as retryable; "cannot be renewed" and "the hour has passed" are not.
+function renewalWorthRetrying(err: unknown): boolean {
+  if (!(err instanceof ApiError)) return true;
+  if (err.status === 401 || err.status === 403) return false;
+  if (err.status === 409) return err.retryable === true;
+  return true;
+}
 
 function startingGate(): Gate {
   if (sampleDataChosen()) return { kind: 'sample' };
@@ -44,6 +60,10 @@ export const App: React.FC = () => {
   const [sampleTab, setSampleTab] = useState<'customer' | 'founder'>(
     getActiveRole() === 'FOUNDER' ? 'founder' : 'customer'
   );
+  const [renewals, setRenewals] = useState(0);
+  // The gate as last shown, for the storage listener, which is set up once.
+  const gateRef = useRef(gate);
+  gateRef.current = gate;
 
   // A saved key is checked with the server before any page opens.
   useEffect(() => {
@@ -77,6 +97,16 @@ export const App: React.FC = () => {
     const onStorage = (event: StorageEvent) => {
       const { token, sampleData } = SHARED_STORAGE_KEYS;
       if (event.key !== null && event.key !== token && event.key !== sampleData) return;
+      // The same person's next key (a renewal or a new sign-in in another tab) keeps this
+      // page as it is, open case and typed text included; it only times the next renewal.
+      const shown = gateRef.current;
+      const stored = getStoredToken();
+      if (event.key === token && shown.kind === 'signed-in' && !sampleDataChosen() && stored &&
+          tokenSubject(stored) === shown.principal.principal_id) {
+        clearSessionRejection();
+        setRenewals((count) => count + 1);
+        return;
+      }
       setGate((current) => {
         const sample = sampleDataChosen();
         if (event.key === sampleData && sample === (current.kind === 'sample')) return current;
@@ -88,6 +118,49 @@ export const App: React.FC = () => {
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
   }, []);
+
+  // A password sign-in stays signed in for an hour (1 November 2026). Each key lasts at most
+  // 15 minutes; from RENEW_START_SECONDS before it ends this tab asks for the next one, and
+  // after a failure (no answer, a busy server, an address that shows another API while S5
+  // runs, a clock a little ahead) tries again every RENEW_RETRY_SECONDS until the key ends.
+  // A refusal for good (an access key, the hour has passed, a key no longer valid) stops it.
+  useEffect(() => {
+    if (gate.kind !== 'signed-in') return;
+    const token = getStoredToken();
+    const ends = tokenExpiry(token);
+    if (ends === null) return;
+    let cancelled = false;
+    let timer = 0;
+    const attempt = () => {
+      if (cancelled) return;
+      // Another tab renewed meanwhile: follow its key instead of asking twice.
+      if (getStoredToken() !== token) {
+        setRenewals((count) => count + 1);
+        return;
+      }
+      renewPasswordSession(token)
+        .then((next) => {
+          if (cancelled || getStoredToken() !== token) return;
+          const nextEnds = tokenExpiry(next.access_token);
+          if (nextEnds === null || nextEnds <= ends) return;
+          setStoredToken(next.access_token);
+          // The key works again, so an earlier refusal (seen while S5 ran) no longer holds.
+          clearSessionRejection();
+          setRenewals((count) => count + 1);
+        })
+        .catch((err: unknown) => {
+          if (cancelled || !renewalWorthRetrying(err)) return;
+          if (Date.now() / 1000 + RENEW_RETRY_SECONDS < ends) {
+            timer = window.setTimeout(attempt, RENEW_RETRY_SECONDS * 1000);
+          }
+        });
+    };
+    timer = window.setTimeout(attempt, Math.max(1, ends - RENEW_START_SECONDS - Date.now() / 1000) * 1000);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [gate, renewals]);
 
   const signOut = (notice?: string) => {
     setStoredToken('');
