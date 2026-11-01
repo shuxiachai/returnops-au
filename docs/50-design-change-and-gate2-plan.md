@@ -59,7 +59,7 @@ Step 5, connecting, means three changes:
 
 ## 5. First measurement: development check on C's ten E01 examples
 
-Run on 1 November 2026, about 21:30 Sydney.
+Run on 1 November 2026 at 21:10 Sydney.
 
 **Setup**
 
