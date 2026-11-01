@@ -11,6 +11,7 @@ import {
   DecisionReceipt,
   AnalyticsQuery,
   AnalyticsSnapshot,
+  AiImageObservations,
   AiReplyDraft,
   AiRiskReview,
   AiTriage,
@@ -1104,4 +1105,28 @@ export async function reviewCaseRisk(caseId: string): Promise<AiRiskReview> {
     };
   }
   return request<AiRiskReview>(`/v1/founder/cases/${encodeURIComponent(caseId)}/assistant/risk-review`, { method: 'POST' });
+}
+
+// C3 observations of the case's photos (1 November 2026), same rules; a server without a
+// vision model answers 404.
+export async function observeCaseImages(caseId: string): Promise<AiImageObservations> {
+  if (isMockMode()) {
+    return {
+      ...MOCK_AI,
+      prompt_version: 'c3-image-observation-advisory-v1',
+      generated_at: new Date().toISOString(),
+      case_id: caseId,
+      case_version: 1,
+      recorded: false,
+      model_called: false,
+      result: null,
+      details: [],
+      consistency: null,
+      summary: 'Sample data: no model was called.',
+      skipped: [],
+    };
+  }
+  return request<AiImageObservations>(`/v1/founder/cases/${encodeURIComponent(caseId)}/assistant/image-observations`, {
+    method: 'POST',
+  });
 }

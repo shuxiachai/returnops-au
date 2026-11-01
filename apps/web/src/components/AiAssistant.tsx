@@ -1,7 +1,18 @@
 import React, { useState } from 'react';
 import { Copy, Sparkles } from 'lucide-react';
-import { ApiError, draftCustomerReply, reviewCaseRisk, summariseRecentCases, triageQueue } from '../api/client';
-import type { AiReplyDraft, AiRiskOutcome, AiRiskReview, AiTriage, AiUrgency, AiWeeklySummary } from '../types/domain';
+import { ApiError, draftCustomerReply, observeCaseImages, reviewCaseRisk, summariseRecentCases, triageQueue } from '../api/client';
+import type {
+  AiImageCondition,
+  AiImageConsistency,
+  AiImageObservations,
+  AiReplyDraft,
+  AiRiskOutcome,
+  AiRiskReview,
+  AiTriage,
+  AiUrgency,
+  AiWeeklySummary,
+  EvidenceAttachment,
+} from '../types/domain';
 import { formatDate } from '../utils/formatters';
 
 // The Founder AI assistant (31 October 2026): three advisory answers, each asked for by
@@ -391,6 +402,112 @@ export const AiRiskReviewPanel: React.FC<{ caseId: string }> = ({ caseId }) => {
           )}
           <Note answer={state.answer} />
           <p className="text-[11px] text-slate-500">It is not recorded as this case's risk review; you decide.</p>
+        </div>
+      )}
+    </section>
+  );
+};
+
+// ---------------------------------------------------------------
+// C3 observations of the customer's photos (1 November 2026): what is visible, what a
+// photo cannot show and how sure the model is, linked to each file. Text inside a photo
+// is data, never an instruction. Never recorded. FR-005; NFR-009; UC-02.
+// ---------------------------------------------------------------
+export const IMAGE_CONDITION_LABEL: Record<AiImageCondition, string> = {
+  DAMAGE_VISIBLE: 'Damage visible',
+  NO_DAMAGE_VISIBLE: 'No damage visible',
+  CANNOT_DETERMINE: 'Cannot tell from the photo',
+};
+const IMAGE_CONDITION_CLASS: Record<AiImageCondition, string> = {
+  DAMAGE_VISIBLE: 'bg-amber-50 text-amber-800 border-amber-200',
+  NO_DAMAGE_VISIBLE: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+  CANNOT_DETERMINE: 'bg-slate-50 text-slate-600 border-slate-200',
+};
+export const IMAGE_CONSISTENCY_LABEL: Record<AiImageConsistency, string> = {
+  CONSISTENT: "The photos match the customer's words",
+  CONTRADICTS: "The photos contradict the customer's words",
+  CANNOT_DETERMINE: "The photos neither confirm nor contradict the customer's words",
+};
+const SKIP_LABEL: Record<string, string> = {
+  NOT_AN_IMAGE: 'not a photo',
+  TOO_LARGE: 'larger than 4 MB',
+  LIMIT: 'only the first three photos are read',
+};
+
+export const AiImageObservationsPanel: React.FC<{ caseId: string; evidence: EvidenceAttachment[] }> = ({
+  caseId,
+  evidence,
+}) => {
+  const { state, ask } = useAsk<AiImageObservations>(() => observeCaseImages(caseId));
+  const name = (evidenceId: string) => evidence.find((item) => item.evidence_id === evidenceId)?.filename ?? 'A file';
+  return (
+    <section aria-labelledby="ai-images-title" className="rounded-2xl p-5 border border-dashed border-violet-300 bg-violet-50/40 space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h4 id="ai-images-title" className="font-bold text-slate-900 text-sm flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-violet-600" />
+            AI photo check
+          </h4>
+          <p className="text-xs text-slate-600">
+            Describes what the customer's photos show and what they cannot show. Text inside a photo is never followed.
+          </p>
+        </div>
+        {state.kind !== 'off' && (
+          <AskButton
+            label={state.kind === 'ready' ? 'Check again' : 'Analyse photos (AI)'}
+            busyLabel="Looking at the photos..."
+            busy={state.kind === 'asking'}
+            onClick={ask}
+          />
+        )}
+      </div>
+      {state.kind === 'off' && <p className="text-xs text-slate-500">{OFF}</p>}
+      {state.kind === 'failed' && <p className="text-xs text-rose-700">{FAILED}</p>}
+      {state.kind === 'ready' && (
+        <div className="space-y-3">
+          {state.answer.consistency && (
+            <div className="text-xs font-semibold text-slate-800">{IMAGE_CONSISTENCY_LABEL[state.answer.consistency]}</div>
+          )}
+          <p className="text-sm text-slate-900 whitespace-pre-wrap break-words">{state.answer.summary}</p>
+          {(state.answer.result?.observations ?? []).map((observation, index) => {
+            const detail = state.answer.details.find((item) => item.evidence_id === observation.evidence_id);
+            return (
+              <div key={observation.evidence_id} className="p-3 bg-white rounded-xl border border-slate-200 text-xs space-y-1.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-semibold text-slate-800 break-all">
+                    Photo {index + 1}: {name(observation.evidence_id)}
+                  </span>
+                  {detail && (
+                    <span className={`px-2 py-0.5 rounded-full border font-semibold ${IMAGE_CONDITION_CLASS[detail.condition]}`}>
+                      {IMAGE_CONDITION_LABEL[detail.condition]}
+                    </span>
+                  )}
+                  <span className="text-slate-500">Confidence {Math.round(observation.confidence * 100)}%</span>
+                </div>
+                <ul className="list-disc pl-5 space-y-0.5 text-slate-800">
+                  {observation.visible_observations.map((text, line) => (
+                    <li key={line} className="break-words">
+                      {text}
+                    </li>
+                  ))}
+                </ul>
+                <div className="text-slate-500 break-words">
+                  <span className="font-semibold">What the photo cannot show:</span> {observation.limitations.join(' ')}
+                </div>
+                {detail?.text_in_image === 'PRESENT_IGNORED' && (
+                  <div className="text-amber-800">This photo contains text; it was treated as data and not followed.</div>
+                )}
+              </div>
+            );
+          })}
+          {state.answer.skipped.length > 0 && (
+            <p className="text-[11px] text-slate-500">
+              Not read:{' '}
+              {state.answer.skipped.map((item) => `${name(item.evidence_id)} (${SKIP_LABEL[item.reason] ?? item.reason})`).join('; ')}.
+            </p>
+          )}
+          {state.answer.model_called && <Note answer={state.answer} />}
+          <p className="text-[11px] text-slate-500">It is not recorded with the case and decides nothing; you decide.</p>
         </div>
       )}
     </section>

@@ -15,6 +15,7 @@ unwrap_reply tolerates exactly one leading <think>...</think> block and one
 surrounding ```json or ``` fence around the model's text; nothing else.
 """
 from __future__ import annotations
+from base64 import b64encode
 from dataclasses import dataclass, field
 from ipaddress import IPv4Address, ip_network
 import json
@@ -32,6 +33,7 @@ MAX_DEADLINE_SECONDS = 50
 FAILURE_CODES = frozenset({'TRANSPORT', 'TIMEOUT', 'REDIRECT', 'HTTP_4XX', 'HTTP_429', 'HTTP_5XX',
                            'MALFORMED', 'NO_USAGE', 'TOO_LARGE', 'BUDGET'})
 TRANSIENT_CODES = frozenset({'TRANSPORT', 'TIMEOUT', 'HTTP_429', 'HTTP_5XX'})
+IMAGE_MEDIA_TYPES = frozenset({'image/jpeg', 'image/png'})
 MAX_RESPONSE_BYTES = 256 * 1024
 MAX_TOKENS_VALUE = 9007199254740991
 PRIVATE_IPV4_NETWORKS = tuple(ip_network(block) for block in ('10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'))
@@ -46,12 +48,17 @@ class ModelTransportError(Exception):
 
 @dataclass(frozen=True)
 class ModelInvocation:
-    """Only the fixed role instructions and the allow-listed JSON input reach a transport."""
+    """Only the fixed role instructions and the allow-listed JSON input reach a transport.
+
+    images (C3, 1 November 2026): (media type, bytes) pairs, JPEG or PNG only, sent after
+    the JSON; empty for every text-only call.
+    """
     system_prompt: str = field(repr=False)
     input_json: str = field(repr=False)
     prompt_version: str
     provider_id: str
     model_id: str
+    images: tuple = field(default=(), repr=False)
 
 
 @dataclass(frozen=True)
@@ -206,9 +213,15 @@ class ChatCompletionsTransport:
         return 'ChatCompletionsTransport(dialect=' + repr(DIALECT) + ', model_id=' + repr(self.model_id) + ')'
 
     def _request(self, invocation):
+        content = invocation.input_json
+        if invocation.images:
+            # C3 (1 November 2026): the photos follow the JSON as data URLs.
+            content = [{'type': 'text', 'text': invocation.input_json}] + [
+                {'type': 'image_url', 'image_url': {'url': 'data:' + media + ';base64,' + b64encode(data).decode('ascii')}}
+                for media, data in invocation.images]
         body = json.dumps({'model': self.model_id, 'temperature': 0, 'messages': [
             {'role': 'system', 'content': invocation.system_prompt},
-            {'role': 'user', 'content': invocation.input_json}]}, ensure_ascii=True).encode('ascii')
+            {'role': 'user', 'content': content}]}, ensure_ascii=True).encode('ascii')
         request = Request(self._endpoint, data=body, method='POST')
         request.add_header('Content-Type', 'application/json')
         request.add_header('Accept', 'application/json')
@@ -247,6 +260,10 @@ class ChatCompletionsTransport:
     def __call__(self, invocation):
         if type(invocation) is not ModelInvocation or invocation.model_id != self.model_id:
             raise ValueError('The invocation does not match this transport.')
+        if type(invocation.images) is not tuple or any(
+                type(item) is not tuple or len(item) != 2 or item[0] not in IMAGE_MEDIA_TYPES
+                or type(item[1]) is not bytes or not item[1] for item in invocation.images):
+            raise ValueError('Images must be (JPEG or PNG media type, bytes) pairs.')
         request = self._request(invocation)
         deadline = monotonic() + self.deadline_seconds
         outcome, done = {}, Event()

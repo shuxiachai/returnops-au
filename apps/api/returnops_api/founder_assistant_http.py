@@ -49,6 +49,11 @@ def register_founder_assistant_routes(app):
     async def risk_review(case_id: str, request: Request):
         return await run(request, 'getFounderCase', 'risk_review', case_id)
 
+    # C3 image evidence observations, advisory (1 November 2026): never recorded.
+    @app.post('/v1/founder/cases/{case_id}/assistant/image-observations')
+    async def image_observations(case_id: str, request: Request):
+        return await run(request, 'getFounderCase', 'image_observations', case_id)
+
     @app.post('/v1/founder/assistant/triage')
     async def triage(request: Request):
         return await run(request, 'listFounderCases', 'triage')

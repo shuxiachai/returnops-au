@@ -208,3 +208,82 @@ def test_the_risk_reviewer_sees_the_founder_view_and_records_nothing(assistant, 
     refused(passing.post(path, headers=headers(identities)), 503, 'INTERNAL_ERROR')
     refused(client.post('/v1/founder/cases/case_missing/assistant/risk-review', headers=headers(identities)), 404, 'NOT_FOUND')
     assert business_fingerprints(flow_engine) == before
+
+
+# C3 image evidence observations, advisory (1 November 2026). FR-005; NFR-003, NFR-009.
+PHOTOS = {'images': [
+    {'image': 1, 'condition': 'DAMAGE_VISIBLE', 'visible_observations': ['A red square on a white background.'],
+     'limitations': ['The photo cannot show the cause.'], 'confidence': 60, 'text_in_image': 'NONE'},
+    {'image': 2, 'condition': 'CANNOT_DETERMINE', 'visible_observations': ['A blue square.'],
+     'limitations': ['The photo does not show the item.'], 'confidence': 20, 'text_in_image': 'PRESENT_IGNORED'}],
+    'consistency': 'CANNOT_DETERMINE', 'summary': 'Two synthetic squares; nothing confirms the damage.'}
+
+
+def lodge_with_photos(identities, message, key, colours):
+    import io
+    from PIL import Image
+    from returnops_domain.evidence_validation import validate_evidence
+    ids = []
+    for index, colour in enumerate(colours):
+        image = io.BytesIO()
+        Image.new('RGB', (4, 4), colour).save(image, format='PNG')
+        staged = identities.flow().stage(validate_evidence(image.getvalue(), f'jo-smith-{index}.png', 'image/png'),
+                                         f'{key}-photo-{index}', identifier('corr'))
+        ids.append(staged.body['evidence_id'])
+    created = identities.flow().create({'original_message': message, 'evidence_ids': ids}, key, identifier('corr'))
+    return created.body['case_id'], ids
+
+
+def test_the_photo_check_sends_the_case_photos_to_the_vision_model_and_records_nothing(assistant, flow_engine, identities):
+    from hashlib import sha256
+    from sqlalchemy import select
+    from returnops_domain.image_observer import IMAGE_PROMPT, PROMPT_VERSION as IMAGE_VERSION
+    case_id, ids = lodge_with_photos(identities, 'Two cups arrived chipped; mail jo@example.com.', 'assist-photo-1',
+                                     [(200, 10, 10), (10, 10, 200)])
+    before = business_fingerprints(flow_engine)
+    text, vision = StubTransport(REPLY), StubTransport(PHOTOS)
+    client = assistant(text)
+    path = f'/v1/founder/cases/{case_id}/assistant/image-observations'
+    # Without a vision model the route answers like a server without the assistant.
+    refused(client.post(path, headers=headers(identities)), 404, 'NOT_FOUND')
+    client.app.state.founder_assistant = AssistantComposition(text, 'stub_provider', 'stub-model', vision, 'stub-vision')
+    refused(client.post(path, headers=headers(identities, 'customer_a')), 403, 'FORBIDDEN')
+    refused(client.post(path), 401, 'UNAUTHENTICATED')
+    assert vision.calls == [] and text.calls == []  # nobody but the Founder reaches the model
+    response = client.post(path, headers=headers(identities))
+    assert response.status_code == 200, response.text
+    body = response.json()
+    from returnops_domain.wire import _validator
+    assert next(_validator('ImageObservationResult').iter_errors(body['result']), None) is None
+    assert [item['evidence_id'] for item in body['result']['observations']] == ids
+    assert [item['confidence'] for item in body['result']['observations']] == [0.6, 0.2]
+    assert (body['case_id'], body['recorded'], body['model_called'], body['consistency']) == (case_id, False, True, 'CANNOT_DETERMINE')
+    assert (body['model_id'], body['prompt_version'], body['skipped']) == ('stub-vision', IMAGE_VERSION, [])
+    assert [item['text_in_image'] for item in body['details']] == ['NONE', 'PRESENT_IGNORED']
+    assert response.headers['Cache-Control'] == 'no-store'
+    call, = vision.calls
+    assert text.calls == [] and (call.model_id, call.system_prompt, call.prompt_version) == ('stub-vision', IMAGE_PROMPT, IMAGE_VERSION)
+    with flow_engine.connect() as connection:
+        stored = dict(connection.execute(select(t.evidence.c.evidence_id, t.evidence.c.sha256)
+                                         .where(t.evidence.c.evidence_id.in_(ids))).all())
+    # The photos go as the customer stored them, in the case's order.
+    assert [media for media, _ in call.images] == ['image/png', 'image/png']
+    assert [sha256(data).hexdigest() for _, data in call.images] == [stored[evidence_id] for evidence_id in ids]
+    sent = json.loads(call.input_json)
+    assert sent['images'] == [{'image': 1, 'media_type': 'image/png'}, {'image': 2, 'media_type': 'image/png'}]
+    assert case_id not in call.input_json and not any(evidence_id in call.input_json for evidence_id in ids)
+    assert 'jo@example.com' not in call.input_json and 'jo-smith' not in call.input_json
+    assert business_fingerprints(flow_engine) == before
+    # An answer that skips a photo is discarded like any other shape.
+    client.app.state.founder_assistant = AssistantComposition(text, 'stub_provider', 'stub-model',
+                                                              StubTransport({**PHOTOS, 'images': PHOTOS['images'][:1]}), 'stub-vision')
+    refused(client.post(path, headers=headers(identities)), 503, 'INTERNAL_ERROR')
+    refused(client.post('/v1/founder/cases/case_missing/assistant/image-observations', headers=headers(identities)), 404, 'NOT_FOUND')
+    assert business_fingerprints(flow_engine) == before
+    # A case without photos is answered without calling the model.
+    plain = lodge(identities, 'My kettle stopped heating.', 'assist-photo-plain', reference='SYN-1001')
+    quiet = StubTransport(PHOTOS)
+    client.app.state.founder_assistant = AssistantComposition(text, 'stub_provider', 'stub-model', quiet, 'stub-vision')
+    answer = client.post(f'/v1/founder/cases/{plain}/assistant/image-observations', headers=headers(identities))
+    assert answer.status_code == 200, answer.text
+    assert (answer.json()['model_called'], answer.json()['result'], quiet.calls) == (False, None, [])

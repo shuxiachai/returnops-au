@@ -233,6 +233,30 @@ export interface AiRiskReview extends AiAnswer {
   revision_requests: string[];
 }
 
+// C3 image evidence observations (1 November 2026): what the customer's photos show, in
+// the contract v1 ImageObservationResult shape; never recorded.
+export type AiImageCondition = 'DAMAGE_VISIBLE' | 'NO_DAMAGE_VISIBLE' | 'CANNOT_DETERMINE';
+export type AiImageConsistency = 'CONSISTENT' | 'CONTRADICTS' | 'CANNOT_DETERMINE';
+
+export interface AiImageObservation {
+  evidence_id: string;
+  visible_observations: string[];
+  limitations: string[];
+  confidence: number;
+}
+
+export interface AiImageObservations extends AiAnswer {
+  case_id: string;
+  case_version: number;
+  recorded: false;
+  model_called: boolean;
+  result: { case_id: string; input_version: number; component_version: string; observations: AiImageObservation[] } | null;
+  details: { evidence_id: string; condition: AiImageCondition; text_in_image: 'NONE' | 'PRESENT_IGNORED' }[];
+  consistency: AiImageConsistency | null;
+  summary: string;
+  skipped: { evidence_id: string; reason: 'NOT_AN_IMAGE' | 'TOO_LARGE' | 'LIMIT' }[];
+}
+
 export interface CreateCaseRequest {
   original_message: string;
   order_reference?: string;

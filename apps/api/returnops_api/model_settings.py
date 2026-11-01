@@ -34,6 +34,8 @@ class ModelSettings(BaseModel):
     allow_private_http: bool = False
     # Optional cap on model calls in this process; Railway sets it (31 October 2026).
     max_calls: int | None = None
+    # Optional vision model for the C3 photo observations, same provider and key (1 November 2026).
+    vision_model_id: str | None = None
 
     @classmethod
     def from_environment(cls, environ=None) -> "ModelSettings":
@@ -83,15 +85,23 @@ class ModelSettings(BaseModel):
         max_calls = env.get("RETURNOPS_MODEL_MAX_CALLS") or None
         if max_calls is not None and not (max_calls.isascii() and max_calls.isdigit() and 1 <= int(max_calls) <= 100000):
             _fail("Set RETURNOPS_MODEL_MAX_CALLS to a whole number from 1 to 100000, or leave it unset.")
+        vision = env.get("RETURNOPS_MODEL_VISION_ID") or None
+        if vision is not None and not (1 <= len(vision) <= 120 and vision.isascii() and vision.isprintable()):
+            _fail("Set RETURNOPS_MODEL_VISION_ID to 1-120 printable ASCII characters, or leave it unset.")
         return cls(base_url=base_url, api_key=SecretStr(key), model_id=model_id, provider_id=provider_id,
                    deadline_seconds=int(deadline), dialect=dialect, proxy_url=proxy,
-                   allow_private_http=private_http == "1", max_calls=None if max_calls is None else int(max_calls))
+                   allow_private_http=private_http == "1", max_calls=None if max_calls is None else int(max_calls),
+                   vision_model_id=vision)
 
-    def transport(self):
-        transport = ChatCompletionsTransport(self.base_url, self.api_key, self.model_id,
+    def transport(self, model_id=None):
+        transport = ChatCompletionsTransport(self.base_url, self.api_key, model_id or self.model_id,
                                              deadline_seconds=self.deadline_seconds, proxy_url=self.proxy_url,
                                              allow_private_http=self.allow_private_http)
         return transport if self.max_calls is None else BudgetedTransport(transport, self.max_calls)
+
+    def vision_transport(self):
+        """The C3 vision transport with its own call budget, or None without a vision model."""
+        return None if self.vision_model_id is None else self.transport(self.vision_model_id)
 
     def worker_settings(self) -> ShowcaseSettings:
         return ShowcaseSettings(provider_id=self.provider_id, model_id=self.model_id)

@@ -54,6 +54,7 @@ import {
 } from '../utils/formatters';
 import { AdvisoryFactsCard } from '../components/AdvisoryFactsCard';
 import {
+  AiImageObservationsPanel,
   AiReplyDraftPanel,
   AiRiskReviewPanel,
   AiTriagePanel,
@@ -1599,6 +1600,12 @@ export const FounderConsole: React.FC = () => {
                       </p>
                     )}
                   </div>
+
+                  <AiImageObservationsPanel
+                    key={caseDetail.case_id}
+                    caseId={caseDetail.case_id}
+                    evidence={caseDetail.evidence ?? []}
+                  />
                 </div>
               )}
 
