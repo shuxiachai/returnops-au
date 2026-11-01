@@ -375,10 +375,13 @@ def test_the_client_follows_its_own_request_and_exits_with_the_result(tmp_path, 
                                [lambda i: {'request': i, 'state': 'ready', 'case_id': 'case_2'}])
     assert client(root, 's5', long_run) == 0 and 'still running' in capsys.readouterr().out
     requests = sorted(root.glob('request-*'))
-    words = requests[0].read_text(encoding='ascii').split()
-    assert words[0] == 's5' and words[1].isalnum() and requests[0].name == 'request-' + words[1]
-    if os.name == 'posix':  # railway ssh runs as root: the container's user must read the file
-        assert requests[0].stat().st_mode & 0o777 == 0o644
+    assert requests and {path.read_text(encoding='ascii').split()[0] for path in requests} == {'s5', 's5-show', 's5-end'}
+    for path in requests:
+        words = path.read_text(encoding='ascii').split()
+        assert words[1].isalnum() and path.name == 'request-' + words[1]
+        if os.name == 'posix':  # railway ssh runs as root: the container's user must read the file
+            assert path.stat().st_mode & 0o777 == 0o644
+    if os.name == 'posix':
         assert (root / 'status.json').stat().st_mode & 0o777 == 0o600
 
 
