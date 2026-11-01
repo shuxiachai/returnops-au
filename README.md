@@ -83,7 +83,7 @@ In Proposal & Risk Review, **Run all three AI roles** asks for the photo check, 
 
 What this version does not do (the full list is in [docs/47](docs/47-stage2-submission-runbook.md), section 7; the hardening backlog is in [docs/46](docs/46-gate2-roadmap.md), section 8):
 
-- The AI roles do not form the governed chain (Gate 2, deferred by the lead on 22 October 2026): the Assessment is a fixed proposal and the recorded review is the controlled PASS review. The live AI answers are advice only. Why, the Gate 2 plan and a first development check on C's ten E01 examples: [docs/50](docs/50-design-change-and-gate2-plan.md).
+- The AI roles do not form the governed chain (Gate 2, deferred by the lead on 22 October 2026): the Assessment is a fixed proposal and the recorded review is the controlled PASS review. The live AI answers are advice only. Why, the Gate 2 plan and a first development check on C's ten E01 examples: [docs/50](docs/50-design-change-and-gate2-plan.md). A's first runs of the 12-case pilot, with A's design intents rather than labels: [docs/51](docs/51-gate2-pilot.md).
 - In the web app every lodged case stops at RISK_REVIEW; approval and execution run only through the R.02 driver (S5).
 - C1 retrieval and citation verification is offline code ([experiments/c1_grounding_candidate](experiments/c1_grounding_candidate)), not in the runtime; the served proposal carries one fixed synthetic citation.
 - A3 is a contract-test carrier sandbox in this repository ([docs/49](docs/49-a3-carrier-sandbox.md)): the team has no carrier test account, and no tutor decision on this replacement is recorded.
