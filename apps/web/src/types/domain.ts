@@ -210,6 +210,29 @@ export interface AiWeeklySummary extends AiAnswer {
   highlights: string[];
 }
 
+// The C2 Risk Reviewer's advisory review of one case (1 November 2026): C's outcomes and
+// finding categories; never recorded as the case's review.
+export type AiRiskOutcome = 'PASS' | 'PASS_WITH_WARNING' | 'REVISE' | 'NEEDS_INFORMATION' | 'ESCALATE';
+
+export interface AiRiskFinding {
+  category: string;
+  severity: 'INFO' | 'WARNING' | 'BLOCK';
+  message: string;
+}
+
+export interface AiRiskReview extends AiAnswer {
+  case_id: string;
+  case_version: number;
+  case_status: string;
+  reviewed_proposal: { proposal_id: string; proposal_version: number } | null;
+  recorded: false;
+  outcome: AiRiskOutcome;
+  summary: string;
+  findings: AiRiskFinding[];
+  questions: string[];
+  revision_requests: string[];
+}
+
 export interface CreateCaseRequest {
   original_message: string;
   order_reference?: string;

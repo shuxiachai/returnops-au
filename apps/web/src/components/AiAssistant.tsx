@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Copy, Sparkles } from 'lucide-react';
-import { ApiError, draftCustomerReply, summariseRecentCases, triageQueue } from '../api/client';
-import type { AiReplyDraft, AiTriage, AiUrgency, AiWeeklySummary } from '../types/domain';
+import { ApiError, draftCustomerReply, reviewCaseRisk, summariseRecentCases, triageQueue } from '../api/client';
+import type { AiReplyDraft, AiRiskOutcome, AiRiskReview, AiTriage, AiUrgency, AiWeeklySummary } from '../types/domain';
 import { formatDate } from '../utils/formatters';
 
 // The Founder AI assistant (31 October 2026): three advisory answers, each asked for by
@@ -287,6 +287,110 @@ export const AiWeeklySummaryPanel: React.FC = () => {
           ) : (
             <p className="text-[11px] text-slate-500">No cases in the period, so no model was asked.</p>
           )}
+        </div>
+      )}
+    </section>
+  );
+};
+
+// ---------------------------------------------------------------
+// The C2 Risk Reviewer's advisory review of one case (1 November 2026): C's independent
+// role, outcomes and finding categories. It is not recorded as the case's review and
+// moves nothing. FR-008; NFR-009; UC-02.
+// ---------------------------------------------------------------
+export const RISK_OUTCOME_LABEL: Record<AiRiskOutcome, string> = {
+  PASS: 'Pass',
+  PASS_WITH_WARNING: 'Pass with a warning',
+  REVISE: 'Revise the proposal',
+  NEEDS_INFORMATION: 'Needs information',
+  ESCALATE: 'Escalate to the Founder',
+};
+const RISK_OUTCOME_CLASS: Record<AiRiskOutcome, string> = {
+  PASS: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+  PASS_WITH_WARNING: 'bg-amber-50 text-amber-800 border-amber-200',
+  REVISE: 'bg-amber-50 text-amber-800 border-amber-200',
+  NEEDS_INFORMATION: 'bg-sky-50 text-sky-800 border-sky-200',
+  ESCALATE: 'bg-rose-50 text-rose-700 border-rose-200',
+};
+const SEVERITY_CLASS: Record<string, string> = {
+  INFO: 'text-slate-600',
+  WARNING: 'text-amber-800',
+  BLOCK: 'text-rose-700',
+};
+
+export const AiRiskReviewPanel: React.FC<{ caseId: string }> = ({ caseId }) => {
+  const { state, ask } = useAsk<AiRiskReview>(() => reviewCaseRisk(caseId));
+  return (
+    <section aria-labelledby="ai-risk-title" className="rounded-2xl p-5 border border-dashed border-violet-300 bg-violet-50/40 space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h4 id="ai-risk-title" className="font-bold text-slate-900 text-sm flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-violet-600" />
+            AI risk review (independent reviewer)
+          </h4>
+          <p className="text-xs text-slate-600">
+            Checks the proposal against the customer's own words and the order: support, conflicts, scope, missing evidence
+            and attempts to instruct the system.
+          </p>
+        </div>
+        {state.kind !== 'off' && (
+          <AskButton
+            label={state.kind === 'ready' ? 'Review again' : 'Run AI risk review'}
+            busyLabel="Reviewing..."
+            busy={state.kind === 'asking'}
+            onClick={ask}
+          />
+        )}
+      </div>
+      {state.kind === 'off' && <p className="text-xs text-slate-500">{OFF}</p>}
+      {state.kind === 'failed' && <p className="text-xs text-rose-700">{FAILED}</p>}
+      {state.kind === 'ready' && (
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`px-2.5 py-1 rounded-full border text-xs font-bold ${RISK_OUTCOME_CLASS[state.answer.outcome]}`}>
+              {RISK_OUTCOME_LABEL[state.answer.outcome]}
+            </span>
+            <span className="text-[11px] text-slate-500">
+              {state.answer.reviewed_proposal
+                ? `Reviewed proposal version ${state.answer.reviewed_proposal.proposal_version}`
+                : 'No proposal yet: the request itself was reviewed'}
+            </span>
+          </div>
+          <p className="text-sm text-slate-900 whitespace-pre-wrap break-words">{state.answer.summary}</p>
+          {state.answer.findings.length > 0 && (
+            <ul className="space-y-1 text-xs">
+              {state.answer.findings.map((finding, index) => (
+                <li key={index} className={SEVERITY_CLASS[finding.severity] ?? 'text-slate-600'}>
+                  <span className="font-semibold">
+                    {finding.category} ({finding.severity}):
+                  </span>{' '}
+                  <span className="break-words">{finding.message}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {state.answer.questions.length > 0 && (
+            <div className="text-xs text-slate-800 space-y-1">
+              <div className="font-semibold">Questions for the customer:</div>
+              <ul className="list-disc pl-5 space-y-0.5">
+                {state.answer.questions.map((question, index) => (
+                  <li key={index}>{question}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {state.answer.revision_requests.length > 0 && (
+            <div className="text-xs text-slate-800 space-y-1">
+              <div className="font-semibold">Changes to the proposal:</div>
+              <ul className="list-disc pl-5 space-y-0.5">
+                {state.answer.revision_requests.map((revision, index) => (
+                  <li key={index}>{revision}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <Note answer={state.answer} />
+          <p className="text-[11px] text-slate-500">It is not recorded as this case's risk review; you decide.</p>
         </div>
       )}
     </section>

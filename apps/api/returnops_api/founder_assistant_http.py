@@ -44,6 +44,11 @@ def register_founder_assistant_routes(app):
     async def reply(case_id: str, request: Request):
         return await run(request, 'getFounderCase', 'reply', case_id)
 
+    # C2 Risk Reviewer, advisory (1 November 2026): one case's review, never recorded.
+    @app.post('/v1/founder/cases/{case_id}/assistant/risk-review')
+    async def risk_review(case_id: str, request: Request):
+        return await run(request, 'getFounderCase', 'risk_review', case_id)
+
     @app.post('/v1/founder/assistant/triage')
     async def triage(request: Request):
         return await run(request, 'listFounderCases', 'triage')

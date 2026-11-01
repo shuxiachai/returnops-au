@@ -3,7 +3,9 @@
 Outside contract v1. Three calls, each made only when the Founder asks for it:
 a reply draft in the customer's language with an English version, a triage of the
 open queue (urgency and groups of similar cases), and a plain-English summary of the
-store's last seven days. Input is allow-listed and redacted exactly as for the A1.06
+store's last seven days. A fourth, added on 1 November 2026, asks the C2 Risk Reviewer
+for an advisory review of one case (risk_reviewer.py), under the same rules.
+Input is allow-listed and redacted exactly as for the A1.06
 Coordinator showcase (docs/44); the summary sees counts only. A reply is accepted only
 through a strict schema, otherwise it is discarded with one closed code. Nothing is
 stored or sent: no state transition, audit event, proposal, decision, notification or
@@ -25,12 +27,14 @@ from .coordinator_showcase import _DATE, _EMAIL, _PHONE, _printable, _visible, c
 from .customer_service import ResponseResult
 from .customer_uow import CustomerUnitOfWork
 from .errors import AcceptanceOutcomeUnknown, FlowError
+from .founder_service import FounderQueries
 from .model_transport import ModelInvocation, ModelTransportError, unwrap_reply
 from .storage import original_statement_contents, original_statement_records
 from .wire import decode_json_document, validate
 
 PROMPT_VERSION = 'founder-assistant-v1'
-REJECT_CODES = frozenset({'MALFORMED_JSON', 'NOT_OBJECT', 'EXTRA_KEYS', 'SCHEMA', 'LENGTH', 'CONTACT_DETAILS', 'REFS'})
+REJECT_CODES = frozenset({'MALFORMED_JSON', 'NOT_OBJECT', 'EXTRA_KEYS', 'SCHEMA', 'LENGTH', 'CONTACT_DETAILS', 'REFS',
+                          'OUTCOME'})
 MAX_RAW_REPLY_CHARS = 16000
 MAX_DRAFT_CHARS = 1200
 MAX_REASON_CHARS = 160
@@ -246,9 +250,9 @@ class FounderAssistant:
     def preflight(self, operation, case_id=None):
         return self._read(operation, case_id, lambda uow, actor: None)[0]
 
-    def _ask(self, kind, prompt, payload, parse):
+    def _ask(self, kind, prompt, payload, parse, version=PROMPT_VERSION):
         composition = self.composition
-        invocation = ModelInvocation(prompt, json.dumps(payload, ensure_ascii=True, sort_keys=True), PROMPT_VERSION,
+        invocation = ModelInvocation(prompt, json.dumps(payload, ensure_ascii=True, sort_keys=True), version,
                                      composition.provider_id, composition.model_id)
         try:
             reply = composition.transport(invocation)
@@ -269,8 +273,8 @@ class FounderAssistant:
         if self.preflight(operation, case_id) != actor:
             raise FlowError('UNAUTHENTICATED')
 
-    def _stamp(self, body):
-        return {**body, 'model_id': self.composition.model_id, 'prompt_version': PROMPT_VERSION,
+    def _stamp(self, body, version=PROMPT_VERSION):
+        return {**body, 'model_id': self.composition.model_id, 'prompt_version': version,
                 'generated_at': timestamp(self.clock())}
 
     def reply(self, case_id):
@@ -286,6 +290,25 @@ class FounderAssistant:
         result = self._ask('reply', REPLY_PROMPT, payload, parse_reply)
         self._confirm(actor, 'getFounderCase', case_id)
         return ResponseResult(200, self._stamp({'case_id': case_id, **result}))
+
+    def risk_review(self, case_id):
+        # C2 Risk Reviewer (risk_reviewer.py) on the case as the Founder sees it: the
+        # frozen Founder query reads and re-verifies it, and its read ends before the call.
+        from .risk_reviewer import PROMPT_VERSION as RISK_VERSION, RISK_PROMPT, parse_risk_review, review_input
+        actor = self.preflight('getFounderCase', case_id)
+        view = FounderQueries(self.engine, self.authority, clock=self.clock,
+                              uow_factory=self.uow_factory).read('getFounderCase', case_id, {}).body
+        payload = review_input(view)
+        has_proposal = payload['proposal'] is not None
+        result = self._ask('risk_review', RISK_PROMPT, payload, lambda text: parse_risk_review(text, has_proposal),
+                           version=RISK_VERSION)
+        self._confirm(actor, 'getFounderCase', case_id)
+        proposal = view.get('current_proposal')
+        reviewed = None if proposal is None else {'proposal_id': proposal['proposal_id'],
+                                                  'proposal_version': proposal['proposal_version']}
+        return ResponseResult(200, self._stamp({'case_id': case_id, 'case_version': view['case_version'],
+                                                'case_status': view['status'], 'reviewed_proposal': reviewed,
+                                                'recorded': False, **result}, version=RISK_VERSION))
 
     def triage(self):
         def collect(uow, actor):

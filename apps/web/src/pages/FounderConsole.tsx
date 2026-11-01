@@ -55,6 +55,7 @@ import {
 import { AdvisoryFactsCard } from '../components/AdvisoryFactsCard';
 import {
   AiReplyDraftPanel,
+  AiRiskReviewPanel,
   AiTriagePanel,
   AiWeeklySummaryPanel,
   URGENCY_CLASS,
@@ -1427,6 +1428,8 @@ export const FounderConsole: React.FC = () => {
                       )}
                     </div>
                   )}
+
+                  <AiRiskReviewPanel key={caseDetail.case_id} caseId={caseDetail.case_id} />
                 </div>
               )}
 
