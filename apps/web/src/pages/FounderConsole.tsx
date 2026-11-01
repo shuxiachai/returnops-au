@@ -59,6 +59,7 @@ import {
   AiImageObservationsPanel,
   AiReplyDraftPanel,
   AiRiskReviewPanel,
+  AiRoleChainPanel,
   AiTriagePanel,
   AiWeeklySummaryPanel,
   URGENCY_CLASS,
@@ -1456,6 +1457,11 @@ export const FounderConsole: React.FC = () => {
                     </div>
                   )}
 
+                  <AiRoleChainPanel
+                    key={`chain-${caseDetail.case_id}`}
+                    caseId={caseDetail.case_id}
+                    evidence={caseDetail.evidence ?? []}
+                  />
                   <AiAssessmentPanel key={`assessment-${caseDetail.case_id}`} caseId={caseDetail.case_id} />
                   <AiRiskReviewPanel key={caseDetail.case_id} caseId={caseDetail.case_id} />
                 </div>
