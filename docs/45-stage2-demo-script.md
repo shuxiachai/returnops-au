@@ -17,7 +17,7 @@ What each segment evidences, against the four Stage 2 rubric items (7 / 4 / 4 / 
 | Rubric item | Marks | Segments | What the segment shows |
 |---|---|---|---|
 | 1. Implementation of the Stage 1 requirements and design | 7 | S2, S3, S5 | Customer intake and clarification, Founder reads and analytics, exact-scope approval to a simulated return, label, PDF and notification, with audit; requirement and model trace |
-| 2. AI agent capabilities | 4 | S4, S6, S8 | Model perception (advisory extraction) with fail-closed acceptance, C's grounding and five-outcome risk contract, and the honest boundary of what is deferred |
+| 2. AI agent capabilities | 4 | S4, S6, S8 | Model perception (advisory extraction) with fail-closed acceptance, C's grounding and five-outcome risk contract, and the honest boundary of what is deferred; since 1 November also the live advisory A1 assessment draft, C2 risk review and C3 photo check, which **Run all three AI roles** asks for in order with one click |
 | 3. Agile experience | 4 | S7 | CI runs, Jira timeline, pull-request review and fix cycles, each member's core and optional mapping |
 | 4. Advanced technologies | 5 | S5, S7, S4 | FastAPI, PostgreSQL 17, Docker Compose, GitHub Actions, React/Vite frontend, Railway with one Docker image and Caddy, a chat-completions model adapter with redaction and closed failure codes; the data behind each is in [docs/48](48-agile-evidence-and-technology-data.md) section 6 |
 
