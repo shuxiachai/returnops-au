@@ -133,6 +133,14 @@ function excerpt(text: string, limit = 160): string {
   return flat.length > limit ? `${flat.slice(0, limit - 1)}…` : flat;
 }
 
+// The analytics dates are typed as YYYY-MM-DD: the browser's own date picker shows
+// its format in the browser's language (年/月/日 in a Chinese browser).
+function isUtcDate(text: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return false;
+  const day = new Date(`${text}T00:00:00Z`);
+  return !Number.isNaN(day.getTime()) && day.toISOString().slice(0, 10) === text;
+}
+
 export const FounderConsole: React.FC = () => {
   const [activeSubTab, setActiveSubTab] = useState<'queue' | 'analytics'>('queue');
 
@@ -279,16 +287,24 @@ export const FounderConsole: React.FC = () => {
 
   const applyAnalyticsFilters = (e: React.FormEvent) => {
     e.preventDefault();
+    const from = filterFrom.trim();
+    const before = filterBefore.trim();
+    for (const [label, text] of [['Created from', from], ['Created before', before]] as const) {
+      if (text && !isUtcDate(text)) {
+        setFilterError(`"${label}" must be a date written as YYYY-MM-DD, for example 2026-11-01.`);
+        return;
+      }
+    }
     // YYYY-MM-DD strings compare correctly as text; the contract needs from < before.
-    if (filterFrom && filterBefore && filterFrom >= filterBefore) {
+    if (from && before && from >= before) {
       setFilterError('"Created from" must be earlier than "Created before".');
       return;
     }
     setFilterError(null);
     // Whole UTC days: the window is [from 00:00Z, before 00:00Z).
     const query: AnalyticsQuery = {};
-    if (filterFrom) query.created_from = `${filterFrom}T00:00:00Z`;
-    if (filterBefore) query.created_before = `${filterBefore}T00:00:00Z`;
+    if (from) query.created_from = `${from}T00:00:00Z`;
+    if (before) query.created_before = `${before}T00:00:00Z`;
     if (filterStatus) query.status = filterStatus;
     setAnalyticsQuery(query);
     loadAnalytics(query);
@@ -1873,7 +1889,10 @@ export const FounderConsole: React.FC = () => {
             <label className="flex flex-col gap-1 font-semibold text-slate-600">
               Created from (UTC date)
               <input
-                type="date"
+                type="text"
+                placeholder="YYYY-MM-DD"
+                autoComplete="off"
+                spellCheck={false}
                 value={filterFrom}
                 onChange={(e) => setFilterFrom(e.target.value)}
                 disabled={isMockMode()}
@@ -1883,7 +1902,10 @@ export const FounderConsole: React.FC = () => {
             <label className="flex flex-col gap-1 font-semibold text-slate-600">
               Created before (UTC date, not included)
               <input
-                type="date"
+                type="text"
+                placeholder="YYYY-MM-DD"
+                autoComplete="off"
+                spellCheck={false}
                 value={filterBefore}
                 onChange={(e) => setFilterBefore(e.target.value)}
                 disabled={isMockMode()}
