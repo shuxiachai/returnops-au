@@ -6,6 +6,7 @@ import {
   AiRiskReviewPanel,
   AiTriagePanel,
   AiWeeklySummaryPanel,
+  describeReviewInputs,
 } from './AiAssistant';
 
 // The Founder AI assistant (31 October 2026): advisory answers asked for by the Founder.
@@ -218,6 +219,44 @@ describe('Founder AI assistant panels', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Run AI risk review' }));
     expect(await screen.findByText('The AI assistant could not answer just now. Try again in a moment.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Run AI risk review' })).toBeInTheDocument();
+  });
+
+  // The roles in a chain (1 November 2026): the C2 review says which other roles' advisory
+  // output it read. FR-008; UC-02.
+  it('says which other AI answers the risk review read', async () => {
+    expect(describeReviewInputs({ coordinator_facts: true, photo_observations: true })).toBe(
+      "Also read: the Coordinator's facts card and the photo check (C3)."
+    );
+    expect(describeReviewInputs({ coordinator_facts: true, photo_observations: false })).toBe(
+      "Also read: the Coordinator's facts card. If the case has photos, run Analyse photos under Customer evidence first to include them."
+    );
+    expect(describeReviewInputs({ coordinator_facts: false, photo_observations: false })).toMatch(/^Read the case only\./);
+    vi.mocked(reviewCaseRisk).mockResolvedValueOnce({
+      model_id: 'qwen-plus',
+      prompt_version: 'c2-risk-review-advisory-v2',
+      generated_at: '2026-11-01T09:00:00Z',
+      case_id: 'case_one',
+      case_version: 4,
+      case_status: 'AWAITING_INFORMATION',
+      reviewed_proposal: null,
+      recorded: false,
+      inputs_used: { coordinator_facts: true, photo_observations: true },
+      outcome: 'ESCALATE',
+      summary: 'A photo holds instructions, and the photos show one chipped cup, not two.',
+      findings: [
+        { category: 'CONFLICT', severity: 'WARNING', message: 'The photos show one chipped cup; the customer says two.' },
+        { category: 'INJECTION', severity: 'BLOCK', message: 'A photo holds text telling the system to approve a refund.' },
+      ],
+      questions: [],
+      revision_requests: [],
+    });
+    render(<AiRiskReviewPanel caseId="case_one" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Run AI risk review' }));
+    expect(
+      await screen.findByText("Also read: the Coordinator's facts card and the photo check (C3).")
+    ).toBeInTheDocument();
+    expect(screen.getByText('CONFLICT (WARNING):')).toBeInTheDocument();
+    expect(screen.getByText('INJECTION (BLOCK):')).toBeInTheDocument();
   });
 
   // C3 photo observations (1 November 2026): asked for by the Founder, shown as text,

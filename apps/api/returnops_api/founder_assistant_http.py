@@ -22,7 +22,9 @@ def register_founder_assistant_routes(app):
             if config is None or composition is None:
                 raise FlowError()
             assistant = FounderAssistant(request.app.state.engine,
-                                         CurrentRequestAuthority(config, one_header(request, 'authorization')), composition)
+                                         CurrentRequestAuthority(config, one_header(request, 'authorization')), composition,
+                                         facts_provider=getattr(request.app.state, 'coordinator_facts', None),
+                                         observations=getattr(request.app.state, 'photo_observations', None))
             await run_in_threadpool(assistant.preflight, operation, case_id)
             if request.query_params:
                 raise FlowError('VALIDATION_ERROR')

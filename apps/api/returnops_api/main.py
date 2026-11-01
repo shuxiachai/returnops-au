@@ -61,7 +61,7 @@ def create_app(*,engine=None,auth_config=None,enable_processor=True,enable_fixed
         app.state.engine=actual;app.state.auth_config=configured;app.state.intake_worker=None;app.state.investigation_worker=None
         app.state.proposal_worker=None
         app.state.coordinator_showcase=None;app.state.coordinator_facts=None
-        app.state.founder_assistant=None;app.state.assistant_slots=BoundedSemaphore(2)
+        app.state.founder_assistant=None;app.state.assistant_slots=BoundedSemaphore(2);app.state.photo_observations=None
         app.state.upload_slots=BoundedSemaphore(2)
         try:
             if configured is not None and enable_processor:
@@ -84,6 +84,9 @@ def create_app(*,engine=None,auth_config=None,enable_processor=True,enable_fixed
                     from returnops_domain.founder_assistant import AssistantComposition
                     app.state.founder_assistant=AssistantComposition(model_settings.transport(),model_settings.provider_id,model_settings.model_id,
                         model_settings.vision_transport(),model_settings.vision_model_id)
+                    # The latest photo check per case, read by the next C2 review (1 November 2026).
+                    from returnops_domain.image_observer import ObservationCache
+                    app.state.photo_observations=ObservationCache()
                 app.state.coordinator_showcase=CoordinatorShowcaseWorker(actual,transport,store,
                     settings=model_settings.worker_settings())
                 app.state.coordinator_facts=lambda uow,head:project_facts(uow,head,store)

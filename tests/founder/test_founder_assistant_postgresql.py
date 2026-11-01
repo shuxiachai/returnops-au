@@ -287,3 +287,41 @@ def test_the_photo_check_sends_the_case_photos_to_the_vision_model_and_records_n
     answer = client.post(f'/v1/founder/cases/{plain}/assistant/image-observations', headers=headers(identities))
     assert answer.status_code == 200, answer.text
     assert (answer.json()['model_called'], answer.json()['result'], quiet.calls) == (False, None, [])
+
+
+# The roles in a chain (1 November 2026): the C2 review reads the Coordinator's facts card
+# and the latest photo check. FR-005, FR-008; NFR-003, NFR-009.
+def test_the_risk_review_reads_the_facts_card_and_the_latest_photo_check(assistant, flow_engine, identities):
+    from returnops_domain.image_observer import ObservationCache
+    case_id, ids = lodge_with_photos(identities, 'Two cups arrived chipped.', 'assist-chain-1', [(200, 10, 10), (10, 10, 200)])
+    facts = {'issue_category': 'FAULTY_OR_QUALITY_ISSUE', 'customer_requested_outcome': 'UNSPECIFIED',
+             'possible_basis': 'UNDETERMINED', 'assessment_status': 'UNCERTAIN', 'line_items': [],
+             'summary': 'Two cups arrived chipped.'}
+    text, vision = StubTransport(RISK), StubTransport(PHOTOS)
+    client = assistant(text)
+    client.app.state.founder_assistant = AssistantComposition(text, 'stub_provider', 'stub-model', vision, 'stub-vision')
+    client.app.state.photo_observations = ObservationCache()
+    # The same trusted provider main.py installs with the showcase on, here for this case only.
+    client.app.state.coordinator_facts = lambda uow, head: facts if head['case_id'] == case_id else None
+    before = business_fingerprints(flow_engine)
+    review = f'/v1/founder/cases/{case_id}/assistant/risk-review'
+    # Before any photo check, the review reads the facts card only.
+    first = client.post(review, headers=headers(identities))
+    assert first.status_code == 200, first.text
+    assert first.json()['inputs_used'] == {'coordinator_facts': True, 'photo_observations': False}
+    sent = json.loads(text.calls[-1].input_json)
+    assert sent['coordinator_facts']['issue_category'] == 'FAULTY_OR_QUALITY_ISSUE' and sent['photo_observations'] is None
+    # After the photo check, the next review reads it too: one role's answer is the next one's input.
+    checked = client.post(f'/v1/founder/cases/{case_id}/assistant/image-observations', headers=headers(identities))
+    assert checked.status_code == 200, checked.text
+    second = client.post(review, headers=headers(identities))
+    assert second.status_code == 200, second.text
+    assert second.json()['inputs_used'] == {'coordinator_facts': True, 'photo_observations': True}
+    call = text.calls[-1]
+    photos = json.loads(call.input_json)['photo_observations']
+    assert [photo['condition'] for photo in photos['photos']] == ['DAMAGE_VISIBLE', 'CANNOT_DETERMINE']
+    assert [photo['confidence_percent'] for photo in photos['photos']] == [60, 20]
+    assert photos['consistency'] == 'CANNOT_DETERMINE' and photos['photos'][1]['text_in_image'] == 'PRESENT_IGNORED'
+    assert case_id not in call.input_json and not any(evidence_id in call.input_json for evidence_id in ids)
+    assert len(vision.calls) == 1  # the review reused the photo check; it did not look at the photos again
+    assert business_fingerprints(flow_engine) == before

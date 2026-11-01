@@ -226,6 +226,8 @@ export interface AiRiskReview extends AiAnswer {
   case_status: string;
   reviewed_proposal: { proposal_id: string; proposal_version: number } | null;
   recorded: false;
+  // Other roles' advisory output the review also read (1 November 2026).
+  inputs_used?: { coordinator_facts: boolean; photo_observations: boolean };
   outcome: AiRiskOutcome;
   summary: string;
   findings: AiRiskFinding[];

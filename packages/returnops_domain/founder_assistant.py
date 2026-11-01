@@ -247,9 +247,12 @@ class AssistantComposition:
 
 class FounderAssistant:
     def __init__(self, engine, authority, composition, *, clock=lambda: datetime.now(timezone.utc),
-                 uow_factory=CustomerUnitOfWork):
+                 uow_factory=CustomerUnitOfWork, facts_provider=None, observations=None):
         self.engine, self.authority, self.composition = engine, authority, composition
         self.clock, self.uow_factory = clock, uow_factory
+        # Other roles' advisory output for the C2 review (1 November 2026): the
+        # Coordinator's facts card and the latest photo check (image_observer.py).
+        self.facts_provider, self.observations = facts_provider, observations
 
     def _authorize(self, uow, operation, case_id=None):
         actor = self.authority(uow.connection, 'getSession')
@@ -322,11 +325,15 @@ class FounderAssistant:
     def risk_review(self, case_id):
         # C2 Risk Reviewer (risk_reviewer.py) on the case as the Founder sees it: the
         # frozen Founder query reads and re-verifies it, and its read ends before the call.
+        from .image_observer import photo_key, select_images
         from .risk_reviewer import PROMPT_VERSION as RISK_VERSION, RISK_PROMPT, parse_risk_review, review_input
         actor = self.preflight('getFounderCase', case_id)
-        view = FounderQueries(self.engine, self.authority, clock=self.clock,
-                              uow_factory=self.uow_factory).read('getFounderCase', case_id, {}).body
-        payload = review_input(view)
+        view = FounderQueries(self.engine, self.authority, clock=self.clock, uow_factory=self.uow_factory,
+                              facts_provider=self.facts_provider).read('getFounderCase', case_id, {}).body
+        # The latest photo check counts only for the case's current photos.
+        chosen, _ = select_images(view)
+        photos = None if self.observations is None or not chosen else self.observations.get(case_id, photo_key(chosen))
+        payload = review_input(view, photos)
         has_proposal = payload['proposal'] is not None
         result = self._ask('risk_review', RISK_PROMPT, payload, lambda text: parse_risk_review(text, has_proposal),
                            version=RISK_VERSION)
@@ -336,13 +343,16 @@ class FounderAssistant:
                                                   'proposal_version': proposal['proposal_version']}
         return ResponseResult(200, self._stamp({'case_id': case_id, 'case_version': view['case_version'],
                                                 'case_status': view['status'], 'reviewed_proposal': reviewed,
-                                                'recorded': False, **result}, version=RISK_VERSION))
+                                                'recorded': False, 'inputs_used': {
+                                                    'coordinator_facts': payload['coordinator_facts'] is not None,
+                                                    'photo_observations': photos is not None},
+                                                **result}, version=RISK_VERSION))
 
     def image_observations(self, case_id):
         # C3 (image_observer.py): the frozen Founder query lists the case's files; their
         # bytes are read and re-verified in one short read, which ends before the call.
-        from .image_observer import (PROMPT_VERSION as IMAGE_VERSION, IMAGE_PROMPT, contract_result,
-                                     observation_input, parse_observations, select_images)
+        from .image_observer import (PROMPT_VERSION as IMAGE_VERSION, IMAGE_PROMPT, contract_result, for_review,
+                                     observation_input, parse_observations, photo_key, select_images)
         composition = self.composition
         if composition.vision_transport is None or composition.vision_model_id is None:
             raise FlowError('NOT_FOUND')
@@ -360,6 +370,9 @@ class FounderAssistant:
         parsed = self._ask('image_observations', IMAGE_PROMPT, observation_input(view, chosen),
                            lambda text: parse_observations(text, len(chosen)), version=IMAGE_VERSION, images=images)
         self._confirm(actor, 'getFounderCase', case_id)
+        if self.observations is not None:
+            # Kept in memory for the next C2 review of the same photos; never in the database.
+            self.observations.put(case_id, photo_key(chosen), for_review(parsed))
         details = [{'evidence_id': item['evidence_id'], 'condition': observed['condition'],
                     'text_in_image': observed['text_in_image']} for item, observed in zip(chosen, parsed['images'])]
         return ResponseResult(200, self._stamp({**body, 'model_called': True, 'result': contract_result(view, chosen, parsed),
