@@ -340,11 +340,15 @@ const SEVERITY_CLASS: Record<string, string> = {
 };
 
 // Which other roles' advisory output the review read: one AI's answer is the next one's input.
-export function describeReviewInputs(used: {
-  coordinator_facts: boolean;
-  photo_observations: boolean;
-  assessment_draft?: boolean;
-}): string {
+// The hint to run the photo check first is left out where the photo check was just asked for.
+export function describeReviewInputs(
+  used: {
+    coordinator_facts: boolean;
+    photo_observations: boolean;
+    assessment_draft?: boolean;
+  },
+  photosAsked = false
+): string {
   const read = [
     used.coordinator_facts && "the Coordinator's facts card",
     used.assessment_draft && 'the assessment draft (A1)',
@@ -352,10 +356,65 @@ export function describeReviewInputs(used: {
   ].filter(Boolean) as string[];
   const listed = read.length > 2 ? `${read.slice(0, -1).join(', ')} and ${read[read.length - 1]}` : read.join(' and ');
   const first = read.length > 0 ? `Also read: ${listed}.` : 'Read the case only.';
-  return used.photo_observations
+  return used.photo_observations || photosAsked
     ? first
     : `${first} If the case has photos, run Analyse photos under Customer evidence first to include them.`;
 }
+
+const RiskReviewAnswer: React.FC<{ answer: AiRiskReview; photosAsked?: boolean }> = ({ answer, photosAsked }) => (
+  <div className="space-y-3">
+    <div className="flex flex-wrap items-center gap-2">
+      <span className={`px-2.5 py-1 rounded-full border text-xs font-bold ${RISK_OUTCOME_CLASS[answer.outcome]}`}>
+        {RISK_OUTCOME_LABEL[answer.outcome]}
+      </span>
+      <span className="text-[11px] text-slate-500">
+        {answer.reviewed_proposal
+          ? `Reviewed proposal version ${answer.reviewed_proposal.proposal_version}`
+          : answer.inputs_used?.assessment_draft
+            ? 'No proposal yet: the assessment draft (A1) was reviewed'
+            : 'No proposal yet: the request itself was reviewed'}
+      </span>
+    </div>
+    {answer.inputs_used && (
+      <p className="text-[11px] text-violet-800">{describeReviewInputs(answer.inputs_used, photosAsked)}</p>
+    )}
+    <p className="text-sm text-slate-900 whitespace-pre-wrap break-words">{answer.summary}</p>
+    {answer.findings.length > 0 && (
+      <ul className="space-y-1 text-xs">
+        {answer.findings.map((finding, index) => (
+          <li key={index} className={SEVERITY_CLASS[finding.severity] ?? 'text-slate-600'}>
+            <span className="font-semibold">
+              {finding.category} ({finding.severity}):
+            </span>{' '}
+            <span className="break-words">{finding.message}</span>
+          </li>
+        ))}
+      </ul>
+    )}
+    {answer.questions.length > 0 && (
+      <div className="text-xs text-slate-800 space-y-1">
+        <div className="font-semibold">Questions for the customer:</div>
+        <ul className="list-disc pl-5 space-y-0.5">
+          {answer.questions.map((question, index) => (
+            <li key={index}>{question}</li>
+          ))}
+        </ul>
+      </div>
+    )}
+    {answer.revision_requests.length > 0 && (
+      <div className="text-xs text-slate-800 space-y-1">
+        <div className="font-semibold">Changes to the proposal:</div>
+        <ul className="list-disc pl-5 space-y-0.5">
+          {answer.revision_requests.map((revision, index) => (
+            <li key={index}>{revision}</li>
+          ))}
+        </ul>
+      </div>
+    )}
+    <Note answer={answer} />
+    <p className="text-[11px] text-slate-500">It is not recorded as this case's risk review; you decide.</p>
+  </div>
+);
 
 export const AiRiskReviewPanel: React.FC<{ caseId: string }> = ({ caseId }) => {
   const { state, ask } = useAsk<AiRiskReview>(() => reviewCaseRisk(caseId));
@@ -383,58 +442,7 @@ export const AiRiskReviewPanel: React.FC<{ caseId: string }> = ({ caseId }) => {
       </div>
       {state.kind === 'off' && <p className="text-xs text-slate-500">{OFF}</p>}
       {state.kind === 'failed' && <p className="text-xs text-rose-700">{FAILED}</p>}
-      {state.kind === 'ready' && (
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className={`px-2.5 py-1 rounded-full border text-xs font-bold ${RISK_OUTCOME_CLASS[state.answer.outcome]}`}>
-              {RISK_OUTCOME_LABEL[state.answer.outcome]}
-            </span>
-            <span className="text-[11px] text-slate-500">
-              {state.answer.reviewed_proposal
-                ? `Reviewed proposal version ${state.answer.reviewed_proposal.proposal_version}`
-                : 'No proposal yet: the request itself was reviewed'}
-            </span>
-          </div>
-          {state.answer.inputs_used && (
-            <p className="text-[11px] text-violet-800">{describeReviewInputs(state.answer.inputs_used)}</p>
-          )}
-          <p className="text-sm text-slate-900 whitespace-pre-wrap break-words">{state.answer.summary}</p>
-          {state.answer.findings.length > 0 && (
-            <ul className="space-y-1 text-xs">
-              {state.answer.findings.map((finding, index) => (
-                <li key={index} className={SEVERITY_CLASS[finding.severity] ?? 'text-slate-600'}>
-                  <span className="font-semibold">
-                    {finding.category} ({finding.severity}):
-                  </span>{' '}
-                  <span className="break-words">{finding.message}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-          {state.answer.questions.length > 0 && (
-            <div className="text-xs text-slate-800 space-y-1">
-              <div className="font-semibold">Questions for the customer:</div>
-              <ul className="list-disc pl-5 space-y-0.5">
-                {state.answer.questions.map((question, index) => (
-                  <li key={index}>{question}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {state.answer.revision_requests.length > 0 && (
-            <div className="text-xs text-slate-800 space-y-1">
-              <div className="font-semibold">Changes to the proposal:</div>
-              <ul className="list-disc pl-5 space-y-0.5">
-                {state.answer.revision_requests.map((revision, index) => (
-                  <li key={index}>{revision}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-          <Note answer={state.answer} />
-          <p className="text-[11px] text-slate-500">It is not recorded as this case's risk review; you decide.</p>
-        </div>
-      )}
+      {state.kind === 'ready' && <RiskReviewAnswer answer={state.answer} />}
     </section>
   );
 };
@@ -453,6 +461,70 @@ export const RECOMMENDATION_LABEL: Record<AiRecommendation, string> = {
   REFER_FOR_MANUAL_HANDLING: 'Refer for manual handling',
   PROPOSE_REJECTION: 'Decline under the store policy',
 };
+
+const AssessmentAnswer: React.FC<{ answer: AiAssessment; photosAsked?: boolean }> = ({ answer, photosAsked }) => (
+  <div className="space-y-3">
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="px-2.5 py-1 rounded-full border text-xs font-bold bg-violet-100 text-violet-800 border-violet-200">
+        {RECOMMENDATION_LABEL[answer.recommended_action]}
+      </span>
+      <span className="text-[11px] text-slate-500">
+        {answer.issue_category}, {answer.assessment_status}, confidence {answer.confidence}%
+      </span>
+    </div>
+    <p className="text-[11px] text-violet-800">{describeReviewInputs(answer.inputs_used, photosAsked)}</p>
+    <p className="text-sm text-slate-900 whitespace-pre-wrap break-words">{answer.rationale}</p>
+    {answer.covered_lines.length > 0 && (
+      <div className="text-xs text-slate-800 space-y-1">
+        <div className="font-semibold">Order lines it covers:</div>
+        <ul className="list-disc pl-5 space-y-0.5">
+          {answer.covered_lines.map((line) => (
+            <li key={line.line}>
+              Line {line.line}: {line.description} (quantity {line.quantity})
+            </li>
+          ))}
+        </ul>
+      </div>
+    )}
+    {answer.conditions.length > 0 && (
+      <div className="text-xs text-slate-800 space-y-1">
+        <div className="font-semibold">Check before acting:</div>
+        <ul className="list-disc pl-5 space-y-0.5">
+          {answer.conditions.map((condition, index) => (
+            <li key={index}>{condition}</li>
+          ))}
+        </ul>
+      </div>
+    )}
+    {answer.unresolved_questions.length > 0 && (
+      <div className="text-xs text-slate-800 space-y-1">
+        <div className="font-semibold">Questions for the customer:</div>
+        <ul className="list-disc pl-5 space-y-0.5">
+          {answer.unresolved_questions.map((question, index) => (
+            <li key={index}>{question}</li>
+          ))}
+        </ul>
+      </div>
+    )}
+    {answer.citations.length > 0 ? (
+      <div className="text-xs text-slate-800 space-y-1">
+        <div className="font-semibold">Store policy cited ({answer.policy_version}, synthetic):</div>
+        <ul className="list-disc pl-5 space-y-1">
+          {answer.citations.map((passage) => (
+            <li key={passage.passage_id}>
+              <span className="font-semibold">{passage.title}</span> ({passage.passage_id}):{' '}
+              <span className="break-words">{passage.text}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ) : (
+      <p className="text-xs text-slate-600">No store policy passage cited: the basis is undetermined.</p>
+    )}
+    <Note answer={answer} />
+    <p className="text-[11px] text-slate-500">It is not this case's proposal and is not recorded; you decide.</p>
+  </div>
+);
 
 export const AiAssessmentPanel: React.FC<{ caseId: string }> = ({ caseId }) => {
   const { state, ask } = useAsk<AiAssessment>(() => draftCaseAssessment(caseId));
@@ -483,69 +555,7 @@ export const AiAssessmentPanel: React.FC<{ caseId: string }> = ({ caseId }) => {
       </div>
       {state.kind === 'off' && <p className="text-xs text-slate-500">{OFF}</p>}
       {state.kind === 'failed' && <p className="text-xs text-rose-700">{FAILED}</p>}
-      {state.kind === 'ready' && (
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="px-2.5 py-1 rounded-full border text-xs font-bold bg-violet-100 text-violet-800 border-violet-200">
-              {RECOMMENDATION_LABEL[state.answer.recommended_action]}
-            </span>
-            <span className="text-[11px] text-slate-500">
-              {state.answer.issue_category}, {state.answer.assessment_status}, confidence {state.answer.confidence}%
-            </span>
-          </div>
-          <p className="text-[11px] text-violet-800">{describeReviewInputs(state.answer.inputs_used)}</p>
-          <p className="text-sm text-slate-900 whitespace-pre-wrap break-words">{state.answer.rationale}</p>
-          {state.answer.covered_lines.length > 0 && (
-            <div className="text-xs text-slate-800 space-y-1">
-              <div className="font-semibold">Order lines it covers:</div>
-              <ul className="list-disc pl-5 space-y-0.5">
-                {state.answer.covered_lines.map((line) => (
-                  <li key={line.line}>
-                    Line {line.line}: {line.description} (quantity {line.quantity})
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {state.answer.conditions.length > 0 && (
-            <div className="text-xs text-slate-800 space-y-1">
-              <div className="font-semibold">Check before acting:</div>
-              <ul className="list-disc pl-5 space-y-0.5">
-                {state.answer.conditions.map((condition, index) => (
-                  <li key={index}>{condition}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {state.answer.unresolved_questions.length > 0 && (
-            <div className="text-xs text-slate-800 space-y-1">
-              <div className="font-semibold">Questions for the customer:</div>
-              <ul className="list-disc pl-5 space-y-0.5">
-                {state.answer.unresolved_questions.map((question, index) => (
-                  <li key={index}>{question}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {state.answer.citations.length > 0 ? (
-            <div className="text-xs text-slate-800 space-y-1">
-              <div className="font-semibold">Store policy cited ({state.answer.policy_version}, synthetic):</div>
-              <ul className="list-disc pl-5 space-y-1">
-                {state.answer.citations.map((passage) => (
-                  <li key={passage.passage_id}>
-                    <span className="font-semibold">{passage.title}</span> ({passage.passage_id}):{' '}
-                    <span className="break-words">{passage.text}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : (
-            <p className="text-xs text-slate-600">No store policy passage cited: the basis is undetermined.</p>
-          )}
-          <Note answer={state.answer} />
-          <p className="text-[11px] text-slate-500">It is not this case's proposal and is not recorded; you decide.</p>
-        </div>
-      )}
+      {state.kind === 'ready' && <AssessmentAnswer answer={state.answer} />}
     </section>
   );
 };
@@ -576,6 +586,57 @@ const SKIP_LABEL: Record<string, string> = {
   LIMIT: 'only the first three photos are read',
 };
 
+const ImageObservationsAnswer: React.FC<{ answer: AiImageObservations; name: (evidenceId: string) => string }> = ({
+  answer,
+  name,
+}) => (
+  <div className="space-y-3">
+    {answer.consistency && (
+      <div className="text-xs font-semibold text-slate-800">{IMAGE_CONSISTENCY_LABEL[answer.consistency]}</div>
+    )}
+    <p className="text-sm text-slate-900 whitespace-pre-wrap break-words">{answer.summary}</p>
+    {(answer.result?.observations ?? []).map((observation, index) => {
+      const detail = answer.details.find((item) => item.evidence_id === observation.evidence_id);
+      return (
+        <div key={observation.evidence_id} className="p-3 bg-white rounded-xl border border-slate-200 text-xs space-y-1.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-semibold text-slate-800 break-all">
+              Photo {index + 1}: {name(observation.evidence_id)}
+            </span>
+            {detail && (
+              <span className={`px-2 py-0.5 rounded-full border font-semibold ${IMAGE_CONDITION_CLASS[detail.condition]}`}>
+                {IMAGE_CONDITION_LABEL[detail.condition]}
+              </span>
+            )}
+            <span className="text-slate-500">Confidence {Math.round(observation.confidence * 100)}%</span>
+          </div>
+          <ul className="list-disc pl-5 space-y-0.5 text-slate-800">
+            {observation.visible_observations.map((text, line) => (
+              <li key={line} className="break-words">
+                {text}
+              </li>
+            ))}
+          </ul>
+          <div className="text-slate-500 break-words">
+            <span className="font-semibold">What the photo cannot show:</span> {observation.limitations.join(' ')}
+          </div>
+          {detail?.text_in_image === 'PRESENT_IGNORED' && (
+            <div className="text-amber-800">This photo contains text; it was treated as data and not followed.</div>
+          )}
+        </div>
+      );
+    })}
+    {answer.skipped.length > 0 && (
+      <p className="text-[11px] text-slate-500">
+        Not read:{' '}
+        {answer.skipped.map((item) => `${name(item.evidence_id)} (${SKIP_LABEL[item.reason] ?? item.reason})`).join('; ')}.
+      </p>
+    )}
+    {answer.model_called && <Note answer={answer} />}
+    <p className="text-[11px] text-slate-500">It is not recorded with the case and decides nothing; you decide.</p>
+  </div>
+);
+
 export const AiImageObservationsPanel: React.FC<{ caseId: string; evidence: EvidenceAttachment[] }> = ({
   caseId,
   evidence,
@@ -605,52 +666,94 @@ export const AiImageObservationsPanel: React.FC<{ caseId: string; evidence: Evid
       </div>
       {state.kind === 'off' && <p className="text-xs text-slate-500">{OFF}</p>}
       {state.kind === 'failed' && <p className="text-xs text-rose-700">{FAILED}</p>}
-      {state.kind === 'ready' && (
-        <div className="space-y-3">
-          {state.answer.consistency && (
-            <div className="text-xs font-semibold text-slate-800">{IMAGE_CONSISTENCY_LABEL[state.answer.consistency]}</div>
-          )}
-          <p className="text-sm text-slate-900 whitespace-pre-wrap break-words">{state.answer.summary}</p>
-          {(state.answer.result?.observations ?? []).map((observation, index) => {
-            const detail = state.answer.details.find((item) => item.evidence_id === observation.evidence_id);
-            return (
-              <div key={observation.evidence_id} className="p-3 bg-white rounded-xl border border-slate-200 text-xs space-y-1.5">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-semibold text-slate-800 break-all">
-                    Photo {index + 1}: {name(observation.evidence_id)}
-                  </span>
-                  {detail && (
-                    <span className={`px-2 py-0.5 rounded-full border font-semibold ${IMAGE_CONDITION_CLASS[detail.condition]}`}>
-                      {IMAGE_CONDITION_LABEL[detail.condition]}
-                    </span>
-                  )}
-                  <span className="text-slate-500">Confidence {Math.round(observation.confidence * 100)}%</span>
-                </div>
-                <ul className="list-disc pl-5 space-y-0.5 text-slate-800">
-                  {observation.visible_observations.map((text, line) => (
-                    <li key={line} className="break-words">
-                      {text}
-                    </li>
-                  ))}
-                </ul>
-                <div className="text-slate-500 break-words">
-                  <span className="font-semibold">What the photo cannot show:</span> {observation.limitations.join(' ')}
-                </div>
-                {detail?.text_in_image === 'PRESENT_IGNORED' && (
-                  <div className="text-amber-800">This photo contains text; it was treated as data and not followed.</div>
-                )}
-              </div>
-            );
-          })}
-          {state.answer.skipped.length > 0 && (
-            <p className="text-[11px] text-slate-500">
-              Not read:{' '}
-              {state.answer.skipped.map((item) => `${name(item.evidence_id)} (${SKIP_LABEL[item.reason] ?? item.reason})`).join('; ')}.
-            </p>
-          )}
-          {state.answer.model_called && <Note answer={state.answer} />}
-          <p className="text-[11px] text-slate-500">It is not recorded with the case and decides nothing; you decide.</p>
+      {state.kind === 'ready' && <ImageObservationsAnswer answer={state.answer} name={name} />}
+    </section>
+  );
+};
+
+// ---------------------------------------------------------------
+// The three roles in one click (1 November 2026): the C3 photo check, the A1 assessment
+// draft and the C2 risk review, one after another, so each one reads the answers before it.
+// Each step is the same advisory call as its own panel; a step that is off or fails does not
+// stop the next one, and the review says what it read. Nothing is recorded.
+// FR-004, FR-005, FR-007, FR-008; NFR-009; UC-02.
+// ---------------------------------------------------------------
+const STEP_STATE: Record<'idle' | 'asking' | 'off' | 'failed', string> = {
+  idle: 'Waiting',
+  asking: 'Running...',
+  off: 'Not switched on for this deployment',
+  failed: 'No answer this time',
+};
+
+const ChainStep: React.FC<{ title: string; state: Ask<unknown>; children: React.ReactNode }> = ({
+  title,
+  state,
+  children,
+}) => (
+  <li className="p-4 bg-white rounded-xl border border-slate-200 space-y-2">
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <span className="text-xs font-bold text-slate-800">{title}</span>
+      {state.kind !== 'ready' && (
+        <span className={`text-[11px] ${state.kind === 'failed' ? 'text-rose-700' : 'text-slate-500'}`}>
+          {STEP_STATE[state.kind]}
+        </span>
+      )}
+    </div>
+    {state.kind === 'ready' && children}
+  </li>
+);
+
+export const AiRoleChainPanel: React.FC<{ caseId: string; evidence: EvidenceAttachment[] }> = ({ caseId, evidence }) => {
+  const photos = useAsk<AiImageObservations>(() => observeCaseImages(caseId));
+  const assessment = useAsk<AiAssessment>(() => draftCaseAssessment(caseId));
+  const review = useAsk<AiRiskReview>(() => reviewCaseRisk(caseId));
+  const [started, setStarted] = useState(false);
+  const [running, setRunning] = useState(false);
+  const run = async () => {
+    setStarted(true);
+    setRunning(true);
+    photos.reset();
+    assessment.reset();
+    review.reset();
+    // In this order: the assessment reads the photo check, and the review reads both.
+    await photos.ask();
+    await assessment.ask();
+    await review.ask();
+    setRunning(false);
+  };
+  const name = (evidenceId: string) => evidence.find((item) => item.evidence_id === evidenceId)?.filename ?? 'A file';
+  return (
+    <section aria-labelledby="ai-chain-title" className="rounded-2xl p-5 border border-dashed border-violet-300 bg-violet-50/40 space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h4 id="ai-chain-title" className="font-bold text-slate-900 text-sm flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-violet-600" />
+            The three AI roles in order
+          </h4>
+          <p className="text-xs text-slate-600">
+            Runs the photo check, the assessment draft and the risk review one after another; the review reads the other
+            two answers. Each role can also be asked on its own.
+          </p>
         </div>
+        <AskButton
+          label={started ? 'Run all three again' : 'Run all three AI roles'}
+          busyLabel="Running the AI roles..."
+          busy={running}
+          onClick={run}
+        />
+      </div>
+      {started && (
+        <ol className="space-y-3" aria-live="polite">
+          <ChainStep title="1. Photo check (C3)" state={photos.state}>
+            {photos.state.kind === 'ready' && <ImageObservationsAnswer answer={photos.state.answer} name={name} />}
+          </ChainStep>
+          <ChainStep title="2. Assessment draft (A1)" state={assessment.state}>
+            {assessment.state.kind === 'ready' && <AssessmentAnswer answer={assessment.state.answer} photosAsked />}
+          </ChainStep>
+          <ChainStep title="3. Risk review (C2)" state={review.state}>
+            {review.state.kind === 'ready' && <RiskReviewAnswer answer={review.state.answer} photosAsked />}
+          </ChainStep>
+        </ol>
       )}
     </section>
   );

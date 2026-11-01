@@ -71,6 +71,8 @@ ReturnOps AU is the Group 10 project for ELEC5620 Model-Based Software Engineeri
 | Image evidence observations (C3, part of grounding and risk) | Live vision model, advisory, on request; not recorded | Customer Statements, **Analyse photos (AI)** |
 | Founder assistant | Live model, advisory, on request: reply drafts, queue triage, a weekly summary | Case window, queue and analytics |
 
+In Proposal & Risk Review, **Run all three AI roles** asks for the photo check, the assessment draft and the risk review one after another in one click, so the review reads the other two answers; each answer is shown as in its own panel, a step that is off or fails does not stop the next one, and nothing is recorded.
+
 ## How we worked
 
 - Requirements and models: [docs/00](docs/00-project-definition-v1.md) (FR-001 to FR-012, NFR-001 to NFR-009 and the use cases); interface contract [docs/09](docs/09-interface-contract-v1.md) and [contracts/v1](contracts/v1).

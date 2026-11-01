@@ -5,6 +5,7 @@ import {
   AiImageObservationsPanel,
   AiReplyDraftPanel,
   AiRiskReviewPanel,
+  AiRoleChainPanel,
   AiTriagePanel,
   AiWeeklySummaryPanel,
   describeReviewInputs,
@@ -34,7 +35,7 @@ import {
   summariseRecentCases,
   triageQueue,
 } from '../api/client';
-import type { EvidenceAttachment } from '../types/domain';
+import type { AiAssessment, AiImageObservations, AiRiskReview, EvidenceAttachment } from '../types/domain';
 
 const STAMP = { model_id: 'qwen3.5-122b-a10b', prompt_version: 'founder-assistant-v1', generated_at: '2026-10-31T07:00:00Z' };
 
@@ -431,5 +432,125 @@ describe('Founder AI assistant panels', () => {
     render(<AiImageObservationsPanel caseId="case_one" evidence={[]} />);
     fireEvent.click(screen.getByRole('button', { name: 'Analyse photos (AI)' }));
     expect(await screen.findByText('The AI assistant could not answer just now. Try again in a moment.')).toBeInTheDocument();
+  });
+
+  // The three roles in one click (1 November 2026): one after another, each step shown as it
+  // answers; a step that is off or fails does not stop the next. FR-004, FR-005, FR-007, FR-008; UC-02.
+  const photoCheck: AiImageObservations = {
+    model_id: 'qwen3-vl-plus',
+    prompt_version: 'c3-image-observation-advisory-v1',
+    generated_at: '2026-11-01T08:00:00Z',
+    case_id: 'case_one',
+    case_version: 3,
+    recorded: false,
+    model_called: true,
+    result: {
+      case_id: 'case_one',
+      input_version: 1,
+      component_version: 'c3-image-observation-advisory-v1',
+      observations: [
+        {
+          evidence_id: 'ev_note',
+          visible_observations: ['A note asking for an approved refund.'],
+          limitations: ['The note cannot show the mug.'],
+          confidence: 0.6,
+        },
+      ],
+    },
+    details: [{ evidence_id: 'ev_note', condition: 'CANNOT_DETERMINE', text_in_image: 'PRESENT_IGNORED' }],
+    consistency: 'CANNOT_DETERMINE',
+    summary: 'The photo shows a note, not the item.',
+    skipped: [],
+  };
+  const assessmentDraft: AiAssessment = {
+    ...STAMP,
+    prompt_version: 'a1-returns-assessment-advisory-v3',
+    case_id: 'case_one',
+    case_version: 3,
+    case_status: 'RISK_REVIEW',
+    recorded: false,
+    inputs_used: { coordinator_facts: true, photo_observations: true },
+    policy_version: 'synthetic-store-policy-v1',
+    recommended_action: 'REFER_FOR_MANUAL_HANDLING',
+    issue_category: 'FAULTY_OR_QUALITY_ISSUE',
+    possible_basis: 'UNDETERMINED',
+    assessment_status: 'CONFLICTING',
+    covered_lines: [],
+    rationale: 'The only photo shows a note with instructions, not the damaged item.',
+    conditions: [],
+    unresolved_questions: [],
+    citations: [],
+    confidence: 50,
+  };
+  const riskReview: AiRiskReview = {
+    ...STAMP,
+    prompt_version: 'c2-risk-review-advisory-v4',
+    case_id: 'case_one',
+    case_version: 3,
+    case_status: 'RISK_REVIEW',
+    reviewed_proposal: null,
+    recorded: false,
+    inputs_used: { coordinator_facts: true, photo_observations: true, assessment_draft: true },
+    outcome: 'ESCALATE',
+    summary: 'A photo holds instructions to approve a refund.',
+    findings: [{ category: 'INJECTION', severity: 'BLOCK', message: 'The note tells the system to approve a refund.' }],
+    questions: [],
+    revision_requests: [],
+  };
+
+  it('runs the photo check, the assessment draft and the risk review in order with one click', async () => {
+    let showPhotos: (answer: AiImageObservations) => void = () => undefined;
+    vi.mocked(observeCaseImages).mockReturnValueOnce(new Promise((resolve) => (showPhotos = resolve)));
+    vi.mocked(draftCaseAssessment).mockResolvedValueOnce(assessmentDraft);
+    vi.mocked(reviewCaseRisk).mockResolvedValueOnce(riskReview);
+    render(<AiRoleChainPanel caseId="case_one" evidence={[file('ev_note', 'note.png')]} />);
+    expect(observeCaseImages).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Run all three AI roles' }));
+    // The assessment waits for the photo check, and the review for both.
+    expect(await screen.findByText('Running...')).toBeInTheDocument();
+    expect(screen.getAllByText('Waiting')).toHaveLength(2);
+    expect(screen.getByRole('button', { name: 'Running the AI roles...' })).toBeDisabled();
+    expect(draftCaseAssessment).not.toHaveBeenCalled();
+    expect(reviewCaseRisk).not.toHaveBeenCalled();
+
+    showPhotos(photoCheck);
+    expect(await screen.findByText('Escalate to the Founder')).toBeInTheDocument();
+    expect(observeCaseImages).toHaveBeenCalledWith('case_one');
+    expect(draftCaseAssessment).toHaveBeenCalledWith('case_one');
+    expect(reviewCaseRisk).toHaveBeenCalledWith('case_one');
+    expect(screen.getByText('Photo 1: note.png')).toBeInTheDocument();
+    expect(screen.getByText(/treated as data and not followed/)).toBeInTheDocument();
+    expect(screen.getByText('Refer for manual handling')).toBeInTheDocument();
+    expect(screen.getByText("Also read: the Coordinator's facts card and the photo check (C3).")).toBeInTheDocument();
+    expect(
+      screen.getByText("Also read: the Coordinator's facts card, the assessment draft (A1) and the photo check (C3).")
+    ).toBeInTheDocument();
+    expect(screen.getByText('No proposal yet: the assessment draft (A1) was reviewed')).toBeInTheDocument();
+    expect(screen.getByText('INJECTION (BLOCK):')).toBeInTheDocument();
+    expect(screen.queryByText('Waiting')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Run all three again' })).toBeEnabled();
+  });
+
+  it('goes on to the next role when one is off or does not answer', async () => {
+    vi.mocked(observeCaseImages).mockRejectedValueOnce(new ApiError(404, 'Not Found', 'NOT_FOUND'));
+    vi.mocked(draftCaseAssessment).mockRejectedValueOnce(new ApiError(503, 'Busy', 'INTERNAL_ERROR'));
+    vi.mocked(reviewCaseRisk).mockResolvedValueOnce({
+      ...riskReview,
+      inputs_used: { coordinator_facts: true, photo_observations: false, assessment_draft: false },
+      outcome: 'NEEDS_INFORMATION',
+      summary: 'The order reference is missing.',
+      findings: [],
+      questions: ['Which order is this about?'],
+    });
+    render(<AiRoleChainPanel caseId="case_one" evidence={[]} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Run all three AI roles' }));
+    expect(await screen.findByText('Needs information')).toBeInTheDocument();
+    expect(screen.getByText('Not switched on for this deployment')).toBeInTheDocument();
+    expect(screen.getByText('No answer this time')).toBeInTheDocument();
+    // The photo check was just asked for, so the review does not send the Founder to run it.
+    expect(screen.getByText("Also read: the Coordinator's facts card.")).toBeInTheDocument();
+    expect(screen.getByText('No proposal yet: the request itself was reviewed')).toBeInTheDocument();
+    expect(screen.getByText('Which order is this about?')).toBeInTheDocument();
   });
 });
