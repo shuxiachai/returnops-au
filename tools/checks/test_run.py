@@ -169,8 +169,8 @@ class GroupingTests(unittest.TestCase):
                                                "-q", "--tb=short", "-x", "-p",
                                                "tools.checks.lifecycle_progress"])
                 selected.extend(steps[-1][1][4:-5])
-        self.assertEqual(len(selected), 68)
-        self.assertEqual(len(set(selected)), 68)
+        self.assertEqual(len(selected), 69)
+        self.assertEqual(len(set(selected)), 69)
         self.assertEqual(set(selected), runner._collection_inventory(self.root))
 
     def test_matrix_is_exactly_the_planned_parts_and_cli_does_not_spawn(self):
