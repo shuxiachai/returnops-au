@@ -40,6 +40,15 @@ from .wire import decode_json_document, validate
 PROMPT_VERSION = 'founder-assistant-v1'
 REJECT_CODES = frozenset({'MALFORMED_JSON', 'NOT_OBJECT', 'EXTRA_KEYS', 'SCHEMA', 'LENGTH', 'CONTACT_DETAILS', 'REFS',
                           'OUTCOME'})
+# What a discarded answer broke, told to the model when a call is asked once more (1 November
+# 2026, after the development check of docs/50). Never the discarded text itself.
+RETRY_RULES = {
+    'OUTCOME': 'The outcome or recommendation did not fit the rest of the answer; apply the outcome rules exactly.',
+    'LENGTH': 'A text was empty or longer than its limit.',
+    'REFS': 'A reference was not one of those given, or it was repeated.',
+    'CONTACT_DETAILS': 'A text held a link, an e-mail address or a phone number.',
+}
+RETRY_DEFAULT = 'The answer was not exactly one JSON object with exactly the required keys and allowed values.'
 MAX_RAW_REPLY_CHARS = 16000
 MAX_DRAFT_CHARS = 1200
 MAX_REASON_CHARS = 160
@@ -282,25 +291,30 @@ class FounderAssistant:
     def preflight(self, operation, case_id=None):
         return self._read(operation, case_id, lambda uow, actor: None)[0]
 
-    def _ask(self, kind, prompt, payload, parse, version=PROMPT_VERSION, images=()):
+    def _ask(self, kind, prompt, payload, parse, version=PROMPT_VERSION, images=(), retry=False):
         composition = self.composition
         transport, model_id = ((composition.vision_transport, composition.vision_model_id) if images
                                else (composition.transport, composition.model_id))
-        invocation = ModelInvocation(prompt, json.dumps(payload, ensure_ascii=True, sort_keys=True), version,
-                                     composition.provider_id, model_id, images)
-        try:
-            reply = transport(invocation)
-        except ModelTransportError as error:
-            LOGGER.warning('founder_assistant kind=%s outcome=FAILED failure_code=%s', kind, error.code)
-            raise FlowError() from None
-        try:
-            result = parse(reply.content)
-        except AssistantRejected as error:
-            LOGGER.warning('founder_assistant kind=%s outcome=REJECTED failure_code=%s', kind, error.code)
-            raise FlowError() from None
-        LOGGER.info('founder_assistant kind=%s outcome=ACCEPTED input_tokens=%s output_tokens=%s',
-                    kind, reply.input_tokens, reply.output_tokens)
-        return result
+        for attempt in (1, 2) if retry else (1,):
+            invocation = ModelInvocation(prompt, json.dumps(payload, ensure_ascii=True, sort_keys=True), version,
+                                         composition.provider_id, model_id, images)
+            try:
+                reply = transport(invocation)
+            except ModelTransportError as error:
+                LOGGER.warning('founder_assistant kind=%s outcome=FAILED failure_code=%s', kind, error.code)
+                raise FlowError() from None
+            try:
+                result = parse(reply.content)
+            except AssistantRejected as error:
+                LOGGER.warning('founder_assistant kind=%s outcome=REJECTED failure_code=%s attempt=%s', kind, error.code, attempt)
+                # Asked once more with the same input, told only which rule the discarded answer broke.
+                payload = {**payload, 'previous_answer_rejected': {
+                    'code': error.code, 'rule': RETRY_RULES.get(error.code, RETRY_DEFAULT)}}
+                continue
+            LOGGER.info('founder_assistant kind=%s outcome=ACCEPTED attempt=%s input_tokens=%s output_tokens=%s',
+                        kind, attempt, reply.input_tokens, reply.output_tokens)
+            return result
+        raise FlowError() from None
 
     def _confirm(self, actor, operation, case_id=None):
         # The Founder must still hold the same authority after the model call.
@@ -341,7 +355,7 @@ class FounderAssistant:
         payload = review_input(view, photos, draft)
         has_proposal = payload['proposal'] is not None or draft is not None
         result = self._ask('risk_review', RISK_PROMPT, payload, lambda text: parse_risk_review(text, has_proposal),
-                           version=RISK_VERSION)
+                           version=RISK_VERSION, retry=True)
         self._confirm(actor, 'getFounderCase', case_id)
         proposal = view.get('current_proposal')
         reviewed = None if proposal is None else {'proposal_id': proposal['proposal_id'],
@@ -369,7 +383,7 @@ class FounderAssistant:
         payload = assessment_input(view, photos)
         order_lines = [] if payload['order'] is None else payload['order']['line_items']
         result = self._ask('assessment', ASSESSMENT_PROMPT, payload, lambda text: parse_assessment(text, len(order_lines)),
-                           version=ASSESSMENT_VERSION)
+                           version=ASSESSMENT_VERSION, retry=True)
         self._confirm(actor, 'getFounderCase', case_id)
         if self.drafts is not None:
             # Kept in memory for the next C2 review of the same case version; never in the database.
