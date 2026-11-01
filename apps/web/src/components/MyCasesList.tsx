@@ -79,7 +79,10 @@ export const MyCasesList: React.FC<MyCasesListProps> = ({ openCaseId, openCase, 
             : item
         )
       : [];
-  const shown = query ? items.filter((item) => rowMatches(item, query)) : items;
+  // Typing a search shows the matches even while a case is open, unless the box holds that
+  // case's ID: opening a case puts its ID there, and "Show list" then lists every request.
+  const searching = query !== '' && query !== (openCaseId ?? '').toLowerCase();
+  const shown = searching ? items.filter((item) => rowMatches(item, query)) : items;
   const shownKey = state.kind === 'ready' ? shown.map((item) => item.case_id).join(' ') : null;
   useEffect(() => {
     onMatches?.(shownKey === null ? null : shownKey ? shownKey.split(' ') : []);
@@ -89,8 +92,6 @@ export const MyCasesList: React.FC<MyCasesListProps> = ({ openCaseId, openCase, 
 
   if (state.kind === 'hidden') return null;
 
-  // Typing a search shows the matches even while a case is open, unless the box holds that case's ID.
-  const searching = query !== '' && query !== (openCaseId ?? '').toLowerCase();
   const expanded = !openCaseId || shownWhileOpen === openCaseId || searching;
 
   return (

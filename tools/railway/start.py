@@ -52,6 +52,7 @@ FOUNDER = PROVISION[PROVISION.index('--founder') + 1]
 # A start keeps the previous data only with all of these; passwords.json comes along when present.
 KEPT_FILES = ('auth.json', 'credentials.json', 'sessions.json')
 SYNC_SECONDS = 5
+PRIVATE_READ_SECONDS = 60
 REQUESTED = []
 CHILDREN = []
 API_PORT = 8000
@@ -246,14 +247,22 @@ def wait_for_server(server):
             stop('DATABASE_URL could not be used as a PostgreSQL connection URL (README, Railway deployment); no detail is printed.')
 
 
-def start_kept(server, environment):
+def start_kept(server, environment, read_seconds=PRIVATE_READ_SECONDS):
     """True when the previous deployment's data and private files are back in place."""
-    try:
-        open_private_store(server)
-        files = load_private(server)
-    except psycopg.Error:
-        say('the kept private files could not be read; starting a fresh demonstration')
-        return False
+    # A passing database hiccup at start is retried for a minute before the start goes fresh,
+    # so a restart in the middle of a demonstration does not lose its cases (1 November 2026).
+    deadline = time.monotonic() + read_seconds
+    while True:
+        try:
+            open_private_store(server)
+            files = load_private(server)
+            break
+        except psycopg.Error:
+            finish_if_requested()
+            if time.monotonic() >= deadline:
+                say('the kept private files could not be read; starting a fresh demonstration')
+                return False
+            time.sleep(3)
     try:
         has_data = provisioned(server)
     except psycopg.Error:
@@ -437,7 +446,8 @@ class S5Mode:
         self.root.mkdir(mode=0o700, parents=True, exist_ok=True)
         if self.run_dir.exists():
             shutil.rmtree(self.run_dir)
-        (self.root / 'request').unlink(missing_ok=True)
+        for left in self.root.glob('request-*'):
+            left.unlink(missing_ok=True)
         self.save()
 
     def save(self, **fields):
@@ -450,14 +460,24 @@ class S5Mode:
         self.save(answered=dict(list(answered.items())[-10:]))
 
     def take_request(self):
-        path = self.root / 'request'
+        """The oldest waiting request: each client writes its own request-<ident> file, so a
+        request made while the loop is busy (preparing, or stopping the driver) is never lost."""
         try:
-            words = path.read_text(encoding='ascii').split()
-            path.unlink()
-        except (OSError, ValueError):
+            waiting = sorted(self.root.glob('request-*'), key=lambda path: (path.stat().st_mtime, path.name))
+        except OSError:
             return None
-        if len(words) == 2 and words[0] in S5_KINDS and words[1].isalnum() and len(words[1]) <= 32:
-            return words[0], words[1]
+        for path in waiting:
+            if path.name.endswith('.tmp'):
+                continue
+            try:
+                words = path.read_text(encoding='ascii').split()
+                path.unlink()
+            except (OSError, ValueError):
+                path.unlink(missing_ok=True)
+                continue
+            if (len(words) == 2 and words[0] in S5_KINDS and words[1].isalnum() and len(words[1]) <= 32
+                    and path.name == f'request-{words[1]}'):
+                return words[0], words[1]
         return None
 
     def step(self, switch):
@@ -530,8 +550,9 @@ class S5Mode:
             return self.finish(switch, 'failed', **fields)
         if not self.ready(self.driver, self.port):
             return self.finish(switch, 'failed', **{**fields, 'code': 'S5_API_NOT_READY'})
-        switch(self.port)
+        # Set first: should the switch itself fail half-way, finish() still switches back.
         self.shown = True
+        switch(self.port)
         expires = session_expiry(self.run_dir / 'identities' / 'sessions.json')
         self.deadline = (expires or int(self.clock()) + 899) + S5_GRACE_SECONDS
         self.save(state='passed', expires_at=expires, **fields)
@@ -568,8 +589,10 @@ class S5Mode:
 def describe(status, answer=None):
     case = status.get('case_id') or 'unknown'
     state = status.get('state')
+    if answer == 'busy' and state == 'passed':
+        return f'a run is already shown (case {case}); demo.ps1 cloud-s5-end ends it'
     if answer == 'busy':
-        return f'a run is already active ({state}, case {case}); demo.ps1 cloud-s5-end ends it'
+        return 'a run is already under way; following it'
     if answer == 'idle':
         return 'no S5 run was active; the public address shows the demonstration'
     if answer == 'ended' or state == 'ended':
@@ -595,21 +618,30 @@ def ask(kind, root=S5_ROOT, wait=None, clock=time.monotonic, sleep=time.sleep):
         say('S5: this deployment does not answer S5 requests; deploy main with demo.ps1 cloud first')
         return 1
     ident = uuid.uuid4().hex[:16]
-    # Readable by the container's user whichever user railway ssh runs as; it holds no secret.
-    write_small(root / 'request', f'{kind} {ident}\n', mode=0o644)
+    # Its own file, so a request made while another waits is not lost. railway ssh runs as
+    # root (1 November 2026), so the file is readable by the container's user; no secret.
+    write_small(root / f'request-{ident}', f'{kind} {ident}\n', mode=0o644)
     deadline = clock() + (wait or S5_WAIT_SECONDS[kind])
-    shown = None
+    # A run already under way (an earlier cloud-s5 whose window closed) is followed to its end.
+    following, shown, spoke = ident, None, clock()
     while clock() < deadline:
         status = read_json(root / 'status.json') or {}
         answer = (status.get('answered') or {}).get(ident)
-        if answer:
+        if answer and following == ident:
             say('S5: ' + describe(status, answer))
-            return 0 if answer in ('ended', 'idle') or status.get('state') == 'passed' else 1
-        if kind == 's5' and status.get('request') == ident:
+            if answer == 'busy' and kind == 's5' and status.get('state') in ('starting', 'running') and status.get('request'):
+                following = status['request']
+            else:
+                return 0 if answer in ('ended', 'idle') or status.get('state') == 'passed' else 1
+        if kind == 's5' and status.get('request') == following:
             state = status.get('state')
             if state != shown:
                 say('S5: ' + describe(status))
-                shown = state
+                shown, spoke = state, clock()
+            elif clock() - spoke >= 15:
+                # A line now and then, so an idle railway ssh session is not closed meanwhile.
+                say('S5: still ' + str(state) + '...')
+                spoke = clock()
             if state in ('passed', 'failed', 'ended'):
                 return 0 if state == 'passed' else 1
         sleep(2)

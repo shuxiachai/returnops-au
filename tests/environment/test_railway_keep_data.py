@@ -75,8 +75,21 @@ def test_doubt_starts_fresh_and_an_unreadable_database_is_never_wiped(tmp_path, 
     def unreadable(server):
         raise psycopg.OperationalError('connection lost')
     monkeypatch.setattr(start, 'load_private', unreadable)
-    assert start.start_kept('postgresql://server/postgres', {}) is False
+    assert start.start_kept('postgresql://server/postgres', {}, read_seconds=0) is False
     assert 'starting a fresh demonstration' in capsys.readouterr().out
+
+    # A passing hiccup is retried (1 November 2026): the second read finds the kept files.
+    reads = []
+    def hiccup(server):
+        reads.append(server)
+        if len(reads) == 1:
+            raise psycopg.OperationalError('connection lost')
+        return dict(FILES)
+    monkeypatch.setattr(start, 'load_private', hiccup)
+    monkeypatch.setattr(start.time, 'sleep', lambda seconds: None)
+    monkeypatch.setattr(start, 'provisioned', lambda server: False)
+    assert start.start_kept('postgresql://server/postgres', {}) is False and len(reads) == 2
+    assert 'could not be read' not in capsys.readouterr().out
 
     monkeypatch.setattr(start, 'load_private', lambda server: dict(FILES))
     monkeypatch.setattr(start, 'provisioned', lambda server: False)

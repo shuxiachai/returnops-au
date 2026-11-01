@@ -71,10 +71,12 @@ BUSY = 'Sign-in is busy right now. Try again in a moment.'
 
 class AccountError(FlowError):
     """A FlowError with a sentence for this one case, as ReceiptUnavailable does."""
-    def __init__(self, code, message, *, status=None):
+    def __init__(self, code, message, *, status=None, retryable=None):
         super().__init__(code, status=status)
         self.message = message
         self.args = (message,)
+        if retryable is not None:
+            self.retryable = retryable
 
 
 def hash_password(password):
@@ -409,11 +411,14 @@ def register_account_routes(app, store):
         # Verified above, so the claims are this key's own.
         current_ends = int(jwt.decode(authorization.split()[1], options={'verify_signature': False})['exp'])
         if current_ends - now > rules['before']:
-            raise AccountError('INVALID_STATE', 'This key is renewed in its last five minutes.')
-        if ends - now < 2:
+            # Retryable: a page whose clock runs ahead asks a little early and tries again.
+            raise AccountError('INVALID_STATE', 'This key is renewed in its last five minutes.', retryable=True)
+        new_ends = min(now + SESSION_SECONDS, ends)
+        # A key that would end no later than this one is no renewal: the hour is over.
+        if new_ends <= current_ends or new_ends - now < 2:
             raise AccountError('INVALID_STATE', 'The hour since sign-in has passed. Sign in again.')
         session = {'session_id': identifier('session'), 'issued_at': now - 1, 'not_before': now - 1,
-                   'expires_at': min(now + SESSION_SECONDS, ends)}
+                   'expires_at': new_ends}
         principal_id = verified.principal_id
         try:
             TrustedRegistry(engine).register_session(principal_id, session['session_id'], session['issued_at'],

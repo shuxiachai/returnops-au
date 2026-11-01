@@ -378,9 +378,10 @@ session each time) and customer self-registration (`POST /v1/auth/register`,
 which creates only CUSTOMER principals of that store and refuses an ID taken
 in any letter case; a Founder is never created there). Since 1 November 2026 a
 password sign-in stays signed in for an hour: every key still lasts 899 s, and
-the page asks `POST /v1/auth/renew` for the next one two minutes before it ends
-(only in the last five minutes of a key, never past the hour, and never for an
-access key from provision). The routes are outside contract v1 and off without the flag.
+the page asks `POST /v1/auth/renew` for the next one from about five minutes
+before it ends, trying again every 25 s after a failure that may pass (only in
+the last five minutes of a key, never past the hour, and never for an access
+key from provision; another tab's renewal does not reload the page). The routes are outside contract v1 and off without the flag.
 The builtin synthetic orders
 (`packages/returnops_domain/order_data/synthetic_orders_v1.json`) belong to
 store `synthetic_au_store` and customers `synthetic_customer_a` /

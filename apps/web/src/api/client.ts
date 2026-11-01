@@ -307,18 +307,30 @@ export function renewPasswordSession(token: string): Promise<PasswordSession> {
   );
 }
 
-// When a key ends (Unix seconds), read from its own claims, or null for anything that is
-// not a readable token. Only for timing the renewal; the server decides validity.
-export function tokenExpiry(token: string): number | null {
+// A key's own claims, or null for anything that is not a readable token. Only for timing
+// the renewal and recognising the same person's next key; the server decides validity.
+function tokenClaims(token: string): Record<string, unknown> | null {
   const part = token.split('.')[1];
   if (!part) return null;
   try {
     const base64 = part.replace(/-/g, '+').replace(/_/g, '/');
     const claims = JSON.parse(atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, '=')));
-    return typeof claims.exp === 'number' && Number.isFinite(claims.exp) ? claims.exp : null;
+    return claims && typeof claims === 'object' ? claims : null;
   } catch {
     return null;
   }
+}
+
+// When a key ends (Unix seconds), or null.
+export function tokenExpiry(token: string): number | null {
+  const exp = tokenClaims(token)?.exp;
+  return typeof exp === 'number' && Number.isFinite(exp) ? exp : null;
+}
+
+// Whose key it is, or null.
+export function tokenSubject(token: string): string | null {
+  const sub = tokenClaims(token)?.sub;
+  return typeof sub === 'string' && sub ? sub : null;
 }
 
 export async function stageEvidence(

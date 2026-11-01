@@ -110,8 +110,10 @@ function nextStep(status: CaseStatus): string {
     case 'SUBMITTED':
     case 'UNDER_INVESTIGATION':
     case 'POLICY_ASSESSMENT':
-    case 'RISK_REVIEW':
       return 'The system is preparing the case; nothing is needed from you yet.';
+    case 'RISK_REVIEW':
+      // Gate 1 has no independent reviewer yet (docs/46), so such a case waits here.
+      return 'Waiting for the independent risk review, which this version does not run yet (Gate 2); nothing is needed from you.';
     case 'APPROVED':
     case 'ACTION_IN_PROGRESS':
     case 'RECONCILING':

@@ -182,9 +182,10 @@ export const CustomerPortal: React.FC = () => {
   const [downloadingEvId, setDownloadingEvId] = useState<string | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
-  // Auto-load initial demo case on mount
+  // Opening Track & Clarify loads the case whose ID is in the box (a new lodgement's, or the
+  // last one opened); search words left there stay a search (1 November 2026).
   useEffect(() => {
-    if (activeSubTab === 'track' && searchCaseId) {
+    if (activeSubTab === 'track' && /^case_[A-Za-z0-9_]+$/.test(searchCaseId.trim())) {
       loadCase(searchCaseId);
     }
   }, [activeSubTab]);
@@ -938,7 +939,14 @@ export const CustomerPortal: React.FC = () => {
                 e.preventDefault();
                 const query = searchCaseId.trim();
                 if (isLoadingCase || !query) return;
-                const target = listMatches && listMatches.length === 1 ? listMatches[0] : query;
+                // A request's own ID opens it; one match opens that request; several matches
+                // stay listed (looking the words up as an ID would close the open case and
+                // lose typed answers); no match is looked up as a case ID.
+                let target = query;
+                if (listMatches && !listMatches.includes(query)) {
+                  if (listMatches.length > 1) return;
+                  if (listMatches.length === 1) target = listMatches[0];
+                }
                 if (target !== query) setSearchCaseId(target);
                 loadCase(target);
               }}
