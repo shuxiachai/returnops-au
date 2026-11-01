@@ -1,5 +1,7 @@
 # Stage 2 entry and implementation handoff
 
+> **Historical (5 October 2026).** This hand-off describes the state before the Stage 2 implementation; the current state is in the [README](../README.md).
+
 ## Current preparation: A1.03 acceptance and A1.05 offline assembly — 5 October 2026
 
 The inspected main is `de8c4e423aba75bf69018ac0da55a7d34b0c5bdb` (tree `47332ad64650d87cdf3e367a4efb77e3a4fbc897`). It includes the adopted storage, customer intake/clarification, synthetic order lookup/investigation, Founder four read queries, persisted lifecycle guards and private fresh-authority denial-audit verification. The relevant161 scoped code/build/contract/test/tool and docs08/25/26 blobs match reviewed PR34 source `c0d9d6a0f0cc7005047ae8b7b315e98967a7ebd6`. Shared runtime code, public schemas, migration history and the89 fixed WBS fields are unchanged by this preparation.

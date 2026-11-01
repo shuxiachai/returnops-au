@@ -1,6 +1,6 @@
 # ReturnOps AU
 
-ReturnOps AU is the Group 10 project for ELEC5620 Model-Based Software Engineering (University of Sydney, 2026): a returns assistant for small Australian online shops. A customer describes a problem in plain words; the system asks only for what is missing, checks the order, prepares a non-executable proposal with a risk review, and the shop's Founder approves exactly one previewed action. Only after that approval does the system run the simulated return, the parcel label and the customer notification. All providers are mocks; no real money moves and no real customer data is used.
+ReturnOps AU is the Group 10 project for ELEC5620 Model-Based Software Engineering (University of Sydney, 2026): a returns assistant for small Australian online shops. A customer describes a problem in plain words; the system asks only for what is missing, checks the order and prepares a non-executable proposal, and AI roles add advice: a facts card, an independent risk review, a check of the customer's photos and reply drafts. Only the shop's Founder decides. In the web app the Founder takes a case over manually; approval of one exact previewed action, followed by the simulated return, the parcel label and the customer notification, runs end to end through the R.02 driver (S5 of the demonstration). All providers are mocks; no real money moves and no real customer data is used.
 
 **Start here:** [run it](#run-it-week-13-demonstration) · [what is in the system](#what-is-in-the-system) · [where AI is used](#where-ai-is-used-and-where-it-is-not) · [how we worked](#how-we-worked) · [known gaps](#known-gaps) · [deploy from zero](#deploy-from-zero---22-october-2026-sydney)
 
@@ -48,9 +48,9 @@ ReturnOps AU is the Group 10 project for ELEC5620 Model-Based Software Engineeri
 |---|---|---|
 | Customer portal and API | Lodge a return in plain words, answer targeted questions, upload evidence (JPEG, PNG or PDF), track the case | [docs/21](docs/21-customer-flow.md), [apps/web](apps/web/README.md) |
 | Order investigation | Match the case to a synthetic order, and ask for a reference when it is missing | [docs/22](docs/22-a104-synthetic-order-provider.md), [docs/23](docs/23-order-investigation.md) |
-| Proposal and risk review | A fixed, non-model proposal and a controlled risk review in the Gate 1 scope | [docs/29](docs/29-a105-fixed-proposal-runtime.md), [docs/33](docs/33-a201-pass-review.md) |
-| Founder console and decisions | Case queue, case detail and audit; approve, reject, request revision or take over manually, against the exact previewed scope | [docs/40](docs/40-founder-decision-http-boundary.md), [docs/35](docs/35-a201-preview-approval.md), [apps/web](apps/web/README.md) |
-| Governed simulated execution | After approval only: return, parcel label, label PDF and customer notification through mock providers, each checked against the approved scope | [docs/37](docs/37-a202-approval-admission.md), [docs/39](docs/39-a203-core-return-execution.md), [notification](docs/a206-notification-outcome.md) |
+| Proposal and risk review | A fixed, non-model proposal; in the web app every lodged case stops at RISK_REVIEW. The controlled PASS review runs only inside the R.02 driver (S5). The C2 AI risk review is advice on request and is not recorded (see below) | [docs/29](docs/29-a105-fixed-proposal-runtime.md), [docs/33](docs/33-a201-pass-review.md) |
+| Founder console and decisions | Case queue, case detail and audit. In the web app the Founder takes a case over manually; approve, reject and request revision against the exact previewed scope are implemented and tested, and approval runs live only through the R.02 driver (S5) | [docs/40](docs/40-founder-decision-http-boundary.md), [docs/35](docs/35-a201-preview-approval.md), [apps/web](apps/web/README.md) |
+| Governed simulated execution | After approval only: return, parcel label, label PDF and customer notification through mock providers, each checked against the approved scope; run end to end by the R.02 driver (S5), which the web app then shows read-only | [docs/37](docs/37-a202-approval-admission.md), [docs/39](docs/39-a203-core-return-execution.md), [notification](docs/a206-notification-outcome.md) |
 | Operations analytics | A read-only snapshot of case counts, risk outcomes and proposal latency | [docs/43](docs/43-f06-analytics.md) |
 | End-to-end evidence | A private driver runs one synthetic case through the real API and records a receipt; CI runs it on every change | [docs/41](docs/41-r02-end-to-end-evidence.md) |
 
@@ -61,15 +61,32 @@ ReturnOps AU is the Group 10 project for ELEC5620 Model-Based Software Engineeri
 - **Prepared, not yet in the runtime:** retrieval with exact citations ([experiments/c1_grounding_candidate](experiments/c1_grounding_candidate)), the full-packet form of the risk reviewer that records its review and moves the case ([experiments/c2_risk_candidate](experiments/c2_risk_candidate/README.md); Gate 2), and the evaluation plan ([experiments/evaluation_candidate](experiments/evaluation_candidate/README.md)).
 - **Deliberately not used:** no model output reaches the execution chain; approval needs a human Founder and an exact preview; execution is a separate controlled step. Roadmap: [docs/46](docs/46-gate2-roadmap.md).
 
+### The AI roles on 1 November 2026
+
+| Role (Stage 1 design) | In this version | Where to see it |
+|---|---|---|
+| Customer Case Coordinator (A1) | Live model, advisory: the facts card from the customer's words. Clarification questions are rule-based | Case window, Order & Facts |
+| Returns Assessment (A1) | No model: a fixed, rule-based proposal (Gate 2) | Case window, Proposal & Risk Review |
+| Compliance & Risk Reviewer (C2) | Live model, advisory, on request: C's five outcomes and categories. It also reads the facts card and the latest photo check. Not recorded: the governed chain still uses the controlled PASS review | Proposal & Risk Review, **Run AI risk review** |
+| Image evidence observations (C3, part of grounding and risk) | Live vision model, advisory, on request; not recorded | Customer Statements, **Analyse photos (AI)** |
+| Founder assistant | Live model, advisory, on request: reply drafts, queue triage, a weekly summary | Case window, queue and analytics |
+
 ## How we worked
 
 - Requirements and models: [docs/00](docs/00-project-definition-v1.md) (FR-001 to FR-012, NFR-001 to NFR-009 and the use cases); interface contract [docs/09](docs/09-interface-contract-v1.md) and [contracts/v1](contracts/v1).
-- Allocation and work packages: [docs/07](docs/07-frozen-work-allocation.md) and [docs/08](docs/08-delivery-work-packages.md); Jira project KAN.
+- Allocation and work packages: [docs/07](docs/07-frozen-work-allocation.md) and [docs/08](docs/08-delivery-work-packages.md); [Jira project KAN](https://lucastaooo.atlassian.net/issues?jql=project%20%3D%20KAN).
 - Iterations, feedback loops and technology data: [docs/48](docs/48-agile-evidence-and-technology-data.md); test coverage map: [docs/42](docs/42-e10-coverage-map.md).
 
 ## Known gaps
 
-The list attached to the submission is in [docs/47](docs/47-stage2-submission-runbook.md), section 7; the hardening backlog is in [docs/46](docs/46-gate2-roadmap.md), section 8.
+What this version does not do (the full list is in [docs/47](docs/47-stage2-submission-runbook.md), section 7; the hardening backlog is in [docs/46](docs/46-gate2-roadmap.md), section 8):
+
+- The AI roles do not form the governed chain (Gate 2, deferred by the lead on 22 October 2026): the Assessment is a fixed proposal and the recorded review is the controlled PASS review. The live AI answers are advice only.
+- In the web app every lodged case stops at RISK_REVIEW; approval and execution run only through the R.02 driver (S5).
+- C1 retrieval and citation verification is offline code ([experiments/c1_grounding_candidate](experiments/c1_grounding_candidate)), not in the runtime; the served proposal carries one fixed synthetic citation.
+- A3 is a contract-test carrier sandbox in this repository ([docs/49](docs/49-a3-carrier-sandbox.md)): the team has no carrier test account, and no tutor decision on this replacement is recorded.
+- C2's live review and C3's photo check were implemented by A at the lead's request on 1 November 2026, not by C; C's own C2 work is the offline candidate.
+- There are no evaluation numbers: the Gold set, the B1 versus B4 comparison and E.12 need the Gate 2 roles.
 
 ## Repository map
 
@@ -384,7 +401,7 @@ password sign-in stays signed in for an hour: every key still lasts 899 s, and
 the page asks `POST /v1/auth/renew` for the next one from about five minutes
 before it ends, trying again every 25 s after a failure that may pass (only in
 the last five minutes of a key, never past the hour, and never for an access
-key from provision; another tab's renewal does not reload the page). The routes are outside contract v1 and off without the flag.
+key from provision; another tab's renewal does not reload the page). The list of keys that may be renewed lives in the API process, so a restart (a deployment, `demo.ps1 cloud-fresh`) forgets it: a page signed in before the restart ends with its current key, within 15 minutes, and asks for the password again (seen on Railway on 1 November 2026: two renewals refused after the 18:34 deployment; a sign-in after it renewed). The routes are outside contract v1 and off without the flag.
 The builtin synthetic orders
 (`packages/returnops_domain/order_data/synthetic_orders_v1.json`) belong to
 store `synthetic_au_store` and customers `synthetic_customer_a` /
@@ -688,7 +705,7 @@ accepted: until Railway switches traffic to the new deployment, the old one answ
 and `node_modules` out of the `railway up` upload, because the folder unpacked
 from the Canvas zip has no `.git` for `.gitignore` to apply to.
 
-- **Model showcase on Railway (31 October 2026, docs/44):** the course proxy is on a private VPN address, so the service uses Alibaba Cloud Bailian instead. Service variables: `RETURNOPS_MODEL_SHOWCASE=1`, `RETURNOPS_MODEL_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1`, `RETURNOPS_MODEL_ID=qwen3.5-122b-a10b`, `RETURNOPS_MODEL_PROVIDER_ID=aliyun_bailian`, `RETURNOPS_MODEL_DEADLINE_SECONDS=50`, `RETURNOPS_MODEL_MAX_CALLS=50`, and `RETURNOPS_MODEL_API_KEY`, which only the lead sets. Sign-in: the Founder is `founder`, the customers `synthetic_customer_a` and `synthetic_customer_b`; `RETURNOPS_DEMO_PASSWORD` (set only by the lead, 8 to 128 characters, no spaces at either end; set it in the Railway dashboard, since a PowerShell pipe adds a line break) is then the password of all three, otherwise each gets a generated one in `passwords.json`. Without a complete configuration the service starts without the showcase and its log names the missing variable. With the showcase and password sign-in on, the Founder also gets the AI assistant (a reply draft, a queue triage and a weekly summary, each on request; docs/44), with its own budget of `RETURNOPS_MODEL_MAX_CALLS` calls.
+- **Model showcase on Railway (31 October 2026, docs/44):** the course proxy is on a private VPN address, so the service uses Alibaba Cloud Bailian instead. Service variables: `RETURNOPS_MODEL_SHOWCASE=1`, `RETURNOPS_MODEL_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1`, `RETURNOPS_MODEL_ID` (`qwen3.5-122b-a10b` on 31 October, `qwen-plus` since 1 November 2026), `RETURNOPS_MODEL_VISION_ID=qwen3-vl-plus` (since 1 November 2026, for the photo check), `RETURNOPS_MODEL_PROVIDER_ID=aliyun_bailian`, `RETURNOPS_MODEL_DEADLINE_SECONDS=50`, `RETURNOPS_MODEL_MAX_CALLS=50`, and `RETURNOPS_MODEL_API_KEY`, which only the lead sets. Sign-in: the Founder is `founder`, the customers `synthetic_customer_a` and `synthetic_customer_b`; `RETURNOPS_DEMO_PASSWORD` (set only by the lead, 8 to 128 characters, no spaces at either end; set it in the Railway dashboard, since a PowerShell pipe adds a line break) is then the password of all three, otherwise each gets a generated one in `passwords.json`. Without a complete configuration the service starts without the showcase and its log names the missing variable. With the showcase and password sign-in on, the Founder also gets the AI assistant (a reply draft, a queue triage and a weekly summary, each on request; since 1 November also the C2 risk review and, with the vision model, the C3 photo check; docs/44), with its own budget of `RETURNOPS_MODEL_MAX_CALLS` calls.
 - **Not on Railway:** the course proxy route of S4 (private VPN address): the local fallback. S5's driver runs on Railway since 1 November 2026 (`cloud-s5`); the local `s5` stays its fallback.
 - **S5 on Railway, tested on 1 November 2026** with Docker on the demonstration machine standing in for Railway (a PostgreSQL 17 container and this image), the Railway CLI replaced by `docker exec`:
   - `start.py s5` passed in about 70 s; through the public port the `demo_cups_founder` key read the COMPLETED case, the APPROVE decision, the label PDF (200, `application/pdf`) and an audit chain of 28 linked events, while the demo API kept answering ready on 8000;
@@ -820,6 +837,8 @@ from the Canvas zip has no `.git` for `.gitignore` to apply to.
   variable); it never contains a key, a database URL or a path.
 
 AI-assisted implementation and metadata preparation; author shuxiachai.
+
+> **Dated records.** The four sections from here to the Delivery log describe the state on 22 October 2026 and are kept as written; the current state is in Status and Known gaps at the top of this file.
 
 ## R.02 no-LLM end-to-end evidence - 22 October 2026 (Sydney)
 
@@ -2257,7 +2276,9 @@ separate from that five-file delivery. Jira remains the live workflow record.
   and [docs/08](docs/08-delivery-work-packages.md). Stage 1 submission must disclose
   open items; it need not wait for all Stage 2 work to finish.
 
-## Current phase
+## Historical phase note (September 2026)
+
+> Kept as history: this section describes the project at Gate 0 in September 2026. The current state is in Status at the top of this file.
 
 Member A's Activity, Interaction (two Sequence panels) and OperationAttempt
 state machine now have a `MA-0.3` local review candidate with 21 static walkthrough

@@ -40,8 +40,8 @@ The items the [C2 candidate README](../experiments/c2_risk_candidate/README.md) 
 
 | Item | Record |
 | --- | --- |
-| Provider | The course's campus AI API proxy (Lab 9: campus Qwen model). Its connection guide is not in the repository; base URL, VPN/proxy needs and quota are unknown until the lead supplies them. `RETURNOPS_MODEL_PROVIDER_ID` names the provider record (contract `Id`). |
-| Model | `RETURNOPS_MODEL_ID` (at most 120 characters); the exact campus model name is pending. |
+| Provider | The course's campus AI API proxy (Lab 9: campus Qwen model). Its connection guide is not in the repository; base URL, VPN/proxy needs and quota were unknown until the lead supplied them (22 October 2026); since 31 October the Railway service uses Alibaba Cloud Bailian (see below). `RETURNOPS_MODEL_PROVIDER_ID` names the provider record (contract `Id`). |
+| Model | `RETURNOPS_MODEL_ID` (at most 120 characters); the campus model was `campus-qwen` on 22 October; on Railway `qwen3.5-122b-a10b` on 31 October and `qwen-plus` since 1 November 2026. |
 | Dialect | `chat-completions` only: the chat-completions JSON dialect used by common model gateways. `POST {base_url}/chat/completions` with `model`, `temperature: 0` and two messages (system, user), `User-Agent: returnops-au-coordinator/1`. Assumed, not yet confirmed for the campus proxy. `response_format` is not sent. |
 | Usage shape | `usage.prompt_tokens` and `usage.completion_tokens` must be non-negative integers; a reply without them is `NO_USAGE` and is never counted as zero. |
 | Permitted fields | See the allowlist below. |

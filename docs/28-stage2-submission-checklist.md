@@ -1,5 +1,7 @@
 # Stage2 submission and contribution preparation
 
+> **Historical checklist (5 and 12 October 2026).** The current submission steps are in [docs/47](47-stage2-submission-runbook.md) and the current state in the [README](../README.md); the unchecked boxes and the TBD table below are kept as they were written.
+
 ## Live Canvas verification — 12 October 2026
 
 The following original sources were read in the signed-in course UI, not

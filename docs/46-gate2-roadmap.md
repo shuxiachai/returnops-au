@@ -102,14 +102,16 @@ The rule of the Stage 2 Marking Criteria still holds: the source is downloaded f
 |---|---|---|
 | Demo API | `demo.py serve` binds `127.0.0.1` only | Unchanged: it still binds loopback inside the container, and Caddy in the same container is the only public listener |
 | Web frontend | The Vite dev server proxies `/v1` and `/health` to `127.0.0.1:8000`; the API registers no CORS middleware | A production build served by Caddy on the same origin as `/v1`, so no CORS is needed (`tools/railway/Caddyfile`) |
-| Database | Compose PostgreSQL 17 on loopback; the password lives in the ignored `.env` | PostgreSQL 17 as a Railway image service, the same image as Compose (Railway's own template was PostgreSQL 18, where migration 0010 refuses); its `DATABASE_URL` stays a platform variable. Each start drops and creates `returnops_f02`, then migrates (`tools/railway/start.py`) |
-| Demo identities | `demo.py provision` on the machine | `demo.py provision` inside the container at each start. The sessions are copied to the presenter's machine through `railway ssh` and never shown (`demo.ps1 cloud-tokens`) |
+| Database | Compose PostgreSQL 17 on loopback; the password lives in the ignored `.env` | PostgreSQL 17 as a Railway image service, the same image as Compose (Railway's own template was PostgreSQL 18, where migration 0010 refuses); its `DATABASE_URL` stays a platform variable. Until 31 October 2026 each start dropped and recreated `returnops_f02`; since then a start keeps the data and migrates it, and `demo.ps1 cloud-fresh` starts afresh (`tools/railway/start.py`) |
+| Demo identities | `demo.py provision` on the machine | `demo.py provision` inside the container on a fresh start; a start that keeps the data renews the access keys (`demo.py renew-sessions`), and a password sign-in renews its key for up to an hour. The sessions are copied to the presenter's machine through `railway ssh` and never shown (`demo.ps1 cloud-tokens`) |
 | Exposure | Loopback only | A public HTTPS address with synthetic data only; the service runs only for the rehearsal and the demonstration (NFR-003, NFR-009) |
 | Models | PD-02 | PD-03 added in docs/15 |
 
-What is not on Railway:
-- S4's live model showcase: the course proxy is on a private VPN address that the platform cannot reach, so S4 uses its fallback wording.
-- S5's R.02 driver: it runs on PD-02.
+Since 1 November 2026 nothing in the demonstration is left off Railway:
+- S4's model calls go to Alibaba Cloud Bailian from the service (the course proxy is on a private VPN address that the platform cannot reach);
+- S5's R.02 driver runs inside the service against a database of its own (`demo.ps1 cloud-s5` before the start, `cloud-s5-show` in S5).
+
+The local deployment (PD-02) stays the fallback.
 
 Owner: A. Still open: a real Railway run from the Canvas download (rehearsal pass 2), and rate limiting for the public address.
 
