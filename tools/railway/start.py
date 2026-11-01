@@ -17,13 +17,15 @@ presenter copies the sessions with `demo.ps1 cloud-tokens`. R.05.b; NFR-003/009.
 S5 on Railway (1 November 2026, docs/45 S5): `python /app/start.py s5`, which `demo.ps1
 cloud-s5` runs through `railway ssh`, asks this process to run the R.02 driver in demo mode
 (tools/r02/README.md) against a database of its own, returnops_f02_s5, created fresh for each
-run; the demo API, its workers and the demonstration's data stay as they are. Once the
-driver's receipt says PASSED, Caddy is restarted to proxy to the driver's API on
-127.0.0.1:8100 (or the next free port), so the public address shows the completed case to the demo_cups_founder
-access key. `start.py s5-end` (`demo.ps1 cloud-s5-end`), the end of that key's 899 s session
-or the driver ending restarts Caddy towards the demo API again. Approval and execution stay
-inside the driver, which the presenter starts; no click in the browser starts an operation.
-FR-009 to FR-012, NFR-001.
+run; the demo API, its workers and the demonstration's data stay as they are. A PASSED run
+waits as "ready": on Railway the run takes four to five minutes, so it is made before the
+demonstration starts. `start.py s5-show` (`demo.ps1 cloud-s5-show`) then gives the demo-cups
+people new 899 s access keys and restarts Caddy to proxy to the driver's API on 127.0.0.1:8100
+(or the next free port), so the public address shows the completed case to the
+demo_cups_founder key. `start.py s5-end` (`demo.ps1 cloud-s5-end`), the end of that key's
+session or the driver ending restarts Caddy towards the demo API again. Approval and execution
+stay inside the driver, which the presenter starts; no click in the browser starts an
+operation. FR-009 to FR-012, NFR-001.
 """
 import hashlib
 import json
@@ -64,8 +66,8 @@ S5_PORT = 8100
 DRIVER = Path('/app/tools/r02/driver.py')
 S5_PROVISION = ['--store', 'demo_cups_store', '--customer-one', 'demo_cups_customer_one',
                 '--customer-two', 'demo_cups_customer_two', '--founder', 'demo_cups_founder']
-S5_KINDS = ('s5', 's5-end')
-S5_WAIT_SECONDS = {'s5': 600, 's5-end': 120}
+S5_KINDS = ('s5', 's5-show', 's5-end')
+S5_WAIT_SECONDS = {'s5': 900, 's5-show': 120, 's5-end': 120}
 S5_GRACE_SECONDS = 60
 
 
@@ -487,6 +489,8 @@ class S5Mode:
             request = self.take_request()
             if request and request[0] == 's5':
                 self.begin(request[1], switch)
+            elif request and request[0] == 's5-show':
+                self.show(request[1], switch)
             elif request:
                 self.end(request[1], switch)
             self.watch(switch)
@@ -507,9 +511,7 @@ class S5Mode:
             recreate_database(self.server, S5_DATABASE)
         except psycopg.Error:
             return self.finish(switch, 'failed', code='S5_DATABASE')
-        # Only the database URL of the demonstration's variables: no model key, no demo password.
-        environment = {name: value for name, value in self.environment.items() if not name.startswith('RETURNOPS_')}
-        environment['DATABASE_URL'] = on_server(self.app, S5_DATABASE)
+        environment = self.s5_environment()
         identities, output = self.run_dir / 'identities', self.run_dir / 'output'
         for code, arguments in (
                 ('S5_MIGRATION', [sys.executable, '-m', 'alembic', 'upgrade', 'head']),
@@ -526,6 +528,12 @@ class S5Mode:
         CHILDREN.append(self.driver)
         self.save(state='running', port=self.port)
         say('S5: the R.02 driver is running in demo mode')
+
+    def s5_environment(self):
+        """Only the database URL of the demonstration's variables: no model key, no demo password."""
+        environment = {name: value for name, value in self.environment.items() if not name.startswith('RETURNOPS_')}
+        environment['DATABASE_URL'] = on_server(self.app, S5_DATABASE)
+        return environment
 
     def watch(self, switch):
         if self.driver is None:
@@ -550,13 +558,35 @@ class S5Mode:
             return self.finish(switch, 'failed', **fields)
         if not self.ready(self.driver, self.port):
             return self.finish(switch, 'failed', **{**fields, 'code': 'S5_API_NOT_READY'})
+        # Ready, not shown: the public address keeps showing the demonstration until s5-show.
+        self.save(state='ready', **fields)
+        say(f'S5: driver result PASSED, case {fields["case_id"]}; ready to show (start.py s5-show)')
+
+    def show(self, ident, switch):
+        """`start.py s5-show`: a ready run gets new 899 s keys for the demo-cups people, then the
+        public address shows the driver's API. A shown run is answered again (the keys are
+        copied once more); without a ready run nothing changes."""
+        state = self.status.get('state')
+        if self.driver is None:
+            return self.answer(ident, 'idle')
+        if state == 'passed':
+            return self.answer(ident, 'shown')
+        if state != 'ready':
+            return self.answer(ident, 'not-ready')
+        identities = self.run_dir / 'identities'
+        renewal = self.run([sys.executable, '-m', 'returnops_api.demo', 'renew-sessions', '--private-dir', str(identities)],
+                           env=self.s5_environment(), cwd='/app')
+        if renewal.returncode != 0:
+            self.finish(switch, 'failed', code='S5_RENEW')
+            return self.answer(ident, 'failed')
         # Set first: should the switch itself fail half-way, finish() still switches back.
         self.shown = True
         switch(self.port)
-        expires = session_expiry(self.run_dir / 'identities' / 'sessions.json')
+        expires = session_expiry(identities / 'sessions.json')
         self.deadline = (expires or int(self.clock()) + 899) + S5_GRACE_SECONDS
-        self.save(state='passed', expires_at=expires, **fields)
-        say(f'S5: driver result PASSED, case {fields["case_id"]}; the public address shows the driver API')
+        self.save(state='passed', expires_at=expires)
+        self.answer(ident, 'shown')
+        say(f'S5: the public address shows the driver API, case {self.status.get("case_id")}')
 
     def end(self, ident, switch):
         if self.driver is None:
@@ -591,20 +621,28 @@ def describe(status, answer=None):
     state = status.get('state')
     if answer == 'busy' and state == 'passed':
         return f'a run is already shown (case {case}); demo.ps1 cloud-s5-end ends it'
+    if answer == 'busy' and state == 'ready':
+        return f'a run is already ready (case {case}); demo.ps1 cloud-s5-show shows it'
     if answer == 'busy':
         return 'a run is already under way; following it'
+    if answer == 'not-ready':
+        return f'the S5 run is not ready yet ({state}); show it once cloud-s5 says ready'
     if answer == 'idle':
-        return 'no S5 run was active; the public address shows the demonstration'
+        return 'no S5 run is active; the public address shows the demonstration'
+    if answer == 'failed':
+        return f'S5 could not be shown ({status.get("code") or "see the deployment log"}); the demonstration was not changed'
     if answer == 'ended' or state == 'ended':
         return 'S5 ended; the public address shows the demonstration again'
     if state == 'starting':
         return f'preparing a fresh database ({S5_DATABASE}) and the demo-cups identities'
     if state == 'running':
-        return 'the R.02 driver is running in demo mode (about two minutes)'
-    if state == 'passed':
+        return 'the R.02 driver is running in demo mode (four to five minutes on Railway)'
+    if state == 'ready':
+        return (f'driver result PASSED, case {case}; ready. The public address still shows the '
+                'demonstration; in S5 run demo.ps1 cloud-s5-show')
+    if answer == 'shown' or state == 'passed':
         until = time.strftime('%H:%M UTC', time.gmtime(status['expires_at'])) if status.get('expires_at') else 'its session ends'
-        return (f'driver result PASSED, case {case}; the public address shows the driver API '
-                f'until {until} or demo.ps1 cloud-s5-end')
+        return (f'the public address shows the S5 case {case} until {until} or demo.ps1 cloud-s5-end')
     if state == 'failed':
         return (f'driver result {status.get("result") or "not reached"} ({status.get("code") or "see the deployment log"}); '
                 'the demonstration itself was not changed')
@@ -612,8 +650,9 @@ def describe(status, answer=None):
 
 
 def ask(kind, root=S5_ROOT, wait=None, clock=time.monotonic, sleep=time.sleep):
-    """`start.py s5` / `start.py s5-end`, run through `railway ssh` (demo.ps1 cloud-s5 / cloud-s5-end).
-    Exit 0 when the run passed (or was already shown), or when S5 ended or was not active."""
+    """`start.py s5` / `s5-show` / `s5-end`, run through `railway ssh` (demo.ps1 cloud-s5 /
+    cloud-s5-show / cloud-s5-end). Exit 0 when the run is ready (or already ready or shown), when
+    it is shown, or when S5 ended or was not active."""
     if not (root / 'status.json').is_file():
         say('S5: this deployment does not answer S5 requests; deploy main with demo.ps1 cloud first')
         return 1
@@ -631,8 +670,12 @@ def ask(kind, root=S5_ROOT, wait=None, clock=time.monotonic, sleep=time.sleep):
             say('S5: ' + describe(status, answer))
             if answer == 'busy' and kind == 's5' and status.get('state') in ('starting', 'running') and status.get('request'):
                 following = status['request']
+            elif kind == 's5-end':
+                return 0 if answer in ('ended', 'idle') else 1
+            elif kind == 's5-show':
+                return 0 if answer == 'shown' else 1
             else:
-                return 0 if answer in ('ended', 'idle') or status.get('state') == 'passed' else 1
+                return 0 if answer == 'busy' and status.get('state') in ('ready', 'passed') else 1
         if kind == 's5' and status.get('request') == following:
             state = status.get('state')
             if state != shown:
@@ -642,8 +685,8 @@ def ask(kind, root=S5_ROOT, wait=None, clock=time.monotonic, sleep=time.sleep):
                 # A line now and then, so an idle railway ssh session is not closed meanwhile.
                 say('S5: still ' + str(state) + '...')
                 spoke = clock()
-            if state in ('passed', 'failed', 'ended'):
-                return 0 if state == 'passed' else 1
+            if state in ('ready', 'passed', 'failed', 'ended'):
+                return 0 if state in ('ready', 'passed') else 1
         sleep(2)
     say(f'S5: no answer within {wait or S5_WAIT_SECONDS[kind]} s; read the deployment log on railway.com')
     return 1
@@ -717,7 +760,7 @@ if __name__ == '__main__':
     elif len(sys.argv) == 2 and sys.argv[1] in S5_KINDS:
         raise SystemExit(ask(sys.argv[1]))
     elif sys.argv[1:]:
-        say('usage: start.py [forget-data | s5 | s5-end]')
+        say('usage: start.py [forget-data | s5 | s5-show | s5-end]')
         raise SystemExit(2)
     else:
         main()

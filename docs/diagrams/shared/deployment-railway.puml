@@ -14,7 +14,7 @@ skinparam ranksep 55
 
 node "Presenter laptop\n(the demo machine)" as Laptop {
   node "Browser, two profiles\ncustomer and Founder" as Browser <<executionEnvironment>> #E4F2EB
-  node "Railway CLI + tools/demo/demo.ps1\ncloud / cloud-fresh / cloud-tokens\ncloud-s5 / cloud-s5-end" as Cli <<executionEnvironment>> #E4F2EB {
+  node "Railway CLI + tools/demo/demo.ps1\ncloud / cloud-fresh / cloud-tokens\ncloud-s5 / cloud-s5-show / cloud-s5-end" as Cli <<executionEnvironment>> #E4F2EB {
     artifact "tmp/railway-shop\nsessions, passwords, S5 key and receipt\nnever shown; deleted after use" as LocalSessions #E8EEF7
   }
 }
@@ -22,7 +22,7 @@ node "Presenter laptop\n(the demo machine)" as Laptop {
 cloud "Railway project" as Railway {
   node "Railway edge\npublic HTTPS address" as Edge <<executionEnvironment>> #E4F2EB
   node "Service: demo container\ntools/railway/Dockerfile\nnon-root UID 10001" as Service <<executionEnvironment>> #E4F2EB {
-    artifact "start.py\nkeep or reset returnops_f02, alembic upgrade head,\nprovision or renew sessions, then supervise;\nS5 on request (start.py s5 / s5-end)" as Start #E4F2EB
+    artifact "start.py\nkeep or reset returnops_f02, alembic upgrade head,\nprovision or renew sessions, then supervise;\nS5 run before the demonstration,\nshown on request (s5 / s5-show / s5-end)" as Start #E4F2EB
     artifact "Caddy on PORT\nweb build /app/web\n/v1 and /health -> 127.0.0.1:8000,\nor to the driver's API while S5 is shown" as Caddy #E4F2EB
     artifact "demo.py serve 127.0.0.1:8000\nfixed proposal, Founder decisions,\naccounts, advisory model (Bailian)" as Api #E4F2EB
     artifact "R.02 driver, demo mode (S5)\ntools/r02; its API child on\n127.0.0.1:8100 or the next free port" as Driver #E4F2EB
@@ -51,7 +51,7 @@ Api --> Database : SQLAlchemy + psycopg
 Driver --> S5Database : one cups case,\napproved and executed
 Cli --> Service : railway up / redeploy\n(build from this folder)
 Cli --> Private : railway ssh -- cat\n(stdout captured, not shown)
-Cli --> Start : railway ssh --\nstart.py s5 / s5-end
+Cli --> Start : railway ssh --\nstart.py s5 / s5-show / s5-end
 Cli --> LocalSessions : writes
 
 note bottom of Service
