@@ -49,6 +49,10 @@ jobs:
         run: python -B -m pytest tests/customer/test_evidence_validation.py tests/customer/test_codec_and_dto.py tests/customer/test_foundation_guards.py -q
       - name: Check mock label PDF renderer and validator without a database
         run: python -B -m pytest tests/unit/test_label_pdf.py tests/unit/test_label_pdf_validation.py -q
+      - name: Check the A3 carrier sandbox, its adapter and the recovery demo without a database
+        run: |
+          python -B -m pytest tests/unit/test_carrier_sandbox_offline.py tests/unit/test_carrier_adapter_offline.py -q
+          python -B tools/carrier_sandbox/run_recovery_demo.py
       - name: Check notification profile and independent fact integrity without a database
         run: python -B -m pytest --noconftest tests/lifecycle/test_notification_profile_offline.py tests/lifecycle/test_notification_fact_offline.py tests/lifecycle/test_notification_customer_origin_offline.py -q
       - name: Build and import installed packages outside checkout

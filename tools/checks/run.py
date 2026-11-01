@@ -32,7 +32,7 @@ LIFECYCLE_GROUPS = {
     "label_artifact_3": 4,
     "label_execution_bridge": 3,
     "label_execution_bridge_2": 3,
-    "label_execution_bridge_3": 2,
+    "label_execution_bridge_3": 3,
     "lifecycle_core": 15,
     "notification": 7,
     "notification_2": 6,

@@ -61,7 +61,8 @@
     ],
     "label_execution_bridge_3": [
       "tests/lifecycle/test_return_label_bridge_late_postgresql.py",
-      "tests/lifecycle/test_return_label_bridge_postgresql.py"
+      "tests/lifecycle/test_return_label_bridge_postgresql.py",
+      "tests/lifecycle/test_label_carrier_sandbox_postgresql.py"
     ],
     "lifecycle_core": [
       "tests/lifecycle/test_guards_postgresql.py",
