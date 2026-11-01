@@ -212,3 +212,16 @@ export function describeProposalSource(modelRun?: { model_id?: string; prompt_ve
     isModel: true,
   };
 }
+
+// The controlled PASS review of Gate 1 (pass_review_sources.py) is fixed, not a model, so
+// the review card says so wherever its outcome is shown (1 November 2026).
+export const CONTROLLED_REVIEW_MODEL_ID = 'controlled-synthetic-pass';
+
+export function describeReviewSource(modelRun?: { provider_id?: string; model_id?: string }): string {
+  const modelId = modelRun?.model_id;
+  if (!modelId) return 'Not recorded';
+  if (modelId === CONTROLLED_REVIEW_MODEL_ID || modelRun?.provider_id === FIXED_PROPOSAL_MODEL_ID) {
+    return 'Controlled review (fixed, no model)';
+  }
+  return `Model ${modelId}`;
+}

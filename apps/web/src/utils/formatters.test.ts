@@ -11,6 +11,8 @@ import {
   formatRequestedOutcome,
   formatRecommendation,
   describeProposalSource,
+  describeReviewSource,
+  CONTROLLED_REVIEW_MODEL_ID,
   FIXED_PROPOSAL_MODEL_ID,
 } from './formatters';
 import { ActorProvenance, CaseStatus, RequestedOutcome } from '../types/domain';
@@ -269,6 +271,16 @@ describe('formatters', () => {
         isModel: true,
       });
       expect(describeProposalSource({ model_id: 'campus-qwen' })).toEqual({ label: 'Model campus-qwen', isModel: true });
+    });
+
+    it('labels the controlled PASS review as fixed, not a model (1 November 2026)', () => {
+      const controlled = { provider_id: FIXED_PROPOSAL_MODEL_ID, model_id: CONTROLLED_REVIEW_MODEL_ID };
+      expect(describeReviewSource(controlled)).toBe('Controlled review (fixed, no model)');
+      expect(describeReviewSource({ provider_id: FIXED_PROPOSAL_MODEL_ID, model_id: 'any-fixture' })).toBe(
+        'Controlled review (fixed, no model)'
+      );
+      expect(describeReviewSource({ provider_id: 'aliyun_bailian', model_id: 'qwen-plus' })).toBe('Model qwen-plus');
+      expect(describeReviewSource(undefined)).toBe('Not recorded');
     });
   });
 });
