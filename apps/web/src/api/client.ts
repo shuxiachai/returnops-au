@@ -12,6 +12,7 @@ import {
   AnalyticsQuery,
   AnalyticsSnapshot,
   AiReplyDraft,
+  AiRiskReview,
   AiTriage,
   AiWeeklySummary,
   AuditEvent,
@@ -1081,4 +1082,26 @@ export async function summariseRecentCases(): Promise<AiWeeklySummary> {
     };
   }
   return request<AiWeeklySummary>('/v1/founder/assistant/summary', { method: 'POST' });
+}
+
+// The C2 Risk Reviewer's advisory review of one case (1 November 2026), same rules.
+export async function reviewCaseRisk(caseId: string): Promise<AiRiskReview> {
+  if (isMockMode()) {
+    return {
+      ...MOCK_AI,
+      prompt_version: 'c2-risk-review-advisory-v1',
+      generated_at: new Date().toISOString(),
+      case_id: caseId,
+      case_version: 1,
+      case_status: MOCK_FOUNDER_SUMMARIES.find((c) => c.case_id === caseId)?.status ?? 'RISK_REVIEW',
+      reviewed_proposal: null,
+      recorded: false,
+      outcome: 'PASS_WITH_WARNING',
+      summary: 'Sample data: no model was called.',
+      findings: [{ category: 'MISSING_INFORMATION', severity: 'WARNING', message: 'Sample data only.' }],
+      questions: [],
+      revision_requests: [],
+    };
+  }
+  return request<AiRiskReview>(`/v1/founder/cases/${encodeURIComponent(caseId)}/assistant/risk-review`, { method: 'POST' });
 }
