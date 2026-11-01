@@ -926,6 +926,40 @@ describe('FounderConsole failure and live-mode paths', () => {
       await waitFor(() => expect(getFounderAnalytics).toHaveBeenCalledTimes(3));
       expect(vi.mocked(getFounderAnalytics).mock.calls[2][0]).toStrictEqual({});
     });
+
+    it('takes the dates as typed YYYY-MM-DD text, whatever the browser language', async () => {
+      vi.mocked(isMockMode).mockReturnValue(false);
+      vi.mocked(getFounderAnalytics).mockResolvedValue(TIER0_SNAPSHOT);
+
+      render(<FounderConsole />);
+      fireEvent.click(screen.getByRole('button', { name: /Analytics Dashboard/i }));
+      expect(await screen.findByText('Total cases')).toBeInTheDocument();
+
+      const from = screen.getByLabelText(/Created from/i);
+      const before = screen.getByLabelText(/Created before/i);
+      // Plain text fields with an English hint, not the browser's localised date picker.
+      for (const input of [from, before]) {
+        expect(input).toHaveAttribute('type', 'text');
+        expect(input).toHaveAttribute('placeholder', 'YYYY-MM-DD');
+      }
+
+      // Another format, or a day that does not exist, is stopped in the browser.
+      fireEvent.change(from, { target: { value: '01/11/2026' } });
+      fireEvent.click(screen.getByRole('button', { name: /Apply Filters/i }));
+      expect(await screen.findByText(/"Created from" must be a date written as YYYY-MM-DD/)).toBeInTheDocument();
+      fireEvent.change(from, { target: { value: '' } });
+      fireEvent.change(before, { target: { value: '2026-02-30' } });
+      fireEvent.click(screen.getByRole('button', { name: /Apply Filters/i }));
+      expect(await screen.findByText(/"Created before" must be a date written as YYYY-MM-DD/)).toBeInTheDocument();
+      expect(getFounderAnalytics).toHaveBeenCalledTimes(1);
+
+      // Spaces around a pasted date are ignored.
+      fireEvent.change(before, { target: { value: ' 2026-11-02 ' } });
+      fireEvent.click(screen.getByRole('button', { name: /Apply Filters/i }));
+      await waitFor(() => expect(getFounderAnalytics).toHaveBeenCalledTimes(2));
+      expect(vi.mocked(getFounderAnalytics).mock.calls[1][0]).toStrictEqual({ created_before: '2026-11-02T00:00:00Z' });
+      expect(screen.queryByText(/must be a date written as YYYY-MM-DD/)).not.toBeInTheDocument();
+    });
   });
 });
 
